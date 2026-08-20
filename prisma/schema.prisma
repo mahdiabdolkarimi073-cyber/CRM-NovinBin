@@ -993,6 +993,10 @@ model DailyWorkReport {
   profileId   String   @db.Uuid
   title       String
   description String?
+  project     String?
+  status      String   @default("completed")
+  duration    String?
+  details     String?
   reportDate  DateTime
   createdAt   DateTime @default(now())
   org         Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)

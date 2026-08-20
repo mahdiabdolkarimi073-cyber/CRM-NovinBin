@@ -52,10 +52,11 @@ export function NotificationBell({ variant = 'default' }: { variant?: 'default' 
 
   const displayCount = unreadCount > 99 ? '۹۹+' : unreadCount.toLocaleString('fa-IR');
   const isSuperAdmin = variant === 'super-admin';
+  const linkHref = isSuperAdmin ? '/dashboard/notifications' : '/dashboard/notifications';
 
   return (
     <Link
-      href="/dashboard/notifications"
+      href={linkHref}
       className={cn(
         'relative flex h-10 w-10 items-center justify-center rounded-xl transition-colors',
         isSuperAdmin

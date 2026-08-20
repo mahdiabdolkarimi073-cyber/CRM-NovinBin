@@ -263,6 +263,33 @@ export async function POST(req: NextRequest) {
       } catch {}
     }
 
+    // Notify super-admins when a daily work report is created
+    if (model === 'daily_work_reports' && postData.profileId) {
+      try {
+        const author = await prisma.profile.findUnique({
+          where: { id: postData.profileId },
+          select: { firstName: true, lastName: true },
+        });
+        const authorName = [author?.firstName, author?.lastName].filter(Boolean).join(' ') || 'کاربر';
+        const superAdmins = await prisma.profile.findMany({
+          where: { role: { in: ['super_admin', 'owner'] }, active: true, id: { not: postData.profileId } },
+          select: { id: true },
+        });
+        if (superAdmins.length > 0) {
+          await prisma.notification.createMany({
+            data: superAdmins.map((sa) => ({
+              profileId: sa.id,
+              title: `گزارش روزانه جدید از ${authorName}`,
+              body: postData.title ? String(postData.title).slice(0, 120) : null,
+              type: 'report',
+              priority: 'normal',
+              link: `/dashboard/work-reports/daily/view/${record.id}`,
+            })),
+          });
+        }
+      } catch {}
+    }
+
     // Auto-copy notifications to all super-admins
     if (model === 'notifications' && postData.profileId) {
       try {
@@ -305,6 +332,35 @@ export async function PATCH(req: NextRequest) {
 
   try {
     const record = await MODEL_MAP[model].update({ where, data, include });
+
+    // Notify super-admins when a daily work report is edited
+    if (model === 'daily_work_reports') {
+      try {
+        const report = record as any;
+        const author = await prisma.profile.findUnique({
+          where: { id: report.profileId },
+          select: { firstName: true, lastName: true },
+        });
+        const authorName = [author?.firstName, author?.lastName].filter(Boolean).join(' ') || 'کاربر';
+        const superAdmins = await prisma.profile.findMany({
+          where: { role: { in: ['super_admin', 'owner'] }, active: true, id: { not: report.profileId } },
+          select: { id: true },
+        });
+        if (superAdmins.length > 0) {
+          await prisma.notification.createMany({
+            data: superAdmins.map((sa) => ({
+              profileId: sa.id,
+              title: `ویرایش گزارش روزانه توسط ${authorName}`,
+              body: report.title ? String(report.title).slice(0, 120) : null,
+              type: 'report',
+              priority: 'normal',
+              link: `/dashboard/work-reports/daily/view/${report.id}`,
+            })),
+          });
+        }
+      } catch {}
+    }
+
     return NextResponse.json({ data: serializeData(record) });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

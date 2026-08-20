@@ -469,6 +469,10 @@ export interface DailyWorkReport {
   profileId: string;
   title: string;
   description: string | null;
+  project: string | null;
+  status: string;
+  duration: string | null;
+  details: string | null;
   reportDate: string;
   createdAt: string;
 }
