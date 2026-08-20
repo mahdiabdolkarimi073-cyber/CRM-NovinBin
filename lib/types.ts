@@ -33,6 +33,7 @@ export interface Profile {
   customerId: string | null;
   assignedPages: string[] | null;
   birthDate: string | null;
+  lastSeenAt: string | null;
   active: boolean;
   createdAt: string;
 }

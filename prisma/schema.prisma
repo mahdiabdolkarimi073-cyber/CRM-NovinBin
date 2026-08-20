@@ -171,6 +171,7 @@ model Profile {
   customerId   String?  @db.Uuid
   assignedPages String[]
   birthDate    DateTime?
+  lastSeenAt   DateTime?
   active       Boolean  @default(true)
   createdAt    DateTime @default(now())
   org          Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)

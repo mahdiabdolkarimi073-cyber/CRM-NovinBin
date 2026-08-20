@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { fetchData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
 import { Bell } from 'lucide-react';
@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 export function NotificationBell({ variant = 'default' }: { variant?: 'default' | 'super-admin' }) {
   const { profile } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const lastCountRef = useRef(0);
 
   const loadUnread = useCallback(async () => {
     if (!profile?.id) return;
@@ -18,7 +18,15 @@ export function NotificationBell({ variant = 'default' }: { variant?: 'default' 
       const data = await fetchData<any>('notifications', {
         where: { profileId: profile.id, read: false },
       });
-      setUnreadCount(Array.isArray(data) ? data.length : 0);
+      const count = Array.isArray(data) ? data.length : 0;
+      if (count > lastCountRef.current) {
+        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+          const newCount = count - lastCountRef.current;
+          new Notification('پیام جدید', { body: `${newCount.toLocaleString('fa-IR')} اعلان جدید`, icon: '/images/1.png' });
+        }
+      }
+      lastCountRef.current = count;
+      setUnreadCount(count);
     } catch {
       // silent fail
     }
@@ -26,19 +34,23 @@ export function NotificationBell({ variant = 'default' }: { variant?: 'default' 
 
   useEffect(() => {
     loadUnread();
-    const interval = setInterval(loadUnread, 30000);
+    const interval = setInterval(loadUnread, 15000);
     return () => clearInterval(interval);
   }, [loadUnread]);
 
-  // Also reload when page becomes visible
   useEffect(() => {
     const handler = () => { if (document.visibilityState === 'visible') loadUnread(); };
     document.addEventListener('visibilitychange', handler);
     return () => document.removeEventListener('visibilitychange', handler);
   }, [loadUnread]);
 
-  const displayCount = unreadCount > 99 ? '۹۹+' : unreadCount.toLocaleString('fa-IR');
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
+  }, []);
 
+  const displayCount = unreadCount > 99 ? '۹۹+' : unreadCount.toLocaleString('fa-IR');
   const isSuperAdmin = variant === 'super-admin';
 
   return (

@@ -1,18 +1,11 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { fetchData, createData, updateData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
-import { PageHeader } from '@/components/dashboard/page-header';
 import { EmptyState } from '@/components/dashboard/empty-state';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { MessageCircle, Send, Search, Paperclip, Video, FileText, X } from 'lucide-react';
-import { relativeTime } from '@/lib/format';
+import { MessageCircle, Send, Search, Paperclip, Video, FileText, X, Info, MoreVertical, Filter, Plus, Smile, Mic, CheckCheck, Users, ArrowRight, XCircle } from 'lucide-react';
+import { relativeTime, formatJalali } from '@/lib/format';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import type { StaffChatMessage, Profile } from '@/lib/types';
@@ -23,6 +16,15 @@ interface Conversation {
   unreadCount: number;
 }
 
+const EMOJIS = ['😀', '😄', '😁', '😊', '😍', '🤩', '😎', '🤔', '😅', '😂', '🥳', '😇', '🙂', '😉', '😌', '😋', '🤗', '🤝', '👍', '👏', '🙏', '💪', '🔥', '✨', '🎉', '❤️', '💯', '⭐', '✅', '🚀'];
+
+const ONLINE_THRESHOLD_MS = 45 * 1000;
+
+function isOnline(lastSeenAt: string | null): boolean {
+  if (!lastSeenAt) return false;
+  return Date.now() - new Date(lastSeenAt).getTime() < ONLINE_THRESHOLD_MS;
+}
+
 export default function StaffChatPage() {
   const { profile } = useAuth();
   const [users, setUsers] = useState<Profile[]>([]);
@@ -31,17 +33,21 @@ export default function StaffChatPage() {
   const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [messageSearch, setMessageSearch] = useState('');
+  const [isMessageSearchOpen, setIsMessageSearchOpen] = useState(false);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
+  const [isUsersOpen, setIsUsersOpen] = useState(false);
+  const [isEmojiOpen, setIsEmojiOpen] = useState(false);
   const [attachment, setAttachment] = useState<{ url: string; name: string; type: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadUsers = useCallback(async () => {
     if (!profile) return;
     try {
-      const data = await fetchData<Profile>('profiles', {
-        where: { id: { not: profile.id } },
-      });
+      const data = await fetchData<Profile>('profiles', { where: { id: { not: profile.id } } });
       setUsers(data || []);
     } catch (e: any) {
       toast.error(e.message);
@@ -52,9 +58,7 @@ export default function StaffChatPage() {
   const loadConversations = useCallback(async () => {
     if (!profile) return;
     try {
-      const allMessages = await fetchData<StaffChatMessage>('staff_chat_messages', {
-        orderBy: { createdAt: 'desc' },
-      });
+      const allMessages = await fetchData<StaffChatMessage>('staff_chat_messages', { orderBy: { createdAt: 'desc' } });
       const userMap = new Map<string, Conversation>();
       for (const msg of allMessages || []) {
         const otherId = msg.senderId === profile.id ? msg.receiverId : msg.senderId;
@@ -63,15 +67,9 @@ export default function StaffChatPage() {
         const existing = userMap.get(otherId);
         const isUnread = msg.receiverId === profile.id && !msg.readAt;
         if (!existing) {
-          userMap.set(otherId, {
-            profile: otherProfile,
-            lastMessage: msg,
-            unreadCount: isUnread ? 1 : 0,
-          });
+          userMap.set(otherId, { profile: otherProfile, lastMessage: msg, unreadCount: isUnread ? 1 : 0 });
         } else {
-          if (!existing.lastMessage || new Date(msg.createdAt) > new Date(existing.lastMessage.createdAt)) {
-            existing.lastMessage = msg;
-          }
+          if (!existing.lastMessage || new Date(msg.createdAt) > new Date(existing.lastMessage.createdAt)) existing.lastMessage = msg;
           if (isUnread) existing.unreadCount++;
         }
       }
@@ -88,19 +86,14 @@ export default function StaffChatPage() {
   const loadMessages = useCallback(async (otherUserId: string) => {
     if (!profile) return;
     try {
-      const data = await fetchData<StaffChatMessage>('staff_chat_messages', {
-        orderBy: { createdAt: 'asc' },
-      });
-      const filtered = (data || []).filter(
-        (m) =>
-          (m.senderId === profile.id && m.receiverId === otherUserId) ||
-          (m.senderId === otherUserId && m.receiverId === profile.id)
+      const data = await fetchData<StaffChatMessage>('staff_chat_messages', { orderBy: { createdAt: 'asc' } });
+      const filtered = (data || []).filter((m) =>
+        (m.senderId === profile.id && m.receiverId === otherUserId) ||
+        (m.senderId === otherUserId && m.receiverId === profile.id)
       );
       setMessages(filtered);
       const unread = filtered.filter((m) => m.receiverId === profile.id && !m.readAt);
-      for (const m of unread) {
-        await updateData('staff_chat_messages', { id: m.id }, { readAt: new Date() });
-      }
+      for (const m of unread) await updateData('staff_chat_messages', { id: m.id }, { readAt: new Date() });
     } catch (e: any) {
       toast.error(e.message);
     }
@@ -108,31 +101,52 @@ export default function StaffChatPage() {
 
   useEffect(() => { loadUsers(); }, [loadUsers]);
   useEffect(() => { if (users.length > 0) loadConversations(); }, [loadConversations]);
-  useEffect(() => {
-    if (selectedUser) loadMessages(selectedUser.id);
-  }, [selectedUser, loadMessages]);
+  useEffect(() => { if (selectedUser) loadMessages(selectedUser.id); }, [selectedUser, loadMessages]);
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (!profile) return;
+    const beat = () => fetch('/api/chat/presence', { method: 'POST' }).catch(() => {});
+    beat();
+    heartbeatRef.current = setInterval(beat, 30000);
+    const onVisible = () => { if (document.visibilityState === 'visible') beat(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [profile]);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (selectedUser) loadMessages(selectedUser.id);
-      if (users.length > 0) loadConversations();
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [selectedUser, loadMessages, loadConversations, users.length]);
+    if (!profile) return;
+    const es = new EventSource('/api/chat/stream');
+    es.addEventListener('message', (e) => {
+      try {
+        const msg: StaffChatMessage = JSON.parse(e.data);
+        if (msg.receiverId === profile.id) {
+          setMessages((prev) => prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]);
+          if (selectedUser?.id === msg.senderId) {
+            updateData('staff_chat_messages', { id: msg.id }, { readAt: new Date() }).catch(() => {});
+          }
+        }
+        loadConversations();
+      } catch {}
+    });
+    es.addEventListener('read', (e) => {
+      try {
+        const msg: StaffChatMessage = JSON.parse(e.data);
+        setMessages((prev) => prev.map((m) => m.id === msg.id ? { ...m, readAt: msg.readAt } : m));
+      } catch {}
+    });
+    es.addEventListener('error', () => {});
+    return () => es.close();
+  }, [profile, selectedUser, loadConversations]);
 
   const handleSend = async () => {
-    if (!profile || !selectedUser) return;
-    if (!text.trim() && !attachment) return;
+    if (!profile || !selectedUser || (!text.trim() && !attachment)) return;
     setSending(true);
     try {
-      const payload: Record<string, any> = {
-        receiverId: selectedUser.id,
-        content: text.trim() || null,
-      };
+      const payload: Record<string, any> = { receiverId: selectedUser.id, content: text.trim() || null };
       if (attachment) {
         payload.attachmentUrl = attachment.url;
         payload.attachmentName = attachment.name;
@@ -141,6 +155,7 @@ export default function StaffChatPage() {
       await createData('staff_chat_messages', payload);
       setText('');
       setAttachment(null);
+      setIsEmojiOpen(false);
       loadMessages(selectedUser.id);
       loadConversations();
     } catch (e: any) {
@@ -152,10 +167,7 @@ export default function StaffChatPage() {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error('حداکثر حجم فایل ۱۰ مگابایت');
-      return;
-    }
+    if (file.size > 10 * 1024 * 1024) { toast.error('حداکثر حجم فایل ۱۰ مگابایت'); return; }
     const reader = new FileReader();
     reader.onload = () => {
       const type = file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : 'file';
@@ -164,285 +176,153 @@ export default function StaffChatPage() {
     reader.readAsDataURL(file);
   };
 
-  const getUserLabel = (u: Profile) => {
-    const name = [u.firstName, u.lastName].filter(Boolean).join(' ') || 'کاربر';
-    return name;
-  };
-
-  const getInitials = (u: Profile) => {
-    const fn = u.firstName?.[0] || '';
-    const ln = u.lastName?.[0] || '';
-    return (fn + ln).toUpperCase() || '؟';
-  };
-
-  const roleLabels: Record<string, string> = {
-    owner: 'مالک',
-    super_admin: 'سوپرادمین',
-    admin: 'مدیر',
-    personnel: 'پرسنل',
-  };
-
-  const filteredUsers = users.filter((u) =>
-    getUserLabel(u).toLowerCase().includes(search.toLowerCase())
-  );
-
+  const getUserLabel = (u: Profile) => [u.firstName, u.lastName].filter(Boolean).join(' ') || 'کاربر';
+  const getInitials = (u: Profile) => ((u.firstName?.[0] || '') + (u.lastName?.[0] || '')).toUpperCase() || '؟';
+  const roleLabels: Record<string, string> = { owner: 'مالک', super_admin: 'سوپرادمین', admin: 'مدیر', personnel: 'پرسنل' };
+  const filteredUsers = users.filter((u) => getUserLabel(u).toLowerCase().includes(search.toLowerCase()));
   const conversationUsers = new Set(conversations.map((c) => c.profile.id));
   const recentConvoUsers = conversations.map((c) => c.profile);
   const otherUsers = filteredUsers.filter((u) => !conversationUsers.has(u.id));
 
-  if (loading) {
+  const filteredMessages = useMemo(() => {
+    if (!messageSearch.trim()) return messages;
+    const q = messageSearch.toLowerCase();
+    return messages.filter((m) => m.content?.toLowerCase().includes(q));
+  }, [messages, messageSearch]);
+
+  const selectUser = (user: Profile) => { setSelectedUser(user); setIsUsersOpen(false); };
+
+  const renderUser = (user: Profile, conversation?: Conversation) => {
+    const isActive = selectedUser?.id === user.id;
+    const online = isOnline(user.lastSeenAt);
     return (
-      <div>
-        <PageHeader title="چت پرسنل" description="چت خصوصی با کاربران سیستم" />
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin w-8 h-8 border-3 border-sky-500 border-t-transparent rounded-full" />
-        </div>
-      </div>
+      <button key={user.id} onClick={() => selectUser(user)} className={cn('staff-chat-user', isActive && 'is-active')}>
+        <span className="staff-chat-avatar-wrap">
+          <span className="staff-chat-avatar">{getInitials(user)}</span>
+          <span className={cn('staff-chat-presence-dot', online ? 'is-online' : 'is-offline')} />
+        </span>
+        <span className="staff-chat-user-copy">
+          <span className="staff-chat-user-topline">
+            <strong>{getUserLabel(user)}</strong>
+            {conversation?.lastMessage && <time>{relativeTime(conversation.lastMessage.createdAt)}</time>}
+          </span>
+          <span className="staff-chat-user-bottomline">
+            <small>{conversation?.lastMessage?.content || (conversation?.lastMessage?.attachmentUrl ? 'فایل' : online ? 'آنلاین' : user.lastSeenAt ? `آخرین بازدید ${relativeTime(user.lastSeenAt)}` : roleLabels[user.role] || user.role)}</small>
+            {conversation?.unreadCount ? <b>{conversation.unreadCount.toLocaleString('fa-IR')}</b> : null}
+          </span>
+        </span>
+      </button>
     );
+  };
+
+  if (loading) {
+    return <div className="staff-chat-page"><div className="staff-chat-loading"><span /></div></div>;
   }
 
   return (
-    <div>
-      <PageHeader title="چت پرسنل" description="چت خصوصی با کاربران سیستم — متن، عکس و ویدیو" />
+    <div className="staff-chat-page">
+      <header className="staff-chat-page-header">
+        <div className="staff-chat-title"><span /><h1>چت پرسنل</h1></div>
+        <p>چت خصوصی با کاربران سیستم</p>
+      </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-4 h-[calc(100vh-220px)]">
-        {/* Sidebar: user list */}
-        <Card className="flex flex-col overflow-hidden">
-          <div className="p-3 border-b">
-            <div className="relative">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="جستجوی کاربر..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pr-10 h-9"
-              />
-            </div>
-          </div>
-          <ScrollArea className="flex-1">
-            <div className="p-2">
-              {conversations.length === 0 && otherUsers.length === 0 ? (
-                <div className="text-center py-8 text-sm text-muted-foreground">
-                  کاربری یافت نشد
-                </div>
-              ) : (
-                <>
-                  {recentConvoUsers.length > 0 && (
-                    <div className="px-2 py-1.5 text-xs font-bold text-muted-foreground">گفتگوهای اخیر</div>
-                  )}
-                  {recentConvoUsers
-                    .filter((u) => getUserLabel(u).toLowerCase().includes(search.toLowerCase()))
-                    .map((u) => {
-                      const convo = conversations.find((c) => c.profile.id === u.id)!;
-                      const isActive = selectedUser?.id === u.id;
-                      return (
-                        <button
-                          key={u.id}
-                          onClick={() => setSelectedUser(u)}
-                          className={cn(
-                            'w-full flex items-center gap-3 p-2.5 rounded-lg transition-smooth text-right',
-                            isActive ? 'bg-sky-50' : 'hover:bg-muted'
-                          )}
-                        >
-                          <Avatar className="w-10 h-10 shrink-0">
-                            <AvatarFallback className="bg-sky-100 text-sky-700 text-sm font-bold">
-                              {getInitials(u)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="font-medium text-sm text-slate-900 truncate">{getUserLabel(u)}</span>
-                              {convo.lastMessage && (
-                                <span className="text-[10px] text-slate-400 shrink-0">
-                                  {relativeTime(convo.lastMessage.createdAt)}
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-xs text-slate-500 truncate">
-                                {convo.lastMessage?.content || (convo.lastMessage?.attachmentUrl ? 'فایل' : '')}
-                              </span>
-                              {convo.unreadCount > 0 && (
-                                <Badge className="bg-sky-500 text-white text-[10px] h-5 min-w-5 flex items-center justify-center px-1">
-                                  {convo.unreadCount.toLocaleString('fa-IR')}
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  {otherUsers.length > 0 && recentConvoUsers.length > 0 && (
-                    <div className="px-2 py-1.5 mt-2 text-xs font-bold text-muted-foreground">سایر کاربران</div>
-                  )}
-                  {otherUsers.map((u) => {
-                    const isActive = selectedUser?.id === u.id;
-                    return (
-                      <button
-                        key={u.id}
-                        onClick={() => setSelectedUser(u)}
-                        className={cn(
-                          'w-full flex items-center gap-3 p-2.5 rounded-lg transition-smooth text-right',
-                          isActive ? 'bg-sky-50' : 'hover:bg-muted'
-                        )}
-                      >
-                        <Avatar className="w-10 h-10 shrink-0">
-                          <AvatarFallback className="bg-slate-100 text-slate-600 text-sm font-bold">
-                            {getInitials(u)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <span className="font-medium text-sm text-slate-900 truncate block">{getUserLabel(u)}</span>
-                          <span className="text-xs text-slate-400">{roleLabels[u.role] || u.role}</span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </>
-              )}
-            </div>
-          </ScrollArea>
-        </Card>
-
-        {/* Chat area */}
-        {selectedUser ? (
-          <Card className="flex flex-col overflow-hidden">
-            {/* Header */}
-            <div className="flex items-center gap-3 p-3 border-b bg-white">
-              <Avatar className="w-10 h-10">
-                <AvatarFallback className="bg-sky-100 text-sky-700 text-sm font-bold">
-                  {getInitials(selectedUser)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <div className="font-bold text-slate-900">{getUserLabel(selectedUser)}</div>
-                <div className="text-xs text-slate-400">{roleLabels[selectedUser.role] || selectedUser.role}</div>
-              </div>
-            </div>
-
-            {/* Messages */}
-            <ScrollArea className="flex-1">
-              <div className="p-4 space-y-3">
-                {messages.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full text-center py-12">
-                    <MessageCircle className="w-10 h-10 text-muted-foreground/40 mb-3" />
-                    <p className="text-sm text-muted-foreground">
-                      گفتگو را شروع کنید — اولین پیام را ارسال کنید
-                    </p>
+      <div className="staff-chat-layout">
+        <section className="staff-chat-panel">
+          {selectedUser ? (
+            <>
+              <header className="staff-chat-header">
+                <div className="staff-chat-person">
+                  <span className="staff-chat-avatar-wrap">
+                    <span className="staff-chat-avatar staff-chat-avatar-large">{getInitials(selectedUser)}</span>
+                    <span className={cn('staff-chat-presence-dot', isOnline(selectedUser.lastSeenAt) ? 'is-online' : 'is-offline')} />
+                  </span>
+                  <div>
+                    <strong>{getUserLabel(selectedUser)}</strong>
+                    <span className="staff-chat-status">
+                      <i className={cn(isOnline(selectedUser.lastSeenAt) ? 'is-online' : 'is-offline')} />
+                      {isOnline(selectedUser.lastSeenAt) ? 'آنلاین' : selectedUser.lastSeenAt ? `آخرین بازدید ${relativeTime(selectedUser.lastSeenAt)}` : roleLabels[selectedUser.role] || selectedUser.role}
+                    </span>
                   </div>
-                ) : (
-                  messages.map((msg) => {
-                    const isMine = msg.senderId === profile?.id;
-                    return (
-                      <div
-                        key={msg.id}
-                        className={cn('flex', isMine ? 'justify-start' : 'justify-end')}
-                      >
-                        <div
-                          className={cn(
-                            'max-w-[75%] rounded-2xl px-4 py-2.5',
-                            isMine
-                              ? 'bg-sky-500 text-white rounded-bl-sm'
-                              : 'bg-muted text-slate-900 rounded-br-sm'
-                          )}
-                        >
-                          {msg.content && (
-                            <p className="text-sm leading-6 whitespace-pre-wrap break-words">{msg.content}</p>
-                          )}
-                          {msg.attachmentUrl && msg.attachmentType === 'image' && (
-                            <img
-                              src={msg.attachmentUrl}
-                              alt={msg.attachmentName || ''}
-                              className="rounded-lg max-w-full max-h-60 mt-2"
-                            />
-                          )}
-                          {msg.attachmentUrl && msg.attachmentType === 'video' && (
-                            <video
-                              src={msg.attachmentUrl}
-                              controls
-                              className="rounded-lg max-w-full max-h-60 mt-2"
-                            />
-                          )}
-                          {msg.attachmentUrl && msg.attachmentType === 'file' && (
-                            <a
-                              href={msg.attachmentUrl}
-                              download={msg.attachmentName || ''}
-                              className={cn(
-                                'flex items-center gap-2 mt-2 text-sm underline',
-                                isMine ? 'text-white' : 'text-sky-600'
-                              )}
-                            >
-                              <FileText className="w-4 h-4" />
-                              {msg.attachmentName || 'دانلود فایل'}
-                            </a>
-                          )}
-                          <div className={cn('text-[10px] mt-1', isMine ? 'text-sky-100' : 'text-slate-400')}>
-                            {relativeTime(msg.createdAt)}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
+                </div>
+                <div className="staff-chat-actions">
+                  <button className="staff-chat-icon-button mobile-only" onClick={() => setIsUsersOpen(true)} aria-label="نمایش کاربران"><Users /></button>
+                  <button className="staff-chat-icon-button" onClick={() => setIsMessageSearchOpen((v) => !v)} aria-label="جستجوی پیام"><Search /></button>
+                  <button className="staff-chat-icon-button" aria-label="اطلاعات"><Info /></button>
+                  <button className="staff-chat-icon-button" aria-label="گزینه‌های بیشتر"><MoreVertical /></button>
+                </div>
+              </header>
+
+              {isMessageSearchOpen && (
+                <div className="staff-chat-message-search">
+                  <Search />
+                  <input autoFocus placeholder="جستجو در پیام‌ها..." value={messageSearch} onChange={(e) => setMessageSearch(e.target.value)} />
+                  <button onClick={() => { setIsMessageSearchOpen(false); setMessageSearch(''); }} aria-label="بستن جستجو"><XCircle /></button>
+                </div>
+              )}
+
+              <div className="staff-chat-messages" ref={messagesContainerRef}>
+                <div className="staff-chat-date">امروز - {formatJalali(new Date())}</div>
+                {messages.length === 0 ? (
+                  <div className="staff-chat-empty"><MessageCircle /><p>گفتگو را شروع کنید — اولین پیام را ارسال کنید</p></div>
+                ) : filteredMessages.length === 0 ? (
+                  <div className="staff-chat-empty"><Search /><p>پیامی با این عبارت یافت نشد</p></div>
+                ) : filteredMessages.map((msg) => {
+                  const isMine = msg.senderId === profile?.id;
+                  return <div key={msg.id} className={cn('staff-chat-message-row', isMine ? 'is-mine' : 'is-other')}>
+                    {!isMine && <span className="staff-chat-avatar staff-chat-message-avatar">{getInitials(selectedUser)}</span>}
+                    <div className={cn('staff-chat-bubble', isMine ? 'is-mine' : 'is-other')}>
+                      {msg.content && <p>{msg.content}</p>}
+                      {msg.attachmentUrl && msg.attachmentType === 'image' && <img src={msg.attachmentUrl} alt={msg.attachmentName || ''} />}
+                      {msg.attachmentUrl && msg.attachmentType === 'video' && <video src={msg.attachmentUrl} controls />}
+                      {msg.attachmentUrl && msg.attachmentType === 'file' && <a href={msg.attachmentUrl} download={msg.attachmentName || ''}><FileText />{msg.attachmentName || 'دانلود فایل'}</a>}
+                      <span className="staff-chat-message-meta">{relativeTime(msg.createdAt)} {isMine && <CheckCheck />}</span>
+                    </div>
+                  </div>;
+                })}
                 <div ref={messagesEndRef} />
               </div>
-            </ScrollArea>
 
-            {/* Attachment preview */}
-            {attachment && (
-              <div className="px-4 py-2 border-t bg-muted/50 flex items-center gap-2">
-                {attachment.type === 'image' ? (
-                  <img src={attachment.url} alt="" className="w-12 h-12 rounded object-cover" />
-                ) : attachment.type === 'video' ? (
-                  <div className="w-12 h-12 rounded bg-slate-200 flex items-center justify-center">
-                    <Video className="w-5 h-5 text-slate-500" />
-                  </div>
-                ) : (
-                  <div className="w-12 h-12 rounded bg-slate-200 flex items-center justify-center">
-                    <FileText className="w-5 h-5 text-slate-500" />
-                  </div>
-                )}
-                <span className="text-sm text-slate-600 flex-1 truncate">{attachment.name}</span>
-                <Button size="sm" variant="ghost" onClick={() => setAttachment(null)}>
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            )}
+              {attachment && <div className="staff-chat-attachment-preview">
+                {attachment.type === 'image' ? <img src={attachment.url} alt="" /> : <span>{attachment.type === 'video' ? <Video /> : <FileText />}</span>}
+                <strong>{attachment.name}</strong><button onClick={() => setAttachment(null)} aria-label="حذف فایل"><X /></button>
+              </div>}
 
-            {/* Input */}
-            <div className="p-3 border-t flex items-center gap-2 bg-white">
-              <label className="cursor-pointer">
-                <input type="file" accept="image/*,video/*" className="hidden" onChange={handleFileSelect} />
-                <div className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-muted transition-smooth">
-                  <Paperclip className="w-4 h-4 text-slate-500" />
+              {isEmojiOpen && (
+                <div className="staff-chat-emoji-picker">
+                  {EMOJIS.map((emoji) => (
+                    <button key={emoji} className="staff-chat-emoji" onClick={() => { setText((t) => t + emoji); setIsEmojiOpen(false); }}>{emoji}</button>
+                  ))}
                 </div>
-              </label>
-              <Input
-                placeholder="پیام بنویسید..."
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSend();
-                  }
-                }}
-                className="flex-1"
-              />
-              <Button size="icon" onClick={handleSend} disabled={sending || (!text.trim() && !attachment)}>
-                <Send className="w-4 h-4" />
-              </Button>
-            </div>
-          </Card>
-        ) : (
-          <Card className="flex items-center justify-center">
-            <EmptyState
-              icon={<MessageCircle className="w-8 h-8" />}
-              title="یک کاربر را انتخاب کنید"
-              description="از لیست کناری کاربری را انتخاب کنید تا گفتگو را شروع کنید"
-            />
-          </Card>
-        )}
+              )}
+
+              <div className="staff-chat-composer">
+                <button className="staff-chat-tool" onClick={() => setIsEmojiOpen((v) => !v)} aria-label="افزودن شکلک"><Smile /></button>
+                <label className="staff-chat-tool" aria-label="افزودن فایل"><input type="file" accept="image/*,video/*" onChange={handleFileSelect} /><Paperclip /></label>
+                <button className="staff-chat-tool" aria-label="ضبط صدا"><Mic /></button>
+                <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder="پیام خود را بنویسید..." />
+                <button className="staff-chat-send" onClick={handleSend} disabled={sending || (!text.trim() && !attachment)} aria-label="ارسال پیام"><Send /></button>
+              </div>
+            </>
+          ) : <div className="staff-chat-empty-panel"><button className="mobile-user-trigger" onClick={() => setIsUsersOpen(true)}><Users /> انتخاب کاربر</button><EmptyState icon={<MessageCircle />} title="یک کاربر را انتخاب کنید" description="از لیست کاربران، گفتگو را انتخاب کنید" /></div>}
+        </section>
+
+        <aside className={cn('staff-chat-users-panel', isUsersOpen && 'is-open')}>
+          <div className="staff-chat-users-toolbar">
+            <div className="staff-chat-search"><Search /><input placeholder="جستجوی کاربر..." value={search} onChange={(e) => setSearch(e.target.value)} /></div>
+            <button className="staff-chat-toolbar-button" aria-label="فیلتر"><Filter /></button>
+            <button className="staff-chat-add-button" aria-label="افزودن گفتگو"><Plus /></button>
+          </div>
+          <div className="staff-chat-users-list">
+            {conversations.length === 0 && otherUsers.length === 0 ? <div className="staff-chat-no-users">کاربری یافت نشد</div> : <>
+              {recentConvoUsers.length > 0 && <h3>گفتگوهای اخیر</h3>}
+              {recentConvoUsers.filter((u) => getUserLabel(u).toLowerCase().includes(search.toLowerCase())).map((u) => renderUser(u, conversations.find((c) => c.profile.id === u.id)))}
+              {otherUsers.length > 0 && recentConvoUsers.length > 0 && <h3>سایر کاربران</h3>}
+              {otherUsers.map((u) => renderUser(u))}
+            </>}
+          </div>
+          <button className="staff-chat-all-users"><Users /> مشاهده همه کاربران</button>
+        </aside>
+        {isUsersOpen && <button className="staff-chat-overlay" onClick={() => setIsUsersOpen(false)} aria-label="بستن فهرست کاربران" />}
       </div>
     </div>
   );

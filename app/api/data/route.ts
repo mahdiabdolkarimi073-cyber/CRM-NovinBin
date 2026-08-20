@@ -243,6 +243,26 @@ export async function POST(req: NextRequest) {
   try {
     const record = await MODEL_MAP[model].create({ data: postData, include });
 
+    if (model === 'staff_chat_messages' && postData.receiverId) {
+      try {
+        const sender = await prisma.profile.findUnique({
+          where: { id: auth.userId },
+          select: { firstName: true, lastName: true },
+        });
+        const senderName = [sender?.firstName, sender?.lastName].filter(Boolean).join(' ') || 'کاربر';
+        await prisma.notification.create({
+          data: {
+            profileId: postData.receiverId,
+            title: `پیام جدید از ${senderName}`,
+            body: postData.content ? String(postData.content).slice(0, 120) : 'فایل پیوست',
+            type: 'chat',
+            priority: 'normal',
+            link: '/dashboard/staff-chat',
+          },
+        });
+      } catch {}
+    }
+
     // Auto-copy notifications to all super-admins
     if (model === 'notifications' && postData.profileId) {
       try {
