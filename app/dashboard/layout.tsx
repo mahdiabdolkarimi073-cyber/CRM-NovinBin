@@ -44,7 +44,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-screen bg-[#F6F8FD]" dir="rtl">
       <Navbar />
-      <main className="mx-auto max-w-[1280px] px-4 pt-[35px] pb-8 lg:px-6">
+      <main className="mx-auto max-w-[1280px] px-4 pt-6 pb-8 lg:px-6">
         {needsGuard && !hasAccess ? <PageGuard href={pathname}>{children}</PageGuard> : children}
       </main>
     </div>

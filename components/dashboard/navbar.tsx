@@ -4,21 +4,20 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useAuth } from '@/components/providers/auth-provider';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 import {
-  Shield, Menu, X, ChevronDown, Search, User, Settings, LogOut, Bell,
+  Shield, Menu, X, ChevronDown, User, Settings, LogOut,
   Inbox, Landmark, Warehouse, Award, ClipboardList,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/dashboard/logo';
 import {
   coreItems, cartableItems, financeItems, inventoryItems, clubItems, adminItems,
-  reportsItems,
-  allNavGroups, isSuperAdminRole, filterByAccess, type NavItem, type NavGroup,
+  reportsItems, isSuperAdminRole, filterByAccess, type NavItem, type NavGroup,
 } from '@/lib/nav-config';
 import { NotificationBell } from '@/components/dashboard/notification-bell';
 
@@ -26,7 +25,7 @@ function matches(pathname: string, href: string) {
   return pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
 }
 
-export function Navbar() {
+export function DashboardNavbar() {
   const pathname = usePathname();
   const router = useRouter();
   const { profile, signOut } = useAuth();
@@ -40,7 +39,6 @@ export function Navbar() {
   const visibleInventory = filterByAccess(profile, inventoryItems);
   const visibleCartable = filterByAccess(profile, cartableItems);
   const visibleAdmin = filterByAccess(profile, adminItems);
-
   const visibleReports = filterByAccess(profile, reportsItems);
 
   const displayName = profile ? `${profile.firstName || ''} ${profile.lastName || ''}`.trim() : 'کاربر';
@@ -69,11 +67,11 @@ export function Navbar() {
         <Link
           href={item.href}
           className={cn(
-            'flex items-center gap-2.5 px-3 py-2 text-sm font-medium transition-colors',
-            active ? 'text-accent' : 'text-foreground hover:text-accent'
+            'flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium transition-colors',
+            active ? 'text-[#2DD4BF]' : 'text-[#B0C4C0] hover:text-white'
           )}
         >
-          <item.icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <item.icon className="h-4 w-4 shrink-0 text-[#6BA89E]" />
           {item.label}
         </Link>
       </DropdownMenuItem>
@@ -84,7 +82,7 @@ export function Navbar() {
     if (!items.length) return null;
     return (
       <div key={group.label} className="space-y-1">
-        <div className="flex items-center gap-2 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+        <div className="flex items-center gap-2 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-[#6BA89E]">
           <group.icon className="h-3.5 w-3.5" />
           {group.label}
         </div>
@@ -96,8 +94,8 @@ export function Navbar() {
               href={item.href}
               onClick={() => setMobileOpen(false)}
               className={cn(
-                'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
-                active ? 'bg-accent/10 text-accent' : 'text-foreground hover:bg-muted'
+                'flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-colors',
+                active ? 'bg-[#2DD4BF]/15 text-[#2DD4BF]' : 'text-[#B0C4C0] hover:bg-white/5'
               )}
             >
               <item.icon className="h-4 w-4 shrink-0" />
@@ -111,17 +109,23 @@ export function Navbar() {
 
   return (
     <>
-      {/* Top navbar */}
-      <header className="sticky top-0 z-50 w-full bg-[#111827] px-4 pb-[28px] pt-0 shadow-lg" dir="rtl">
-        <div className="mx-auto flex h-[86px] max-w-[1280px] items-center justify-between gap-4">
-          {/* Logo + desktop nav */}
-          <div className="flex items-center gap-8">
+      <header
+        className="sticky top-0 z-50 w-full shadow-lg"
+        dir="rtl"
+        style={{
+          borderRadius: '0 0 12px 12px',
+          background: 'linear-gradient(135deg, #0A2A2A 0%, #0F3D38 50%, #0A2A2A 100%)',
+        }}
+      >
+        <div className="flex items-center justify-between gap-4 px-4 lg:px-5 xl:px-8" style={{ height: '60px' }}>
+          {/* Right side: Logo + desktop nav */}
+          <div className="flex items-center gap-4 lg:gap-6 xl:gap-8">
             <Link href={isSuperAdmin ? '/super-admin' : '/dashboard'} className="transition-transform hover:scale-105">
-              <Logo size={40} withText={true} textClassName="hidden sm:block [&_div]:text-white [&_.text-muted-foreground]:text-white/60" />
+              <Logo size={36} withText={true} textClassName="hidden sm:block [&_div]:text-white [&_.text-muted-foreground]:text-[#6BA89E]" />
             </Link>
 
-            {/* Full desktop navigation */}
-            <nav className="hidden items-center gap-1 2xl:flex">
+            {/* Desktop full nav (≥1200px) */}
+            <nav className="hidden items-center 2xl:flex" style={{ gap: '22px' }}>
               {topLinks.map((item) => {
                 const active = matches(pathname, item.href);
                 return (
@@ -129,16 +133,18 @@ export function Navbar() {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      'relative flex items-center gap-1.5 px-3 py-2 text-[14px] font-medium transition-all',
-                      active
-                        ? 'text-white'
-                        : 'text-[#F8FAFC]/70 hover:text-white'
+                      'relative flex items-center transition-all',
+                      active ? 'text-white' : 'text-[#B0C4C0] hover:text-white'
                     )}
+                    style={{ height: '40px', fontSize: '13px', fontWeight: 500, gap: '6px', padding: '0 10px', borderRadius: '8px' }}
                   >
-                    <item.icon className="h-4 w-4" />
+                    <item.icon className="h-[18px] w-[18px]" />
                     {item.label}
                     {active && (
-                      <span className="absolute -bottom-[2px] left-0 right-0 h-[3px] rounded-full bg-[#FF7A00] shadow-[0_0_8px_rgba(255,122,0,0.5)]" />
+                      <>
+                        <span className="absolute inset-0 rounded-lg bg-white/[0.08]" />
+                        <span className="absolute -bottom-[2px] left-2 right-2 h-[3px] rounded-full bg-[#2DD4BF]" />
+                      </>
                     )}
                   </Link>
                 );
@@ -152,47 +158,48 @@ export function Navbar() {
                     <DropdownMenuTrigger asChild>
                       <button
                         className={cn(
-                          'relative flex items-center gap-1.5 px-3 py-2 text-[14px] font-medium transition-all',
-                          groupActive
-                            ? 'text-white'
-                            : 'text-[#F8FAFC]/70 hover:text-white'
+                          'relative flex items-center transition-all',
+                          groupActive ? 'text-white' : 'text-[#B0C4C0] hover:text-white'
                         )}
+                        style={{ height: '40px', fontSize: '13px', fontWeight: 500, gap: '6px', padding: '0 10px', borderRadius: '8px' }}
                       >
-                        <group.icon className="h-4 w-4" />
+                        <group.icon className="h-[18px] w-[18px]" />
                         {group.label}
                         <ChevronDown className="h-3 w-3" />
                         {groupActive && (
-                          <span className="absolute -bottom-[2px] left-0 right-0 h-[3px] rounded-full bg-[#FF7A00] shadow-[0_0_8px_rgba(255,122,0,0.5)]" />
+                          <>
+                            <span className="absolute inset-0 rounded-lg bg-white/[0.08]" />
+                            <span className="absolute -bottom-[2px] left-2 right-2 h-[3px] rounded-full bg-[#2DD4BF]" />
+                          </>
                         )}
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-56">
+                    <DropdownMenuContent align="start" className="w-56 border-white/10" style={{ background: 'linear-gradient(135deg, #0A2A2A 0%, #0F3D38 100%)' }}>
                       {group.items.map(renderDropdownItem)}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 );
               })}
 
-              {/* More dropdown for remaining core items */}
+              {/* More dropdown */}
               {visibleCore.slice(5).length > 0 && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
                       className={cn(
-                        'relative flex items-center gap-1.5 px-3 py-2 text-[14px] font-medium transition-all',
-                        visibleCore.slice(5).some((item) => matches(pathname, item.href))
-                          ? 'text-white'
-                          : 'text-[#F8FAFC]/70 hover:text-white'
+                        'relative flex items-center transition-all',
+                        visibleCore.slice(5).some((item) => matches(pathname, item.href)) ? 'text-white' : 'text-[#B0C4C0] hover:text-white'
                       )}
+                      style={{ height: '40px', fontSize: '13px', fontWeight: 500, gap: '6px', padding: '0 10px', borderRadius: '8px' }}
                     >
                       بیشتر
                       <ChevronDown className="h-3 w-3" />
                       {visibleCore.slice(5).some((item) => matches(pathname, item.href)) && (
-                        <span className="absolute -bottom-[2px] left-0 right-0 h-[3px] rounded-full bg-[#FF7A00] shadow-[0_0_8px_rgba(255,122,0,0.5)]" />
+                        <span className="absolute -bottom-[2px] left-2 right-2 h-[3px] rounded-full bg-[#2DD4BF]" />
                       )}
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-56">
+                  <DropdownMenuContent align="start" className="w-56 border-white/10" style={{ background: 'linear-gradient(135deg, #0A2A2A 0%, #0F3D38 100%)' }}>
                     {visibleCore.slice(5).map(renderDropdownItem)}
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -204,21 +211,20 @@ export function Navbar() {
                   <DropdownMenuTrigger asChild>
                     <button
                       className={cn(
-                        'relative flex items-center gap-1.5 px-3 py-2 text-[14px] font-medium transition-all',
-                        visibleAdmin.some((item) => matches(pathname, item.href))
-                          ? 'text-white'
-                          : 'text-[#F8FAFC]/70 hover:text-white'
+                        'relative flex items-center transition-all',
+                        visibleAdmin.some((item) => matches(pathname, item.href)) ? 'text-white' : 'text-[#B0C4C0] hover:text-white'
                       )}
+                      style={{ height: '40px', fontSize: '13px', fontWeight: 500, gap: '6px', padding: '0 10px', borderRadius: '8px' }}
                     >
-                      <Shield className="h-4 w-4" />
+                      <Shield className="h-[18px] w-[18px]" />
                       مدیریت
                       <ChevronDown className="h-3 w-3" />
                       {visibleAdmin.some((item) => matches(pathname, item.href)) && (
-                        <span className="absolute -bottom-[2px] left-0 right-0 h-[3px] rounded-full bg-[#FF7A00] shadow-[0_0_8px_rgba(255,122,0,0.5)]" />
+                        <span className="absolute -bottom-[2px] left-2 right-2 h-[3px] rounded-full bg-[#2DD4BF]" />
                       )}
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-56">
+                  <DropdownMenuContent align="start" className="w-56 border-white/10" style={{ background: 'linear-gradient(135deg, #0A2A2A 0%, #0F3D38 100%)' }}>
                     {visibleAdmin.map(renderDropdownItem)}
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -228,31 +234,28 @@ export function Navbar() {
                 <Link
                   href="/super-admin"
                   className={cn(
-                    'relative flex items-center gap-1.5 px-3 py-2 text-[14px] font-medium transition-all',
-                    matches(pathname, '/super-admin')
-                      ? 'text-white'
-                      : 'text-[#F8FAFC]/70 hover:text-white'
+                    'relative flex items-center transition-all',
+                    matches(pathname, '/super-admin') ? 'text-white' : 'text-[#B0C4C0] hover:text-white'
                   )}
+                  style={{ height: '40px', fontSize: '13px', fontWeight: 500, gap: '6px', padding: '0 10px', borderRadius: '8px' }}
                 >
-                  <Shield className="h-4 w-4" />
+                  <Shield className="h-[18px] w-[18px]" />
                   سوپرادمین
                   {matches(pathname, '/super-admin') && (
-                    <span className="absolute -bottom-[2px] left-0 right-0 h-[3px] rounded-full bg-[#FF7A00] shadow-[0_0_8px_rgba(255,122,0,0.5)]" />
+                    <span className="absolute -bottom-[2px] left-2 right-2 h-[3px] rounded-full bg-[#2DD4BF]" />
                   )}
                 </Link>
               )}
             </nav>
 
-            {/* Compact navigation for medium desktop widths */}
+            {/* Laptop compact nav (992-1199px) */}
             <div className="hidden xl:flex 2xl:hidden">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
                     className={cn(
-                      'flex items-center gap-2 rounded-xl border border-white/20 px-3.5 py-2 text-xs font-bold transition-colors',
-                      pathname.startsWith('/dashboard') || pathname.startsWith('/super-admin')
-                        ? 'bg-white/10 text-white'
-                        : 'text-white/70 hover:bg-white/10'
+                      'flex items-center gap-2 rounded-xl border border-white/20 px-3 py-2 text-xs font-bold transition-colors',
+                      pathname.startsWith('/dashboard') || pathname.startsWith('/super-admin') ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/10'
                     )}
                   >
                     <Menu className="h-4 w-4" />
@@ -260,40 +263,29 @@ export function Navbar() {
                     <ChevronDown className="h-3 w-3" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="max-h-[70vh] w-64 overflow-y-auto">
-                  <DropdownMenuLabel>دسترسی سریع</DropdownMenuLabel>
+                <DropdownMenuContent align="start" className="max-h-[70vh] w-64 overflow-y-auto border-white/10" style={{ background: 'linear-gradient(135deg, #0A2A2A 0%, #0F3D38 100%)' }}>
+                  <DropdownMenuLabel className="text-[#6BA89E]">دسترسی سریع</DropdownMenuLabel>
                   {visibleCore.map(renderDropdownItem)}
-                  {groups.map((group) => (
+                  {groups.map((group) =>
                     group.items.length > 0 ? (
                       <div key={group.label}>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuLabel className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <DropdownMenuSeparator className="bg-white/10" />
+                        <DropdownMenuLabel className="flex items-center gap-2 text-xs text-[#6BA89E]">
                           <group.icon className="h-3.5 w-3.5" />
                           {group.label}
                         </DropdownMenuLabel>
                         {group.items.map(renderDropdownItem)}
                       </div>
                     ) : null
-                  ))}
+                  )}
                   {visibleAdmin.length > 0 && (
                     <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuLabel className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <DropdownMenuSeparator className="bg-white/10" />
+                      <DropdownMenuLabel className="flex items-center gap-2 text-xs text-[#6BA89E]">
                         <Shield className="h-3.5 w-3.5" />
                         مدیریت
                       </DropdownMenuLabel>
                       {visibleAdmin.map(renderDropdownItem)}
-                    </>
-                  )}
-                  {isSuperAdmin && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem asChild>
-                        <Link href="/super-admin" className="flex items-center gap-2.5 px-3 py-2 text-sm">
-                          <Shield className="h-4 w-4 text-muted-foreground" />
-                          سوپرادمین
-                        </Link>
-                      </DropdownMenuItem>
                     </>
                   )}
                 </DropdownMenuContent>
@@ -301,61 +293,50 @@ export function Navbar() {
             </div>
           </div>
 
-          {/* Left side: search + notifications + profile */}
-          <div className="flex items-center gap-3">
-            {/* Search (desktop) */}
-            <div className="hidden items-center xl:flex">
-              <div className="flex h-10 w-full max-w-[240px] items-center gap-2.5 rounded-xl border border-white/20 bg-white/5 px-3.5 transition-all focus-within:border-[#FF7A00] focus-within:bg-white/10">
-                <Search className="h-4 w-4 text-white/50" />
-                <input
-                  type="text"
-                  placeholder="جستجو..."
-                  className="flex-1 bg-transparent text-sm font-medium text-white outline-none placeholder:text-white/40"
-                />
-              </div>
-            </div>
-
+          {/* Left side: notifications + profile + hamburger */}
+          <div className="flex items-center gap-2.5 lg:gap-3">
             {/* Notifications */}
             <div className="relative">
-              <NotificationBell />
+              <NotificationBell variant="super-admin" />
             </div>
 
             {/* Profile dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2 rounded-xl p-1 transition-colors hover:bg-white/10">
-                  <Avatar className="h-9 w-9 border-2 border-[#FF7A00]/40">
-                    <AvatarFallback className="bg-[#FF7A00] text-xs font-bold text-white">{initials}</AvatarFallback>
+                  <Avatar className="h-10 w-10 border-2 border-[#2DD4BF]/40">
+                    <AvatarImage src={profile?.avatarUrl || undefined} alt={displayName} />
+                    <AvatarFallback className="bg-[#2DD4BF] text-xs font-bold text-[#0A2A2A]">{initials}</AvatarFallback>
                   </Avatar>
-                  <div className="hidden text-right xl:block">
+                  <div className="hidden text-right lg:block xl:hidden 2xl:block">
                     <div className="text-xs font-bold text-white">{displayName}</div>
-                    <div className="text-[10px] text-white/50">{roleLabel}</div>
+                    <div className="text-[10px] text-[#6BA89E]">{roleLabel}</div>
                   </div>
-                  <ChevronDown className="hidden h-3.5 w-3.5 text-white/50 xl:block" />
+                  <ChevronDown className="hidden h-3.5 w-3.5 text-[#6BA89E] lg:block" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuContent align="end" className="w-56 border-white/10" style={{ background: 'linear-gradient(135deg, #0A2A2A 0%, #0F3D38 100%)' }}>
                 <DropdownMenuLabel>
-                  <div className="text-sm font-bold">{displayName}</div>
-                  <div className="text-xs font-normal text-muted-foreground">{roleLabel}</div>
+                  <div className="text-sm font-bold text-white">{displayName}</div>
+                  <div className="text-xs font-normal text-[#6BA89E]">{roleLabel}</div>
                 </DropdownMenuLabel>
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator className="bg-white/10" />
                 <DropdownMenuItem asChild>
-                  <Link href="/dashboard/settings" className="flex items-center gap-2.5 px-3 py-2 text-sm">
-                    <User className="h-4 w-4 text-muted-foreground" />
+                  <Link href="/dashboard/settings" className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-[#B0C4C0] hover:text-white">
+                    <User className="h-4 w-4 text-[#6BA89E]" />
                     پروفایل من
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/dashboard/settings" className="flex items-center gap-2.5 px-3 py-2 text-sm">
-                    <Settings className="h-4 w-4 text-muted-foreground" />
+                  <Link href="/dashboard/settings" className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-[#B0C4C0] hover:text-white">
+                    <Settings className="h-4 w-4 text-[#6BA89E]" />
                     تنظیمات
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator className="bg-white/10" />
                 <DropdownMenuItem
                   onClick={handleSignOut}
-                  className="flex items-center gap-2.5 px-3 py-2 text-sm text-destructive focus:text-destructive"
+                  className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-red-400 focus:text-red-300"
                 >
                   <LogOut className="h-4 w-4" />
                   خروج
@@ -363,10 +344,10 @@ export function Navbar() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Mobile menu button */}
+            {/* Hamburger (tablet + mobile) */}
             <button
               onClick={() => setMobileOpen(true)}
-              className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/20 text-white/70 transition-colors hover:bg-white/10 hover:text-white xl:hidden"
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/20 text-white/70 transition-colors hover:bg-white/10 hover:text-white lg:hidden"
             >
               <Menu className="h-5 w-5" />
             </button>
@@ -374,25 +355,26 @@ export function Navbar() {
         </div>
       </header>
 
-      {/* Mobile drawer */}
+      {/* Mobile/tablet drawer */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-[60] bg-primary-dark/60 backdrop-blur-sm xl:hidden"
+          className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
       <aside
         className={cn(
-          'fixed inset-y-0 right-0 z-[70] flex w-[300px] flex-col bg-card shadow-2xl transition-transform duration-300 xl:hidden',
+          'fixed inset-y-0 right-0 z-[70] flex w-full max-w-[320px] flex-col shadow-2xl transition-transform duration-300 lg:hidden',
           mobileOpen ? 'translate-x-0' : 'translate-x-full'
         )}
         dir="rtl"
+        style={{ background: 'linear-gradient(180deg, #0A2A2A 0%, #0F3D38 100%)' }}
       >
-        <div className="flex h-[86px] items-center justify-between border-b border-white/10 bg-[#111827] px-4">
-          <Logo size={40} withText={false} />
+        <div className="flex items-center justify-between border-b border-white/10 px-4" style={{ height: '60px' }}>
+          <Logo size={36} withText={false} />
           <button
             onClick={() => setMobileOpen(false)}
-            className="flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted"
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-white/60 hover:bg-white/10"
           >
             <X className="h-5 w-5" />
           </button>
@@ -407,9 +389,10 @@ export function Navbar() {
                   href={item.href}
                   onClick={() => setMobileOpen(false)}
                   className={cn(
-                    'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
-                    active ? 'bg-accent/10 text-accent' : 'text-foreground hover:bg-muted'
+                    'flex items-center gap-3 rounded-xl px-3 text-[13px] font-medium transition-colors',
+                    active ? 'bg-[#2DD4BF]/15 text-[#2DD4BF]' : 'text-[#B0C4C0] hover:bg-white/5'
                   )}
+                  style={{ height: '46px' }}
                 >
                   <item.icon className="h-4 w-4 shrink-0" />
                   {item.label}
@@ -417,7 +400,7 @@ export function Navbar() {
               );
             })}
           </div>
-          <div className="my-3 border-t border-border" />
+          <div className="my-3 border-t border-white/10" />
           {renderMobileGroup({ label: 'کارتابل', icon: Inbox, items: [] } as NavGroup, visibleCartable)}
           {renderMobileGroup({ label: 'گزارشات', icon: ClipboardList, items: [] } as NavGroup, visibleReports)}
           {renderMobileGroup({ label: 'مالی', icon: Landmark, items: [] } as NavGroup, visibleFinance)}
@@ -429,19 +412,21 @@ export function Navbar() {
               href="/super-admin"
               onClick={() => setMobileOpen(false)}
               className={cn(
-                'mt-2 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
-                matches(pathname, '/super-admin') ? 'bg-accent/10 text-accent' : 'text-foreground hover:bg-muted'
+                'mt-2 flex items-center gap-3 rounded-xl px-3 text-[13px] font-medium transition-colors',
+                matches(pathname, '/super-admin') ? 'bg-[#2DD4BF]/15 text-[#2DD4BF]' : 'text-[#B0C4C0] hover:bg-white/5'
               )}
+              style={{ height: '46px' }}
             >
               <Shield className="h-4 w-4 shrink-0" />
               پنل سوپرادمین
             </Link>
           )}
         </nav>
-        <div className="border-t border-border p-3">
+        <div className="border-t border-white/10 p-3">
           <button
             onClick={handleSignOut}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
+            className="flex w-full items-center gap-3 rounded-xl px-3 text-[13px] font-medium text-red-400 transition-colors hover:bg-red-500/10"
+            style={{ height: '46px' }}
           >
             <LogOut className="h-4 w-4" />
             خروج از حساب
@@ -451,3 +436,5 @@ export function Navbar() {
     </>
   );
 }
+
+export { DashboardNavbar as Navbar };

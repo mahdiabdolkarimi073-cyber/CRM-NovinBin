@@ -114,9 +114,12 @@ export function isSuperAdminRole(role?: string | null): boolean {
 }
 
 export const UNIVERSAL_PAGES = new Set([
+  '/dashboard',
   '/dashboard/notes',
   '/dashboard/staff-chat',
   '/dashboard/my-customers',
+  '/dashboard/settings',
+  '/dashboard/notifications',
 ]);
 
 export function hasPageAccess(profile: Profile | null, href: string): boolean {
@@ -125,7 +128,7 @@ export function hasPageAccess(profile: Profile | null, href: string): boolean {
   if (UNIVERSAL_PAGES.has(href)) return true;
   const pages = profile.assignedPages || [];
   if (pages.length === 0) return false;
-  return pages.some((p) => p === href || href.startsWith(p + '/') || p.startsWith(href + '/'));
+  return pages.some((p) => p === href || href.startsWith(p + '/'));
 }
 
 export function filterByAccess(profile: Profile | null, items: NavItem[]): NavItem[] {
