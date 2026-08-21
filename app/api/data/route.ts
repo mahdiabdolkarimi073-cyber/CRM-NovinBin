@@ -191,6 +191,19 @@ export async function GET(req: NextRequest) {
       where = { ...where, profileId: auth.userId };
     }
   }
+  if (model === 'meetings' || model === 'meeting_assignments' || model === 'notifications') {
+    const fullProfile = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });
+    const canSeeAll = fullProfile?.role === 'admin' || fullProfile?.role === 'super_admin' || fullProfile?.role === 'owner';
+    if (!canSeeAll && model === 'meetings') {
+      where = { ...where, assignments: { some: { assignedTo: auth.userId } } };
+    }
+    if (!canSeeAll && model === 'meeting_assignments') {
+      where = { ...where, assignedTo: auth.userId };
+    }
+    if (!canSeeAll && model === 'notifications') {
+      where = { ...where, profileId: auth.userId };
+    }
+  }
   const includeStr = searchParams.get('include');
   const include = includeStr ? JSON.parse(includeStr) : undefined;
   const orderByStr = searchParams.get('orderBy');
