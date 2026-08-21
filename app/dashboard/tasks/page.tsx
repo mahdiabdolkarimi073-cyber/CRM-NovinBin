@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
+import Link from 'next/link';
 import { fetchData, createData, updateData, deleteData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
 import { EmptyState } from '@/components/dashboard/empty-state';
@@ -14,7 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -43,7 +44,6 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterPriority, setFilterPriority] = useState('all');
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [detailTask, setDetailTask] = useState<Task | null>(null);
@@ -58,6 +58,8 @@ export default function TasksPage() {
   const [referTargetId, setReferTargetId] = useState<string | null>(null);
   const [referTo, setReferTo] = useState('none');
   const [form, setForm] = useState({ title: '', description: '', assignedTo: '', priority: 'medium', dueDate: '' });
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
+  const [lastSeenComments, setLastSeenComments] = useState<Record<string, number>>({});
 
   const isSuperAdmin = profile?.role === 'super_admin' || profile?.role === 'owner';
   const isAdmin = profile?.role === 'admin' || isSuperAdmin;
@@ -87,9 +89,30 @@ export default function TasksPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  useEffect(() => {
+    try { const stored = localStorage.getItem('task_comment_last_seen'); if (stored) setLastSeenComments(JSON.parse(stored)); } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (!profile || tasks.length === 0) return;
+    const taskIds = tasks.map((t) => t.id);
+    fetchData<any>('task_comments', { where: { taskId: { in: taskIds } }, orderBy: { createdAt: 'asc' } })
+      .then((data) => {
+        const counts: Record<string, number> = {};
+        (data || []).forEach((c) => { counts[c.taskId] = (counts[c.taskId] || 0) + 1; });
+        setCommentCounts(counts);
+      })
+      .catch(() => {});
+  }, [profile, tasks]);
+
   const loadComments = async (taskId: string) => {
-    try { const data = await fetchData<any>('task_comments', { where: { taskId }, orderBy: { createdAt: 'asc' } }); setComments(data || []); }
-    catch { setComments([]); }
+    try {
+      const data = await fetchData<any>('task_comments', { where: { taskId }, orderBy: { createdAt: 'asc' } });
+      setComments(data || []);
+      const newLastSeen = { ...lastSeenComments, [taskId]: data ? data.length : 0 };
+      setLastSeenComments(newLastSeen);
+      try { localStorage.setItem('task_comment_last_seen', JSON.stringify(newLastSeen)); } catch {}
+    } catch { setComments([]); }
   };
 
   const { myTasks, referredTasks } = useMemo(() => {
@@ -114,7 +137,6 @@ export default function TasksPage() {
         try { await createData('notifications', { profileId: form.assignedTo, title: 'وظیفه جدید به شما اختصاص داده شد', body: `یک تسک «${form.title}» توسط ${myName} به شما اختصاص داده شد`, type: 'task', priority: form.priority === 'urgent' ? 'urgent' : 'normal', link: '/dashboard/tasks' }); } catch {}
       }
       toast.success('وظیفه ایجاد شد');
-      setDialogOpen(false);
       setForm({ title: '', description: '', assignedTo: '', priority: 'medium', dueDate: '' });
       loadData();
     } catch (error: any) { toast.error('ایجاد ناموفق: ' + error.message); }
@@ -138,7 +160,29 @@ export default function TasksPage() {
   const handleAddComment = async () => {
     if (!detailTask || !newComment.trim() || !profile) return;
     setCommentLoading(true);
-    try { await createData('task_comments', { taskId: detailTask.id, profileId: profile.id, content: newComment.trim() }); setNewComment(''); loadComments(detailTask.id); }
+    try {
+      await createData('task_comments', { taskId: detailTask.id, profileId: profile.id, content: newComment.trim() });
+      const myName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
+      const notifPromises: Promise<any>[] = [];
+      const recipients = new Set<string>();
+      if (detailTask.assignedTo && detailTask.assignedTo !== profile.id) recipients.add(detailTask.assignedTo);
+      if (detailTask.createdBy && detailTask.createdBy !== profile.id) recipients.add(detailTask.createdBy);
+      allStaff.filter((s) => s.role === 'super_admin' || s.role === 'owner').forEach((a) => { if (a.id !== profile.id) recipients.add(a.id); });
+      recipients.forEach((rid) => {
+        notifPromises.push(
+          createData('notifications', {
+            profileId: rid,
+            title: 'نظر جدید روی وظیفه',
+            body: `${myName} روی وظیفه «${detailTask.title}» نظر جدیدی ثبت کرد: ${newComment.trim().slice(0, 80)}`,
+            type: 'task',
+            priority: 'normal',
+            link: '/dashboard/tasks',
+          }).catch(() => {})
+        );
+      });
+      await Promise.all(notifPromises);
+      setNewComment(''); loadComments(detailTask.id);
+    }
     catch (error: any) { toast.error('ثبت نظر ناموفق: ' + error.message); }
     setCommentLoading(false);
   };
@@ -163,7 +207,15 @@ export default function TasksPage() {
       await updateData('tasks', { id: referTargetId }, { assignedTo: referTo, referredDate: new Date().toISOString() });
       const targetTask = tasks.find((t) => t.id === referTargetId);
       const myName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
-      try { await createData('notifications', { profileId: referTo, title: 'وظیفه‌ای به شما ارجاع داده شد', body: `${myName} یک وظیفه${targetTask ? ` «${targetTask.title}»` : ''} را به شما ارجاع داد`, type: 'task', priority: 'normal', link: '/dashboard/tasks' }); } catch {}
+      const notifPromises: Promise<any>[] = [
+        createData('notifications', { profileId: referTo, title: 'وظیفه‌ای به شما ارجاع داده شد', body: `${myName} یک وظیفه${targetTask ? ` «${targetTask.title}»` : ''} را به شما ارجاع داد`, type: 'task', priority: 'normal', link: '/dashboard/tasks' }).catch(() => {}),
+      ];
+      allStaff.filter((s) => (s.role === 'super_admin' || s.role === 'owner') && s.id !== profile.id && s.id !== referTo).forEach((admin) => {
+        notifPromises.push(
+          createData('notifications', { profileId: admin.id, title: 'وظیفه‌ای ارجاع داده شد', body: `${myName} یک وظیفه${targetTask ? ` «${targetTask.title}»` : ''} را به ${fullName(allStaff.find((s) => s.id === referTo)?.firstName, allStaff.find((s) => s.id === referTo)?.lastName) || 'فردی'} ارجاع داد`, type: 'task', priority: 'normal', link: '/dashboard/tasks' }).catch(() => {})
+        );
+      });
+      await Promise.all(notifPromises);
       toast.success('وظیفه ارجاع داده شد'); setReferOpen(false); setReferTargetId(null); setReferTo('none'); loadData();
     } catch (error: any) { toast.error('ارجاع ناموفق: ' + error.message); }
   };
@@ -177,21 +229,34 @@ export default function TasksPage() {
   const taskSummary = [...TASK_STATUSES].reverse().map((stage) => ({ ...stage, count: displayTasks.filter((task) => task.status === stage.key).length }));
   const totalTasks = displayTasks.length;
 
+  const hasUnreadComments = (taskId: string) => {
+    const count = commentCounts[taskId] || 0;
+    const lastSeen = lastSeenComments[taskId] || 0;
+    return count > lastSeen;
+  };
+
   const TaskCard = ({ task }: { task: Task }) => {
     const pr = priorityInfo(task.priority);
     const assignee = getStaffName(task.assignedTo);
     const creator = getStaffName(task.createdBy || null);
     const overdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'completed';
     const isReferred = !!task.referredDate;
+    const cCount = commentCounts[task.id] || 0;
+    const unread = hasUnreadComments(task.id);
     return (
       <div draggable onDragStart={() => setDragId(task.id)} onDragEnd={() => { setDragId(null); setDragOver(null); }} onClick={() => openDetail(task)}
-        className={`cursor-grab rounded-[11px] border border-[#E7ECF3] bg-white p-[14px] shadow-[0_2px_8px_rgba(20,40,80,.04)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_6px_16px_rgba(20,40,80,.08)] active:cursor-grabbing ${dragId === task.id ? 'opacity-50' : ''} ${isReferred ? 'border-amber-200 bg-amber-50/30' : ''}`}>
+        className={`cursor-grab rounded-[11px] border bg-white p-[14px] shadow-[0_2px_8px_rgba(20,40,80,.04)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_6px_16px_rgba(20,40,80,.08)] active:cursor-grabbing ${dragId === task.id ? 'opacity-50' : ''} ${isReferred ? 'border-amber-200 bg-amber-50/30' : 'border-[#E7ECF3]'} ${unread ? 'ring-2 ring-sky-400/50' : ''}`}>
         <div className="mb-2 flex items-start gap-2">
           <GripVertical className="mt-1 h-4 w-4 shrink-0 text-[#98A2B3]" />
           <div className="min-w-0 flex-1">
             <div className="text-sm font-bold leading-7 text-[#1D2939]">{task.title}</div>
             {task.description && <div className="mt-1 line-clamp-2 text-xs leading-5 text-[#667085]">{task.description}</div>}
           </div>
+          {cCount > 0 && (
+            <span className={`flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-full px-1 text-[10px] font-bold ${unread ? 'bg-sky-500 text-white animate-pulse' : 'bg-slate-100 text-slate-500'}`} title={unread ? 'نظرات جدید' : 'نظرات'}>
+              <MessageSquare className="h-2.5 w-2.5" />{cCount.toLocaleString('fa-IR')}
+            </span>
+          )}
           {isReferred && <Badge variant="outline" className="shrink-0 border-amber-300 text-[10px] text-amber-600"><Forward className="ml-1 h-3 w-3" />ارجاعی</Badge>}
           {canEdit(task) && <button onClick={(e) => { e.stopPropagation(); openEdit(task); }} className="text-[#98A2B3] transition-colors hover:text-[#2563EB]"><Edit className="h-3.5 w-3.5" /></button>}
         </div>
@@ -207,7 +272,7 @@ export default function TasksPage() {
               <span className="text-[11px] text-[#667085]">{assignee}</span>
             </div>
           ) : <span />}
-          <Flag className="h-3.5 w-3.5 text-[#98A2B3]" />
+          {unread ? <span className="flex items-center gap-1 text-[10px] font-medium text-sky-600"><span className="h-2 w-2 animate-pulse rounded-full bg-sky-500" />نظر جدید</span> : <Flag className="h-3.5 w-3.5 text-[#98A2B3]" />}
         </div>
       </div>
     );
@@ -233,7 +298,7 @@ export default function TasksPage() {
       </div>
       <div className="space-y-2"><Label>موعد انجام</Label><JalaliDatePicker value={form.dueDate ? new Date(form.dueDate) : null} onChange={(d) => setForm({ ...form, dueDate: d ? toLocalDateString(d) : '' })} /></div>
       <DialogFooter>
-        <Button type="button" variant="outline" onClick={() => { if (isEdit) setEditingTask(null); else setDialogOpen(false); }}>انصراف</Button>
+        <Button type="button" variant="outline" onClick={() => setEditingTask(null)}>انصراف</Button>
         <Button type="submit" disabled={creating}>{isEdit ? 'ذخیره تغییرات' : creating ? 'در حال ایجاد...' : 'ایجاد'}</Button>
       </DialogFooter>
     </form>
@@ -252,7 +317,7 @@ export default function TasksPage() {
                 <span className="rounded-full bg-[#F1F5F9] px-2 py-0.5 text-xs font-medium text-[#667085]">{items.length.toLocaleString('fa-IR')}</span>
               </div>
               <div className="min-h-[400px] space-y-2.5 p-2.5">
-                {items.map((task) => <TaskCard key={task.id} task={task} />)}
+                {[...items].sort((a, b) => (hasUnreadComments(b.id) ? 1 : 0) - (hasUnreadComments(a.id) ? 1 : 0)).map((task) => <TaskCard key={task.id} task={task} />)}
                 {items.length === 0 && <div className="py-8 text-center text-xs text-[#CBD5E1]">کارت اینجا رها کنید</div>}
               </div>
               <button className="flex h-[44px] w-full items-center justify-center gap-1 border-t border-[#E8EDF4] text-xs font-semibold text-[#64748B] transition-colors hover:bg-[#F1F5F9]"><Plus className="h-3.5 w-3.5" /> افزودن وظیفه</button>
@@ -263,18 +328,31 @@ export default function TasksPage() {
     </div>
   );
 
-  const renderList = (taskList: Task[]) => (
+  const renderList = (taskList: Task[]) => {
+    const sorted = [...taskList].sort((a, b) => {
+      const au = hasUnreadComments(a.id) ? 1 : 0;
+      const bu = hasUnreadComments(b.id) ? 1 : 0;
+      if (au !== bu) return bu - au;
+      return 0;
+    });
+    return (
     <Card><CardContent className="p-0">
       <div className="divide-y divide-[#F1F5F9]">
-        {taskList.map((task) => {
+        {sorted.map((task) => {
           const st = statusInfo(task.status); const pr = priorityInfo(task.priority);
           const assignee = getStaffName(task.assignedTo); const creator = getStaffName(task.createdBy || null);
           const overdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'completed';
+          const cCount = commentCounts[task.id] || 0;
+          const unread = hasUnreadComments(task.id);
           return (
-            <div key={task.id} className="flex cursor-pointer items-center gap-3 p-4 transition-colors hover:bg-[#F8FAFD]" onClick={() => openDetail(task)}>
+            <div key={task.id} className={`flex cursor-pointer items-center gap-3 p-4 transition-colors hover:bg-[#F8FAFD] ${unread ? 'bg-sky-50/40' : ''}`} onClick={() => openDetail(task)}>
               <div className="h-10 w-2 rounded-full" style={{ backgroundColor: st.color }} />
+              {unread && <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-sky-500" title="نظر جدید" />}
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-bold text-[#1D2939]">{task.title}</div>
+                <div className="flex items-center gap-2">
+                  <div className="truncate text-sm font-bold text-[#1D2939]">{task.title}</div>
+                  {cCount > 0 && <span className={`flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-full px-1 text-[10px] font-bold ${unread ? 'bg-sky-500 text-white' : 'bg-slate-100 text-slate-500'}`}><MessageSquare className="h-2.5 w-2.5" />{cCount.toLocaleString('fa-IR')}</span>}
+                </div>
                 <div className="mt-1 flex items-center gap-3">
                   <Badge variant="outline" style={{ color: pr.color, borderColor: `${pr.color}35` }} className="text-xs">{pr.label}</Badge>
                   {task.dueDate && <span className={`flex items-center gap-1 text-xs ${overdue ? 'font-medium text-red-500' : 'text-[#98A2B3]'}`}><Clock className="h-3 w-3" />{formatJalali(task.dueDate)}</span>}
@@ -291,7 +369,7 @@ export default function TasksPage() {
         })}
       </div>
     </CardContent></Card>
-  );
+  );}
 
   const sidebarItems = [
     { key: 'all', label: 'همه وظایف', icon: CheckSquare, count: tasks.length },
@@ -320,12 +398,9 @@ export default function TasksPage() {
 
       {/* Action buttons */}
       <div className="mb-5 flex flex-wrap gap-3">
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="h-[42px] rounded-[10px] bg-[#3155E7] px-[18px] text-sm font-semibold text-white shadow-sm hover:bg-[#2445C7]"><Plus className="h-4 w-4" /> وظیفه جدید</Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg"><DialogHeader><DialogTitle>ایجاد وظیفه جدید</DialogTitle></DialogHeader>{renderForm(false)}</DialogContent>
-        </Dialog>
+        <Link href="/dashboard/tasks/new">
+          <Button className="h-[42px] rounded-[10px] bg-[#3155E7] px-[18px] text-sm font-semibold text-white shadow-sm hover:bg-[#2445C7]"><Plus className="h-4 w-4" /> وظیفه جدید</Button>
+        </Link>
         <Button variant="outline" className="h-[42px] rounded-[10px] border-[#DCE3EE] bg-white px-[18px] text-sm font-semibold text-[#344054] shadow-sm hover:bg-[#FAFBFF]"><BarChart3 className="h-4 w-4" /> گزارش سریع</Button>
       </div>
 
@@ -406,7 +481,7 @@ export default function TasksPage() {
           {loading ? (
             <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-[3px] border-[#2563EB] border-t-transparent" /></div>
           ) : tasks.length === 0 ? (
-            <Card><EmptyState icon={<CheckSquare className="h-8 w-8" />} title="وظیفه‌ای یافت نشد" description="برای شروع، اولین وظیفه را ایجاد کنید" action={<Button onClick={() => setDialogOpen(true)}><Plus className="h-4 w-4" /> افزودن وظیفه</Button>} /></Card>
+            <Card><EmptyState icon={<CheckSquare className="h-8 w-8" />} title="وظیفه‌ای یافت نشد" description="برای شروع، اولین وظیفه را ایجاد کنید" action={<Link href="/dashboard/tasks/new"><Button><Plus className="h-4 w-4" /> افزودن وظیفه</Button></Link>} /></Card>
           ) : (
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="mb-4">
