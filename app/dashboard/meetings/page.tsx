@@ -178,59 +178,34 @@ export default function MeetingsPage() {
 
       <div className="meetings-list">
         {meetings.length === 0 ? (
-          <div className="meetings-empty">
-            <Calendar className="h-8 w-8" />
-            <strong>جلسه‌ای یافت نشد</strong>
-            <span>اولین جلسه را ایجاد و به پرسنل تخصیص دهید</span>
-            <Link href="/dashboard/meetings/new" className="meetings-empty-button">
-              <Plus className="h-4 w-4" /> ایجاد جلسه
-            </Link>
-          </div>
-        ) : (
-          <>
-            {upcoming.length > 0 && (
-              <section className="meetings-section">
-                <h2 className="meetings-section-title">
-                  <CalendarDays className="h-4 w-4" />
-                  جلسات پیشرو ({upcoming.length.toLocaleString('fa-IR')})
-                </h2>
-                <div className="meetings-cards">
-                  {upcoming.map((meeting) => (
-                    <MeetingCard
-                      key={meeting.id}
-                      meeting={meeting}
-                      upcoming
-                      isSuperAdmin={isSuperAdmin}
-                      onView={() => openView(meeting)}
-                      onDelete={() => handleDelete(meeting)}
-                      onOutcome={() => openOutcome(meeting)}
-                    />
-                  ))}
-                </div>
-              </section>
-            )}
-            {past.length > 0 && (
-              <section className="meetings-section meetings-past-section">
-                <h2 className="meetings-section-title meetings-past-title">
-                  <Clock className="h-4 w-4" />
-                  جلسات گذشته ({past.length.toLocaleString('fa-IR')})
-                </h2>
-                <div className="meetings-cards">
-                  {past.slice(0, 9).map((meeting) => (
-                    <MeetingCard
-                      key={meeting.id}
-                      meeting={meeting}
-                      isSuperAdmin={isSuperAdmin}
-                      onView={() => openView(meeting)}
-                      onDelete={() => handleDelete(meeting)}
-                      onOutcome={() => openOutcome(meeting)}
-                    />
-                  ))}
-                </div>
-              </section>
-            )}
-          </>
-        )}
+            <div className="meetings-empty">
+              <Calendar className="h-8 w-8" />
+              <strong>جلسه‌ای یافت نشد</strong>
+              <span>اولین جلسه را ایجاد و به پرسنل تخصیص دهید</span>
+              <Link href="/dashboard/meetings/new" className="meetings-empty-button">
+                <Plus className="h-4 w-4" /> ایجاد جلسه
+              </Link>
+            </div>
+          ) : (
+            <>
+              {upcoming.length > 0 && (
+                <section className="meetings-section">
+                  <h2 className="meetings-section-title"><CalendarDays /> جلسات پیشرو ({upcoming.length.toLocaleString('fa-IR')})</h2>
+                  <div className="meetings-cards">
+                    {upcoming.map((meeting) => <MeetingCard key={meeting.id} meeting={meeting} upcoming isSuperAdmin={isSuperAdmin} onView={() => openView(meeting)} onDelete={() => handleDelete(meeting)} onOutcome={() => openOutcome(meeting)} />)}
+                  </div>
+                </section>
+              )}
+              {past.length > 0 && (
+                <section className="meetings-section meetings-past-section">
+                  <h2 className="meetings-section-title meetings-past-title"><Clock /> جلسات گذشته ({past.length.toLocaleString('fa-IR')})</h2>
+                  <div className="meetings-cards">
+                    {past.slice(0, 9).map((meeting) => <MeetingCard key={meeting.id} meeting={meeting} isSuperAdmin={isSuperAdmin} onView={() => openView(meeting)} onDelete={() => handleDelete(meeting)} onOutcome={() => openOutcome(meeting)} />)}
+                  </div>
+                </section>
+              )}
+            </>
+          )}
       </div>
 
       {/* View Dialog */}

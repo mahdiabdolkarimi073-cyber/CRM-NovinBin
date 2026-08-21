@@ -1,22 +1,22 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import Link from 'next/link';
 import { fetchData, createData, updateData, deleteData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
-import { PageHeader } from '@/components/dashboard/page-header';
-import { EmptyState } from '@/components/dashboard/empty-state';
-import { SuperAdminActions } from '@/components/dashboard/super-admin-actions';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
 } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TrendingUp, Plus, Phone, Mail, Building2, User, Search, Star, ArrowRight, Eye, UserCheck } from 'lucide-react';
+import {
+  TrendingUp, Plus, Phone, Mail, MapPin, Search, Eye, Pencil, Trash2,
+  BarChart3, Filter, Zap, FileBarChart, FileSpreadsheet, ChevronLeft, ChevronRight,
+  UserCheck, Clock,
+} from 'lucide-react';
 import { relativeTime } from '@/lib/format';
 import { LEAD_STATUSES } from '@/lib/constants';
 import { toast } from 'sonner';
@@ -24,14 +24,22 @@ import type { Lead } from '@/lib/types';
 
 const statusInfo = (key: string) => LEAD_STATUSES.find((s) => s.key === key) || LEAD_STATUSES[0];
 
+const LEAD_SOURCES = ['وب‌سایت', 'نمایشگاه', 'معرفی', 'تماس مستقیم', 'تبلیغات', 'شبکه اجتماعی'];
+const CITIES = ['تهران', 'مشهد', 'اصفهان', 'شیراز', 'تبریز', 'کرج', 'اهواز', 'کرمان'];
+
+const PAGE_SIZE = 12;
+
 export default function LeadsPage() {
   const { profile } = useAuth();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [creating, setCreating] = useState(false);
+  const [filterSource, setFilterSource] = useState('all');
+  const [filterCity, setFilterCity] = useState('all');
+  const [filterAssignee, setFilterAssignee] = useState('all');
+  const [filterTime, setFilterTime] = useState('all');
+  const [page, setPage] = useState(1);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [viewLead, setViewLead] = useState<Lead | null>(null);
@@ -39,7 +47,7 @@ export default function LeadsPage() {
   const [saving, setSaving] = useState(false);
   const [converting, setConverting] = useState(false);
   const [form, setForm] = useState({
-    name: '', company: '', phone: '', email: '', source: '', notes: '',
+    name: '', company: '', phone: '', email: '', city: '', source: '', notes: '',
   });
 
   const isSuperAdmin = profile?.role === 'super_admin' || profile?.role === 'owner';
@@ -50,6 +58,7 @@ export default function LeadsPage() {
     try {
       const where: any = {};
       if (filterStatus !== 'all') where.status = filterStatus;
+      if (filterSource !== 'all') where.source = filterSource;
       if (search) {
         where.OR = [
           { name: { contains: search, mode: 'insensitive' } },
@@ -64,36 +73,56 @@ export default function LeadsPage() {
       toast.error('بارگذاری سرنخ‌ها ناموفق: ' + error.message);
     }
     setLoading(false);
-  }, [profile, filterStatus, search]);
+  }, [profile, filterStatus, filterSource, search]);
 
   useEffect(() => { loadLeads(); }, [loadLeads]);
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!profile || !form.name) {
-      toast.error('نام سرنخ را وارد کنید');
-      return;
+  // Reset to page 1 when filters change
+  useEffect(() => { setPage(1); }, [search, filterStatus, filterSource, filterCity, filterAssignee, filterTime]);
+
+  const filteredLeads = useMemo(() => {
+    let result = leads;
+    if (filterCity !== 'all') {
+      result = result.filter((l) => (l as any).city === filterCity);
     }
-    setCreating(true);
-    try {
-      await createData('leads', {
-        name: form.name,
-        company: form.company || null,
-        phone: form.phone || null,
-        email: form.email || null,
-        source: form.source || null,
-        notes: form.notes || null,
-        status: 'new',
-        createdBy: profile.id,
-      });
-      toast.success('سرنخ ایجاد شد');
-      setDialogOpen(false);
-      setForm({ name: '', company: '', phone: '', email: '', source: '', notes: '' });
-      loadLeads();
-    } catch (error: any) {
-      toast.error('ایجاد سرنخ ناموفق: ' + error.message);
+    if (filterAssignee !== 'all') {
+      result = result.filter((l) => l.assignedTo === filterAssignee);
     }
-    setCreating(false);
+    if (filterTime !== 'all') {
+      const now = new Date();
+      const days = filterTime === '7d' ? 7 : filterTime === '30d' ? 30 : 90;
+      const cutoff = new Date(now.getTime() - days * 86400000);
+      result = result.filter((l) => new Date(l.createdAt) >= cutoff);
+    }
+    return result;
+  }, [leads, filterCity, filterAssignee, filterTime]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredLeads.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pagedLeads = filteredLeads.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  const stats = useMemo(() => {
+    const counts: Record<string, number> = {};
+    LEAD_STATUSES.forEach((s) => { counts[s.key] = 0; });
+    leads.forEach((l) => { if (counts[l.status] !== undefined) counts[l.status]++; });
+    return [
+      { key: 'new', label: 'سرنخ جدید', count: counts['new'] || 0, color: '#2F80ED' },
+      { key: 'total', label: 'کل سرنخ‌ها', count: leads.length, color: '#6366F1' },
+      { key: 'contacted', label: 'در حال پیگیری', count: counts['contacted'] || 0, color: '#9B51E0' },
+      { key: 'contact_needed', label: 'نیازمند تماس', count: counts['new'] || 0, color: '#FF9F1C' },
+      { key: 'qualified', label: 'مشتری بالقوه', count: counts['qualified'] || 0, color: '#16B978' },
+      { key: 'converted', label: 'مشتری قطعی', count: counts['converted'] || 0, color: '#10B981' },
+    ];
+  }, [leads]);
+
+  const hasActiveFilters = filterStatus !== 'all' || filterSource !== 'all' || filterCity !== 'all' || filterAssignee !== 'all' || filterTime !== 'all';
+
+  const clearFilters = () => {
+    setFilterStatus('all');
+    setFilterSource('all');
+    setFilterCity('all');
+    setFilterAssignee('all');
+    setFilterTime('all');
   };
 
   const openEdit = (lead: Lead) => {
@@ -103,6 +132,7 @@ export default function LeadsPage() {
       company: lead.company || '',
       phone: lead.phone || '',
       email: lead.email || '',
+      city: (lead as any).city || '',
       source: lead.source || '',
       notes: lead.notes || '',
     });
@@ -186,136 +216,415 @@ export default function LeadsPage() {
     }
   };
 
-  return (
-    <div>
-      <PageHeader
-        title="سرنخ‌های فروش"
-        description="مدیریت سرنخ‌ها و تبدیل به مشتری"
-        action={
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm"><Plus className="w-4 h-4" /> سرنخ جدید</Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg">
-              <DialogHeader><DialogTitle>ثبت سرنخ جدید</DialogTitle></DialogHeader>
-              <form onSubmit={handleCreate} className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>نام *</Label>
-                    <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>شرکت</Label>
-                    <Input value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>تلفن</Label>
-                    <Input dir="ltr" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>ایمیل</Label>
-                    <Input dir="ltr" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>منبع جذب</Label>
-                  <Input placeholder="مثلا: وب‌سایت، نمایشگاه، معرفی" value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} />
-                </div>
-                <div className="space-y-2">
-                  <Label>یادداشت</Label>
-                  <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-                </div>
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>انصراف</Button>
-                  <Button type="submit" disabled={creating}>{creating ? 'در حال ایجاد...' : 'ثبت سرنخ'}</Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        }
-      />
+  const exportExcel = () => {
+    const headers = ['نام', 'شرکت', 'تلفن', 'ایمیل', 'منبع', 'وضعیت', 'تاریخ ایجاد'];
+    const rows = filteredLeads.map((l) => [
+      l.name, l.company || '', l.phone || '', l.email || '', l.source || '', statusInfo(l.status).label, l.createdAt,
+    ]);
+    const csv = [headers, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'leads.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('خروجی Excel آماده شد');
+  };
 
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
-        <div className="relative flex-1">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <Input placeholder="جستجوی سرنخ..." value={search} onChange={(e) => setSearch(e.target.value)} className="pr-10" />
+  return (
+    <div className="leads-page">
+      <header className="leads-header">
+        <div className="leads-heading">
+          <div className="leads-title-row">
+            <span className="leads-title-accent" />
+            <h1>سرنخ‌های فروش</h1>
+          </div>
+          <p>مدیریت سرنخ‌ها و دنبال‌کردن مشتریان</p>
         </div>
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-full sm:w-44"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">همه وضعیت‌ها</SelectItem>
-            {LEAD_STATUSES.map((s) => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <Link href="/dashboard/leads/new" className="leads-new-button">
+          <Plus className="h-4 w-4" />
+          سرنخ جدید
+        </Link>
+      </header>
+
+      <div className="leads-toolbar">
+        <div className="leads-search-wrap">
+          <Search className="h-4 w-4" />
+          <input
+            type="text"
+            placeholder="جستجوی سرنخ..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="leads-filter-dropdown">
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="leads-select-trigger">
+              <SelectValue placeholder="همه وضعیت‌ها" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">همه وضعیت‌ها</SelectItem>
+              {LEAD_STATUSES.map((s) => (
+                <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin w-8 h-8 border-3 border-sky-500 border-t-transparent rounded-full" />
-        </div>
-      ) : leads.length === 0 ? (
-        <Card>
-          <EmptyState
-            icon={<TrendingUp className="w-8 h-8" />}
-            title="سرنخی یافت نشد"
-            description="سرنخ‌های فروش جدید را ثبت کنید"
-            action={<Button onClick={() => setDialogOpen(true)}><Plus className="w-4 h-4" /> افزودن سرنخ</Button>}
-          />
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {leads.map((lead) => {
-            const st = statusInfo(lead.status);
-            return (
-              <Card key={lead.id} className="hover:shadow-md transition-smooth">
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-400 to-blue-600 text-white flex items-center justify-center font-bold">
-                        {lead.name?.[0] || '؟'}
+      <div className="leads-layout">
+        <main className="leads-content">
+          {loading ? (
+            <div className="leads-grid">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="lead-skeleton">
+                  <div className="lead-skeleton-avatar" />
+                  <div className="lead-skeleton-line w-60" />
+                  <div className="lead-skeleton-line w-40" />
+                  <div className="lead-skeleton-line w-full" />
+                  <div className="lead-skeleton-line w-full" />
+                  <div className="lead-skeleton-line w-3/4" />
+                </div>
+              ))}
+            </div>
+          ) : filteredLeads.length === 0 ? (
+            <div className="leads-empty">
+              <TrendingUp className="h-10 w-10" />
+              <strong>سرنخی یافت نشد</strong>
+              <span>سرنخ‌های فروش جدید را ثبت کنید</span>
+              <Link href="/dashboard/leads/new" className="leads-empty-button">
+                <Plus className="h-4 w-4" /> ایجاد سرنخ
+              </Link>
+            </div>
+          ) : (
+            <>
+              <div className="leads-grid">
+                {pagedLeads.map((lead) => {
+                  const st = statusInfo(lead.status);
+                  const stageIndex = LEAD_STATUSES.findIndex((s) => s.key === lead.status);
+                  const progress = Math.round(((stageIndex + 1) / LEAD_STATUSES.length) * 100);
+                  return (
+                    <article key={lead.id} className="lead-card">
+                      <div className="lead-card-header">
+                        <div className="lead-card-id">
+                          <div
+                            className="lead-card-avatar"
+                            style={{ backgroundColor: st.color + '20', color: st.color }}
+                          >
+                            {lead.name?.[0] || '؟'}
+                          </div>
+                          <div className="lead-card-name-wrap">
+                            <h3>{lead.name}</h3>
+                            <span>{lead.company || 'مشتری بالقوه'}</span>
+                          </div>
+                        </div>
+                        <Badge
+                          className="lead-status-badge"
+                          style={{ backgroundColor: st.color + '18', color: st.color }}
+                        >
+                          {st.label}
+                        </Badge>
                       </div>
-                      <div>
-                        <div className="font-semibold text-slate-900">{lead.name}</div>
-                        {lead.company && <div className="text-xs text-slate-400">{lead.company}</div>}
+
+                      <div className="lead-card-contacts">
+                        {lead.phone && (
+                          <div className="lead-contact-row">
+                            <Phone className="h-4 w-4" />
+                            <span dir="ltr">{lead.phone}</span>
+                          </div>
+                        )}
+                        {lead.email && (
+                          <div className="lead-contact-row">
+                            <Mail className="h-4 w-4" />
+                            <span dir="ltr" className="truncate">{lead.email}</span>
+                          </div>
+                        )}
+                        {lead.source && (
+                          <div className="lead-contact-row">
+                            <MapPin className="h-4 w-4" />
+                            <span className="truncate">{lead.source}</span>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                    <Badge style={{ backgroundColor: st.color + '20', color: st.color }}>{st.label}</Badge>
-                  </div>
 
-                  <div className="space-y-1.5 text-sm mb-3">
-                    {lead.phone && <div className="flex items-center gap-2 text-slate-500"><Phone className="w-3.5 h-3.5 text-slate-400" /><span dir="ltr">{lead.phone}</span></div>}
-                    {lead.email && <div className="flex items-center gap-2 text-slate-500"><Mail className="w-3.5 h-3.5 text-slate-400" /><span dir="ltr" className="truncate">{lead.email}</span></div>}
-                    {lead.source && <div className="flex items-center gap-2 text-slate-500"><TrendingUp className="w-3.5 h-3.5 text-slate-400" />{lead.source}</div>}
-                  </div>
+                      <div className="lead-progress-wrap">
+                        <div className="lead-progress-track">
+                          <div
+                            className="lead-progress-fill"
+                            style={{ width: `${progress}%`, backgroundColor: st.color }}
+                          />
+                        </div>
+                        <span className="lead-progress-time">{relativeTime(lead.createdAt)}</span>
+                      </div>
 
-                  <div className="flex items-center gap-1 mb-3">
-                    {LEAD_STATUSES.map((s) => (
+                      <div className="lead-card-actions">
+                        <button className="lead-action-btn lead-action-view" onClick={() => openView(lead)}>
+                          <Eye className="h-3.5 w-3.5" />
+                          مشاهده
+                        </button>
+                        <button className="lead-action-btn lead-action-edit" onClick={() => openEdit(lead)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                          ویرایش
+                        </button>
+                        <button className="lead-action-btn lead-action-delete" onClick={() => handleDelete(lead)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                          حذف
+                        </button>
+                      </div>
+
+                      {isSuperAdmin && lead.status !== 'converted' && (
+                        <button
+                          className="lead-convert-btn"
+                          onClick={() => convertToCustomer(lead)}
+                          disabled={converting}
+                        >
+                          <UserCheck className="h-3.5 w-3.5" />
+                          {converting ? 'در حال تبدیل...' : 'تبدیل به مشتری'}
+                        </button>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+
+              {totalPages > 1 && (
+                <div className="leads-pagination">
+                  <div className="leads-page-size">
+                    <span>نمایش</span>
+                    <Select value={String(PAGE_SIZE)} onValueChange={() => {}}>
+                      <SelectTrigger className="leads-page-size-select">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="12">۱۲</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <span>سرنخ</span>
+                  </div>
+                  <div className="leads-page-buttons">
+                    <button
+                      className="leads-page-btn"
+                      onClick={() => setPage(Math.max(1, currentPage - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                    {Array.from({ length: totalPages }).map((_, i) => (
                       <button
-                        key={s.key}
-                        onClick={() => updateStatus(lead.id, s.key)}
-                        className={`flex-1 h-1.5 rounded-full transition-smooth ${lead.status === s.key ? '' : 'bg-slate-100 hover:bg-slate-200'}`}
-                        style={lead.status === s.key ? { backgroundColor: s.color } : {}}
-                        title={s.label}
-                      />
+                        key={i}
+                        className={`leads-page-btn ${currentPage === i + 1 ? 'leads-page-btn-active' : ''}`}
+                        onClick={() => setPage(i + 1)}
+                      >
+                        {(i + 1).toLocaleString('fa-IR')}
+                      </button>
                     ))}
+                    <button
+                      className="leads-page-btn"
+                      onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
                   </div>
+                </div>
+              )}
+            </>
+          )}
+        </main>
 
-                  <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                    <span className="text-xs text-slate-400">{relativeTime(lead.createdAt)}</span>
-                    <SuperAdminActions
-                      onView={() => openView(lead)}
-                      onEdit={() => openEdit(lead)}
-                      onDelete={() => handleDelete(lead)}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+        <aside className="leads-sidebar">
+          <section className="leads-sidebar-section">
+            <h2 className="leads-sidebar-title">
+              <BarChart3 className="h-4 w-4" />
+              آمار سرنخ‌ها
+            </h2>
+            <div className="leads-stats-grid">
+              {stats.map((s) => (
+                <div key={s.key} className="lead-mini-stat">
+                  <strong style={{ color: s.color }}>{s.count.toLocaleString('fa-IR')}</strong>
+                  <span>{s.label}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="leads-sidebar-section">
+            <h2 className="leads-sidebar-title">
+              <Filter className="h-4 w-4" />
+              فیلترها
+            </h2>
+            <div className="leads-filter-list">
+              <div className="leads-filter-field">
+                <label>وضعیت سرنخ</label>
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger className="leads-filter-select"><SelectValue placeholder="همه" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">همه</SelectItem>
+                    {LEAD_STATUSES.map((s) => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="leads-filter-field">
+                <label>منبع سرنخ</label>
+                <Select value={filterSource} onValueChange={setFilterSource}>
+                  <SelectTrigger className="leads-filter-select"><SelectValue placeholder="همه" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">همه</SelectItem>
+                    {LEAD_SOURCES.map((src) => <SelectItem key={src} value={src}>{src}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="leads-filter-field">
+                <label>بازه زمانی</label>
+                <Select value={filterTime} onValueChange={setFilterTime}>
+                  <SelectTrigger className="leads-filter-select"><SelectValue placeholder="همه" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">همه</SelectItem>
+                    <SelectItem value="7d">۷ روز اخیر</SelectItem>
+                    <SelectItem value="30d">۳۰ روز اخیر</SelectItem>
+                    <SelectItem value="90d">۹۰ روز اخیر</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="leads-filter-field">
+                <label>شهر</label>
+                <Select value={filterCity} onValueChange={setFilterCity}>
+                  <SelectTrigger className="leads-filter-select"><SelectValue placeholder="همه" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">همه</SelectItem>
+                    {CITIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="leads-filter-field">
+                <label>مسئول پیگیری</label>
+                <Select value={filterAssignee} onValueChange={setFilterAssignee}>
+                  <SelectTrigger className="leads-filter-select"><SelectValue placeholder="همه" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">همه</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <button
+              className={`leads-clear-filters ${!hasActiveFilters ? 'leads-clear-filters-disabled' : ''}`}
+              onClick={clearFilters}
+              disabled={!hasActiveFilters}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              پاک کردن فیلترها
+            </button>
+          </section>
+
+          <section className="leads-sidebar-section">
+            <h2 className="leads-sidebar-title">
+              <Zap className="h-4 w-4" />
+              عملیات سریع
+            </h2>
+            <div className="leads-quick-actions">
+              <Link href="/dashboard/leads/new" className="leads-quick-btn leads-quick-blue">
+                <Plus className="h-5 w-5" />
+                <span>سرنخ جدید</span>
+              </Link>
+              <button className="leads-quick-btn leads-quick-purple">
+                <FileBarChart className="h-5 w-5" />
+                <span>گزارش سرنخ‌ها</span>
+              </button>
+              <button className="leads-quick-btn leads-quick-teal" onClick={exportExcel}>
+                <FileSpreadsheet className="h-5 w-5" />
+                <span>خروجی Excel</span>
+              </button>
+            </div>
+          </section>
+        </aside>
+      </div>
+
+      {/* Create Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="leads-modal-content">
+          <DialogHeader className="leads-modal-header">
+            <DialogTitle>ایجاد سرنخ جدید</DialogTitle>
+            <button className="leads-modal-close" onClick={() => setDialogOpen(false)}>
+              <X className="h-5 w-5" />
+            </button>
+          </DialogHeader>
+          <form onSubmit={handleCreate} className="leads-form">
+            <div className="leads-form-grid">
+              <div className="leads-form-field">
+                <Label>نام شخص/شرکت *</Label>
+                <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+              </div>
+              <div className="leads-form-field">
+                <Label>شماره تماس *</Label>
+                <Input dir="ltr" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required />
+              </div>
+              <div className="leads-form-field">
+                <Label>ایمیل</Label>
+                <Input dir="ltr" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+              </div>
+              <div className="leads-form-field">
+                <Label>شهر</Label>
+                <Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+              </div>
+              <div className="leads-form-field">
+                <Label>نوع سرنخ</Label>
+                <Select defaultValue="individual">
+                  <SelectTrigger className="leads-form-select"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="individual">حقیقی</SelectItem>
+                    <SelectItem value="company">حقوقی</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="leads-form-field">
+                <Label>منبع سرنخ</Label>
+                <Select value={form.source} onValueChange={(v) => setForm({ ...form, source: v })}>
+                  <SelectTrigger className="leads-form-select"><SelectValue placeholder="انتخاب کنید" /></SelectTrigger>
+                  <SelectContent>
+                    {LEAD_SOURCES.map((src) => <SelectItem key={src} value={src}>{src}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="leads-form-field">
+                <Label>مسئول پیگیری</Label>
+                <Select defaultValue="">
+                  <SelectTrigger className="leads-form-select"><SelectValue placeholder="انتخاب کنید" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">انتخاب کنید</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="leads-form-field">
+                <Label>وضعیت</Label>
+                <Select defaultValue="new">
+                  <SelectTrigger className="leads-form-select"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {LEAD_STATUSES.map((s) => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="leads-form-field leads-form-field-full">
+              <Label>توضیحات</Label>
+              <Textarea
+                value={form.notes}
+                onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                placeholder="توضیحات تکمیلی..."
+                className="leads-form-textarea"
+              />
+            </div>
+            <DialogFooter className="leads-form-actions">
+              <Button type="button" variant="outline" className="leads-cancel-btn" onClick={() => setDialogOpen(false)}>
+                انصراف
+              </Button>
+              <Button type="submit" className="leads-submit-btn" disabled={creating}>
+                {creating ? 'در حال ایجاد...' : 'ایجاد سرنخ'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* View Dialog */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
@@ -324,7 +633,7 @@ export default function LeadsPage() {
           {viewLead && (
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-sky-400 to-blue-600 text-white flex items-center justify-center font-bold text-lg">
+                <div className="w-12 h-12 rounded-full text-white flex items-center justify-center font-bold text-lg" style={{ backgroundColor: statusInfo(viewLead.status).color }}>
                   {viewLead.name?.[0] || '؟'}
                 </div>
                 <div>
@@ -344,7 +653,10 @@ export default function LeadsPage() {
                   {viewLead.notes}
                 </div>
               )}
-              <div className="text-xs text-slate-400">ایجاد شده: {relativeTime(viewLead.createdAt)}</div>
+              <div className="text-xs text-slate-400 flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                ایجاد شده: {relativeTime(viewLead.createdAt)}
+              </div>
             </div>
           )}
         </DialogContent>
