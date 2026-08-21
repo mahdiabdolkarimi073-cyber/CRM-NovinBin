@@ -1,27 +1,22 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import { fetchData, createData } from '@/lib/data-client';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import { fetchData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
-import { PageHeader } from '@/components/dashboard/page-header';
 import { EmptyState } from '@/components/dashboard/empty-state';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
-} from '@/components/ui/dialog';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
-import { Plus, FileText, Calendar, Search, Eye, ImagePlus, X, ShieldCheck, Printer, ArrowRight, User } from 'lucide-react';
-import { formatJalali, formatJalaliDateTime, formatFileSize, toLocalDateString } from '@/lib/format';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import { Plus, FileText, Calendar, Search, ShieldCheck, Eye, ChevronRight, ChevronLeft } from 'lucide-react';
+import { formatJalali, formatJalaliDateTime } from '@/lib/format';
 import { toast } from 'sonner';
-import Link from 'next/link';
 import { isSuperAdminRole } from '@/lib/nav-config';
+import Link from 'next/link';
 
 type WorkReportImage = { id: string; imageUrl: string };
 type MonthlyWorkReport = {
@@ -32,6 +27,10 @@ type MonthlyWorkReport = {
   startDate: string;
   endDate: string;
   description: string | null;
+  project: string | null;
+  reportDate: string;
+  summary: string | null;
+  details: string | null;
   status: string;
   createdAt: string;
   images?: WorkReportImage[];
@@ -43,10 +42,23 @@ type ProfileInfo = {
   lastName: string | null;
 };
 
-const MAX_IMAGES = 10;
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-const COOLDOWN_DAYS = 20;
+const PAGE_SIZE = 10;
+
+const STATUS_LABELS: Record<string, string> = {
+  draft: 'پیش‌نویس',
+  submitted: 'ارسال شده',
+  reviewing: 'در حال بررسی',
+  approved: 'تأیید شده',
+  needs_revision: 'نیازمند بازبینی',
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  draft: 'bg-slate-50 text-slate-700 border-slate-200',
+  submitted: 'bg-blue-50 text-blue-700 border-blue-200',
+  reviewing: 'bg-amber-50 text-amber-700 border-amber-200',
+  approved: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  needs_revision: 'bg-red-50 text-red-700 border-red-200',
+};
 
 export default function MonthlyWorkReportsPage() {
   const { profile } = useAuth();
@@ -54,13 +66,7 @@ export default function MonthlyWorkReportsPage() {
   const [profileMap, setProfileMap] = useState<Record<string, ProfileInfo>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [images, setImages] = useState<File[]>([]);
-  const [viewReport, setViewReport] = useState<MonthlyWorkReport | null>(null);
-  const [form, setForm] = useState({
-    fullName: '', nationalId: '', startDate: '', endDate: '', description: '',
-  });
+  const [page, setPage] = useState(1);
 
   const isSuperAdmin = isSuperAdminRole(profile?.role);
 
@@ -88,7 +94,7 @@ export default function MonthlyWorkReportsPage() {
         });
         setReports(data);
       }
-    } catch (error: any) {
+    } catch {
       toast.error('خطا در بارگذاری گزارش‌ها');
     }
     setLoading(false);
@@ -96,426 +102,267 @@ export default function MonthlyWorkReportsPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  const filteredReports = search
-    ? reports.filter((r) => {
-        const s = search.toLowerCase();
-        const p = profileMap[r.profileId];
-        const name = p ? `${p.firstName || ''} ${p.lastName || ''}`.trim() : '';
-        return r.fullName.toLowerCase().includes(s) || name.toLowerCase().includes(s);
-      })
-    : reports;
+  const filtered = useMemo(() => {
+    if (!search) return reports;
+    const s = search.toLowerCase();
+    return reports.filter((r) => {
+      const name = isSuperAdmin ? getProfileName(r.profileId) : '';
+      return r.fullName.toLowerCase().includes(s) || name.toLowerCase().includes(s);
+    });
+  }, [search, reports, isSuperAdmin, profileMap]);
 
-  const lastReportDate = reports.length > 0 ? reports[0].createdAt : null;
-  const canCreate = (() => {
-    if (!lastReportDate) return true;
-    const daysSince = Math.floor((Date.now() - new Date(lastReportDate).getTime()) / (1000 * 60 * 60 * 24));
-    return daysSince >= COOLDOWN_DAYS;
-  })();
-  const daysUntilNext = lastReportDate
-    ? COOLDOWN_DAYS - Math.floor((Date.now() - new Date(lastReportDate).getTime()) / (1000 * 60 * 60 * 24))
-    : 0;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paged = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const startIdx = filtered.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
+  const endIdx = Math.min(currentPage * PAGE_SIZE, filtered.length);
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    const valid: File[] = [];
-    for (const file of files) {
-      if (!ALLOWED_TYPES.includes(file.type)) {
-        toast.error(`فرمت ${file.name} مجاز نیست. فقط JPG، PNG، GIF، WEBP`);
-        continue;
-      }
-      if (file.size > MAX_FILE_SIZE) {
-        toast.error(`حجم ${file.name} بیشتر از ۵ مگابایت است`);
-        continue;
-      }
-      valid.push(file);
-    }
-    if (images.length + valid.length > MAX_IMAGES) {
-      toast.error(`حداکثر ${MAX_IMAGES} تصویر می‌توانید آپلود کنید`);
-      return;
-    }
-    setImages([...images, ...valid]);
-  };
-
-  const removeImage = (idx: number) => {
-    setImages(images.filter((_, i) => i !== idx));
-  };
-
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!profile || !profile?.id) { toast.error('اطلاعات کاربری یافت نشد'); return; }
-    if (!form.fullName.trim()) { toast.error('نام و نام خانوادگی را وارد کنید'); return; }
-    if (!form.nationalId.trim()) { toast.error('کد ملی را وارد کنید'); return; }
-    if (!form.startDate || !form.endDate) { toast.error('تاریخ شروع و پایان را انتخاب کنید'); return; }
-    if (!canCreate) { toast.error(`هنوز مهلت ثبت گزارش جدید فرا نرسیده است. ${daysUntilNext} روز دیگر صبر کنید`); return; }
-
-    setCreating(true);
-    try {
-      const report = await createData<MonthlyWorkReport>('monthly_work_reports', {
-        profileId: profile.id,
-        fullName: form.fullName.trim(),
-        nationalId: form.nationalId.trim(),
-        startDate: new Date(form.startDate),
-        endDate: new Date(form.endDate),
-        description: form.description.trim() || null,
-        status: 'submitted',
-      }, { images: true });
-
-      for (let i = 0; i < images.length; i++) {
-        const file = images[i];
-        await createData('work_report_images', {
-          monthlyReportId: report.id,
-          imageUrl: file.name,
-        });
-      }
-
-      toast.success('گزارش ماهانه ثبت شد');
-      setDialogOpen(false);
-      setForm({ fullName: '', nationalId: '', startDate: '', endDate: '', description: '' });
-      setImages([]);
-      loadData();
-    } catch (error: any) {
-      toast.error('ایجاد ناموفق: ' + (error?.message || 'خطا'));
-    }
-    setCreating(false);
-  };
-
-  const getProfileName = (pid: string) => {
+  function getProfileName(pid: string) {
     const p = profileMap[pid];
     return p ? `${p.firstName || ''} ${p.lastName || ''}`.trim() : 'نامشخص';
-  };
-  const getInitials = (pid: string) => {
+  }
+  function getInitials(pid: string) {
     const p = profileMap[pid];
     if (!p) return '؟';
     return ((p.firstName?.[0] || '') + (p.lastName?.[0] || '')).toUpperCase();
-  };
+  }
 
-  const viewProfile = viewReport ? profileMap[viewReport.profileId] : null;
-  const declarationText = viewReport
-    ? `اینجانب ${viewReport.fullName} به کد ملی ${viewReport.nationalId} وضعیت پروژه تحویل گرفته را طبق گزارش کار صورت وضعیت ارائه شده اعلام می‌نمایم.`
-    : '';
-  const formDeclaration = `اینجانب ${form.fullName || '....'} به کد ملی ${form.nationalId || '....'} وضعیت پروژه تحویل گرفته را طبق گزارش کار صورت وضعیت ارائه شده اعلام می‌نمایم.`;
+  const pageNumbers: number[] = [];
+  const maxVisible = 3;
+  let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+  let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+  if (endPage - startPage + 1 < maxVisible) {
+    startPage = Math.max(1, endPage - maxVisible + 1);
+  }
+  for (let i = startPage; i <= endPage; i++) pageNumbers.push(i);
 
   return (
-    <div>
-      <PageHeader
-        title={isSuperAdmin ? 'گزارشات کار ماهانه (نمای کل)' : 'گزارش کار ماهانه'}
-        description={isSuperAdmin ? 'مشاهده تمام گزارش‌های ماهانه ارسال‌شده توسط کاربران' : 'ثبت گزارش ماهانه پروژه با صورت وضعیت'}
-        action={isSuperAdmin ? (
-          <div className="flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-sm font-bold text-emerald-700">
-            <ShieldCheck className="w-4 h-4" />
-            حالت مشاهده (سوپرادمین)
+    <div className="w-full" dir="rtl">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <div className="h-[25px] w-[5px] rounded-[4px] bg-[#FF8A00]" />
+            <h1 className="text-[28px] font-bold leading-tight text-[#101C35]">
+              {isSuperAdmin ? 'گزارشات کار ماهانه (نمای کل)' : 'گزارش کار ماهانه'}
+            </h1>
           </div>
-        ) : (
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" disabled={!canCreate}>
-                <Plus className="w-4 h-4" /> گزارش جدید
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader><DialogTitle>ثبت گزارش ماهانه</DialogTitle></DialogHeader>
-              <form onSubmit={handleCreate} className="space-y-4">
-                <div className="rounded-lg bg-slate-50 border border-slate-200 px-4 py-4 text-sm text-slate-700 leading-7">
-                  {formDeclaration}
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>نام و نام خانوادگی *</Label>
-                    <Input
-                      value={form.fullName}
-                      onChange={(e) => setForm({ ...form, fullName: e.target.value })}
-                      placeholder="نام کامل"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>کد ملی *</Label>
-                    <Input
-                      value={form.nationalId}
-                      onChange={(e) => setForm({ ...form, nationalId: e.target.value })}
-                      placeholder="کد ملی"
-                      dir="ltr"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>تاریخ شروع *</Label>
-                    <JalaliDatePicker
-                      value={form.startDate ? new Date(form.startDate) : null}
-                      onChange={(d) => setForm({ ...form, startDate: d ? toLocalDateString(d) : '' })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>تاریخ پایان *</Label>
-                    <JalaliDatePicker
-                      value={form.endDate ? new Date(form.endDate) : null}
-                      onChange={(d) => setForm({ ...form, endDate: d ? toLocalDateString(d) : '' })}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>توضیحات / صورت وضعیت</Label>
-                  <Textarea
-                    value={form.description}
-                    onChange={(e) => setForm({ ...form, description: e.target.value })}
-                    placeholder="شرح کارهای انجام‌شده در این بازه زمانی"
-                    rows={5}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>تصاویر صورت وضعیت (حداکثر {MAX_IMAGES} تصویر، حداکثر ۵ مگابایت هر کدام)</Label>
-                  <div className="flex items-center gap-2">
-                    <label className="cursor-pointer">
-                      <span className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
-                        <ImagePlus className="w-4 h-4" /> انتخاب تصاویر
-                      </span>
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/gif,image/webp"
-                        multiple
-                        className="hidden"
-                        onChange={handleImageSelect}
-                      />
-                    </label>
-                    <span className="text-xs text-slate-400">{images.length} / {MAX_IMAGES} تصویر</span>
-                  </div>
-                  {images.length > 0 && (
-                    <div className="grid grid-cols-3 gap-2 mt-2">
-                      {images.map((file, idx) => (
-                        <div key={idx} className="relative group rounded-lg overflow-hidden border border-slate-200">
-                          <img
-                            src={URL.createObjectURL(file)}
-                            alt={file.name}
-                            className="w-full h-24 object-cover"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removeImage(idx)}
-                            className="absolute top-1 left-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                          <div className="px-1 py-0.5 text-[10px] text-slate-400 truncate">{file.name}</div>
-                          <div className="px-1 pb-1 text-[10px] text-slate-400">{formatFileSize(file.size)}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>انصراف</Button>
-                  <Button type="submit" disabled={creating}>{creating ? 'در حال ثبت...' : 'ثبت گزارش'}</Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        )}
-      />
-
-      {!isSuperAdmin && !canCreate && (
-        <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-700 mb-4">
-          تا ثبت گزارش بعدی {daysUntilNext > 0 ? `${daysUntilNext} روز` : 'باقی مانده است'}. هر ۲۰ روز یک‌بار می‌توانید گزارش ماهانه ثبت کنید.
+          <p className="mt-[7px] text-[13px] text-[#71809A]">
+            {isSuperAdmin ? 'مشاهده تمام گزارش‌های ماهانه ارسال‌شده توسط کاربران' : 'ثبت گزارش ماهانه پروژه با صورت وضعیت'}
+          </p>
         </div>
-      )}
+        <div className="flex items-center gap-2">
+          {isSuperAdmin ? (
+            <div className="flex items-center gap-2 rounded-[10px] border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-700">
+              <ShieldCheck className="h-4 w-4" />
+              حالت مشاهده (سوپرادمین)
+            </div>
+          ) : (
+            <Link href="/dashboard/work-reports/monthly/new">
+              <Button
+                className="h-[44px] w-[100px] rounded-[10px] bg-[#10265F] text-[13px] font-bold text-white shadow-sm transition-all hover:-translate-y-px hover:bg-[#1a3a7a]"
+              >
+                <Plus className="h-4 w-4" />
+                گزارش جدید
+              </Button>
+            </Link>
+          )}
+        </div>
+      </div>
 
-      <div className="relative mb-4 max-w-sm">
-        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+      {/* Date bar */}
+      <div className="mt-[35px] flex h-[40px] w-full items-center gap-2 rounded-[10px] border border-[#D7EBFA] bg-[#EFF9FF] px-4 text-[13px] text-[#0875C9]">
+        <Calendar className="h-4 w-4" />
+        <span>امروز: {formatJalali(new Date())}</span>
+      </div>
+
+      {/* Search */}
+      <div className="relative mt-[14px] w-full max-w-[330px]">
+        <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#94A3B8]" />
         <Input
           placeholder={isSuperAdmin ? 'جستجوی نام کاربر یا گزارش...' : 'جستجوی نام...'}
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pr-10"
+          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          className="h-[38px] rounded-[10px] border-[#D2DCEB] bg-white pr-10 text-[13px] focus:border-[#8EB6E5] focus:shadow-[0_0_0_3px_rgba(142,182,229,0.15)]"
         />
       </div>
 
+      {/* Table */}
       {loading ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin w-8 h-8 border-3 border-sky-500 border-t-transparent rounded-full" />
+        <div className="mt-[15px] flex h-64 items-center justify-center rounded-[14px] border border-[#D9E2EF] bg-white">
+          <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-[#0875C9] border-t-transparent" />
         </div>
-      ) : filteredReports.length === 0 ? (
-        <Card>
-          <CardContent>
-            <EmptyState
-              icon={<FileText className="w-8 h-8" />}
-              title={isSuperAdmin ? 'هنوز گزارشی ارسال نشده' : 'گزارش ماهانه‌ای ثبت نشده'}
-              description={isSuperAdmin ? 'گزارش‌های ماهانه ارسال‌شده توسط کاربران اینجا نمایش داده می‌شود' : 'اولین گزارش ماهانه خود را ثبت کنید'}
-              action={!isSuperAdmin ? <Button onClick={() => setDialogOpen(true)} disabled={!canCreate}><Plus className="w-4 h-4" /> افزودن گزارش</Button> : undefined}
-            />
-          </CardContent>
-        </Card>
+      ) : paged.length === 0 ? (
+        <div className="mt-[15px] rounded-[14px] border border-[#D9E2EF] bg-white p-8">
+          <EmptyState
+            icon={<FileText className="h-8 w-8" />}
+            title={isSuperAdmin ? 'هنوز گزارشی ارسال نشده' : 'گزارش ماهانه‌ای ثبت نشده'}
+            description={isSuperAdmin ? 'گزارش‌های ماهانه ارسال‌شده توسط کاربران اینجا نمایش داده می‌شود' : 'اولین گزارش ماهانه خود را ثبت کنید'}
+            action={!isSuperAdmin ? (
+              <Link href="/dashboard/work-reports/monthly/new">
+                <Button className="rounded-[10px] bg-[#10265F] hover:bg-[#1a3a7a]">
+                  <Plus className="h-4 w-4" /> افزودن گزارش
+                </Button>
+              </Link>
+            ) : undefined}
+          />
+        </div>
       ) : (
-        <Card>
-          <CardContent className="p-0">
+        <>
+          {/* Desktop table */}
+          <div className="mt-[15px] hidden overflow-hidden rounded-[14px] border border-[#D9E2EF] bg-white shadow-[0_4px_15px_rgba(20,40,80,0.06)] md:block">
             <Table>
               <TableHeader>
-                <TableRow>
-                  {isSuperAdmin && <TableHead>کاربر</TableHead>}
-                  <TableHead>نام</TableHead>
-                  <TableHead>کد ملی</TableHead>
-                  <TableHead>بازه زمانی</TableHead>
-                  <TableHead>تصاویر</TableHead>
-                  <TableHead>تاریخ ثبت</TableHead>
-                  <TableHead>مشاهده</TableHead>
+                <TableRow className="h-[48px] border-b border-[#EEF2F6] bg-[#F8FAFC] hover:bg-[#F8FAFC]">
+                  {isSuperAdmin && <TableHead className="text-[12px] font-semibold text-[#5F708A]">کاربر</TableHead>}
+                  <TableHead className="text-[12px] font-semibold text-[#5F708A]">نام</TableHead>
+                  <TableHead className="text-[12px] font-semibold text-[#5F708A]">بازه زمانی</TableHead>
+                  <TableHead className="text-[12px] font-semibold text-[#5F708A]">وضعیت</TableHead>
+                  <TableHead className="text-[12px] font-semibold text-[#5F708A]">تصاویر</TableHead>
+                  <TableHead className="text-[12px] font-semibold text-[#5F708A]">تاریخ ثبت</TableHead>
+                  <TableHead className="text-[12px] font-semibold text-[#5F708A] text-left">عملیات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredReports.map((report) => (
-                  <TableRow key={report.id}>
+                {paged.map((report) => (
+                  <TableRow
+                    key={report.id}
+                    className="h-[70px] border-b border-[#EEF2F6] transition-all hover:bg-[#FAFCFF]"
+                  >
                     {isSuperAdmin && (
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <Avatar className="w-8 h-8">
-                            <AvatarFallback className="bg-sky-100 text-sky-700 text-[10px] font-bold">
+                          <Avatar className="h-8 w-8">
+                            <AvatarFallback className="bg-sky-100 text-[10px] font-bold text-sky-700">
                               {getInitials(report.profileId)}
                             </AvatarFallback>
                           </Avatar>
-                          <span className="font-medium text-slate-800 text-sm">{getProfileName(report.profileId)}</span>
+                          <span className="text-sm font-medium text-[#17233D]">{getProfileName(report.profileId)}</span>
                         </div>
                       </TableCell>
                     )}
-                    <TableCell className="font-medium text-slate-800">{report.fullName}</TableCell>
-                    <TableCell className="text-slate-500" dir="ltr">{report.nationalId}</TableCell>
+                    <TableCell className="text-[14px] font-bold text-[#17233D]">{report.fullName}</TableCell>
                     <TableCell>
-                      <span className="text-sm text-slate-500">
+                      <span className="text-[13px] text-[#71809A]">
                         {formatJalali(report.startDate)} تا {formatJalali(report.endDate)}
                       </span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={`rounded-[20px] border px-3 py-1 text-xs ${STATUS_COLORS[report.status] || 'bg-slate-50 text-slate-700 border-slate-200'}`}>
+                        {STATUS_LABELS[report.status] || report.status}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="text-xs">
                         {report.images?.length || 0} تصویر
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm text-slate-400">{formatJalali(report.createdAt)}</TableCell>
+                    <TableCell className="text-[13px] text-[#71809A]">{formatJalaliDateTime(report.createdAt)}</TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="sm" onClick={() => setViewReport(report)}>
-                        <Eye className="w-4 h-4" /> مشاهده
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Link href={`/dashboard/work-reports/view/${report.id}`}>
+                          <button
+                            className="flex h-[40px] w-[40px] items-center justify-center rounded-[9px] bg-[#F4F8FD] text-[#1764C0] transition-all hover:bg-[#E0EDFB] hover:shadow-sm"
+                            title="مشاهده"
+                          >
+                            <Eye className="h-[18px] w-[18px]" />
+                          </button>
+                        </Link>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-          </CardContent>
-        </Card>
-      )}
+          </div>
 
-      {/* Superadmin detail view dialog */}
-      {viewReport && (
-        <Dialog open={!!viewReport} onOpenChange={(open) => { if (!open) setViewReport(null); }}>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-sky-500" />
-                مشاهده گزارش ماهانه
-              </DialogTitle>
-            </DialogHeader>
-
-            {viewProfile && (
-              <div className="flex items-center gap-3 rounded-xl border border-sky-200 bg-sky-50/50 p-4">
-                <Avatar className="w-12 h-12">
-                  <AvatarFallback className="bg-sky-100 text-sky-700 text-sm font-bold">
-                    {getInitials(viewReport.profileId)}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-slate-400" />
-                    <span className="text-sm font-bold text-slate-800">ارسال‌کننده:</span>
-                    <span className="text-sm font-medium text-slate-700">{getProfileName(viewReport.profileId)}</span>
+          {/* Mobile card list */}
+          <div className="mt-[15px] space-y-[10px] md:hidden">
+            {paged.map((report) => (
+              <div key={report.id} className="rounded-[12px] border border-[#D9E2EF] bg-white p-4 shadow-[0_4px_15px_rgba(20,40,80,0.06)]">
+                {isSuperAdmin && (
+                  <div className="mb-2 flex items-center gap-2">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="bg-sky-100 text-[10px] font-bold text-sky-700">
+                        {getInitials(report.profileId)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm font-medium text-[#17233D]">{getProfileName(report.profileId)}</span>
                   </div>
-                  <div className="text-xs text-slate-400 mt-0.5">
-                    تاریخ ارسال: {formatJalaliDateTime(viewReport.createdAt)}
-                  </div>
+                )}
+                <div className="text-[14px] font-bold text-[#17233D]">{report.fullName}</div>
+                <div className="mt-1 text-[13px] text-[#71809A]">
+                  {formatJalali(report.startDate)} تا {formatJalali(report.endDate)}
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <Badge variant="outline" className={`rounded-[20px] border px-3 py-1 text-xs ${STATUS_COLORS[report.status] || 'bg-slate-50 text-slate-700 border-slate-200'}`}>
+                    {STATUS_LABELS[report.status] || report.status}
+                  </Badge>
+                  <Badge variant="outline" className="text-xs">
+                    {report.images?.length || 0} تصویر
+                  </Badge>
+                  <span className="text-[13px] text-[#71809A]">{formatJalaliDateTime(report.createdAt)}</span>
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <Link href={`/dashboard/work-reports/view/${report.id}`}>
+                    <Button variant="outline" size="sm" className="rounded-[9px]">
+                      <Eye className="h-4 w-4" /> مشاهده
+                    </Button>
+                  </Link>
                 </div>
               </div>
-            )}
+            ))}
+          </div>
 
-            {/* Report form */}
-            <div className="rounded-lg border border-slate-200 bg-white p-6">
-              <div className="text-center mb-6 pb-4 border-b-2 border-slate-200">
-                <h1 className="text-lg font-bold text-slate-900 mb-1">گزارش کار ماهانه</h1>
-                <p className="text-sm text-slate-500">صورت وضعیت پروژه</p>
+          {/* Pagination */}
+          <div className="mt-4 flex flex-col items-center justify-between gap-4 rounded-[14px] border border-[#D9E2EF] bg-white px-5 py-4 sm:flex-row">
+            <div className="text-[13px] text-[#71809A]">
+              نمایش {startIdx.toLocaleString('fa-IR')} تا {endIdx.toLocaleString('fa-IR')} از {filtered.length.toLocaleString('fa-IR')} گزارش
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 text-[13px] text-[#71809A]">
+                <span>تعداد در صفحه</span>
+                <Select value={String(PAGE_SIZE)} onValueChange={() => {}}>
+                  <SelectTrigger className="h-[38px] w-[60px] rounded-[10px] border-[#D2DCEB] text-[13px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">۱۰</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-
-              <div className="mb-6">
-                <div className="rounded-lg bg-slate-50 border border-slate-200 px-5 py-4 text-sm text-slate-800 leading-7 text-justify">
-                  {declarationText}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="space-y-1">
-                  <span className="text-xs text-slate-400">نام و نام خانوادگی</span>
-                  <div className="text-sm font-medium text-slate-800 border-b border-slate-200 pb-2">{viewReport.fullName}</div>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-xs text-slate-400">کد ملی</span>
-                  <div className="text-sm font-medium text-slate-800 border-b border-slate-200 pb-2" dir="ltr">{viewReport.nationalId}</div>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-xs text-slate-400">تاریخ شروع</span>
-                  <div className="text-sm font-medium text-slate-800 border-b border-slate-200 pb-2">
-                    <Calendar className="inline w-3 h-3 ml-1 text-slate-400" />
-                    {formatJalali(viewReport.startDate)}
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-xs text-slate-400">تاریخ پایان</span>
-                  <div className="text-sm font-medium text-slate-800 border-b border-slate-200 pb-2">
-                    <Calendar className="inline w-3 h-3 ml-1 text-slate-400" />
-                    {formatJalali(viewReport.endDate)}
-                  </div>
-                </div>
-              </div>
-
-              {viewReport.description && (
-                <div className="mb-6">
-                  <h3 className="text-sm font-semibold text-slate-700 mb-2">شرح کارهای انجام‌شده</h3>
-                  <div className="text-sm text-slate-600 leading-7 whitespace-pre-wrap border border-slate-200 rounded-lg p-4 bg-white">
-                    {viewReport.description}
-                  </div>
-                </div>
-              )}
-
-              {viewReport.images && viewReport.images.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="text-sm font-semibold text-slate-700 mb-3">تصاویر صورت وضعیت</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    {viewReport.images.map((img) => (
-                      <div key={img.id} className="rounded-lg overflow-hidden border border-slate-200">
-                        <img
-                          src={img.imageUrl}
-                          alt="صورت وضعیت"
-                          className="w-full h-48 object-cover"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="mt-6 pt-4 border-t border-slate-200 flex items-center justify-between text-xs text-slate-400">
-                <span>شماره گزارش: <span dir="ltr">{viewReport.id.slice(0, 8)}</span></span>
-                <Button size="sm" variant="outline" onClick={() => window.print()}>
-                  <Printer className="w-4 h-4" /> چاپ
-                </Button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className="flex h-[42px] w-[42px] items-center justify-center rounded-[10px] bg-[#F7F9FC] text-[#263752] transition-all hover:bg-[#EEF2F6] disabled:opacity-40"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+                {pageNumbers.map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setPage(p)}
+                    className={`flex h-[42px] w-[42px] items-center justify-center rounded-[10px] text-[14px] font-medium transition-all ${
+                      p === currentPage
+                        ? 'bg-[#10265F] text-white'
+                        : 'bg-[#F7F9FC] text-[#263752] hover:bg-[#EEF2F6]'
+                    }`}
+                  >
+                    {p.toLocaleString('fa-IR')}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages}
+                  className="flex h-[42px] w-[42px] items-center justify-center rounded-[10px] bg-[#F7F9FC] text-[#263752] transition-all hover:bg-[#EEF2F6] disabled:opacity-40"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
               </div>
             </div>
-
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setViewReport(null)}>
-                <ArrowRight className="w-4 h-4" /> بستن
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+          </div>
+        </>
       )}
     </div>
   );

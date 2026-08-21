@@ -40,11 +40,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isPublicPath = PUBLIC_DASHBOARD_PATHS.includes(pathname);
   const needsGuard = !isPublicPath;
   const hasAccess = hasPageAccess(profile, pathname);
+  const isDashboardHome = pathname === '/dashboard';
 
   return (
-    <div className="min-h-screen bg-[#F6F8FD]" dir="rtl">
+    <div className="min-h-screen bg-[#F6F8FC]" dir="rtl">
       <Navbar />
-      <main className="mx-auto max-w-[1280px] px-4 pt-6 pb-8 lg:px-6">
+      <main className={`mx-auto px-4 pt-6 pb-10 lg:px-6 ${isDashboardHome ? 'max-w-[1470px]' : 'max-w-[1280px]'}`}>
         {needsGuard && !hasAccess ? <PageGuard href={pathname}>{children}</PageGuard> : children}
       </main>
     </div>

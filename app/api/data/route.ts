@@ -290,6 +290,33 @@ export async function POST(req: NextRequest) {
       } catch {}
     }
 
+    // Notify super-admins when a monthly work report is created
+    if (model === 'monthly_work_reports' && postData.profileId) {
+      try {
+        const author = await prisma.profile.findUnique({
+          where: { id: postData.profileId },
+          select: { firstName: true, lastName: true },
+        });
+        const authorName = [author?.firstName, author?.lastName].filter(Boolean).join(' ') || 'کاربر';
+        const superAdmins = await prisma.profile.findMany({
+          where: { role: { in: ['super_admin', 'owner'] }, active: true, id: { not: postData.profileId } },
+          select: { id: true },
+        });
+        if (superAdmins.length > 0) {
+          await prisma.notification.createMany({
+            data: superAdmins.map((sa) => ({
+              profileId: sa.id,
+              title: `گزارش ماهانه جدید از ${authorName}`,
+              body: postData.fullName ? `صورت وضعیت پروژه - ${String(postData.fullName).slice(0, 120)}` : null,
+              type: 'report',
+              priority: 'normal',
+              link: `/dashboard/work-reports/view/${record.id}`,
+            })),
+          });
+        }
+      } catch {}
+    }
+
     // Auto-copy notifications to all super-admins
     if (model === 'notifications' && postData.profileId) {
       try {

@@ -1006,18 +1006,26 @@ model DailyWorkReport {
 }
 
 model MonthlyWorkReport {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  orgId       String?   @db.Uuid
-  profileId   String   @db.Uuid
-  fullName    String
-  nationalId  String
-  startDate   DateTime
-  endDate     DateTime
-  description String?
-  status      String   @default("submitted")
-  createdAt   DateTime @default(now())
-  org         Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  images      WorkReportImage[]
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId          String?   @db.Uuid
+  profileId      String   @db.Uuid
+  fullName       String
+  nationalId     String
+  startDate      DateTime
+  endDate        DateTime
+  description    String?
+  reportYear     Int?
+  reportMonth    Int?
+  project        String?
+  reportDate     DateTime @default(now())
+  summary        String?
+  details        String?
+  attachmentUrl  String?
+  attachmentName String?
+  status         String   @default("draft")
+  createdAt      DateTime @default(now())
+  org            Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  images         WorkReportImage[]
 
   @@map("monthly_work_reports")
 }
