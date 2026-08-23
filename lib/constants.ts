@@ -53,11 +53,19 @@ export const TICKET_STATUSES = [
 ];
 
 export const LEAD_STATUSES = [
-  { key: 'new', label: 'جدید', color: '#3b82f6' },
-  { key: 'contacted', label: 'تماس شده', color: '#06b6d4' },
-  { key: 'qualified', label: 'تایید شده', color: '#f59e0b' },
-  { key: 'converted', label: 'تبدیل به مشتری', color: '#10b981' },
-  { key: 'lost', label: 'از دست رفته', color: '#ef4444' },
+  { key: 'new', label: 'جدید', color: '#1F2937' },
+  { key: 'contacted', label: 'تماس شده', color: '#F59E0B' },
+  { key: 'qualified', label: 'تایید شده', color: '#2563EB' },
+  { key: 'converted', label: 'تبدیل به مشتری', color: '#16A34A' },
+  { key: 'lost', label: 'از دست رفته', color: '#EF4444' },
+];
+
+export const LEAD_SOURCES = [
+  'گوگل',
+  'هوش مصنوعی',
+  'شبکه اجتماعی',
+  'معرفی دیگران',
+  'سایر',
 ];
 
 export const PLAN_LABELS: Record<string, string> = {

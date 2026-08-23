@@ -19,13 +19,12 @@ import {
   UserCheck, Clock,
 } from 'lucide-react';
 import { relativeTime } from '@/lib/format';
-import { LEAD_STATUSES } from '@/lib/constants';
+import { LEAD_STATUSES, LEAD_SOURCES } from '@/lib/constants';
 import { toast } from 'sonner';
 import type { Lead } from '@/lib/types';
 
 const statusInfo = (key: string) => LEAD_STATUSES.find((s) => s.key === key) || LEAD_STATUSES[0];
 
-const LEAD_SOURCES = ['وب‌سایت', 'نمایشگاه', 'معرفی', 'تماس مستقیم', 'تبلیغات', 'شبکه اجتماعی'];
 const CITIES = ['تهران', 'مشهد', 'اصفهان', 'شیراز', 'تبریز', 'کرج', 'اهواز', 'کرمان'];
 
 const PAGE_SIZE = 12;
@@ -107,12 +106,12 @@ export default function LeadsPage() {
     LEAD_STATUSES.forEach((s) => { counts[s.key] = 0; });
     leads.forEach((l) => { if (counts[l.status] !== undefined) counts[l.status]++; });
     return [
-      { key: 'new', label: 'سرنخ جدید', count: counts['new'] || 0, color: '#2F80ED' },
+      { key: 'new', label: 'سرنخ جدید', count: counts['new'] || 0, color: '#1F2937' },
       { key: 'total', label: 'کل سرنخ‌ها', count: leads.length, color: '#6366F1' },
-      { key: 'contacted', label: 'در حال پیگیری', count: counts['contacted'] || 0, color: '#9B51E0' },
+      { key: 'contacted', label: 'در حال پیگیری', count: counts['contacted'] || 0, color: '#F59E0B' },
       { key: 'contact_needed', label: 'نیازمند تماس', count: counts['new'] || 0, color: '#FF9F1C' },
-      { key: 'qualified', label: 'مشتری بالقوه', count: counts['qualified'] || 0, color: '#16B978' },
-      { key: 'converted', label: 'مشتری قطعی', count: counts['converted'] || 0, color: '#10B981' },
+      { key: 'qualified', label: 'مشتری بالقوه', count: counts['qualified'] || 0, color: '#2563EB' },
+      { key: 'converted', label: 'مشتری قطعی', count: counts['converted'] || 0, color: '#16A34A' },
     ];
   }, [leads]);
 
@@ -604,7 +603,12 @@ export default function LeadsPage() {
             </div>
             <div className="space-y-2">
               <Label>منبع جذب</Label>
-              <Input placeholder="مثلا: وب‌سایت، نمایشگاه، معرفی" value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} />
+              <Select value={form.source} onValueChange={(v) => setForm({ ...form, source: v })}>
+                <SelectTrigger className="w-full"><SelectValue placeholder="منبع جذب را انتخاب کنید" /></SelectTrigger>
+                <SelectContent>
+                  {LEAD_SOURCES.map((src) => <SelectItem key={src} value={src}>{src}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>یادداشت</Label>

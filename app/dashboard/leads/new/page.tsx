@@ -14,19 +14,7 @@ import {
   TrendingUp, StickyNote, Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
-
-const CITIES = [
-  'تهران', 'مشهد', 'اصفهان', 'شیراز', 'تبریز', 'کرج', 'اهواز', 'کرمان',
-  'یزد', 'رشت', 'ارومیه', 'قزوین', 'زاهدان', 'ساری', 'گرگان', 'بندرعباس',
-];
-
-const INDUSTRIES = [
-  'ساختمان', 'فناوری اطلاعات', 'بازرگانی', 'صنعت', 'خدمات', 'پزشکی', 'آموزش', 'املاک',
-];
-
-const SOURCES = [
-  'وب‌سایت', 'معرفی مشتری', 'تماس تلفنی', 'شبکه اجتماعی', 'تبلیغات', 'نمایشگاه', 'سایر',
-];
+import { LEAD_SOURCES } from '@/lib/constants';
 
 const guideCards = [
   {
@@ -84,8 +72,8 @@ export default function NewLeadPage() {
     if (!form.name.trim()) e.name = 'نام سرنخ الزامی است';
     if (!form.phone.trim()) e.phone = 'شماره تلفن الزامی است';
     else if (!/^0?9\d{9}$/.test(form.phone.replace(/[\s-]/g, ''))) e.phone = 'شماره تلفن معتبر نیست (مثال: 09123456789)';
-    if (!form.city) e.city = 'شهر الزامی است';
-    if (!form.industry) e.industry = 'حوزه فعالیت الزامی است';
+    if (!form.city.trim()) e.city = 'شهر الزامی است';
+    if (!form.industry.trim()) e.industry = 'حوزه فعالیت الزامی است';
     setErrors(e);
     return Object.keys(e).length === 0;
   }, [form]);
@@ -98,8 +86,8 @@ export default function NewLeadPage() {
 
     const combinedNotes = [
       form.notes || '',
-      form.industry ? `حوزه فعالیت: ${form.industry}` : '',
-      form.city ? `شهر: ${form.city}` : '',
+      form.industry ? `حوزه فعالیت: ${form.industry.trim()}` : '',
+      form.city ? `شهر: ${form.city.trim()}` : '',
     ].filter(Boolean).join('\n').trim();
 
     try {
@@ -197,28 +185,26 @@ export default function NewLeadPage() {
               {/* City */}
               <div className="lead-field-group">
                 <Label className="lead-field-label">شهر <span className="lead-required-star">*</span></Label>
-                <Select value={form.city} onValueChange={(v) => setForm({ ...form, city: v })}>
-                  <SelectTrigger className={`lead-select ${errors.city ? 'lead-input-error' : ''}`}>
-                    <SelectValue placeholder="شهر را وارد کنید" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CITIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <input
+                  type="text"
+                  value={form.city}
+                  onChange={(e) => setForm({ ...form, city: e.target.value })}
+                  placeholder="شهر را وارد کنید"
+                  className={`lead-input ${errors.city ? 'lead-input-error' : ''}`}
+                />
                 {errors.city && <span className="lead-field-error">{errors.city}</span>}
               </div>
 
               {/* Industry - full width */}
               <div className="lead-field-group lead-field-full">
                 <Label className="lead-field-label">حوزه فعالیت <span className="lead-required-star">*</span></Label>
-                <Select value={form.industry} onValueChange={(v) => setForm({ ...form, industry: v })}>
-                  <SelectTrigger className={`lead-select ${errors.industry ? 'lead-input-error' : ''}`}>
-                    <SelectValue placeholder="حوزه فعالیت را انتخاب کنید" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {INDUSTRIES.map((ind) => <SelectItem key={ind} value={ind}>{ind}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <input
+                  type="text"
+                  value={form.industry}
+                  onChange={(e) => setForm({ ...form, industry: e.target.value })}
+                  placeholder="حوزه فعالیت را وارد کنید"
+                  className={`lead-input ${errors.industry ? 'lead-input-error' : ''}`}
+                />
                 {errors.industry && <span className="lead-field-error">{errors.industry}</span>}
               </div>
 
@@ -230,7 +216,7 @@ export default function NewLeadPage() {
                     <SelectValue placeholder="منبع جذب را انتخاب کنید" />
                   </SelectTrigger>
                   <SelectContent>
-                    {SOURCES.map((src) => <SelectItem key={src} value={src}>{src}</SelectItem>)}
+                    {LEAD_SOURCES.map((src) => <SelectItem key={src} value={src}>{src}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
