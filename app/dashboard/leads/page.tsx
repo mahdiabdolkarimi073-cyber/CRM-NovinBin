@@ -6,6 +6,7 @@ import { fetchData, createData, updateData, deleteData } from '@/lib/data-client
 import { useAuth } from '@/components/providers/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -539,92 +540,6 @@ export default function LeadsPage() {
           </section>
         </aside>
       </div>
-
-      {/* Create Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="leads-modal-content">
-          <DialogHeader className="leads-modal-header">
-            <DialogTitle>ایجاد سرنخ جدید</DialogTitle>
-            <button className="leads-modal-close" onClick={() => setDialogOpen(false)}>
-              <X className="h-5 w-5" />
-            </button>
-          </DialogHeader>
-          <form onSubmit={handleCreate} className="leads-form">
-            <div className="leads-form-grid">
-              <div className="leads-form-field">
-                <Label>نام شخص/شرکت *</Label>
-                <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-              </div>
-              <div className="leads-form-field">
-                <Label>شماره تماس *</Label>
-                <Input dir="ltr" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required />
-              </div>
-              <div className="leads-form-field">
-                <Label>ایمیل</Label>
-                <Input dir="ltr" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-              </div>
-              <div className="leads-form-field">
-                <Label>شهر</Label>
-                <Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
-              </div>
-              <div className="leads-form-field">
-                <Label>نوع سرنخ</Label>
-                <Select defaultValue="individual">
-                  <SelectTrigger className="leads-form-select"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="individual">حقیقی</SelectItem>
-                    <SelectItem value="company">حقوقی</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="leads-form-field">
-                <Label>منبع سرنخ</Label>
-                <Select value={form.source} onValueChange={(v) => setForm({ ...form, source: v })}>
-                  <SelectTrigger className="leads-form-select"><SelectValue placeholder="انتخاب کنید" /></SelectTrigger>
-                  <SelectContent>
-                    {LEAD_SOURCES.map((src) => <SelectItem key={src} value={src}>{src}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="leads-form-field">
-                <Label>مسئول پیگیری</Label>
-                <Select defaultValue="">
-                  <SelectTrigger className="leads-form-select"><SelectValue placeholder="انتخاب کنید" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">انتخاب کنید</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="leads-form-field">
-                <Label>وضعیت</Label>
-                <Select defaultValue="new">
-                  <SelectTrigger className="leads-form-select"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {LEAD_STATUSES.map((s) => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="leads-form-field leads-form-field-full">
-              <Label>توضیحات</Label>
-              <Textarea
-                value={form.notes}
-                onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                placeholder="توضیحات تکمیلی..."
-                className="leads-form-textarea"
-              />
-            </div>
-            <DialogFooter className="leads-form-actions">
-              <Button type="button" variant="outline" className="leads-cancel-btn" onClick={() => setDialogOpen(false)}>
-                انصراف
-              </Button>
-              <Button type="submit" className="leads-submit-btn" disabled={creating}>
-                {creating ? 'در حال ایجاد...' : 'ایجاد سرنخ'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       {/* View Dialog */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
