@@ -1,28 +1,56 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { fetchData, updateData, deleteData } from '@/lib/data-client';
+import { fetchData, updateData, createData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
-import { PageHeader } from '@/components/dashboard/page-header';
-import { SuperAdminActions } from '@/components/dashboard/super-admin-actions';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
-} from '@/components/ui/dialog';
-import { Plus, MessageSquare, Clock, User } from 'lucide-react';
-import { relativeTime } from '@/lib/format';
-import { TICKET_STATUSES, fullName, TASK_PRIORITIES } from '@/lib/constants';
 import { toast } from 'sonner';
-import type { Ticket, Customer, Profile } from '@/lib/types';
+import { formatFileSize, formatJalali, relativeTime } from '@/lib/format';
+import { fullName, TASK_PRIORITIES } from '@/lib/constants';
+import type { Customer, Profile, Ticket, TicketMessage } from '@/lib/types';
+import {
+  CalendarDays, Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Circle,
+  Download, Eye, FileText, Filter, MessageCircle, MoreVertical, Paperclip, Plus,
+  Search, Send, SlidersHorizontal, Trash2, X,
+} from 'lucide-react';
 
-const statusInfo = (key: string) => TICKET_STATUSES.find((s) => s.key === key) || TICKET_STATUSES[0];
-const priorityInfo = (key: string) => TASK_PRIORITIES.find((p) => p.key === key) || TASK_PRIORITIES[0];
+const PAGE_SIZE = 10;
+const priorityLabels: Record<string, string> = { low: 'کم', medium: 'متوسط', high: 'زیاد', critical: 'فوری' };
+const statusLabels: Record<string, string> = {
+  open: 'باز', in_progress: 'در حال انجام', pending: 'در انتظار پاسخ',
+  resolved: 'حل شده', closed: 'بسته شده',
+};
+const priorityClasses: Record<string, string> = {
+  low: 'is-low', medium: 'is-medium', high: 'is-high', critical: 'is-critical',
+};
+const statusClasses: Record<string, string> = {
+  open: 'is-open', in_progress: 'is-progress', pending: 'is-pending',
+  resolved: 'is-resolved', closed: 'is-closed',
+};
+
+type Attachment = { url: string; name: string; type: string; size: number };
+
+function displayName(person: Profile | null | undefined): string {
+  return person ? fullName(person.firstName, person.lastName, 'کاربر') : 'تخصیص داده نشده';
+}
+function customerName(customer: Customer | undefined): string {
+  return customer
+    ? customer.type === 'company'
+      ? customer.companyName || 'شرکت'
+      : fullName(customer.firstName, customer.lastName)
+    : 'بدون مشتری';
+}
+function initials(name: string): string {
+  return name.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]).join('') || '؟';
+}
+function ticketNumber(index: number): string {
+  return `TK-1403-${String(index).padStart(4, '0')}`;
+}
+function dateParts(value: string): { date: string; time: string } {
+  const date = new Date(value);
+  return { date: formatJalali(date), time: date.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }) };
+}
 
 export default function TicketsPage() {
   const { profile } = useAuth();
@@ -31,280 +59,527 @@ export default function TicketsPage() {
   const [staff, setStaff] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [viewTicket, setViewTicket] = useState<Ticket | null>(null);
-  const [viewDialogOpen, setViewDialogOpen] = useState(false);
-  const [editTicket, setEditTicket] = useState<Ticket | null>(null);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editForm, setEditForm] = useState({ subject: '', description: '', priority: 'medium', status: '' });
-
-  const isSuperAdmin = profile?.role === 'super_admin' || profile?.role === 'owner';
+  const [priorityFilter, setPriorityFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [customerFilter, setCustomerFilter] = useState('all');
+  const [assigneeFilter, setAssigneeFilter] = useState('all');
+  const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<Ticket | null>(null);
 
   const loadData = useCallback(async () => {
     if (!profile) return;
     setLoading(true);
     try {
-      const [ticketData, custData, staffData] = await Promise.all([
-        fetchData('tickets', { where: {}, orderBy: { createdAt: 'desc' } }),
-        fetchData('customers', { where: {} }),
-        fetchData('profiles', { where: { userType: 'staff' } }),
+      const [ticketData, customerData, staffData] = await Promise.all([
+        fetchData<Ticket>('tickets', { orderBy: { createdAt: 'desc' } }),
+        fetchData<Customer>('customers', { where: {} }),
+        fetchData<Profile>('profiles', { where: { userType: 'staff' } }),
       ]);
-      setTickets((ticketData as Ticket[]) || []);
-      setCustomers((custData as Customer[]) || []);
-      setStaff((staffData as Profile[]) || []);
+      setTickets(ticketData || []);
+      setCustomers(customerData || []);
+      setStaff(staffData || []);
     } catch (error: any) {
-      toast.error('بارگذاری تیکت‌ها ناموفق: ' + error.message);
+      toast.error('بارگذاری تیکت‌ها ناموفق بود: ' + error.message);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }, []);
+  }, [profile]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  const updateStatus = async (id: string, status: string) => {
+  const customerMap = useMemo(
+    () => new Map(customers.map((c) => [c.id, c])),
+    [customers],
+  );
+  const staffMap = useMemo(
+    () => new Map(staff.map((s) => [s.id, s])),
+    [staff],
+  );
+
+  const filteredTickets = useMemo(() => tickets.filter((t) => {
+    const customer = customerMap.get(t.customerId || '');
+    const assignee = staffMap.get(t.assignedTo || '');
+    const q = search.trim().toLowerCase();
+    const matchesSearch = !q
+      || t.subject.toLowerCase().includes(q)
+      || customerName(customer).toLowerCase().includes(q)
+      || t.id.toLowerCase().includes(q);
+    return matchesSearch
+      && (priorityFilter === 'all' || t.priority === priorityFilter)
+      && (statusFilter === 'all' || t.status === statusFilter)
+      && (customerFilter === 'all' || t.customerId === customerFilter)
+      && (assigneeFilter === 'all' || t.assignedTo === assigneeFilter);
+  }), [tickets, search, priorityFilter, statusFilter, customerFilter, assigneeFilter, customerMap, staffMap]);
+
+  const pageCount = Math.max(1, Math.ceil(filteredTickets.length / PAGE_SIZE));
+  const visibleTickets = filteredTickets.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => { if (page > pageCount) setPage(pageCount); }, [page, pageCount]);
+
+  const updateStatus = async (ticket: Ticket, status: string) => {
     try {
-      await updateData('tickets', { id }, { status });
-      loadData();
+      await updateData('tickets', { id: ticket.id }, { status, updatedAt: new Date().toISOString() });
+      setTickets((current) => current.map((item) => item.id === ticket.id
+        ? { ...item, status, updatedAt: new Date().toISOString() }
+        : item));
+      if (selected?.id === ticket.id) setSelected((prev) => prev ? { ...prev, status } : prev);
     } catch (error: any) {
-      toast.error('تغییر وضعیت ناموفق: ' + error.message);
+      toast.error('تغییر وضعیت ناموفق بود: ' + error.message);
     }
   };
 
-  const getCustomer = (id: string | null) => {
-    if (!id) return null;
-    const c = customers.find((c) => c.id === id);
-    return c ? (c.type === 'company' ? c.companyName : fullName(c.firstName, c.lastName)) : null;
+  const resetFilters = () => {
+    setSearch(''); setPriorityFilter('all'); setStatusFilter('all');
+    setCustomerFilter('all'); setAssigneeFilter('all'); setPage(1);
   };
 
-  const openView = (t: Ticket) => {
-    setViewTicket(t);
-    setViewDialogOpen(true);
+  const counts = {
+    total: tickets.length,
+    closed: tickets.filter((t) => t.status === 'closed').length,
+    resolved: tickets.filter((t) => t.status === 'resolved').length,
+    open: tickets.filter((t) => t.status === 'open').length,
+    progress: tickets.filter((t) => t.status === 'in_progress').length,
+    pending: tickets.filter((t) => t.status === 'pending').length,
   };
-
-  const openEdit = (t: Ticket) => {
-    setEditTicket(t);
-    setEditForm({ subject: t.subject, description: t.description || '', priority: t.priority, status: t.status });
-    setEditDialogOpen(true);
-  };
-
-  const handleEditSave = async () => {
-    if (!editTicket) return;
-    try {
-      await updateData('tickets', { id: editTicket.id }, {
-        subject: editForm.subject,
-        description: editForm.description || null,
-        priority: editForm.priority,
-        status: editForm.status,
-      });
-      toast.success('تیکت ویرایش شد');
-      setEditDialogOpen(false);
-      setEditTicket(null);
-      loadData();
-    } catch (e: any) {
-      toast.error('ویرایش ناموفق: ' + e.message);
-    }
-  };
-
-  const handleDelete = async (t: Ticket) => {
-    if (!confirm(`حذف تیکت «${t.subject}»؟`)) return;
-    try {
-      await deleteData('tickets', { id: t.id });
-      toast.success('تیکت حذف شد');
-      loadData();
-    } catch (e: any) {
-      toast.error('حذف ناموفق: ' + e.message);
-    }
-  };
-
-  const filtered = search
-    ? tickets.filter((t) => {
-        const q = search.toLowerCase();
-        return (t.subject || '').toLowerCase().includes(q) ||
-          (getCustomer(t.customerId) || '').toLowerCase().includes(q);
-      })
-    : tickets;
-
-  const columns = TICKET_STATUSES.map((s) => ({
-    ...s,
-    items: filtered.filter((t) => t.status === s.key),
-  }));
 
   return (
-    <div>
-      <PageHeader
-        title="تیکت‌های پشتیبانی"
-        description="مدیریت تیکت‌ها و درخواست‌های پشتیبانی"
-        action={
-          <Link href="/dashboard/tickets/new" className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#0B2A63] px-4 text-sm font-bold text-white transition-colors hover:bg-[#092452]">
-            <Plus className="w-4 h-4" /> تیکت جدید
-          </Link>
-        }
-      />
+    <div className="tickets-page" dir="rtl">
+      <header className="tickets-header">
+        <div>
+          <div className="tickets-title"><span /><h1>مدیریت تیکت‌ها</h1></div>
+          <p>مدیریت و پیگیری تیکت‌های پشتیبانی</p>
+          <div className="tickets-breadcrumb">
+            داشبورد <ChevronLeft /> تیکت‌ها <ChevronLeft /> مدیریت تیکت‌ها
+          </div>
+        </div>
+        <Link href="/dashboard/tickets/new" className="tickets-new-button">
+          <Plus /> تیکت جدید
+        </Link>
+      </header>
 
-      {/* Search bar */}
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex h-10 items-center gap-2 rounded-xl border-2 border-border bg-muted/40 px-3.5 transition-all focus-within:border-sky-500 focus-within:bg-card min-w-[240px]">
-          <svg className="h-4 w-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 10a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-          <input
-            type="text"
-            placeholder="جستجوی تیکت..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-transparent text-sm font-medium outline-none placeholder:text-muted-foreground/60"
-          />
-        </div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span className="font-bold text-foreground">{tickets.length.toLocaleString('fa-IR')}</span>
-          <span>تیکت</span>
-        </div>
+      <div className="tickets-layout">
+        <main className="tickets-main">
+          <section className="tickets-toolbar">
+            <label className="tickets-search">
+              <Search />
+              <input
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                placeholder="جستجوی تیکت..."
+              />
+            </label>
+            <FilterSelect
+              value={priorityFilter}
+              onChange={(v) => { setPriorityFilter(v); setPage(1); }}
+              placeholder="همه اولویت‌ها"
+              items={TASK_PRIORITIES.map((p) => ({ value: p.key, label: p.label }))}
+            />
+            <FilterSelect
+              value={customerFilter}
+              onChange={(v) => { setCustomerFilter(v); setPage(1); }}
+              placeholder="همه مشتریان"
+              items={customers.map((c) => ({ value: c.id, label: customerName(c) }))}
+            />
+            <button className="tickets-date-filter" type="button">
+              <CalendarDays /> بازه تاریخ <ChevronLeft />
+            </button>
+            <button className="tickets-advanced-filter" type="button">
+              <SlidersHorizontal /> فیلتر پیشرفته
+            </button>
+          </section>
+
+          <section className="tickets-table-card">
+            <div className="tickets-table-scroll">
+              <table className="tickets-table">
+                <thead>
+                  <tr>
+                    <th>شناسه</th>
+                    <th className="subject-column">موضوع</th>
+                    <th>مشتری</th>
+                    <th>اولویت</th>
+                    <th>وضعیت</th>
+                    <th>مسئول رسیدگی</th>
+                    <th>تاریخ ایجاد</th>
+                    <th>آخرین بروزرسانی</th>
+                    <th>عملیات</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr><td colSpan={9} className="tickets-empty">در حال بارگذاری تیکت‌ها...</td></tr>
+                  ) : visibleTickets.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="tickets-empty">
+                        <MessageCircle /> تیکتی مطابق فیلترها پیدا نشد
+                      </td>
+                    </tr>
+                  ) : visibleTickets.map((t, index) => {
+                    const customer = customerMap.get(t.customerId || '');
+                    const assigned = staffMap.get(t.assignedTo || '');
+                    const created = dateParts(t.createdAt);
+                    const updated = dateParts(t.updatedAt || t.createdAt);
+                    return (
+                      <tr key={t.id}>
+                        <td><span className="ticket-id">{ticketNumber(index + 1)}</span></td>
+                        <td className="subject-cell">
+                          <MessageCircle />
+                          <span title={t.subject}>{t.subject}</span>
+                        </td>
+                        <td className="customer-cell" title={customerName(customer)}>
+                          {customerName(customer)}
+                        </td>
+                        <td>
+                          <span className={`ticket-badge priority-badge ${priorityClasses[t.priority] || 'is-medium'}`}>
+                            {priorityLabels[t.priority] || t.priority}
+                          </span>
+                        </td>
+                        <td>
+                          <Select value={t.status} onValueChange={(v) => updateStatus(t, v)}>
+                            <SelectTrigger className={`ticket-status-select ${statusClasses[t.status] || 'is-open'}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Object.entries(statusLabels).map(([value, label]) => (
+                                <SelectItem key={value} value={value}>{label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td>
+                          <div className="assignee-cell">
+                            <span className="assignee-avatar">{initials(displayName(assigned))}</span>
+                            <span>{displayName(assigned)}</span>
+                          </div>
+                        </td>
+                        <td><DateCell value={created} /></td>
+                        <td><DateCell value={updated} /></td>
+                        <td>
+                          <div className="ticket-actions">
+                            <button onClick={() => setSelected(t)} aria-label="مشاهده تیکت"><Eye /></button>
+                            <button onClick={() => toast.info('منوی عملیات به‌زودی')} aria-label="عملیات بیشتر"><MoreVertical /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <footer className="tickets-pagination">
+              <span>
+                ۱ تا {Math.min(page * PAGE_SIZE, filteredTickets.length).toLocaleString('fa-IR')} از {filteredTickets.length.toLocaleString('fa-IR')} تیکت
+              </span>
+              <div className="pagination-buttons">
+                <button onClick={() => setPage(1)} disabled={page === 1} aria-label="اولین صفحه"><ChevronsRight /></button>
+                <button onClick={() => setPage((c) => Math.max(1, c - 1))} disabled={page === 1} aria-label="صفحه قبل"><ChevronRight /></button>
+                <button className="is-active">{page.toLocaleString('fa-IR')}</button>
+                <button onClick={() => setPage((c) => Math.min(pageCount, c + 1))} disabled={page === pageCount} aria-label="صفحه بعد"><ChevronLeft /></button>
+                <button onClick={() => setPage(pageCount)} disabled={page === pageCount} aria-label="آخرین صفحه"><ChevronsLeft /></button>
+              </div>
+              <label className="page-size-select">
+                تعداد نمایش در صفحه:
+                <select defaultValue={PAGE_SIZE}>
+                  <option value={10}>۱۰</option>
+                </select>
+              </label>
+            </footer>
+          </section>
+        </main>
+
+        <aside className="tickets-sidebar">
+          <SummaryCard counts={counts} />
+          <section className="tickets-side-card">
+            <SideTitle icon={<Filter />} title="فیلترها" />
+            <FilterSelect
+              value={statusFilter}
+              onChange={(v) => { setStatusFilter(v); setPage(1); }}
+              placeholder="همه وضعیت‌ها"
+              items={Object.entries(statusLabels).map(([value, label]) => ({ value, label }))}
+            />
+            <FilterSelect
+              value={priorityFilter}
+              onChange={(v) => { setPriorityFilter(v); setPage(1); }}
+              placeholder="همه اولویت‌ها"
+              items={TASK_PRIORITIES.map((p) => ({ value: p.key, label: p.label }))}
+            />
+            <FilterSelect
+              value={customerFilter}
+              onChange={(v) => { setCustomerFilter(v); setPage(1); }}
+              placeholder="همه مشتریان"
+              items={customers.map((c) => ({ value: c.id, label: customerName(c) }))}
+            />
+            <FilterSelect
+              value={assigneeFilter}
+              onChange={(v) => { setAssigneeFilter(v); setPage(1); }}
+              placeholder="همه کاربران"
+              items={staff.map((s) => ({ value: s.id, label: displayName(s) }))}
+            />
+            <button className="clear-filters" onClick={resetFilters}><Trash2 /> پاک کردن فیلترها</button>
+          </section>
+          <section className="tickets-side-card">
+            <SideTitle icon={<SlidersHorizontal />} title="عملیات سریع" />
+            <div className="quick-actions">
+              <Link href="/dashboard/tickets/new"><FileText /><span>تیکت جدید</span></Link>
+              <button onClick={() => toast.info('گزارش تیکت‌ها آماده می‌شود')} type="button"><SlidersHorizontal /><span>گزارش تیکت‌ها</span></button>
+              <button onClick={() => toast.info('خروجی اکسل آماده می‌شود')} type="button"><Download /><span>خروجی اکسل</span></button>
+            </div>
+          </section>
+        </aside>
       </div>
 
-      {/* Kanban board */}
-      <div className="flex gap-4 overflow-x-auto pb-4">
-        {columns.map((col) => (
-          <div key={col.key} className="flex w-[300px] shrink-0 flex-col rounded-2xl border border-border bg-muted/30">
-            <div className="flex items-center justify-between border-b border-border px-4 py-3">
-              <div className="flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: col.color }} />
-                <span className="text-sm font-bold text-foreground">{col.label}</span>
-              </div>
-              <span className="flex h-5 min-w-[20px] items-center justify-center rounded-md bg-muted px-1.5 text-xs font-bold text-muted-foreground">
-                {col.items.length.toLocaleString('fa-IR')}
-              </span>
-            </div>
+      {selected && (
+        <TicketChat
+          ticket={selected}
+          customer={customerMap.get(selected.customerId || '')}
+          profile={profile}
+          onClose={() => setSelected(null)}
+          onStatusChange={(status) => updateStatus(selected, status)}
+        />
+      )}
+    </div>
+  );
+}
 
-            <div className="flex-1 space-y-2.5 overflow-y-auto p-3" style={{ maxHeight: 'calc(100vh - 340px)' }}>
-              {loading && (
-                <div className="flex items-center justify-center py-8">
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-sky-500 border-t-transparent" />
-                </div>
-              )}
-              {!loading && col.items.length === 0 && (
-                <div className="flex flex-col items-center gap-2 py-8 text-center">
-                  <MessageSquare className="h-5 w-5 text-muted-foreground/40" />
-                  <p className="text-xs text-muted-foreground/60">موردی وجود ندارد</p>
-                </div>
-              )}
-              {col.items.map((t) => {
-                const st = statusInfo(t.status);
-                const pi = priorityInfo(t.priority);
-                const cust = getCustomer(t.customerId);
-                return (
-                  <div
-                    key={t.id}
-                    className="rounded-xl border border-border bg-card p-3.5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-sky-500/30 hover:shadow-md"
-                  >
-                    <div className="mb-2 flex items-start justify-between gap-2">
-                      <span
-                        className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold"
-                        style={{ backgroundColor: st.color + '15', color: st.color }}
-                      >
-                        {st.label}
-                      </span>
-                      <span
-                        className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold"
-                        style={{ backgroundColor: pi.color + '15', color: pi.color }}
-                      >
-                        {pi.label}
-                      </span>
-                    </div>
-                    <p className="mb-2 line-clamp-2 text-sm font-semibold text-foreground">{t.subject}</p>
-                    {t.description && (
-                      <p className="mb-2 line-clamp-1 text-xs text-muted-foreground">{t.description}</p>
-                    )}
-                    <div className="mb-2 flex items-center gap-3 text-[11px] text-muted-foreground">
-                      {cust && <span className="flex items-center gap-1"><User className="h-3 w-3" />{cust}</span>}
-                      <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{relativeTime(t.createdAt)}</span>
-                    </div>
-                    <Select value={t.status} onValueChange={(v) => updateStatus(t.id, v)}>
-                      <SelectTrigger className="h-7 w-full text-xs"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {TICKET_STATUSES.map((s) => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    {isSuperAdmin && (
-                      <div className="flex items-center justify-end pt-2 mt-2 border-t border-slate-100">
-                        <SuperAdminActions
-                          onView={() => openView(t)}
-                          onEdit={() => openEdit(t)}
-                          onDelete={() => handleDelete(t)}
-                        />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+function FilterSelect({
+  value, onChange, placeholder, items,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  items: { value: string; label: string }[];
+}) {
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger className="ticket-filter-select">
+        <SelectValue placeholder={placeholder} />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">{placeholder}</SelectItem>
+        {items.map((item) => (
+          <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+function SideTitle({ icon, title }: { icon: React.ReactNode; title: string }) {
+  return <h2 className="tickets-side-title">{title}<span>{icon}</span></h2>;
+}
+
+function DateCell({ value }: { value: { date: string; time: string } }) {
+  return (
+    <div className="ticket-date">
+      <strong>{value.date}</strong>
+      <small>{value.time}</small>
+    </div>
+  );
+}
+
+function SummaryCard({ counts }: { counts: Record<string, number> }) {
+  const items = [
+    { key: 'total', label: 'کل تیکت‌ها', className: 'summary-total' },
+    { key: 'closed', label: 'بسته شده', className: 'summary-closed' },
+    { key: 'resolved', label: 'حل شده', className: 'summary-resolved' },
+    { key: 'open', label: 'باز', className: 'summary-open' },
+    { key: 'progress', label: 'در حال انجام', className: 'summary-progress' },
+    { key: 'pending', label: 'در انتظار پاسخ', className: 'summary-pending' },
+  ];
+  return (
+    <section className="tickets-side-card">
+      <SideTitle icon={<Circle />} title="خلاصه تیکت‌ها" />
+      <div className="summary-grid">
+        {items.map((item) => (
+          <div className={`summary-item ${item.className}`} key={item.key}>
+            <strong>{counts[item.key].toLocaleString('fa-IR')}</strong>
+            <span>{item.label}</span>
           </div>
         ))}
       </div>
+    </section>
+  );
+}
 
-      {/* View Dialog */}
-      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>مشاهده تیکت</DialogTitle></DialogHeader>
-          {viewTicket && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="font-bold text-slate-900">{viewTicket.subject}</div>
-                <Badge style={{ backgroundColor: statusInfo(viewTicket.status).color + '20', color: statusInfo(viewTicket.status).color }}>{statusInfo(viewTicket.status).label}</Badge>
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge style={{ backgroundColor: priorityInfo(viewTicket.priority).color + '15', color: priorityInfo(viewTicket.priority).color }}>{priorityInfo(viewTicket.priority).label}</Badge>
-                {getCustomer(viewTicket.customerId) && <span className="text-sm text-slate-500 flex items-center gap-1"><User className="w-3 h-3" />{getCustomer(viewTicket.customerId)}</span>}
-              </div>
-              {viewTicket.description && (
-                <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
-                  <span className="text-slate-400 block mb-1">توضیحات:</span>
-                  {viewTicket.description}
-                </div>
-              )}
-              <div className="text-xs text-slate-400">ایجاد شده: {relativeTime(viewTicket.createdAt)}</div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+function TicketChat({
+  ticket, customer, profile, onClose, onStatusChange,
+}: {
+  ticket: Ticket;
+  customer: Customer | undefined;
+  profile: Profile | null;
+  onClose: () => void;
+  onStatusChange: (status: string) => void;
+}) {
+  const [messages, setMessages] = useState<TicketMessage[]>([]);
+  const [text, setText] = useState('');
+  const [attachment, setAttachment] = useState<Attachment | null>(null);
+  const [sending, setSending] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const endRef = useRef<HTMLDivElement>(null);
 
-      {/* Edit Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>ویرایش تیکت</DialogTitle></DialogHeader>
-          {editTicket && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>موضوع</Label>
-                <Input value={editForm.subject} onChange={(e) => setEditForm({ ...editForm, subject: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>توضیحات</Label>
-                <Textarea value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label>اولویت</Label>
-                  <Select value={editForm.priority} onValueChange={(v) => setEditForm({ ...editForm, priority: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {TASK_PRIORITIES.map((p) => <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>وضعیت</Label>
-                  <Select value={editForm.status} onValueChange={(v) => setEditForm({ ...editForm, status: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {TICKET_STATUSES.map((s) => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>انصراف</Button>
-                <Button onClick={handleEditSave}>ذخیره</Button>
-              </DialogFooter>
+  const loadMessages = useCallback(async () => {
+    try {
+      const data = await fetchData<TicketMessage>('ticket_messages', {
+        where: { ticketId: ticket.id },
+        orderBy: { createdAt: 'asc' },
+      });
+      setMessages(data);
+    } catch (error: any) {
+      toast.error('بارگذاری گفتگو ناموفق بود: ' + error.message);
+    }
+  }, [ticket.id]);
+
+  useEffect(() => { loadMessages(); }, [loadMessages]);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+
+  const chooseFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('حجم فایل نباید بیشتر از ۱۰ مگابایت باشد');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setAttachment({
+      url: reader.result as string,
+      name: file.name,
+      type: file.type,
+      size: file.size,
+    });
+    reader.readAsDataURL(file);
+  };
+
+  const send = async () => {
+    if (!profile || (!text.trim() && !attachment)) return;
+    setSending(true);
+    try {
+      let uploaded: { url: string; name: string; type: string; size: number } | null = null;
+      if (attachment) {
+        const form = new FormData();
+        const blob = await fetch(attachment.url).then((r) => r.blob());
+        form.append('file', blob, attachment.name);
+        const res = await fetch('/api/upload/ticket-file', { method: 'POST', body: form });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || 'آپلود فایل ناموفق بود');
+        uploaded = result;
+      }
+      await createData('ticket_messages', {
+        ticketId: ticket.id,
+        content: text.trim() || null,
+        attachmentUrl: uploaded?.url || null,
+        attachmentName: uploaded?.name || null,
+        attachmentType: uploaded?.type || null,
+        attachmentSize: uploaded?.size || 0,
+      });
+      setText('');
+      setAttachment(null);
+      if (fileRef.current) fileRef.current.value = '';
+      await loadMessages();
+    } catch (error: any) {
+      toast.error('ارسال پیام ناموفق بود: ' + error.message);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const customerLabel = customerName(customer);
+
+  return (
+    <div className="ticket-chat-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <section className="ticket-chat-modal">
+        <header className="ticket-chat-header">
+          <div className="ticket-chat-heading">
+            <span className="chat-avatar">{initials(customerLabel)}</span>
+            <div>
+              <strong>{ticket.subject}</strong>
+              <small>{customerLabel} · {ticket.id.slice(0, 8)}</small>
             </div>
+          </div>
+          <div className="ticket-chat-head-actions">
+            <Select value={ticket.status} onValueChange={onStatusChange}>
+              <SelectTrigger className="chat-status-select"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {Object.entries(statusLabels).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <button onClick={onClose} aria-label="بستن"><X /></button>
+          </div>
+        </header>
+
+        <div className="ticket-chat-messages">
+          {messages.length === 0 ? (
+            <div className="ticket-chat-empty">
+              <MessageCircle />
+              <p>هنوز پیامی ثبت نشده است. گفت‌وگو را شروع کنید.</p>
+            </div>
+          ) : (
+            messages.map((msg) => {
+              const mine = msg.senderId === profile?.id;
+              return (
+                <div className={`ticket-message-row ${mine ? 'is-mine' : ''}`} key={msg.id}>
+                  <div className="ticket-message-bubble">
+                    {msg.content && <p>{msg.content}</p>}
+                    {msg.attachmentUrl && (
+                      msg.attachmentType?.startsWith('image/') ? (
+                        <img src={msg.attachmentUrl} alt={msg.attachmentName || 'پیوست'} />
+                      ) : (
+                        <a href={msg.attachmentUrl} target="_blank" rel="noreferrer">
+                          <FileText /> {msg.attachmentName || 'دانلود فایل'}{' '}
+                          {msg.attachmentSize ? `(${formatFileSize(msg.attachmentSize)})` : ''}
+                        </a>
+                      )
+                    )}
+                    <small>{relativeTime(msg.createdAt)} {mine && <Check />}</small>
+                  </div>
+                </div>
+              );
+            })
           )}
-        </DialogContent>
-      </Dialog>
+          <div ref={endRef} />
+        </div>
+
+        {attachment && (
+          <div className="ticket-attachment-preview">
+            <Paperclip />
+            <span>{attachment.name}</span>
+            <button onClick={() => setAttachment(null)}><X /></button>
+          </div>
+        )}
+
+        <footer className="ticket-chat-composer">
+          <button onClick={() => fileRef.current?.click()} aria-label="افزودن فایل" type="button">
+            <Paperclip />
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            hidden
+            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip,.txt"
+            onChange={chooseFile}
+          />
+          <input
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                send();
+              }
+            }}
+            placeholder="پاسخ خود را بنویسید..."
+          />
+          <button
+            className="ticket-send-button"
+            onClick={send}
+            disabled={sending || (!text.trim() && !attachment)}
+            type="button"
+            aria-label="ارسال پیام"
+          >
+            <Send />
+          </button>
+        </footer>
+      </section>
     </div>
   );
 }
