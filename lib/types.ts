@@ -228,6 +228,20 @@ export interface Ticket {
   updatedAt: string;
 }
 
+export interface TicketMessage {
+  id: string;
+  ticketId: string;
+  senderType: 'staff' | 'customer';
+  senderId: string | null;
+  content: string | null;
+  attachmentUrl: string | null;
+  attachmentName: string | null;
+  attachmentType: string | null;
+  attachmentSize: number;
+  readAt: string | null;
+  createdAt: string;
+}
+
 export interface Notification {
   id: string;
   profileId: string;

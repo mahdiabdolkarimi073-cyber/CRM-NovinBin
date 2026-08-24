@@ -1,18 +1,19 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { fetchData, createData, updateData, deleteData } from '@/lib/data-client';
+import Link from 'next/link';
+import { fetchData, updateData, deleteData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { SuperAdminActions } from '@/components/dashboard/super-admin-actions';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
 } from '@/components/ui/dialog';
 import { Plus, MessageSquare, Clock, User } from 'lucide-react';
 import { relativeTime } from '@/lib/format';
@@ -30,9 +31,6 @@ export default function TicketsPage() {
   const [staff, setStaff] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState({ subject: '', description: '', customer_id: '', priority: 'medium' });
   const [viewTicket, setViewTicket] = useState<Ticket | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editTicket, setEditTicket] = useState<Ticket | null>(null);
@@ -60,29 +58,6 @@ export default function TicketsPage() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
-
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!profile || !form.subject) { toast.error('موضوع تیکت را وارد کنید'); return; }
-    setCreating(true);
-    try {
-      await createData('tickets', {
-        subject: form.subject,
-        description: form.description || null,
-        customerId: form.customer_id || null,
-        priority: form.priority,
-        status: 'open',
-        createdBy: profile.id,
-      });
-      toast.success('تیکت ثبت شد');
-      setDialogOpen(false);
-      setForm({ subject: '', description: '', customer_id: '', priority: 'medium' });
-      loadData();
-    } catch (error: any) {
-      toast.error('ایجاد ناموفق: ' + error.message);
-    }
-    setCreating(false);
-  };
 
   const updateStatus = async (id: string, status: string) => {
     try {
@@ -158,48 +133,9 @@ export default function TicketsPage() {
         title="تیکت‌های پشتیبانی"
         description="مدیریت تیکت‌ها و درخواست‌های پشتیبانی"
         action={
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm"><Plus className="w-4 h-4" /> تیکت جدید</Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg">
-              <DialogHeader><DialogTitle>ثبت تیکت جدید</DialogTitle></DialogHeader>
-              <form onSubmit={handleCreate} className="space-y-4">
-                <div className="space-y-2">
-                  <Label>موضوع *</Label>
-                  <Input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} required />
-                </div>
-                <div className="space-y-2">
-                  <Label>توضیحات</Label>
-                  <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>مشتری</Label>
-                    <Select value={form.customer_id} onValueChange={(v) => setForm({ ...form, customer_id: v })}>
-                      <SelectTrigger><SelectValue placeholder="انتخاب..." /></SelectTrigger>
-                      <SelectContent>
-                        {customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.type === 'company' ? c.companyName : fullName(c.firstName, c.lastName)}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>اولویت</Label>
-                    <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {TASK_PRIORITIES.map((p) => <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>انصراف</Button>
-                  <Button type="submit" disabled={creating}>{creating ? 'در حال ثبت...' : 'ثبت تیکت'}</Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <Link href="/dashboard/tickets/new" className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#0B2A63] px-4 text-sm font-bold text-white transition-colors hover:bg-[#092452]">
+            <Plus className="w-4 h-4" /> تیکت جدید
+          </Link>
         }
       />
 

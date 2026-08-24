@@ -104,6 +104,7 @@ const MODEL_MAP: Record<string, any> = {
   personal_notes: prisma.personalNote,
   staff_chat_messages: prisma.staffChatMessage,
   my_customers: prisma.myCustomer,
+  ticket_messages: prisma.ticketMessage,
 };
 
 function getAuth(req: NextRequest) {
@@ -138,11 +139,12 @@ const MODEL_PAGE: Record<string, string> = {
   customer_segments: '/dashboard/customer-segments', loyalty_rewards: '/dashboard/loyalty-rewards',
   loyalty_transactions: '/dashboard/loyalty', demo_activities: '/dashboard/demo-activities',
   my_customers: '/dashboard/my-customers',
+  ticket_messages: '/dashboard/tickets',
 };
 
 const SHARED_MODELS = new Set([
   'profiles', 'user_manager', 'customers', 'notifications',
-  'personal_notes', 'staff_chat_messages', 'my_customers',
+  'personal_notes', 'staff_chat_messages', 'my_customers', 'ticket_messages',
 ]);
 
 async function canAccess(auth: { userId: string }, model: string): Promise<boolean> {
@@ -243,6 +245,9 @@ export async function POST(req: NextRequest) {
   }
   if (model === 'staff_chat_messages') {
     postData = { ...data, senderId: auth.userId };
+  }
+  if (model === 'ticket_messages') {
+    postData = { ...data, senderId: auth.userId, senderType: 'staff' };
   }
   if (model === 'my_customers') {
     const fullProfile = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });

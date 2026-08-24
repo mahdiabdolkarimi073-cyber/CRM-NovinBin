@@ -457,8 +457,26 @@ model Ticket {
   updatedAt   DateTime  @default(now())
   org         Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
   customer    Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  messages    TicketMessage[]
 
   @@map("tickets")
+}
+
+model TicketMessage {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ticketId       String   @db.Uuid
+  senderType     String   @default("staff")
+  senderId       String?  @db.Uuid
+  content        String?
+  attachmentUrl  String?
+  attachmentName String?
+  attachmentType String?
+  attachmentSize Int      @default(0)
+  readAt         DateTime?
+  createdAt      DateTime @default(now())
+  ticket         Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@map("ticket_messages")
 }
 
 // ============ NOTIFICATIONS ============
