@@ -44,6 +44,12 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterPriority, setFilterPriority] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterAssignee, setFilterAssignee] = useState('all');
+  const [filterCreator, setFilterCreator] = useState('all');
+  const [filterDueDate, setFilterDueDate] = useState('all');
+  const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(5);
   const [creating, setCreating] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [detailTask, setDetailTask] = useState<Task | null>(null);
@@ -69,8 +75,6 @@ export default function TasksPage() {
     setLoading(true);
     try {
       const where: any = isSuperAdmin ? {} : { OR: [{ assignedTo: profile.id }, { createdBy: profile.id }] };
-      if (search) where.title = { contains: search, mode: 'insensitive' };
-      if (filterPriority !== 'all') where.priority = filterPriority;
       const [taskData, staffData, allStaffData, mgrData] = await Promise.all([
         fetchData('tasks', { where, orderBy: { createdAt: 'desc' } }),
         fetchData('profiles', { where: { role: 'personnel' } }),
@@ -85,9 +89,11 @@ export default function TasksPage() {
       setManagerMap(mMap);
     } catch (error: any) { toast.error('بارگذاری وظایف ناموفق: ' + error.message); }
     setLoading(false);
-  }, [profile, isSuperAdmin, search, filterPriority]);
+  }, [profile, isSuperAdmin]);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  useEffect(() => { setVisibleCount(5); }, [search, filterPriority, filterStatus, filterAssignee, filterCreator, filterDueDate, activeTab]);
 
   useEffect(() => {
     try { const stored = localStorage.getItem('task_comment_last_seen'); if (stored) setLastSeenComments(JSON.parse(stored)); } catch {}
@@ -115,12 +121,41 @@ export default function TasksPage() {
     } catch { setComments([]); }
   };
 
+  const filteredTasks = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const staffName = (id: string | null) => {
+      if (!id) return '';
+      const s = allStaff.find((p) => p.id === id);
+      return s ? fullName(s.firstName, s.lastName).toLocaleLowerCase() : '';
+    };
+    return tasks.filter((task) => {
+      const assignee = staffName(task.assignedTo);
+      const creator = staffName(task.createdBy);
+      const priority = priorityInfo(task.priority).label.toLocaleLowerCase();
+      const status = statusInfo(task.status).label.toLocaleLowerCase();
+      const searchable = [task.title, task.description || '', assignee, creator, priority, status].join(' ').toLocaleLowerCase();
+      const matchesQuery = !query || searchable.includes(query);
+      const matchesPriority = filterPriority === 'all' || task.priority === filterPriority;
+      const matchesStatus = filterStatus === 'all' || task.status === filterStatus;
+      const matchesAssignee = filterAssignee === 'all' || task.assignedTo === filterAssignee;
+      const matchesCreator = filterCreator === 'all' || task.createdBy === filterCreator;
+      const due = task.dueDate ? new Date(task.dueDate) : null;
+      const matchesDueDate = filterDueDate === 'all'
+        || (filterDueDate === 'no_due' && !due)
+        || (filterDueDate === 'overdue' && due && due < today && task.status !== 'completed')
+        || (filterDueDate === 'upcoming' && due && due >= today && task.status !== 'completed');
+      return matchesQuery && matchesPriority && matchesStatus && matchesAssignee && matchesCreator && matchesDueDate;
+    });
+  }, [tasks, search, filterPriority, filterStatus, filterAssignee, filterCreator, filterDueDate, allStaff]);
+
   const { myTasks, referredTasks } = useMemo(() => {
     if (!profile) return { myTasks: [], referredTasks: [] };
     const mine: Task[] = []; const referred: Task[] = [];
-    tasks.forEach((t) => { if (t.referredDate && t.createdBy !== profile.id) referred.push(t); else mine.push(t); });
+    filteredTasks.forEach((t) => { if (t.referredDate && t.createdBy !== profile.id) referred.push(t); else mine.push(t); });
     return { myTasks: mine, referredTasks: referred };
-  }, [tasks, profile]);
+  }, [filteredTasks, profile]);
 
   const displayTasks = activeTab === 'referrals' ? referredTasks : myTasks;
   const referOptions = useMemo(() => allStaff.filter((s) => s.id !== profile?.id), [allStaff, profile]);
@@ -223,8 +258,8 @@ export default function TasksPage() {
   const openRefer = (taskId: string) => { if (referOptions.length === 0) { toast.error('شما نمی‌توانید وظیفه‌ای را ارجاع دهید'); return; } setReferTargetId(taskId); setReferTo('none'); setReferOpen(true); };
 
   const getStaffName = (id: string | null) => { if (!id) return null; const s = allStaff.find((p) => p.id === id); return s ? fullName(s.firstName, s.lastName) : null; };
-  const canEdit = (task?: Task) => !task || task.status !== 'completed';
-  const canDelete = (task?: Task) => !task || task.status !== 'completed';
+  const canEdit = (task?: Task) => isSuperAdmin && (!task || task.status !== 'completed');
+  const canDelete = (task?: Task) => isSuperAdmin && (!task || task.status !== 'completed');
   const canRefer = referOptions.length > 0;
   const taskSummary = [...TASK_STATUSES].reverse().map((stage) => ({ ...stage, count: displayTasks.filter((task) => task.status === stage.key).length }));
   const totalTasks = displayTasks.length;
@@ -309,6 +344,7 @@ export default function TasksPage() {
       <div className="flex min-w-max gap-4">
         {[...TASK_STATUSES].reverse().map((stage) => {
           const items = taskList.filter((t) => t.status === stage.key);
+          const visibleItems = items.slice(0, visibleCount);
           return (
             <div key={stage.key} className={`w-[240px] shrink-0 overflow-hidden rounded-[14px] border border-[#E6EBF2] bg-[#F8FAFD] transition-all ${dragOver === stage.key ? 'ring-2 ring-[#2563EB]/40' : ''}`}
               onDragOver={(e) => { e.preventDefault(); setDragOver(stage.key); }} onDragLeave={() => setDragOver(null)} onDrop={() => handleDrop(stage.key)}>
@@ -317,8 +353,9 @@ export default function TasksPage() {
                 <span className="rounded-full bg-[#F1F5F9] px-2 py-0.5 text-xs font-medium text-[#667085]">{items.length.toLocaleString('fa-IR')}</span>
               </div>
               <div className="min-h-[400px] space-y-2.5 p-2.5">
-                {[...items].sort((a, b) => (hasUnreadComments(b.id) ? 1 : 0) - (hasUnreadComments(a.id) ? 1 : 0)).map((task) => <TaskCard key={task.id} task={task} />)}
+                {[...visibleItems].sort((a, b) => (hasUnreadComments(b.id) ? 1 : 0) - (hasUnreadComments(a.id) ? 1 : 0)).map((task) => <TaskCard key={task.id} task={task} />)}
                 {items.length === 0 && <div className="py-8 text-center text-xs text-[#CBD5E1]">کارت اینجا رها کنید</div>}
+                {items.length > visibleCount && <button type="button" onClick={() => setVisibleCount((count) => count + 5)} className="w-full rounded-lg py-2 text-xs font-semibold text-[#3155E7] transition-colors hover:bg-[#EFF4FF]">نمایش ۵ مورد دیگر</button>}
               </div>
               <button className="flex h-[44px] w-full items-center justify-center gap-1 border-t border-[#E8EDF4] text-xs font-semibold text-[#64748B] transition-colors hover:bg-[#F1F5F9]"><Plus className="h-3.5 w-3.5" /> افزودن وظیفه</button>
             </div>
@@ -335,10 +372,11 @@ export default function TasksPage() {
       if (au !== bu) return bu - au;
       return 0;
     });
+    const visibleItems = sorted.slice(0, visibleCount);
     return (
     <Card><CardContent className="p-0">
       <div className="divide-y divide-[#F1F5F9]">
-        {sorted.map((task) => {
+        {visibleItems.map((task) => {
           const st = statusInfo(task.status); const pr = priorityInfo(task.priority);
           const assignee = getStaffName(task.assignedTo); const creator = getStaffName(task.createdBy || null);
           const overdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'completed';
@@ -368,6 +406,7 @@ export default function TasksPage() {
           );
         })}
       </div>
+      {sorted.length > visibleCount && <button type="button" onClick={() => setVisibleCount((c) => c + 5)} className="w-full py-3 text-xs font-semibold text-[#3155E7] transition-colors hover:bg-[#EFF4FF]">نمایش ۵ مورد دیگر</button>}
     </CardContent></Card>
   );}
 
@@ -440,10 +479,44 @@ export default function TasksPage() {
           {/* Filters */}
           <div className="rounded-[14px] border border-[#E6EBF2] bg-white p-3 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
             <div className="mb-3 flex items-center gap-2 px-1"><Filter className="h-4 w-4 text-[#667085]" /><span className="text-sm font-bold text-[#101828]">فیلترها</span></div>
-            {['وضعیت', 'اولویت', 'تاریخ سررسید', 'برچسب‌ها', 'کاربر مسئول'].map((label) => (
-              <button key={label} className="flex h-10 w-full items-center justify-between border-b border-[#F1F5F9] px-1 text-[13px] text-[#344054] last:border-0 hover:text-[#2563EB]">{label}<ChevronDown className="h-3.5 w-3.5 text-[#98A2B3]" /></button>
-            ))}
-            <button className="mt-2 w-full text-center text-xs font-semibold text-[#EF4444] hover:text-[#DC2626]">پاک کردن فیلترها</button>
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs text-[#667085]">وضعیت</Label>
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="all">همه</SelectItem>{TASK_STATUSES.map((s) => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-[#667085]">اولویت</Label>
+                <Select value={filterPriority} onValueChange={setFilterPriority}>
+                  <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="all">همه</SelectItem>{TASK_PRIORITIES.map((p) => <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-[#667085]">تاریخ سررسید</Label>
+                <Select value={filterDueDate} onValueChange={setFilterDueDate}>
+                  <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="all">همه</SelectItem><SelectItem value="overdue">گذشته</SelectItem><SelectItem value="upcoming">در آینده</SelectItem><SelectItem value="no_due">بدون موعد</SelectItem></SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-[#667085]">کاربر مسئول</Label>
+                <Select value={filterAssignee} onValueChange={setFilterAssignee}>
+                  <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="all">همه</SelectItem>{allStaff.map((s) => <SelectItem key={s.id} value={s.id}>{fullName(s.firstName, s.lastName)}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-[#667085]">ایجادکننده</Label>
+                <Select value={filterCreator} onValueChange={setFilterCreator}>
+                  <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="all">همه</SelectItem>{allStaff.map((s) => <SelectItem key={s.id} value={s.id}>{fullName(s.firstName, s.lastName)}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+            <button onClick={() => { setFilterStatus('all'); setFilterPriority('all'); setFilterDueDate('all'); setFilterAssignee('all'); setFilterCreator('all'); }} className="mt-3 w-full text-center text-xs font-semibold text-[#EF4444] hover:text-[#DC2626]">پاک کردن فیلترها</button>
           </div>
           {/* Priorities */}
           <div className="rounded-[14px] border border-[#E6EBF2] bg-white p-3 shadow-[0_3px_14px_rgba(20,40,80,.05)]">

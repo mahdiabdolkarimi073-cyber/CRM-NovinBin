@@ -376,6 +376,13 @@ export async function PATCH(req: NextRequest) {
   }
 
   try {
+    // Only super_admin / owner can edit tasks
+    if (model === 'tasks') {
+      const actor = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });
+      if (!actor || (actor.role !== 'super_admin' && actor.role !== 'owner')) {
+        return NextResponse.json({ error: 'فقط سوپرادمین می‌تواند وظیفه را ویرایش کند' }, { status: 403 });
+      }
+    }
     const record = await MODEL_MAP[model].update({ where, data, include });
 
     // Notify super-admins when a daily work report is edited
@@ -425,6 +432,13 @@ export async function DELETE(req: NextRequest) {
   }
 
   try {
+    // Only super_admin / owner can delete tasks
+    if (model === 'tasks') {
+      const actor = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });
+      if (!actor || (actor.role !== 'super_admin' && actor.role !== 'owner')) {
+        return NextResponse.json({ error: 'فقط سوپرادمین می‌تواند وظیفه را حذف کند' }, { status: 403 });
+      }
+    }
     await MODEL_MAP[model].delete({ where });
     return NextResponse.json({ success: true });
   } catch (error: any) {

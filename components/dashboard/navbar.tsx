@@ -124,8 +124,8 @@ export function DashboardNavbar() {
               <Logo size={36} withText={true} textClassName="hidden sm:block [&_div]:text-white [&_.text-muted-foreground]:text-[#6BA89E]" />
             </Link>
 
-            {/* Desktop full nav (≥1200px) */}
-            <nav className="hidden items-center 2xl:flex" style={{ gap: '22px' }}>
+            {/* Desktop full nav (≥1024px) */}
+            <nav className="hidden items-center xl:flex" style={{ gap: '22px' }}>
               {topLinks.map((item) => {
                 const active = matches(pathname, item.href);
                 return (
@@ -248,49 +248,8 @@ export function DashboardNavbar() {
               )}
             </nav>
 
-            {/* Laptop compact nav (992-1199px) */}
-            <div className="hidden xl:flex 2xl:hidden">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    className={cn(
-                      'flex items-center gap-2 rounded-xl border border-white/20 px-3 py-2 text-xs font-bold transition-colors',
-                      pathname.startsWith('/dashboard') || pathname.startsWith('/super-admin') ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/10'
-                    )}
-                  >
-                    <Menu className="h-4 w-4" />
-                    منوی سامانه
-                    <ChevronDown className="h-3 w-3" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="max-h-[70vh] w-64 overflow-y-auto border-white/10" style={{ background: 'linear-gradient(135deg, #0A2A2A 0%, #0F3D38 100%)' }}>
-                  <DropdownMenuLabel className="text-[#6BA89E]">دسترسی سریع</DropdownMenuLabel>
-                  {visibleCore.map(renderDropdownItem)}
-                  {groups.map((group) =>
-                    group.items.length > 0 ? (
-                      <div key={group.label}>
-                        <DropdownMenuSeparator className="bg-white/10" />
-                        <DropdownMenuLabel className="flex items-center gap-2 text-xs text-[#6BA89E]">
-                          <group.icon className="h-3.5 w-3.5" />
-                          {group.label}
-                        </DropdownMenuLabel>
-                        {group.items.map(renderDropdownItem)}
-                      </div>
-                    ) : null
-                  )}
-                  {visibleAdmin.length > 0 && (
-                    <>
-                      <DropdownMenuSeparator className="bg-white/10" />
-                      <DropdownMenuLabel className="flex items-center gap-2 text-xs text-[#6BA89E]">
-                        <Shield className="h-3.5 w-3.5" />
-                        مدیریت
-                      </DropdownMenuLabel>
-                      {visibleAdmin.map(renderDropdownItem)}
-                    </>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+            {/* Laptop compact nav removed — inline nav now shows at ≥1024px */}
+            <div className="hidden xl:hidden" />
           </div>
 
           {/* Left side: notifications + profile + hamburger */}
@@ -308,7 +267,7 @@ export function DashboardNavbar() {
                     <AvatarImage src={profile?.avatarUrl || undefined} alt={displayName} />
                     <AvatarFallback className="bg-[#2DD4BF] text-xs font-bold text-[#0A2A2A]">{initials}</AvatarFallback>
                   </Avatar>
-                  <div className="hidden text-right lg:block xl:hidden 2xl:block">
+                  <div className="hidden text-right lg:block">
                     <div className="text-xs font-bold text-white">{displayName}</div>
                     <div className="text-[10px] text-[#6BA89E]">{roleLabel}</div>
                   </div>
