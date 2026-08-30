@@ -1689,9 +1689,11 @@ model AcademyClassSession {
   status         String   @default("scheduled")
   lateMinutes    Int?
   attendanceNote String?
+  recordedBy     String?  @db.Uuid
   createdAt      DateTime @default(now())
 
   @@index([studentId, startsAt])
+  @@index([courseId, startsAt])
   @@map("academy_class_sessions")
 }
 
@@ -1749,6 +1751,47 @@ model AcademyEducationRecord {
 }
 
 // ============ ACADEMY FINANCE ============
+
+model AcademyStudentGrade {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId   String   @db.Uuid
+  courseId    String?  @db.Uuid
+  examScore   Float?
+  assignmentScore Float?
+  participationScore Float?
+  speakingScore Float?
+  listeningScore Float?
+  readingScore Float?
+  writingScore Float?
+  note        String?
+  recordedBy  String?  @db.Uuid
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+
+  @@index([studentId, courseId])
+  @@index([courseId])
+  @@map("academy_student_grades")
+}
+
+model AcademyTeacherEvaluation {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId       String   @db.Uuid
+  courseId        String?  @db.Uuid
+  strengths       String?
+  weaknesses     String?
+  learningStatus  String?
+  educationalSuggestion String?
+  currentLevel    String?
+  suggestedLevel  String?
+  recordedBy      String?  @db.Uuid
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+
+  @@index([studentId, courseId])
+  @@index([courseId])
+  @@map("academy_teacher_evaluations")
+}
+
 
 model AcademyInstallment {
   id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
