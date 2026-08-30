@@ -1619,3 +1619,104 @@ model MyCustomer {
 
   @@map("my_customers")
 }
+
+// ============ ACADEMY CRM (isolated from the main CRM) ============
+
+model AcademyUser {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  username     String   @unique
+  email        String?  @unique
+  passwordHash String
+  role         String   @default("student") // admin | teacher | student
+  firstName    String
+  lastName     String
+  phone        String?
+  nationalId   String?
+  avatarUrl    String?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("academy_users")
+}
+
+model AcademyCourse {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title       String
+  code        String?
+  description String?
+  teacherName String?
+  level       String?
+  imageUrl    String?
+  startDate   DateTime?
+  endDate     DateTime?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@map("academy_courses")
+}
+
+model AcademyCourseEnrollment {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId     String   @db.Uuid
+  courseId      String   @db.Uuid
+  progress      Int      @default(0)
+  heldSessions  Int      @default(0)
+  totalSessions Int      @default(16)
+  room          String?
+  onlineUrl     String?
+  fee           BigInt   @default(0)
+  paid          BigInt   @default(0)
+  status        String   @default("active")
+  createdAt     DateTime @default(now())
+
+  @@unique([studentId, courseId])
+  @@index([studentId])
+  @@map("academy_course_enrollments")
+}
+
+model AcademyClassSession {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId   String   @db.Uuid
+  courseId    String?  @db.Uuid
+  title       String
+  teacherName String?
+  weekday     String?
+  startsAt    DateTime
+  durationMin Int      @default(90)
+  room        String?
+  onlineUrl   String?
+  status      String   @default("scheduled")
+  createdAt   DateTime @default(now())
+
+  @@index([studentId, startsAt])
+  @@map("academy_class_sessions")
+}
+
+model AcademyAssignment {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId   String    @db.Uuid
+  courseId    String?   @db.Uuid
+  title       String
+  description String?
+  dueDate     DateTime?
+  status      String    @default("pending")
+  score       Int?
+  createdAt   DateTime  @default(now())
+
+  @@index([studentId, status])
+  @@map("academy_assignments")
+}
+
+model AcademyNotice {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId String?  @db.Uuid
+  title     String
+  body      String?
+  type      String   @default("info")
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([studentId, createdAt])
+  @@map("academy_notices")
+}
