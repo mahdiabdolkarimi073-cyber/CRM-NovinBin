@@ -54,10 +54,10 @@ export const TICKET_STATUSES = [
 
 export const LEAD_STATUSES = [
   { key: 'new', label: 'جدید', color: '#1F2937' },
-  { key: 'contacted', label: 'تماس شده', color: '#F59E0B' },
-  { key: 'qualified', label: 'تایید شده', color: '#2563EB' },
+  { key: 'contacted', label: 'در حال پیگیری', color: '#F59E0B' },
+  { key: 'serious', label: 'در حال پیگیری جدی', color: '#EF4444' },
   { key: 'converted', label: 'تبدیل به مشتری', color: '#16A34A' },
-  { key: 'lost', label: 'از دست رفته', color: '#EF4444' },
+  { key: 'lost', label: 'مشتری نشد', color: '#94A3B8' },
 ];
 
 export const LEAD_SOURCES = [

@@ -2833,6 +2833,189 @@
 }
 .leads-page-btn-active:hover { background: #16336f; border-color: #16336f; }
 
+/* ===== Lead Alarm Banner ===== */
+.leads-alarm-container {
+  margin-bottom: 20px;
+  border-radius: 14px;
+  border: 1px solid #FECACA;
+  background: linear-gradient(135deg, #FEF2F2 0%, #FFF7F7 100%);
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.08);
+}
+.leads-alarm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+  color: #fff;
+}
+.leads-alarm-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 700;
+}
+.leads-alarm-title svg { animation: leads-alarm-pulse 2s ease-in-out infinite; }
+@keyframes leads-alarm-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.15); }
+}
+.leads-alarm-dismiss-all {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.leads-alarm-dismiss-all:hover { background: rgba(255, 255, 255, 0.25); }
+.leads-alarm-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.leads-alarm-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  border-bottom: 1px solid #FEE2E2;
+  transition: background 0.2s;
+}
+.leads-alarm-item:last-child { border-bottom: none; }
+.leads-alarm-item:hover { background: rgba(239, 68, 68, 0.03); }
+.leads-alarm-serious .leads-alarm-item-icon {
+  background: #FEE2E2;
+  color: #DC2626;
+}
+.leads-alarm-contacted .leads-alarm-item-icon {
+  background: #FEF3C7;
+  color: #D97706;
+}
+.leads-alarm-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+.leads-alarm-item-body {
+  flex: 1;
+  min-width: 0;
+}
+.leads-alarm-item-body strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1E293B;
+  margin-bottom: 2px;
+}
+.leads-alarm-item-body span {
+  font-size: 12px;
+  color: #64748B;
+  line-height: 1.6;
+}
+.leads-alarm-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.leads-alarm-follow {
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid #16A34A;
+  border-radius: 8px;
+  background: #F0FDF4;
+  color: #16A34A;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.leads-alarm-follow:hover { background: #16A34A; color: #fff; }
+.leads-alarm-dismiss {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  background: #fff;
+  color: #94A3B8;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.leads-alarm-dismiss:hover { border-color: #EF4444; color: #EF4444; }
+
+/* ===== Lead Status Switcher ===== */
+.lead-card-status-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.lead-card-alarm-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #FEE2E2;
+  color: #DC2626;
+  animation: leads-alarm-pulse 2s ease-in-out infinite;
+}
+.lead-card-alarm {
+  border-color: #FECACA;
+  box-shadow: 0 2px 12px rgba(239, 68, 68, 0.08);
+}
+.lead-status-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 0;
+}
+.lead-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: 1px solid #E2E8F0;
+  border-radius: 20px;
+  background: #F8FAFC;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s;
+  white-space: nowrap;
+}
+.lead-status-chip:hover {
+  border-color: #CBD5E1;
+  background: #F1F5F9;
+}
+.lead-status-chip-active {
+  font-weight: 700;
+}
+.lead-status-chip-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 /* Modal */
 .leads-modal-content {
   max-width: 600px;

@@ -4,7 +4,7 @@
 export type UserTier = 'staff' | 'customer';
 export type StaffRole = 'owner' | 'super_admin' | 'admin' | 'personnel';
 export type CustomerType = 'individual' | 'company';
-export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'converted' | 'lost';
+export type LeadStatus = 'new' | 'contacted' | 'serious' | 'converted' | 'lost';
 
 export interface Organization {
   id: string;

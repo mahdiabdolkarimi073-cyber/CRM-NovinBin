@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
   TrendingUp, Plus, Phone, Mail, MapPin, Search, Eye, Pencil, Trash2,
   BarChart3, Filter, Zap, FileBarChart, FileSpreadsheet, ChevronLeft, ChevronRight,
-  UserCheck, Clock,
+  UserCheck, Clock, AlertTriangle, Bell, X,
 } from 'lucide-react';
 import { relativeTime } from '@/lib/format';
 import { LEAD_STATUSES, LEAD_SOURCES } from '@/lib/constants';
@@ -25,9 +25,20 @@ import type { Lead } from '@/lib/types';
 
 const statusInfo = (key: string) => LEAD_STATUSES.find((s) => s.key === key) || LEAD_STATUSES[0];
 
-const CITIES = ['تهران', 'مشهد', 'اصفهان', 'شیراز', 'تبریز', 'کرج', 'اهواز', 'کرمان'];
+const CITIES = ['تهران', 'مشهد', 'اصفهان', 'شهراز', 'تبریز', 'کرج', 'اهواز', 'کرمان'];
 
 const PAGE_SIZE = 12;
+
+const ALARM_INTERVALS: Record<string, number> = {
+  serious: 2 * 24 * 60 * 60 * 1000,
+  contacted: 7 * 24 * 60 * 60 * 1000,
+};
+
+interface AlarmLead {
+  lead: Lead;
+  daysOverdue: number;
+  interval: number;
+}
 
 export default function LeadsPage() {
   const { profile } = useAuth();
@@ -46,6 +57,8 @@ export default function LeadsPage() {
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [saving, setSaving] = useState(false);
   const [converting, setConverting] = useState(false);
+  const [statusMenuLeadId, setStatusMenuLeadId] = useState<string | null>(null);
+  const [dismissedAlarms, setDismissedAlarms] = useState<Set<string>>(new Set());
   const [form, setForm] = useState({
     name: '', company: '', phone: '', email: '', city: '', source: '', notes: '',
   });
@@ -77,17 +90,19 @@ export default function LeadsPage() {
 
   useEffect(() => { loadLeads(); }, [loadLeads]);
 
-  // Reset to page 1 when filters change
   useEffect(() => { setPage(1); }, [search, filterStatus, filterSource, filterCity, filterAssignee, filterTime]);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('lead_dismissed_alarms');
+      if (stored) setDismissedAlarms(new Set(JSON.parse(stored)));
+    } catch {}
+  }, []);
 
   const filteredLeads = useMemo(() => {
     let result = leads;
-    if (filterCity !== 'all') {
-      result = result.filter((l) => (l as any).city === filterCity);
-    }
-    if (filterAssignee !== 'all') {
-      result = result.filter((l) => l.assignedTo === filterAssignee);
-    }
+    if (filterCity !== 'all') result = result.filter((l) => (l as any).city === filterCity);
+    if (filterAssignee !== 'all') result = result.filter((l) => l.assignedTo === filterAssignee);
     if (filterTime !== 'all') {
       const now = new Date();
       const days = filterTime === '7d' ? 7 : filterTime === '30d' ? 30 : 90;
@@ -101,48 +116,64 @@ export default function LeadsPage() {
   const currentPage = Math.min(page, totalPages);
   const pagedLeads = filteredLeads.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
+  const alarmLeads = useMemo<AlarmLead[]>(() => {
+    const now = Date.now();
+    const result: AlarmLead[] = [];
+    leads.forEach((lead) => {
+      const interval = ALARM_INTERVALS[lead.status];
+      if (!interval) return;
+      const lastUpdate = lead.nextFollowUp ? new Date(lead.nextFollowUp).getTime() : new Date(lead.createdAt).getTime();
+      const elapsed = now - lastUpdate;
+      if (elapsed >= interval) {
+        result.push({ lead, daysOverdue: Math.floor(elapsed / (24 * 60 * 60 * 1000)), interval });
+      }
+    });
+    return result.filter((a) => !dismissedAlarms.has(a.lead.id));
+  }, [leads, dismissedAlarms]);
+
+  const dismissAlarm = (leadId: string) => {
+    const updated = new Set(dismissedAlarms);
+    updated.add(leadId);
+    setDismissedAlarms(updated);
+    try { localStorage.setItem('lead_dismissed_alarms', JSON.stringify(Array.from(updated))); } catch {}
+  };
+
+  const dismissAllAlarms = () => {
+    const updated = new Set(dismissedAlarms);
+    alarmLeads.forEach((a) => updated.add(a.lead.id));
+    setDismissedAlarms(updated);
+    try { localStorage.setItem('lead_dismissed_alarms', JSON.stringify(Array.from(updated))); } catch {}
+  };
+
   const stats = useMemo(() => {
     const counts: Record<string, number> = {};
     LEAD_STATUSES.forEach((s) => { counts[s.key] = 0; });
     leads.forEach((l) => { if (counts[l.status] !== undefined) counts[l.status]++; });
     return [
-      { key: 'new', label: 'سرنخ جدید', count: counts['new'] || 0, color: '#1F2937' },
-      { key: 'total', label: 'کل سرنخ‌ها', count: leads.length, color: '#6366F1' },
+      { key: 'new', label: 'جدید', count: counts['new'] || 0, color: '#1F2937' },
       { key: 'contacted', label: 'در حال پیگیری', count: counts['contacted'] || 0, color: '#F59E0B' },
-      { key: 'contact_needed', label: 'نیازمند تماس', count: counts['new'] || 0, color: '#FF9F1C' },
-      { key: 'qualified', label: 'مشتری بالقوه', count: counts['qualified'] || 0, color: '#2563EB' },
-      { key: 'converted', label: 'مشتری قطعی', count: counts['converted'] || 0, color: '#16A34A' },
+      { key: 'serious', label: 'پیگیری جدی', count: counts['serious'] || 0, color: '#EF4444' },
+      { key: 'converted', label: 'تبدیل به مشتری', count: counts['converted'] || 0, color: '#16A34A' },
+      { key: 'lost', label: 'مشتری نشد', count: counts['lost'] || 0, color: '#94A3B8' },
     ];
   }, [leads]);
 
   const hasActiveFilters = filterStatus !== 'all' || filterSource !== 'all' || filterCity !== 'all' || filterAssignee !== 'all' || filterTime !== 'all';
 
   const clearFilters = () => {
-    setFilterStatus('all');
-    setFilterSource('all');
-    setFilterCity('all');
-    setFilterAssignee('all');
-    setFilterTime('all');
+    setFilterStatus('all'); setFilterSource('all'); setFilterCity('all'); setFilterAssignee('all'); setFilterTime('all');
   };
 
   const openEdit = (lead: Lead) => {
     setEditingLead(lead);
     setForm({
-      name: lead.name || '',
-      company: lead.company || '',
-      phone: lead.phone || '',
-      email: lead.email || '',
-      city: (lead as any).city || '',
-      source: lead.source || '',
-      notes: lead.notes || '',
+      name: lead.name || '', company: lead.company || '', phone: lead.phone || '',
+      email: lead.email || '', city: (lead as any).city || '', source: lead.source || '', notes: lead.notes || '',
     });
     setEditDialogOpen(true);
   };
 
-  const openView = (lead: Lead) => {
-    setViewLead(lead);
-    setViewDialogOpen(true);
-  };
+  const openView = (lead: Lead) => { setViewLead(lead); setViewDialogOpen(true); };
 
   const handleEditSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,70 +181,48 @@ export default function LeadsPage() {
     setSaving(true);
     try {
       await updateData('leads', { id: editingLead.id }, {
-        name: form.name,
-        company: form.company || null,
-        phone: form.phone || null,
-        email: form.email || null,
-        source: form.source || null,
-        notes: form.notes || null,
+        name: form.name, company: form.company || null, phone: form.phone || null,
+        email: form.email || null, source: form.source || null, notes: form.notes || null,
       });
       toast.success('سرنخ ویرایش شد');
-      setEditDialogOpen(false);
-      setEditingLead(null);
-      loadLeads();
-    } catch (error: any) {
-      toast.error('ویرایش ناموفق: ' + error.message);
-    }
+      setEditDialogOpen(false); setEditingLead(null); loadLeads();
+    } catch (error: any) { toast.error('ویرایش ناموفق: ' + error.message); }
     setSaving(false);
   };
 
   const handleDelete = async (lead: Lead) => {
     if (!confirm(`حذف سرنخ «${lead.name}»؟`)) return;
-    try {
-      await deleteData('leads', { id: lead.id });
-      toast.success('سرنخ حذف شد');
-      loadLeads();
-    } catch (error: any) {
-      toast.error('حذف ناموفق: ' + error.message);
-    }
+    try { await deleteData('leads', { id: lead.id }); toast.success('سرنخ حذف شد'); loadLeads(); }
+    catch (error: any) { toast.error('حذف ناموفق: ' + error.message); }
   };
 
   const convertToCustomer = async (lead: Lead) => {
     if (!profile) return;
-    if (!isSuperAdmin) {
-      toast.error('فقط سوپرادمین می‌تواند سرنخ را به مشتری تبدیل کند');
-      return;
-    }
+    if (!isSuperAdmin) { toast.error('فقط سوپرادمین می‌تواند سرنخ را به مشتری تبدیل کند'); return; }
     setConverting(true);
     try {
       const cust = await createData('customers', {
-        type: 'individual',
-        firstName: lead.name,
-        companyName: lead.company,
-        phone: lead.phone,
-        email: lead.email,
-        source: lead.source,
-        level: 'bronze',
-        createdBy: profile.id,
+        type: 'individual', firstName: lead.name, companyName: lead.company,
+        phone: lead.phone, email: lead.email, source: lead.source, level: 'bronze', createdBy: profile.id,
       });
       await updateData('leads', { id: lead.id }, { status: 'converted', customerId: cust.id });
-      toast.success('سرنخ به مشتری واقعی تبدیل شد و در لیست مشتریان اضافه شد');
-      setEditDialogOpen(false);
-      setEditingLead(null);
-      loadLeads();
-    } catch (error: any) {
-      toast.error('تبدیل ناموفق: ' + error.message);
-    }
+      toast.success('سرنخ به مشتری تبدیل شد');
+      setEditDialogOpen(false); setEditingLead(null); loadLeads();
+    } catch (error: any) { toast.error('تبدیل ناموفق: ' + error.message); }
     setConverting(false);
   };
 
   const updateStatus = async (id: string, status: string) => {
+    setStatusMenuLeadId(null);
     try {
-      await updateData('leads', { id }, { status });
+      await updateData('leads', { id }, { status, nextFollowUp: new Date().toISOString() });
+      const updated = new Set(dismissedAlarms);
+      updated.delete(id);
+      setDismissedAlarms(updated);
+      try { localStorage.setItem('lead_dismissed_alarms', JSON.stringify(Array.from(updated))); } catch {}
       loadLeads();
-    } catch (error: any) {
-      toast.error('تغییر وضعیت ناموفق: ' + error.message);
-    }
+      toast.success('وضعیت سرنخ تغییر کرد');
+    } catch (error: any) { toast.error('تغییر وضعیت ناموفق: ' + error.message); }
   };
 
   const exportExcel = () => {
@@ -225,9 +234,7 @@ export default function LeadsPage() {
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = 'leads.csv';
-    a.click();
+    a.href = url; a.download = 'leads.csv'; a.click();
     URL.revokeObjectURL(url);
     toast.success('خروجی Excel آماده شد');
   };
@@ -247,6 +254,50 @@ export default function LeadsPage() {
           سرنخ جدید
         </Link>
       </header>
+
+      {/* Alarm Banner */}
+      {alarmLeads.length > 0 && (
+        <div className="leads-alarm-container">
+          <div className="leads-alarm-header">
+            <div className="leads-alarm-title">
+              <AlertTriangle className="h-5 w-5" />
+              <span>هشدار پیگیری سرنخ‌ها ({alarmLeads.length.toLocaleString('fa-IR')})</span>
+            </div>
+            <button className="leads-alarm-dismiss-all" onClick={dismissAllAlarms}>
+              <X className="h-4 w-4" />
+              بستن همه
+            </button>
+          </div>
+          <div className="leads-alarm-list">
+            {alarmLeads.map(({ lead, daysOverdue }) => {
+              const isSerious = lead.status === 'serious';
+              return (
+                <div key={lead.id} className={`leads-alarm-item ${isSerious ? 'leads-alarm-serious' : 'leads-alarm-contacted'}`}>
+                  <div className="leads-alarm-item-icon">
+                    <Bell className="h-4 w-4" />
+                  </div>
+                  <div className="leads-alarm-item-body">
+                    <strong>{lead.name}</strong>
+                    <span>
+                      {isSerious
+                        ? `این سرنخ جدی ${daysOverdue.toLocaleString('fa-IR')} روز است که پیگیری نشده است (هر ۲ روز)`
+                        : `این سرنخ ${daysOverdue.toLocaleString('fa-IR')} روز است که پیگیری نشده است (هر ۷ روز)`}
+                    </span>
+                  </div>
+                  <div className="leads-alarm-item-actions">
+                    <button className="leads-alarm-follow" onClick={() => updateStatus(lead.id, lead.status)}>
+                      پیگیری کردم
+                    </button>
+                    <button className="leads-alarm-dismiss" onClick={() => dismissAlarm(lead.id)}>
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="leads-toolbar">
         <div className="leads-search-wrap">
@@ -304,14 +355,12 @@ export default function LeadsPage() {
                   const st = statusInfo(lead.status);
                   const stageIndex = LEAD_STATUSES.findIndex((s) => s.key === lead.status);
                   const progress = Math.round(((stageIndex + 1) / LEAD_STATUSES.length) * 100);
+                  const isAlarm = alarmLeads.some((a) => a.lead.id === lead.id);
                   return (
-                    <article key={lead.id} className="lead-card">
+                    <article key={lead.id} className={`lead-card ${isAlarm ? 'lead-card-alarm' : ''}`}>
                       <div className="lead-card-header">
                         <div className="lead-card-id">
-                          <div
-                            className="lead-card-avatar"
-                            style={{ backgroundColor: st.color + '20', color: st.color }}
-                          >
+                          <div className="lead-card-avatar" style={{ backgroundColor: st.color + '20', color: st.color }}>
                             {lead.name?.[0] || '؟'}
                           </div>
                           <div className="lead-card-name-wrap">
@@ -319,12 +368,16 @@ export default function LeadsPage() {
                             <span>{lead.company || 'مشتری بالقوه'}</span>
                           </div>
                         </div>
-                        <Badge
-                          className="lead-status-badge"
-                          style={{ backgroundColor: st.color + '18', color: st.color }}
-                        >
-                          {st.label}
-                        </Badge>
+                        <div className="lead-card-status-wrap">
+                          {isAlarm && (
+                            <span className="lead-card-alarm-dot" title="پیگیری نشده">
+                              <Bell className="h-3 w-3" />
+                            </span>
+                          )}
+                          <Badge className="lead-status-badge" style={{ backgroundColor: st.color + '18', color: st.color }}>
+                            {st.label}
+                          </Badge>
+                        </div>
                       </div>
 
                       <div className="lead-card-contacts">
@@ -350,12 +403,28 @@ export default function LeadsPage() {
 
                       <div className="lead-progress-wrap">
                         <div className="lead-progress-track">
-                          <div
-                            className="lead-progress-fill"
-                            style={{ width: `${progress}%`, backgroundColor: st.color }}
-                          />
+                          <div className="lead-progress-fill" style={{ width: `${progress}%`, backgroundColor: st.color }} />
                         </div>
                         <span className="lead-progress-time">{relativeTime(lead.createdAt)}</span>
+                      </div>
+
+                      {/* Status Switcher */}
+                      <div className="lead-status-switcher">
+                        {LEAD_STATUSES.map((s) => (
+                          <button
+                            key={s.key}
+                            className={`lead-status-chip ${lead.status === s.key ? 'lead-status-chip-active' : ''}`}
+                            style={lead.status === s.key
+                              ? { backgroundColor: s.color + '20', color: s.color, borderColor: s.color }
+                              : { color: '#98A2B3' }
+                            }
+                            onClick={() => updateStatus(lead.id, s.key)}
+                            title={s.label}
+                          >
+                            <span className="lead-status-chip-dot" style={{ backgroundColor: s.color }} />
+                            {s.label}
+                          </button>
+                        ))}
                       </div>
 
                       <div className="lead-card-actions">
@@ -403,11 +472,7 @@ export default function LeadsPage() {
                     <span>سرنخ</span>
                   </div>
                   <div className="leads-page-buttons">
-                    <button
-                      className="leads-page-btn"
-                      onClick={() => setPage(Math.max(1, currentPage - 1))}
-                      disabled={currentPage === 1}
-                    >
+                    <button className="leads-page-btn" onClick={() => setPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1}>
                       <ChevronRight className="h-4 w-4" />
                     </button>
                     {Array.from({ length: totalPages }).map((_, i) => (
@@ -419,11 +484,7 @@ export default function LeadsPage() {
                         {(i + 1).toLocaleString('fa-IR')}
                       </button>
                     ))}
-                    <button
-                      className="leads-page-btn"
-                      onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
-                      disabled={currentPage === totalPages}
-                    >
+                    <button className="leads-page-btn" onClick={() => setPage(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages}>
                       <ChevronLeft className="h-4 w-4" />
                     </button>
                   </div>
