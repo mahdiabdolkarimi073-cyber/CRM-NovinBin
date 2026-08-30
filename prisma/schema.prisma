@@ -1676,18 +1676,20 @@ model AcademyCourseEnrollment {
 }
 
 model AcademyClassSession {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  studentId   String   @db.Uuid
-  courseId    String?  @db.Uuid
-  title       String
-  teacherName String?
-  weekday     String?
-  startsAt    DateTime
-  durationMin Int      @default(90)
-  room        String?
-  onlineUrl   String?
-  status      String   @default("scheduled")
-  createdAt   DateTime @default(now())
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId      String   @db.Uuid
+  courseId       String?  @db.Uuid
+  title          String
+  teacherName    String?
+  weekday        String?
+  startsAt       DateTime
+  durationMin    Int      @default(90)
+  room           String?
+  onlineUrl      String?
+  status         String   @default("scheduled")
+  lateMinutes    Int?
+  attendanceNote String?
+  createdAt      DateTime @default(now())
 
   @@index([studentId, startsAt])
   @@map("academy_class_sessions")
@@ -1719,4 +1721,29 @@ model AcademyNotice {
 
   @@index([studentId, createdAt])
   @@map("academy_notices")
+}
+
+model AcademyEducationRecord {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId        String   @db.Uuid
+  currentLevel     String   @default("B2")
+  currentLevelName String?
+  levelStartDate   DateTime?
+  placementResult  String?
+  placementDate    DateTime?
+  targetLevel      String   @default("C1")
+  targetLevelName  String?
+  progressPercent  Int      @default(0)
+  teacherRating    Float    @default(0)
+  teacherComment   String?
+  nextCourseTitle  String?
+  nextCourseReasons Json   @default("[]")
+  grades           Json     @default("[]")
+  averageGrade     Float    @default(0)
+  updatedBy        String?  @db.Uuid
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @default(now())
+
+  @@index([studentId])
+  @@map("academy_education_records")
 }

@@ -68,16 +68,16 @@ function todayName() {
 }
 
 const navItems = [
-  { label: 'کلاس‌های من', icon: BookOpen, active: true },
-  { label: 'تکالیف', icon: ClipboardList },
-  { label: 'برنامه هفتگی', icon: CalendarDays },
-  { label: 'حضور و غیاب', icon: CheckCircle },
-  { label: 'نمرات و پیشرفت', icon: GraduationCap },
-  { label: 'پیام‌ها', icon: MessageSquare },
-  { label: 'فایل‌ها', icon: Folder },
-  { label: 'پرداخت‌ها', icon: Wallet },
-  { label: 'پروفایل من', icon: User },
-  { label: 'تنظیمات', icon: Settings },
+  { label: 'کلاس‌های من', icon: BookOpen, href: '/academy/classes', active: true },
+  { label: 'تکالیف', icon: ClipboardList, href: '/academy/classes', active: false },
+  { label: 'برنامه هفتگی', icon: CalendarDays, href: '/academy/classes', active: false },
+  { label: 'حضور و غیاب', icon: CheckCircle, href: '/academy/attendance', active: false },
+  { label: 'نمرات و پیشرفت', icon: GraduationCap, href: '/academy/education-record', active: false },
+  { label: 'پیام‌ها', icon: MessageSquare, href: '/academy/classes', active: false },
+  { label: 'فایل‌ها', icon: Folder, href: '/academy/classes', active: false },
+  { label: 'پرداخت‌ها', icon: Wallet, href: '/academy/classes', active: false },
+  { label: 'پروفایل من', icon: User, href: '/academy/classes', active: false },
+  { label: 'تنظیمات', icon: Settings, href: '/academy/classes', active: false },
 ];
 
 function CheckCircle(props: any) {
@@ -151,7 +151,7 @@ export default function MyClassesPage() {
                 key={item.label}
                 type="button"
                 className={item.active ? 'active' : ''}
-                onClick={() => setSidebarOpen(false)}
+                onClick={() => { router.push(item.href); setSidebarOpen(false); }}
               >
                 <item.icon />
                 <span>{item.label}</span>
