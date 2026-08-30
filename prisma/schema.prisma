@@ -1877,3 +1877,186 @@ model AcademyRegistrationRequest {
   @@index([studentId, type])
   @@map("academy_registration_requests")
 }
+
+model AcademyStudentNote {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId   String   @db.Uuid
+  authorId    String   @db.Uuid
+  body        String
+  createdAt   DateTime @default(now())
+
+  @@index([studentId, createdAt])
+  @@map("academy_student_notes")
+}
+
+model AcademyContract {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId   String   @db.Uuid
+  courseId    String?  @db.Uuid
+  title       String
+  amount      BigInt   @default(0)
+  startDate   DateTime @default(now())
+  endDate     DateTime?
+  status      String   @default("active")
+  signedBy    String?  @db.Uuid
+  createdAt   DateTime @default(now())
+
+  @@index([studentId])
+  @@map("academy_contracts")
+}
+
+// ============ ACADEMY TEACHER MANAGEMENT ============
+
+model AcademyTeacherDocument {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  teacherId   String   @db.Uuid
+  title       String
+  fileUrl     String?
+  fileName    String?
+  createdAt   DateTime @default(now())
+
+  @@index([teacherId])
+  @@map("academy_teacher_documents")
+}
+
+model AcademyTeacherSpecialty {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  teacherId   String   @db.Uuid
+  title       String
+  level       String?
+  createdAt   DateTime @default(now())
+
+  @@index([teacherId])
+  @@map("academy_teacher_specialties")
+}
+
+model AcademyTeacherSchedule {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  teacherId   String   @db.Uuid
+  weekday     String
+  startTime   String
+  endTime     String
+  courseId    String?  @db.Uuid
+  room        String?
+  createdAt   DateTime @default(now())
+
+  @@index([teacherId])
+  @@map("academy_teacher_schedules")
+}
+
+model AcademyTeacherSettlement {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  teacherId   String   @db.Uuid
+  amount      BigInt   @default(0)
+  period      String
+  status      String   @default("pending")
+  settledAt   DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([teacherId])
+  @@map("academy_teacher_settlements")
+}
+
+// ============ ACADEMY EDUCATION MANAGEMENT ============
+
+model AcademyTerm {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title       String
+  startDate   DateTime @default(now())
+  endDate     DateTime?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@map("academy_terms")
+}
+
+model AcademyLevel {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title       String
+  code        String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@map("academy_levels")
+}
+
+model AcademySyllabus {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  courseId    String?  @db.Uuid
+  title       String
+  description String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([courseId])
+  @@map("academy_syllabi")
+}
+
+model AcademyRoom {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String
+  capacity    Int      @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@map("academy_rooms")
+}
+
+model AcademyWeeklySchedule {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  courseId    String?  @db.Uuid
+  teacherId   String?  @db.Uuid
+  roomId      String?  @db.Uuid
+  weekday     String
+  startTime   String
+  endTime     String
+  capacity    Int      @default(0)
+  enrolled    Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([courseId])
+  @@index([teacherId])
+  @@map("academy_weekly_schedules")
+}
+
+// ============ ACADEMY FINANCE MANAGEMENT ============
+
+model AcademyDiscount {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId   String?  @db.Uuid
+  courseId    String?  @db.Uuid
+  title       String
+  percent     Float    @default(0)
+  amount      BigInt   @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([studentId])
+  @@map("academy_discounts")
+}
+
+model AcademyPayment {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId   String   @db.Uuid
+  invoiceId   String?  @db.Uuid
+  amount      BigInt   @default(0)
+  method      String   @default("cash")
+  trackingCode String?
+  paidAt      DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([studentId])
+  @@map("academy_payments")
+}
+
+model AcademyTeacherShare {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  teacherId   String   @db.Uuid
+  courseId    String?  @db.Uuid
+  percent     Float    @default(0)
+  amount      BigInt   @default(0)
+  status      String   @default("pending")
+  createdAt   DateTime @default(now())
+
+  @@index([teacherId])
+  @@map("academy_teacher_shares")
+}

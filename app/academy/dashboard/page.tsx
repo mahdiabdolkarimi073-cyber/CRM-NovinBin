@@ -85,6 +85,10 @@ export default function AcademyDashboardPage() {
         const data = await res.json();
         if (cancelled) return;
         setUser(data.user);
+        if (data.dashboardType === 'admin') {
+          router.replace('/academy/admin-dashboard');
+          return;
+        }
         setDashboardType(data.dashboardType === 'teacher' ? 'teacher' : 'student');
         if (data.dashboardType === 'teacher') {
           setTeacherStats(data.stats);

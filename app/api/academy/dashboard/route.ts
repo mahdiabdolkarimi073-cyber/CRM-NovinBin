@@ -12,6 +12,13 @@ export async function GET(req: NextRequest) {
     const account = await (prisma as any).academyUser.findUnique({ where: { id: payload.academyUserId } });
     if (!account || !account.active) return NextResponse.json({ error: 'حساب غیرفعال است' }, { status: 403 });
 
+    if (account.role === 'admin') {
+      return NextResponse.json({
+        dashboardType: 'admin',
+        user: { id: account.id, firstName: account.firstName, lastName: account.lastName, username: account.username, role: account.role, email: account.email, phone: account.phone, avatarUrl: account.avatarUrl },
+      });
+    }
+
     if (account.role === 'teacher') {
       const teacherName = `${account.firstName} ${account.lastName}`;
       const allCourses = await (prisma as any).academyCourse.findMany({ where: { active: true }, orderBy: { createdAt: 'desc' } });
