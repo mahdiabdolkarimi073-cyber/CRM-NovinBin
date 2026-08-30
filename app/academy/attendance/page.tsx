@@ -12,6 +12,7 @@ import {
   Folder,
   Wallet,
   User,
+  UserPlus,
   Settings,
   LifeBuoy,
   Menu,
@@ -45,7 +46,8 @@ const navItems = [
   { label: 'نمرات و پیشرفت', icon: GraduationCap, href: '/academy/education-record', active: false },
   { label: 'پیام‌ها', icon: MessageSquare, href: '/academy/classes', active: false },
   { label: 'فایل‌ها', icon: Folder, href: '/academy/classes', active: false },
-  { label: 'پرداخت‌ها', icon: Wallet, href: '/academy/classes', active: false },
+  { label: 'پرداخت‌ها', icon: Wallet, href: '/academy/finance', active: false },
+  { label: 'ثبت‌نام / تمدید', icon: UserPlus, href: '/academy/registration', active: false },
   { label: 'پروفایل من', icon: User, href: '/academy/classes', active: false },
   { label: 'تنظیمات', icon: Settings, href: '/academy/classes', active: false },
 ];

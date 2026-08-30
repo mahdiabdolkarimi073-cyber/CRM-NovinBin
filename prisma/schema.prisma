@@ -1747,3 +1747,90 @@ model AcademyEducationRecord {
   @@index([studentId])
   @@map("academy_education_records")
 }
+
+// ============ ACADEMY FINANCE ============
+
+model AcademyInstallment {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId     String   @db.Uuid
+  courseId      String?  @db.Uuid
+  amount        BigInt   @default(0)
+  dueDate       DateTime
+  paidDate      DateTime?
+  status        String   @default("pending") // paid | pending | overdue
+  installmentNo Int      @default(1)
+  createdAt     DateTime @default(now())
+
+  @@index([studentId, status])
+  @@map("academy_installments")
+}
+
+model AcademyInvoice {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId   String   @db.Uuid
+  courseId    String?  @db.Uuid
+  number      String
+  amount      BigInt   @default(0)
+  issueDate   DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([studentId])
+  @@map("academy_invoices")
+}
+
+model AcademyReceipt {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId       String   @db.Uuid
+  invoiceId       String?  @db.Uuid
+  amount          BigInt   @default(0)
+  trackingCode    String?
+  receivedDate    DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  @@index([studentId])
+  @@map("academy_receipts")
+}
+
+// ============ ACADEMY REGISTRATION & RENEWAL ============
+
+model AcademyClassOption {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title       String
+  code        String?
+  level       String?
+  teacherName String?
+  weekday     String?
+  startsAt    String?
+  durationMin Int      @default(90)
+  room        String?
+  startDate   DateTime?
+  endDate     DateTime?
+  capacity    Int      @default(0)
+  enrolled    Int      @default(0)
+  fee         BigInt   @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@index([active, level])
+  @@map("academy_class_options")
+}
+
+model AcademyRegistrationRequest {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId     String   @db.Uuid
+  type          String   // renewal | enrollment | class_change | waitlist
+  currentCourseId String? @db.Uuid
+  targetCourseId  String? @db.Uuid
+  classOptionId   String? @db.Uuid
+  note          String?
+  status        String   @default("pending") // pending | approved | rejected | cancelled
+  paymentStatus String   @default("unpaid") // unpaid | pending | paid
+  amount        BigInt   @default(0)
+  trackingCode  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([studentId, status])
+  @@index([studentId, type])
+  @@map("academy_registration_requests")
+}
