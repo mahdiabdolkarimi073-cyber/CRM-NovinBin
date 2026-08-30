@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,8 +20,12 @@ export async function POST(req: NextRequest) {
     const existing = await (prisma as any).academyUser.findFirst({ where: { OR: [{ username }, ...(email ? [{ email }] : [])] } });
     if (existing) return NextResponse.json({ error: 'این نام کاربری یا ایمیل قبلاً ثبت شده است' }, { status: 409 });
 
-    await (prisma as any).academyUser.create({ data: { firstName, lastName, username, email, phone: body.phone ? String(body.phone).trim() : null, passwordHash: bcrypt.hashSync(password, 10), role: 'student' } });
-    return NextResponse.json({ success: true });
+    const account = await (prisma as any).academyUser.create({ data: { firstName, lastName, username, email, phone: body.phone ? String(body.phone).trim() : null, passwordHash: bcrypt.hashSync(password, 10), role: 'student' } });
+
+    const token = jwt.sign({ academyUserId: account.id, role: account.role, username: account.username }, JWT_SECRET, { expiresIn: '7d' });
+    const response = NextResponse.json({ success: true, user: { id: account.id, username: account.username, role: account.role, firstName: account.firstName, lastName: account.lastName } });
+    response.cookies.set('academy_token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 60 * 60 * 24 * 7, path: '/' });
+    return response;
   } catch {
     return NextResponse.json({ error: 'ثبت‌نام انجام نشد' }, { status: 500 });
   }

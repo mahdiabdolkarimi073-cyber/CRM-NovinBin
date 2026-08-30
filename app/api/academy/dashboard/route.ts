@@ -12,13 +12,68 @@ export async function GET(req: NextRequest) {
     const account = await (prisma as any).academyUser.findUnique({ where: { id: payload.academyUserId } });
     if (!account || !account.active) return NextResponse.json({ error: 'حساب غیرفعال است' }, { status: 403 });
 
+    if (account.role === 'teacher') {
+      const teacherName = `${account.firstName} ${account.lastName}`;
+      const allCourses = await (prisma as any).academyCourse.findMany({ where: { active: true }, orderBy: { createdAt: 'desc' } });
+      const teacherCourses = allCourses.filter((course: any) => course.teacherName?.trim() === teacherName);
+      const courseIds = teacherCourses.map((course: any) => course.id);
+      const teacherFilter = courseIds.length
+        ? { OR: [{ courseId: { in: courseIds } }, { teacherName: teacherName }] }
+        : { teacherName: teacherName };
+      const sessions = await (prisma as any).academyClassSession.findMany({
+        where: teacherFilter,
+        orderBy: { startsAt: 'asc' },
+      });
+      const enrollments = courseIds.length
+        ? await (prisma as any).academyCourseEnrollment.findMany({ where: { courseId: { in: courseIds }, status: 'active' } })
+        : [];
+      const assignments = courseIds.length
+        ? await (prisma as any).academyAssignment.findMany({ where: { courseId: { in: courseIds }, status: { in: ['pending', 'overdue'] } }, orderBy: { dueDate: 'asc' }, take: 8 })
+        : [];
+      const now = new Date();
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const endOfDay = new Date(startOfDay);
+      endOfDay.setDate(endOfDay.getDate() + 1);
+      const todaySessions = sessions.filter((session: any) => session.startsAt >= startOfDay && session.startsAt < endOfDay);
+      const upcoming = sessions.find((session: any) => session.startsAt >= now && session.status === 'scheduled') || null;
+      const recentAbsences = sessions.filter((session: any) => session.status === 'absent').slice(-5).reverse();
+      const courseMap: Map<string, any> = new Map(teacherCourses.map((course: any) => [course.id, course]));
+      const uniqueStudentCount = enrollments.length;
+      const serializeSession = (session: any) => ({
+        id: session.id,
+        title: session.title || courseMap.get(session.courseId)?.title || 'کلاس آموزشگاه',
+        courseId: session.courseId,
+        startsAt: session.startsAt,
+        durationMin: session.durationMin,
+        weekday: session.weekday,
+        room: session.room,
+        status: session.status,
+        attendanceNote: session.attendanceNote,
+      });
+      return NextResponse.json({
+        dashboardType: 'teacher',
+        user: { id: account.id, firstName: account.firstName, lastName: account.lastName, username: account.username, role: account.role, email: account.email, phone: account.phone, avatarUrl: account.avatarUrl },
+        stats: { todayClasses: todaySessions.length, studentCount: uniqueStudentCount, recentAbsences: recentAbsences.length, pendingTasks: assignments.length },
+        todayClasses: todaySessions.map(serializeSession),
+        nextClass: upcoming ? serializeSession(upcoming) : null,
+        recentAbsences: recentAbsences.map(serializeSession),
+        pendingTasks: assignments.map((assignment: any) => ({ id: assignment.id, title: assignment.title, dueDate: assignment.dueDate, status: assignment.status })),
+        weeklySchedule: sessions.map(serializeSession),
+        myClasses: teacherCourses.map((course: any) => ({ id: course.id, title: course.title, level: course.level, teacherName: course.teacherName, studentCount: enrollments.filter((enrollment: any) => enrollment.courseId === course.id).length })),
+      });
+    }
+
     const studentId = account.id;
 
     const enrollments = await (prisma as any).academyCourseEnrollment.findMany({
       where: { studentId },
-      include: { course: true },
       orderBy: { createdAt: 'desc' },
     });
+    const courseIds = enrollments.map((enrollment: any) => enrollment.courseId);
+    const courses = courseIds.length
+      ? await (prisma as any).academyCourse.findMany({ where: { id: { in: courseIds } } })
+      : [];
+    const courseMap: Map<string, any> = new Map(courses.map((course: any) => [course.id, course]));
 
     const upcomingClasses = await (prisma as any).academyClassSession.findMany({
       where: { studentId, startsAt: { gte: new Date() }, status: 'scheduled' },
@@ -66,10 +121,10 @@ export async function GET(req: NextRequest) {
       },
       courses: activeCourses.map((e: any) => ({
         id: e.courseId,
-        title: e.course?.title || 'دوره بدون نام',
-        teacherName: e.course?.teacherName || null,
-        level: e.course?.level || null,
-        imageUrl: e.course?.imageUrl || null,
+        title: courseMap.get(e.courseId)?.title || 'دوره بدون نام',
+        teacherName: courseMap.get(e.courseId)?.teacherName || null,
+        level: courseMap.get(e.courseId)?.level || null,
+        imageUrl: courseMap.get(e.courseId)?.imageUrl || null,
         progress: e.progress || 0,
         status: e.status,
       })),

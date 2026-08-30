@@ -94,7 +94,7 @@ const TYPE_LABEL: Record<string, string> = {
 const TYPE_ICON: Record<string, any> = { renewal: Repeat, enrollment: UserPlus, class_change: ArrowLeft, waitlist: ListOrdered };
 const STATUS_LABEL: Record<string, string> = { pending: 'در انتظار تأیید', approved: 'تأیید شده', rejected: 'رد شده', cancelled: 'لغو شده' };
 const STATUS_CLASS: Record<string, string> = { pending: 'pending', approved: 'approved', rejected: 'rejected', cancelled: 'cancelled' };
-const STATUS_ICON: Record<string, any> = { pending: ClockIcon, approved: CheckCircle2, rejected: XCircle, cancelled: XCircle };
+const STATUS_ICON: Record<string, any> = { pending: Clock, approved: CheckCircle2, rejected: XCircle, cancelled: XCircle };
 const PAY_LABEL: Record<string, string> = { unpaid: 'پرداخت نشده', pending: 'در انتظار پرداخت', paid: 'پرداخت شده' };
 
 export default function RegistrationPage() {
@@ -416,7 +416,7 @@ export default function RegistrationPage() {
                   <div className="reg-requests-list">
                     {pendingRequests.map((req) => {
                       const TypeIcon = TYPE_ICON[req.type] || ClipboardList;
-                      const StatusIcon = STATUS_ICON[req.status] || ClockIcon;
+                      const StatusIcon = STATUS_ICON[req.status] || Clock;
                       return (
                         <article key={req.id} className="reg-request-card">
                           <div className="reg-request-top">
@@ -467,7 +467,7 @@ export default function RegistrationPage() {
                       </thead>
                       <tbody>
                         {historyRequests.map((req) => {
-                          const StatusIcon = STATUS_ICON[req.status] || ClockIcon;
+                          const StatusIcon = STATUS_ICON[req.status] || Clock;
                           return (
                             <tr key={req.id}>
                               <td>{TYPE_LABEL[req.type] || req.type}</td>
