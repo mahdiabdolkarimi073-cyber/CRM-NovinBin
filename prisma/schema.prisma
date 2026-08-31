@@ -102,6 +102,10 @@ model Organization {
   knowledgeArticles   KnowledgeArticle[]
   goals               Goal[]
   kpiRecords          KpiRecord[]
+  paymentAnnouncements PaymentAnnouncement[]
+  withdrawalAnnouncements WithdrawalAnnouncement[]
+  myCheques            MyCheque[]
+  pettyCashCustodians  PettyCashCustodian[]
 
   @@map("organizations")
 }
@@ -176,6 +180,7 @@ model Profile {
   createdAt    DateTime @default(now())
   org          Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
   user         User?    @relation(fields: [id], references: [id], onDelete: Cascade)
+  pettyCashCustodians PettyCashCustodian[]
 
   @@map("profiles")
 }
@@ -533,6 +538,7 @@ model Account {
   level          Int      @default(1) // 1 | 2 | 3
   createdAt      DateTime @default(now())
   org            Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  pettyCashCustodians PettyCashCustodian[]
 
   @@map("accounts")
 }
@@ -640,6 +646,10 @@ model BankAccount {
   updatedAt       DateTime @default(now())
   createdAt       DateTime @default(now())
   org             Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  paymentAnnouncements PaymentAnnouncement[]
+  withdrawalAnnouncements WithdrawalAnnouncement[]
+  myCheques            MyCheque[]
+  pettyCashPayments    PettyCashPayment[]
 
   @@map("bank_accounts")
 }
@@ -2115,6 +2125,7 @@ model ContactParty {
   relatedPersons  ContactRelatedPerson[]
   addresses       ContactAddress[]
   phones          ContactPhone[]
+  pettyCashCustodians PettyCashCustodian[]
 
   @@map("contact_parties")
 }
@@ -2155,6 +2166,135 @@ model ContactPhone {
   contact     ContactParty @relation(fields: [contactId], references: [id], onDelete: Cascade)
 
   @@map("contact_phones")
+}
+
+// ============ PAYMENT ANNOUNCEMENTS (اعلامیه‌های پرداخت) ============
+
+model PaymentAnnouncement {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?   @db.Uuid
+  type            String   // نوع اعلامیه
+  counterparty    String   // طرف مقابل (super_admin | admin | personnel | customer | contact_party)
+  counterpartyId  String?  @db.Uuid // شناسه طرف مقابل در صورت انتخاب
+  date            DateTime @default(now()) // تاریخ اعلامیه
+  bankAccountId   String?  @db.Uuid // حساب بانکی
+  bankFee         BigInt   @default(0) // کارمزد بانکی
+  amount          BigInt   @default(0) // مبلغ پرداخت
+  description     String?  // توضیحات
+  status          String   @default("draft") // draft | confirmed | cancelled
+  createdBy       String   @db.Uuid
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+  org             Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  bankAccount     BankAccount?  @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+  withdrawals     WithdrawalAnnouncement[]
+  cheques         MyCheque[]
+
+  @@map("payment_announcements")
+}
+
+model WithdrawalAnnouncement {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId                 String?   @db.Uuid
+  paymentAnnouncementId String   @db.Uuid
+  transferNumber        String   // شماره حواله پرداخت
+  date                  DateTime @default(now()) // تاریخ
+  amount                BigInt   @default(0) // مبلغ
+  bankAccountId         String?  @db.Uuid // حساب بانکی
+  bankFee               BigInt   @default(0) // کارمزد بانکی (عدد فقط)
+  description           String?  // توضیحات
+  createdBy             String   @db.Uuid
+  createdAt             DateTime @default(now())
+  org                   Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  paymentAnnouncement   PaymentAnnouncement @relation(fields: [paymentAnnouncementId], references: [id], onDelete: Cascade)
+  bankAccount           BankAccount?  @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+
+  @@map("withdrawal_announcements")
+}
+
+model MyCheque {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId                 String?   @db.Uuid
+  paymentAnnouncementId String   @db.Uuid
+  bankAccountId         String?  @db.Uuid // حساب بانکی چک
+  chequeNumber          String   // شماره چک
+  sayadiNumber          String?  // شماره صیادی چک
+  amount                BigInt   @default(0) // مبلغ
+  date                  DateTime @default(now()) // تاریخ
+  type                  String   @default("received") // نوع (received | issued)
+  description           String?  // شرح / توضیحات
+  createdBy             String   @db.Uuid
+  createdAt             DateTime @default(now())
+  org                   Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  paymentAnnouncement   PaymentAnnouncement @relation(fields: [paymentAnnouncementId], references: [id], onDelete: Cascade)
+  bankAccount           BankAccount?  @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+
+  @@map("my_cheques")
+}
+
+// ============ PETTY CASH (تنخواه‌دار) ============
+
+model PettyCashCustodian {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?   @db.Uuid
+  code            String   // کد تنخواه‌دار
+  contactPartyId  String?  @db.Uuid // طرف حساب
+  profileId       String?  @db.Uuid // پرسنل
+  accountId       String?  @db.Uuid // حساب تفصیلی مرتبط
+  ceiling         BigInt   @default(0) // سقف تنخواه
+  type            String   @default("fixed") // نوع تنخواه (fixed | variable)
+  startDate       DateTime @default(now()) // تاریخ شروع فعالیت
+  active          Boolean  @default(true) // وضعیت فعال/غیرفعال
+  description     String?
+  createdBy       String   @db.Uuid
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+  org             Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  contactParty    ContactParty? @relation(fields: [contactPartyId], references: [id], onDelete: SetNull)
+  profile         Profile?      @relation(fields: [profileId], references: [id], onDelete: SetNull)
+  account         Account?     @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  payments        PettyCashPayment[]
+  expenses        PettyCashExpense[]
+
+  @@map("petty_cash_custodians")
+}
+
+model PettyCashPayment {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?   @db.Uuid
+  custodianId     String   @db.Uuid
+  bankAccountId   String?  @db.Uuid // حساب بانکی
+  amount          BigInt   @default(0) // مبلغ پرداخت
+  date            DateTime @default(now()) // تاریخ
+  description     String?  // توضیحات
+  createdBy       String   @db.Uuid
+  createdAt       DateTime @default(now())
+  org             Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  custodian       PettyCashCustodian @relation(fields: [custodianId], references: [id], onDelete: Cascade)
+  bankAccount     BankAccount?  @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+
+  @@map("petty_cash_payments")
+}
+
+model PettyCashExpense {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?   @db.Uuid
+  custodianId     String   @db.Uuid
+  number          String   // شماره سند هزینه
+  date            DateTime @default(now()) // تاریخ
+  expenseType     String   // نوع هزینه
+  amount          BigInt   @default(0) // مبلغ
+  description     String?  // شرح
+  attachmentUrl   String?  // پیوست
+  status          String   @default("pending") // pending | approved | rejected
+  approvedBy      String?  @db.Uuid
+  approvedAt      DateTime?
+  createdBy       String   @db.Uuid
+  createdAt       DateTime @default(now())
+  org             Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  custodian       PettyCashCustodian @relation(fields: [custodianId], references: [id], onDelete: Cascade)
+
+  @@map("petty_cash_expenses")
 }
 
 

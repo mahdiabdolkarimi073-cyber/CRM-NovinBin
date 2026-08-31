@@ -109,13 +109,13 @@ export default function NewContactPartyPage() {
       }
       // nested creates
       if (persons.length > 0) {
-        data.contact_related_persons = { create: persons.filter((p) => p.name.trim()).map((p) => ({ name: p.name.trim(), position: p.position || null, phone: p.phone || null, email: p.email || null })) };
+        data.relatedPersons = { create: persons.filter((p) => p.name.trim()).map((p) => ({ name: p.name.trim(), position: p.position || null, phone: p.phone || null, email: p.email || null })) };
       }
       if (addresses.length > 0) {
-        data.contact_addresses = { create: addresses.filter((a) => a.address.trim() || a.city.trim()).map((a) => ({ type: a.type || null, city: a.city || null, address: a.address || null, postalCode: a.postalCode || null, title: a.title || null, branchCode: a.branchCode || null })) };
+        data.addresses = { create: addresses.filter((a) => a.address.trim() || a.city.trim()).map((a) => ({ type: a.type || null, city: a.city || null, address: a.address || null, postalCode: a.postalCode || null, title: a.title || null, branchCode: a.branchCode || null })) };
       }
       if (phones.length > 0) {
-        data.contact_phones = { create: phones.filter((p) => p.trim()).map((p) => ({ phone: p.trim() })) };
+        data.phones = { create: phones.filter((p) => p.trim()).map((p) => ({ phone: p.trim() })) };
       }
       if (notes.trim()) data.notes = notes.trim();
 

@@ -109,6 +109,12 @@ const MODEL_MAP: Record<string, any> = {
   contact_related_persons: prisma.contactRelatedPerson,
   contact_addresses: prisma.contactAddress,
   contact_phones: prisma.contactPhone,
+  payment_announcements: prisma.paymentAnnouncement,
+  withdrawal_announcements: prisma.withdrawalAnnouncement,
+  my_cheques: prisma.myCheque,
+  petty_cash_custodians: prisma.pettyCashCustodian,
+  petty_cash_payments: prisma.pettyCashPayment,
+  petty_cash_expenses: prisma.pettyCashExpense,
 };
 
 function getAuth(req: NextRequest) {
@@ -145,6 +151,10 @@ const MODEL_PAGE: Record<string, string> = {
   my_customers: '/dashboard/my-customers',
   ticket_messages: '/dashboard/tickets',
   contact_parties: '/dashboard/contact-parties',
+  payment_announcements: '/dashboard/payment-announcements',
+  petty_cash_custodians: '/dashboard/petty-cash',
+  petty_cash_payments: '/dashboard/petty-cash',
+  petty_cash_expenses: '/dashboard/petty-cash',
 };
 
 const SHARED_MODELS = new Set([

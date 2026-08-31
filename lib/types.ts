@@ -807,9 +807,9 @@ export interface ContactParty {
   createdBy: string | null;
   createdAt: string;
   updatedAt: string;
-  contact_related_persons?: ContactRelatedPerson[];
-  contact_addresses?: ContactAddress[];
-  contact_phones?: ContactPhone[];
+  relatedPersons?: ContactRelatedPerson[];
+  addresses?: ContactAddress[];
+  phones?: ContactPhone[];
 }
 
 export interface ContactRelatedPerson {
@@ -865,4 +865,111 @@ export interface BankAccount {
   createdBy: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+// ============ PAYMENT ANNOUNCEMENTS (اعلامیه‌های پرداخت) ============
+
+export interface PaymentAnnouncement {
+  id: string;
+  orgId: string | null;
+  type: string;
+  counterparty: string;
+  counterpartyId: string | null;
+  date: string;
+  bankAccountId: string | null;
+  bankFee: number;
+  amount: number;
+  description: string | null;
+  status: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  bankAccount?: BankAccount | null;
+  withdrawals?: WithdrawalAnnouncement[];
+  cheques?: MyCheque[];
+}
+
+export interface WithdrawalAnnouncement {
+  id: string;
+  orgId: string | null;
+  paymentAnnouncementId: string;
+  transferNumber: string;
+  date: string;
+  amount: number;
+  bankAccountId: string | null;
+  bankFee: number;
+  description: string | null;
+  createdBy: string;
+  createdAt: string;
+  bankAccount?: BankAccount | null;
+}
+
+export interface MyCheque {
+  id: string;
+  orgId: string | null;
+  paymentAnnouncementId: string;
+  bankAccountId: string | null;
+  chequeNumber: string;
+  sayadiNumber: string | null;
+  amount: number;
+  date: string;
+  type: string;
+  description: string | null;
+  createdBy: string;
+  createdAt: string;
+  bankAccount?: BankAccount | null;
+}
+
+// ============ PETTY CASH (تنخواه‌دار) ============
+
+export interface PettyCashCustodian {
+  id: string;
+  orgId: string | null;
+  code: string;
+  contactPartyId: string | null;
+  profileId: string | null;
+  accountId: string | null;
+  ceiling: number;
+  type: string;
+  startDate: string;
+  active: boolean;
+  description: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  contactParty?: ContactParty | null;
+  profile?: Profile | null;
+  account?: Account | null;
+  payments?: PettyCashPayment[];
+  expenses?: PettyCashExpense[];
+}
+
+export interface PettyCashPayment {
+  id: string;
+  orgId: string | null;
+  custodianId: string;
+  bankAccountId: string | null;
+  amount: number;
+  date: string;
+  description: string | null;
+  createdBy: string;
+  createdAt: string;
+  bankAccount?: BankAccount | null;
+}
+
+export interface PettyCashExpense {
+  id: string;
+  orgId: string | null;
+  custodianId: string;
+  number: string;
+  date: string;
+  expenseType: string;
+  amount: number;
+  description: string | null;
+  attachmentUrl: string | null;
+  status: string;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  createdBy: string;
+  createdAt: string;
 }

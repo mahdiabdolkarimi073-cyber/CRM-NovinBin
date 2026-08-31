@@ -46,7 +46,7 @@ export default function ContactPartiesPage() {
       const data = await fetchData<ContactParty>('contact_parties', {
         where: {},
         orderBy: { createdAt: 'desc' },
-        include: { contact_related_persons: true, contact_addresses: true, contact_phones: true },
+        include: { relatedPersons: true, addresses: true, phones: true },
       });
       setContacts(data || []);
     } catch (error: any) {
@@ -166,9 +166,9 @@ export default function ContactPartiesPage() {
             {filtered.map((c) => {
               const name = getDisplayName(c);
               const initial = name[0] || '؟';
-              const phones = c.contact_phones || [];
-              const persons = c.contact_related_persons || [];
-              const addresses = c.contact_addresses || [];
+              const phones = c.phones || [];
+              const persons = c.relatedPersons || [];
+              const addresses = c.addresses || [];
               return (
                 <div key={c.id} className="flex cursor-pointer items-center gap-3 p-4 transition-colors hover:bg-[#F8FAFD]">
                   <Avatar className="h-11 w-11 shrink-0"><AvatarFallback className="bg-[#EFF4FF] text-sm text-[#2563EB]">{initial}</AvatarFallback></Avatar>
