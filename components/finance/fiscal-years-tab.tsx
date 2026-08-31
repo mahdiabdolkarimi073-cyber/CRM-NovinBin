@@ -1,17 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Plus, Calendar, Lock, Unlock } from 'lucide-react';
-import { formatJalali, toLocalDateString } from '@/lib/format';
-import { toast } from 'sonner';
-import type { FiscalYear, FiscalPeriod } from '@/lib/types';
+import { formatJalali } from '@/lib/format';
+import type { FiscalYear } from '@/lib/types';
 
 interface FiscalYearsTabProps {
   fiscalYears: FiscalYear[];
@@ -24,53 +20,30 @@ interface FiscalYearsTabProps {
 }
 
 export function FiscalYearsTab({ fiscalYears, loading, onCreate, onClose, onReopen, onClosePeriod, onOpenPeriod }: FiscalYearsTabProps) {
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState({ name: '', startDate: '', endDate: '', autoPeriods: true });
   const [expandedFY, setExpandedFY] = useState<string | null>(null);
-
-  const handleCreate = async () => {
-    if (!form.name || !form.startDate || !form.endDate) { toast.error('نام و تاریخ شروع و پایان الزامی است'); return; }
-    await onCreate({
-      name: form.name,
-      startDate: new Date(form.startDate).toISOString(),
-      endDate: new Date(form.endDate).toISOString(),
-      autoPeriods: form.autoPeriods,
-    });
-    setDialogOpen(false);
-    setForm({ name: '', startDate: '', endDate: '', autoPeriods: true });
-  };
 
   return (
     <div>
-      <div className="flex justify-end mb-3">
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4" /> سال مالی جدید</Button></DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader><DialogTitle>تعریف سال مالی</DialogTitle></DialogHeader>
-            <div className="space-y-3">
-              <div className="space-y-2"><Label>نام سال مالی *</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="مثلاً: سال ۱۴۰۵" /></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2"><Label>تاریخ شروع *</Label><JalaliDatePicker value={form.startDate ? new Date(form.startDate) : null} onChange={(d) => setForm({ ...form, startDate: d ? toLocalDateString(d) : '' })} /></div>
-                <div className="space-y-2"><Label>تاریخ پایان *</Label><JalaliDatePicker value={form.endDate ? new Date(form.endDate) : null} onChange={(d) => setForm({ ...form, endDate: d ? toLocalDateString(d) : '' })} /></div>
-              </div>
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <input type="checkbox" checked={form.autoPeriods} onChange={(e) => setForm({ ...form, autoPeriods: e.target.checked })} className="rounded" />
-                ایجاد خودکار دوره‌های ماهانه
-              </label>
-              <DialogFooter><Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>انصراف</Button><Button onClick={handleCreate}>ایجاد</Button></DialogFooter>
-            </div>
-          </DialogContent>
-        </Dialog>
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <span className="h-[30px] w-[5px] rounded-[4px] bg-[#F97316]" />
+          <h2 className="text-[20px] font-bold text-[#0F172A]">سال مالی</h2>
+        </div>
+        <Link href="/dashboard/accounting/fiscal-years/new">
+          <Button className="h-[42px] rounded-[10px] bg-[#3155E7] px-[18px] text-sm font-semibold text-white shadow-sm hover:bg-[#2445C7]">
+            <Plus className="h-4 w-4" /> سال مالی جدید
+          </Button>
+        </Link>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-40"><div className="animate-spin w-8 h-8 border-3 border-sky-500 border-t-transparent rounded-full" /></div>
+        <div className="flex items-center justify-center h-40"><div className="animate-spin w-8 h-8 border-[3px] border-[#2563EB] border-t-transparent rounded-full" /></div>
       ) : fiscalYears.length === 0 ? (
-        <Card><CardContent className="p-8 text-center text-slate-400"><Calendar className="w-8 h-8 mx-auto mb-2" /><div>سال مالی تعریف نشده</div></CardContent></Card>
+        <Card><CardContent className="p-8 text-center text-[#98A2B3]"><Calendar className="w-8 h-8 mx-auto mb-2" /><div>سال مالی تعریف نشده</div></CardContent></Card>
       ) : (
         <div className="space-y-3">
           {fiscalYears.map((fy) => (
-            <Card key={fy.id}>
+            <Card key={fy.id} className="rounded-[14px] border-[#E7ECF3] shadow-[0_3px_14px_rgba(20,40,80,.05)]">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -78,11 +51,11 @@ export function FiscalYearsTab({ fiscalYears, loading, onCreate, onClose, onReop
                       <Calendar className="w-5 h-5" />
                     </div>
                     <div>
-                      <div className="font-medium text-sm flex items-center gap-2">
+                      <div className="font-medium text-sm text-[#1D2939] flex items-center gap-2">
                         {fy.name}
                         <Badge variant={fy.status === 'open' ? 'default' : 'secondary'} className="text-xs">{fy.status === 'open' ? 'باز' : 'بسته شده'}</Badge>
                       </div>
-                      <div className="text-xs text-slate-400">{formatJalali(fy.startDate)} تا {formatJalali(fy.endDate)}</div>
+                      <div className="text-xs text-[#98A2B3]">{formatJalali(fy.startDate)} تا {formatJalali(fy.endDate)}</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -104,15 +77,15 @@ export function FiscalYearsTab({ fiscalYears, loading, onCreate, onClose, onReop
                 </div>
 
                 {expandedFY === fy.id && fy.fiscalPeriods && (
-                  <div className="mt-3 border-t pt-3">
+                  <div className="mt-3 border-t border-[#F1F5F9] pt-3">
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                       {fy.fiscalPeriods.sort((a, b) => a.periodNumber - b.periodNumber).map((p) => (
-                        <div key={p.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-50">
+                        <div key={p.id} className="flex items-center justify-between p-2 rounded-lg bg-[#F8FAFD]">
                           <div className="flex items-center gap-2">
                             <Lock className={`w-3 h-3 ${p.status === 'open' ? 'text-emerald-500' : 'text-slate-400'}`} />
                             <div>
-                              <div className="text-xs font-medium">{p.name}</div>
-                              <div className="text-[10px] text-slate-400">{formatJalali(p.startDate)}</div>
+                              <div className="text-xs font-medium text-[#1D2939]">{p.name}</div>
+                              <div className="text-[10px] text-[#98A2B3]">{formatJalali(p.startDate)}</div>
                             </div>
                           </div>
                           {p.status === 'open' ? (

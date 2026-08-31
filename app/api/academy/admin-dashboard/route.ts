@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     const payload = jwt.verify(token, JWT_SECRET) as { academyUserId: string };
     const account = await (prisma as any).academyUser.findUnique({ where: { id: payload.academyUserId } });
     if (!account || !account.active) return NextResponse.json({ error: 'حساب غیرفعال است' }, { status: 403 });
-    if (account.role !== 'admin') return NextResponse.json({ error: 'دسترسی مجاز نیست' }, { status: 403 });
+    if (account.role !== 'AdminAcademy') return NextResponse.json({ error: 'دسترسی مجاز نیست' }, { status: 403 });
 
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);

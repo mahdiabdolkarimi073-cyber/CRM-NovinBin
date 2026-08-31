@@ -23,7 +23,10 @@ export default function AcademyLoginPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'ورود ناموفق بود');
       toast.success('خوش آمدید');
-      router.push('/academy/dashboard');
+      const role = data.user?.role;
+      if (role === 'AdminAcademy') router.push('/academy/admin-dashboard');
+      else if (role === 'teacher') router.push('/academy/dashboard');
+      else router.push('/academy/dashboard');
     } catch (error) { toast.error(error instanceof Error ? error.message : 'ورود ناموفق بود'); }
     finally { setLoading(false); }
   }

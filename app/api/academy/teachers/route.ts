@@ -11,7 +11,7 @@ async function getAdmin(req: NextRequest) {
   try {
     const payload = jwt.verify(token, JWT_SECRET) as { academyUserId: string };
     const account = await (prisma as any).academyUser.findUnique({ where: { id: payload.academyUserId } });
-    if (!account || !account.active || account.role !== 'admin') return null;
+    if (!account || !account.active || account.role !== 'AdminAcademy') return null;
     return account;
   } catch {
     return null;

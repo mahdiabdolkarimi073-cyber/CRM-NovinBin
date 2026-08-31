@@ -1627,7 +1627,7 @@ model AcademyUser {
   username     String   @unique
   email        String?  @unique
   passwordHash String
-  role         String   @default("student") // admin | teacher | student
+  role         String   @default("student") // AdminAcademy | teacher | student
   firstName    String
   lastName     String
   phone        String?

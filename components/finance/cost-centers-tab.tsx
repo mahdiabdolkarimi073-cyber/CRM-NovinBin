@@ -1,15 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import React from 'react';
+import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, Building2 } from 'lucide-react';
-import { toast } from 'sonner';
 import type { CostCenter } from '@/lib/types';
 
 interface CostCentersTabProps {
@@ -20,20 +16,6 @@ interface CostCentersTabProps {
 }
 
 export function CostCentersTab({ costCenters, loading, onCreate, onDelete }: CostCentersTabProps) {
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState({ code: '', name: '', parentId: '' });
-
-  const handleCreate = async () => {
-    if (!form.code || !form.name) { toast.error('کد و نام مرکز هزینه الزامی است'); return; }
-    await onCreate({
-      code: form.code,
-      name: form.name,
-      parentId: form.parentId || null,
-    });
-    setDialogOpen(false);
-    setForm({ code: '', name: '', parentId: '' });
-  };
-
   const rootCenters = costCenters.filter((c) => !c.parentId);
   const getChildren = (parentId: string) => costCenters.filter((c) => c.parentId === parentId);
 
@@ -46,50 +28,37 @@ export function CostCentersTab({ costCenters, loading, onCreate, onDelete }: Cos
 
   return (
     <div>
-      <div className="flex justify-end mb-3">
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4" /> مرکز هزینه جدید</Button></DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader><DialogTitle>ایجاد مرکز هزینه</DialogTitle></DialogHeader>
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2"><Label>کد *</Label><Input dir="ltr" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} /></div>
-                <div className="space-y-2"><Label>نام *</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-              </div>
-              <div className="space-y-2"><Label>مرکز هزینه والد</Label>
-                <Select value={form.parentId} onValueChange={(v) => setForm({ ...form, parentId: v === 'none' ? '' : v })}>
-                  <SelectTrigger><SelectValue placeholder="بدون والد" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">بدون والد (اصلی)</SelectItem>
-                    {costCenters.map((c) => <SelectItem key={c.id} value={c.id}>{c.code} - {c.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <DialogFooter><Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>انصراف</Button><Button onClick={handleCreate}>ایجاد</Button></DialogFooter>
-            </div>
-          </DialogContent>
-        </Dialog>
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <span className="h-[30px] w-[5px] rounded-[4px] bg-[#F97316]" />
+          <h2 className="text-[20px] font-bold text-[#0F172A]">مراکز هزینه</h2>
+        </div>
+        <Link href="/dashboard/accounting/cost-centers/new">
+          <Button className="h-[42px] rounded-[10px] bg-[#3155E7] px-[18px] text-sm font-semibold text-white shadow-sm hover:bg-[#2445C7]">
+            <Plus className="h-4 w-4" /> مرکز هزینه جدید
+          </Button>
+        </Link>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-40"><div className="animate-spin w-8 h-8 border-3 border-sky-500 border-t-transparent rounded-full" /></div>
+        <div className="flex items-center justify-center h-40"><div className="animate-spin w-8 h-8 border-[3px] border-[#2563EB] border-t-transparent rounded-full" /></div>
       ) : costCenters.length === 0 ? (
-        <Card><CardContent className="p-8 text-center text-slate-400"><Building2 className="w-8 h-8 mx-auto mb-2" /><div>مرکز هزینه‌ای تعریف نشده</div></CardContent></Card>
+        <Card><CardContent className="p-8 text-center text-[#98A2B3]"><Building2 className="w-8 h-8 mx-auto mb-2" /><div>مرکز هزینه‌ای تعریف نشده</div></CardContent></Card>
       ) : (
-        <Card>
+        <Card className="overflow-hidden rounded-[14px] border-[#E7ECF3] shadow-[0_3px_14px_rgba(20,40,80,.05)]">
           <CardContent className="p-0">
             <table className="w-full text-sm">
-              <thead><tr className="border-b bg-slate-50 text-slate-500 text-xs">
+              <thead><tr className="border-b bg-[#F8FAFD] text-[#667085] text-xs">
                 <th className="text-right p-3 font-medium">کد</th>
                 <th className="text-right p-3 font-medium">نام</th>
                 <th className="text-center p-3 font-medium">عملیات</th>
               </tr></thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#F1F5F9]">
                 {flatList.map(({ cc, level }) => (
-                  <tr key={cc.id} className="hover:bg-slate-50 transition-smooth">
-                    <td className="p-3 font-mono text-slate-500" dir="ltr" style={{ paddingRight: `${level * 20 + 12}px` }}>{cc.code}</td>
+                  <tr key={cc.id} className="hover:bg-[#F8FAFD] transition-colors">
+                    <td className="p-3 font-mono text-[#667085]" dir="ltr" style={{ paddingRight: `${level * 20 + 12}px` }}>{cc.code}</td>
                     <td className="p-3 font-medium">
-                      <span className={level > 0 ? 'text-slate-600' : ''}>{cc.name}</span>
+                      <span className={level > 0 ? 'text-[#667085]' : 'text-[#1D2939]'}>{cc.name}</span>
                       {!cc.active && <Badge variant="secondary" className="text-xs mr-2">غیرفعال</Badge>}
                     </td>
                     <td className="p-3 text-center">

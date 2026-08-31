@@ -3,11 +3,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { fetchData, createData, updateData, deleteData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
-import { PageHeader } from '@/components/dashboard/page-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BookOpen, FileText, Wallet, FileCheck, Calendar, Building2, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatToman } from '@/lib/format';
 import type { Account, JournalEntry, FiscalYear, CostCenter, BankAccount, CashFund, FundTransfer, Cheque } from '@/lib/types';
 import { AccountsTab } from '@/components/finance/accounts-tab';
 import { JournalTab } from '@/components/finance/journal-tab';
@@ -259,8 +257,14 @@ export default function AccountingPage() {
   };
 
   return (
-    <div>
-      <PageHeader title="حسابداری و امور مالی" description="سیستم کامل حسابداری سازمانی — دفتر کل، خزانه‌داری، چک‌ها، سال مالی و گزارش‌ها" />
+    <div className="w-full" dir="rtl">
+      <div className="mb-6">
+        <div className="flex items-center gap-2.5">
+          <div className="h-[30px] w-[5px] rounded-[4px] bg-[#F97316]" />
+          <h1 className="text-[24px] font-bold leading-tight text-[#0F172A] sm:text-[32px]">حسابداری و امور مالی</h1>
+        </div>
+        <p className="mt-2 text-[14px] text-[#64748B]">سیستم کامل حسابداری سازمانی — دفتر کل، خزانه‌داری، چک‌ها، سال مالی و گزارش‌ها</p>
+      </div>
 
       <Tabs defaultValue="accounts">
         <TabsList className="flex-wrap">
