@@ -5,7 +5,7 @@ import {
   Inbox, Receipt, FileOutput, WalletCards, BarChart3, Warehouse, Boxes,
   ShoppingBag, Landmark, FileText, ArrowDownToLine, RotateCcw,
   GraduationCap, BadgePercent, Ticket, StickyNote, MessageCircle,
-  UserCheck, ClipboardList,
+  UserCheck, ClipboardList, Network, Contact,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { Profile } from '@/lib/types';
@@ -51,6 +51,9 @@ export const cartableItems: NavItem[] = [
 
 export const financeItems: NavItem[] = [
   { href: '/dashboard/accounting', label: 'حسابداری', icon: Landmark },
+  { href: '/dashboard/chart-of-accounts', label: 'حسابواره', icon: Network },
+  { href: '/dashboard/contact-parties', label: 'طرف حساب', icon: Contact },
+  { href: '/dashboard/bank-accounts', label: 'حساب‌های بانکی', icon: Landmark },
   { href: '/dashboard/financial-reports', label: 'گزارش‌های مالی', icon: BarChart3 },
   { href: '/dashboard/finance-academy', label: 'مالی آموزشگاه', icon: GraduationCap },
   { href: '/dashboard/invoices', label: 'فاکتورها', icon: FileText },

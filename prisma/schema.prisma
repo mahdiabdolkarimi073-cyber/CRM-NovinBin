@@ -529,6 +529,8 @@ model Account {
   costCenterId   String?  @db.Uuid
   description    String?
   active         Boolean  @default(true)
+  nature         String   @default("either") // debit | credit | either
+  level          Int      @default(1) // 1 | 2 | 3
   createdAt      DateTime @default(now())
   org            Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
@@ -616,18 +618,28 @@ model CostCenter {
 }
 
 model BankAccount {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  orgId      String?   @db.Uuid
-  name       String
-  bankName   String
-  accountNo  String
-  balance    BigInt   @default(0)
-  branchName String?
-  cardNumber String?
-  iban       String?
-  active     Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  org        Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?   @db.Uuid
+  name            String
+  bankName        String
+  accountNo       String
+  balance         BigInt   @default(0)
+  branchName      String?
+  cardNumber      String?
+  iban            String?
+  active          Boolean  @default(true)
+  accountNumber   String   @default("")
+  accountType     String   @default("current")
+  detailTitle     String?
+  detailCode      String?
+  openingDate     DateTime?
+  expiryDate      DateTime?
+  cardHolderName  String?
+  notes           String?
+  createdBy       String?  @db.Uuid
+  updatedAt       DateTime @default(now())
+  createdAt       DateTime @default(now())
+  org             Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   @@map("bank_accounts")
 }
@@ -2060,3 +2072,89 @@ model AcademyTeacherShare {
   @@index([teacherId])
   @@map("academy_teacher_shares")
 }
+
+// ============ CONTACT PARTY (طرف حساب) ============
+
+model ContactParty {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?   @db.Uuid
+  type            String   @default("individual") // individual | company
+  detailType      String   @default("detail") // detail | supplier | customer
+  // individual fields
+  firstName       String?
+  lastName        String?
+  detailedType    String?
+  detailedCode    String?
+  nationalId      String?
+  birthDate       DateTime?
+  passportNumber  String?
+  // company fields
+  companyName     String?
+  nationalCompanyId String?
+  registrationNo String?
+  economicCode    String?
+  registrationDate DateTime?
+  companyType     String?
+  ceoName         String?
+  companyPhone    String?
+  companyEmail    String?
+  website         String?
+  // supplier fields
+  supplierBalance BigInt   @default(0)
+  supplierIdentity String? // debit | credit
+  // customer fields
+  discountPercent Float    @default(0)
+  customerGroupId String?  @db.Uuid
+  customerBalance BigInt   @default(0)
+  // common
+  periodBalance   BigInt   @default(0)
+  notes           String?
+  createdBy       String?  @db.Uuid
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+  relatedPersons  ContactRelatedPerson[]
+  addresses       ContactAddress[]
+  phones          ContactPhone[]
+
+  @@map("contact_parties")
+}
+
+model ContactRelatedPerson {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contactId   String   @db.Uuid
+  name        String
+  position    String?
+  phone       String?
+  email       String?
+  createdAt   DateTime @default(now())
+  contact     ContactParty @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@map("contact_related_persons")
+}
+
+model ContactAddress {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contactId   String   @db.Uuid
+  type        String?
+  city        String?
+  address     String?
+  postalCode  String?
+  title        String?
+  branchCode  String?
+  createdAt   DateTime @default(now())
+  contact     ContactParty @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@map("contact_addresses")
+}
+
+model ContactPhone {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contactId   String   @db.Uuid
+  phone       String
+  createdAt   DateTime @default(now())
+  contact     ContactParty @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@map("contact_phones")
+}
+
+

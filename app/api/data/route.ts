@@ -105,6 +105,10 @@ const MODEL_MAP: Record<string, any> = {
   staff_chat_messages: prisma.staffChatMessage,
   my_customers: prisma.myCustomer,
   ticket_messages: prisma.ticketMessage,
+  contact_parties: prisma.contactParty,
+  contact_related_persons: prisma.contactRelatedPerson,
+  contact_addresses: prisma.contactAddress,
+  contact_phones: prisma.contactPhone,
 };
 
 function getAuth(req: NextRequest) {
@@ -127,7 +131,7 @@ const MODEL_PAGE: Record<string, string> = {
   orders: '/dashboard/orders', invoices: '/dashboard/invoices', meetings: '/dashboard/meetings',
   tickets: '/dashboard/tickets', notifications: '/dashboard/notifications', profiles: '/dashboard/users',
   organizations: '/dashboard/organization', accounts: '/dashboard/accounting', journal_entries: '/dashboard/accounting',
-  bank_accounts: '/dashboard/accounting', cash_funds: '/dashboard/accounting', cheques: '/dashboard/accounting',
+  bank_accounts: '/dashboard/bank-accounts', cash_funds: '/dashboard/accounting', cheques: '/dashboard/accounting',
   payments: '/dashboard/payments', expense_claims: '/dashboard/hr', employees: '/dashboard/hr',
   attendance_records: '/dashboard/hr', leave_requests: '/dashboard/hr', registration_requests: '/dashboard/registration-approval',
   daily_work_reports: '/dashboard/work-reports/daily', monthly_work_reports: '/dashboard/work-reports/monthly',
@@ -140,6 +144,7 @@ const MODEL_PAGE: Record<string, string> = {
   loyalty_transactions: '/dashboard/loyalty', demo_activities: '/dashboard/demo-activities',
   my_customers: '/dashboard/my-customers',
   ticket_messages: '/dashboard/tickets',
+  contact_parties: '/dashboard/contact-parties',
 };
 
 const SHARED_MODELS = new Set([

@@ -280,6 +280,8 @@ export interface Account {
   costCenterId: string | null;
   description: string | null;
   active: boolean;
+  nature: 'debit' | 'credit' | 'either';
+  level: number;
   createdAt: string;
 }
 
@@ -768,6 +770,99 @@ export interface MyCustomer {
   province: string | null;
   postalCode: string | null;
   notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ============ CONTACT PARTY (طرف حساب) ============
+
+export interface ContactParty {
+  id: string;
+  type: 'individual' | 'company';
+  detailType: 'detail' | 'supplier' | 'customer';
+  firstName: string | null;
+  lastName: string | null;
+  detailedType: string | null;
+  detailedCode: string | null;
+  nationalId: string | null;
+  birthDate: string | null;
+  passportNumber: string | null;
+  companyName: string | null;
+  nationalCompanyId: string | null;
+  registrationNo: string | null;
+  economicCode: string | null;
+  registrationDate: string | null;
+  companyType: string | null;
+  ceoName: string | null;
+  companyPhone: string | null;
+  companyEmail: string | null;
+  website: string | null;
+  supplierBalance: number;
+  supplierIdentity: string | null;
+  discountPercent: number;
+  customerGroupId: string | null;
+  customerBalance: number;
+  periodBalance: number;
+  notes: string | null;
+  createdBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+  contact_related_persons?: ContactRelatedPerson[];
+  contact_addresses?: ContactAddress[];
+  contact_phones?: ContactPhone[];
+}
+
+export interface ContactRelatedPerson {
+  id: string;
+  contactId: string;
+  name: string;
+  position: string | null;
+  phone: string | null;
+  email: string | null;
+  createdAt: string;
+}
+
+export interface ContactAddress {
+  id: string;
+  contactId: string;
+  type: string | null;
+  city: string | null;
+  address: string | null;
+  postalCode: string | null;
+  title: string | null;
+  branchCode: string | null;
+  createdAt: string;
+}
+
+export interface ContactPhone {
+  id: string;
+  contactId: string;
+  phone: string;
+  createdAt: string;
+}
+
+// ============ BANK ACCOUNT (حساب بانکی) ============
+
+export interface BankAccount {
+  id: string;
+  orgId: string | null;
+  name: string;
+  bankName: string;
+  accountNo: string;
+  balance: number;
+  branchName: string | null;
+  cardNumber: string | null;
+  iban: string | null;
+  active: boolean;
+  accountNumber: string;
+  accountType: string;
+  detailTitle: string | null;
+  detailCode: string | null;
+  openingDate: string | null;
+  expiryDate: string | null;
+  cardHolderName: string | null;
+  notes: string | null;
+  createdBy: string | null;
   createdAt: string;
   updatedAt: string;
 }
