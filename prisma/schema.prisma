@@ -111,6 +111,11 @@ model Organization {
   pettyCashExpenseStatements PettyCashExpenseStatement[]
   pettyCashMergeStatements PettyCashMergeStatement[]
   documentIssuances       DocumentIssuance[]
+  contactSettlements      ContactSettlement[]
+  contactSettlementItems  ContactSettlementItem[]
+  contactSettlementHistories ContactSettlementHistory[]
+  receivedCheques          ReceivedCheque[]
+  receivedChequeOperations ReceivedChequeOperation[]
 
   @@map("organizations")
 }
@@ -2517,6 +2522,146 @@ model DocumentIssuanceHistory {
   documentIssuance DocumentIssuance @relation(fields: [documentIssuanceId], references: [id], onDelete: Cascade)
 
   @@map("document_issuance_histories")
+}
+
+// ============ CONTACT SETTLEMENT (تسویه حساب طرف مقابل) ============
+
+model ContactSettlement {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  number          String
+  contactPartyId  String   @db.Uuid
+  settlementType  String   @default("full") // full | partial | multi_document | from_payment | from_receipt | setoff | adjustment
+  settlementDate  DateTime @default(now())
+  fiscalYearId    String?  @db.Uuid
+  costCenterId    String?  @db.Uuid
+  totalAmount     BigInt   @default(0)
+  totalDebit      BigInt   @default(0)
+  totalCredit     BigInt   @default(0)
+  fundType        String?  // cash | bank | setoff | none
+  bankAccountId   String?  @db.Uuid
+  cashFundId      String?  @db.Uuid
+  description     String?
+  status          String   @default("draft") // draft | pending_approval | approved | finalized | voided | cancelled
+  createdBy       String   @db.Uuid
+  approvedBy      String?  @db.Uuid
+  approvedAt      DateTime?
+  finalizedBy     String?  @db.Uuid
+  finalizedAt     DateTime?
+  voidedBy        String?  @db.Uuid
+  voidedAt        DateTime?
+  voidReason      String?
+  amendedFromId   String?  @db.Uuid
+  journalEntryId  String?  @db.Uuid
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+  org             Organization?  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  items           ContactSettlementItem[]
+  history         ContactSettlementHistory[]
+
+  @@map("contact_settlements")
+}
+
+model ContactSettlementItem {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  settlementId    String   @db.Uuid
+  itemType        String   // invoice | debt | credit | receipt | payment | prepayment | on_account | cheque_receivable | cheque_payable | other
+  referenceType   String?
+  referenceId     String?  @db.Uuid
+  referenceNumber String?
+  originalAmount  BigInt   @default(0)
+  paidAmount      BigInt   @default(0)
+  settledAmount   BigInt   @default(0)
+  discount        BigInt   @default(0)
+  tax             BigInt   @default(0)
+  fee             BigInt   @default(0)
+  adjustments     BigInt   @default(0)
+  balance         BigInt   @default(0)
+  allocationAmount BigInt  @default(0)
+  itemStatus      String   @default("open") // open | partial | settled | closed | voided
+  description     String?
+  createdAt       DateTime @default(now())
+  org             Organization?  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  settlement      ContactSettlement @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+
+  @@map("contact_settlement_items")
+}
+
+model ContactSettlementHistory {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  settlementId    String   @db.Uuid
+  action          String   // created | submitted | approved | rejected | finalized | voided | cancelled | amended
+  actionBy        String   @db.Uuid
+  actionAt        DateTime @default(now())
+  fromStatus      String?
+  toStatus        String?
+  details         Json     @default("{}")
+  reason          String?
+  createdAt       DateTime @default(now())
+  org             Organization?  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  settlement      ContactSettlement @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+
+  @@map("contact_settlement_history")
+}
+
+// ============ RECEIVED CHEQUES (چک دریافتی — عملیاتی) ============
+
+model ReceivedCheque {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  number          String
+  chequeNumber    String
+  sayadiNumber    String?
+  bankName        String
+  branchName      String?
+  issuerAccountNo String?
+  amount          BigInt   @default(0)
+  issueDate       DateTime @default(now())
+  dueDate         DateTime @default(now())
+  issuerPartyId   String?  @db.Uuid
+  issuerName      String?
+  receiverName    String?
+  subject         String?
+  bankAccountId   String?  @db.Uuid
+  cashFundId      String?  @db.Uuid
+  storageLocation String?
+  status          String   @default("received") // received | in_custody | pending_due | deposited | cleared | returned | refunded | voided | transferred
+  description     String?
+  createdBy       String   @db.Uuid
+  journalEntryId  String?  @db.Uuid
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+  org             Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  operations      ReceivedChequeOperation[]
+
+  @@map("received_cheques")
+}
+
+model ReceivedChequeOperation {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  chequeId        String   @db.Uuid
+  operationType   String   // receive | deposit | clear | return | refund | transfer | void | amend | status_change
+  fromStatus      String?
+  toStatus        String?
+  operationDate   DateTime @default(now())
+  operationBy     String   @db.Uuid
+  bankAccountId   String?  @db.Uuid
+  cashFundId      String?  @db.Uuid
+  counterpartyId  String?  @db.Uuid
+  counterpartyName String?
+  previousLocation String?
+  newLocation     String?
+  reason          String?
+  journalEntryId  String?  @db.Uuid
+  details         Json     @default("{}")
+  createdAt       DateTime @default(now())
+  org             Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  cheque          ReceivedCheque @relation(fields: [chequeId], references: [id], onDelete: Cascade)
+
+  @@map("received_cheque_operations")
 }
 
 

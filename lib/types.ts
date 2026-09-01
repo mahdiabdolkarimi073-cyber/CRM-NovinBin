@@ -1143,3 +1143,125 @@ export interface DocumentIssuanceHistory {
   toStatus: string | null;
   details: any;
 }
+
+// ============ CONTACT SETTLEMENT (تسویه حساب طرف مقابل) ============
+
+export interface ContactSettlement {
+  id: string;
+  orgId: string | null;
+  number: string;
+  contactPartyId: string;
+  settlementType: string; // full | partial | multi_document | from_payment | from_receipt | setoff | adjustment
+  settlementDate: string;
+  fiscalYearId: string | null;
+  costCenterId: string | null;
+  totalAmount: number;
+  totalDebit: number;
+  totalCredit: number;
+  fundType: string | null; // cash | bank | setoff | none
+  bankAccountId: string | null;
+  cashFundId: string | null;
+  description: string | null;
+  status: string; // draft | pending_approval | approved | finalized | voided | cancelled
+  createdBy: string;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  finalizedBy: string | null;
+  finalizedAt: string | null;
+  voidedBy: string | null;
+  voidedAt: string | null;
+  voidReason: string | null;
+  amendedFromId: string | null;
+  journalEntryId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  items?: ContactSettlementItem[];
+  history?: ContactSettlementHistory[];
+}
+
+export interface ContactSettlementItem {
+  id: string;
+  orgId: string | null;
+  settlementId: string;
+  itemType: string; // invoice | debt | credit | receipt | payment | prepayment | on_account | cheque_receivable | cheque_payable | other
+  referenceType: string | null;
+  referenceId: string | null;
+  referenceNumber: string | null;
+  originalAmount: number;
+  paidAmount: number;
+  settledAmount: number;
+  discount: number;
+  tax: number;
+  fee: number;
+  adjustments: number;
+  balance: number;
+  allocationAmount: number;
+  itemStatus: string; // open | partial | settled | closed | voided
+  description: string | null;
+  createdAt: string;
+}
+
+export interface ContactSettlementHistory {
+  id: string;
+  orgId: string | null;
+  settlementId: string;
+  action: string;
+  actionBy: string;
+  actionAt: string;
+  fromStatus: string | null;
+  toStatus: string | null;
+  details: any;
+  reason: string | null;
+  createdAt: string;
+}
+
+// ============ RECEIVED CHEQUES (چک دریافتی — عملیاتی) ============
+
+export interface ReceivedCheque {
+  id: string;
+  orgId: string | null;
+  number: string;
+  chequeNumber: string;
+  sayadiNumber: string | null;
+  bankName: string;
+  branchName: string | null;
+  issuerAccountNo: string | null;
+  amount: number;
+  issueDate: string;
+  dueDate: string;
+  issuerPartyId: string | null;
+  issuerName: string | null;
+  receiverName: string | null;
+  subject: string | null;
+  bankAccountId: string | null;
+  cashFundId: string | null;
+  storageLocation: string | null;
+  status: string; // received | in_custody | pending_due | deposited | cleared | returned | refunded | voided | transferred
+  description: string | null;
+  createdBy: string;
+  journalEntryId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  operations?: ReceivedChequeOperation[];
+}
+
+export interface ReceivedChequeOperation {
+  id: string;
+  orgId: string | null;
+  chequeId: string;
+  operationType: string; // receive | deposit | clear | return | refund | transfer | void | amend | status_change
+  fromStatus: string | null;
+  toStatus: string | null;
+  operationDate: string;
+  operationBy: string;
+  bankAccountId: string | null;
+  cashFundId: string | null;
+  counterpartyId: string | null;
+  counterpartyName: string | null;
+  previousLocation: string | null;
+  newLocation: string | null;
+  reason: string | null;
+  journalEntryId: string | null;
+  details: any;
+  createdAt: string;
+}

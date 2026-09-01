@@ -122,6 +122,11 @@ const MODEL_MAP: Record<string, any> = {
   document_issuances: prisma.documentIssuance,
   document_issuance_lines: prisma.documentIssuanceLine,
   document_issuance_histories: prisma.documentIssuanceHistory,
+  contact_settlements: prisma.contactSettlement,
+  contact_settlement_items: prisma.contactSettlementItem,
+  contact_settlement_history: prisma.contactSettlementHistory,
+  received_cheques: prisma.receivedCheque,
+  received_cheque_operations: prisma.receivedChequeOperation,
 };
 
 function getAuth(req: NextRequest) {
@@ -169,6 +174,11 @@ const MODEL_PAGE: Record<string, string> = {
   document_issuances: '/dashboard/document-issuance',
   document_issuance_lines: '/dashboard/document-issuance',
   document_issuance_histories: '/dashboard/document-issuance',
+  contact_settlements: '/dashboard/contact-settlements',
+  contact_settlement_items: '/dashboard/contact-settlements',
+  contact_settlement_history: '/dashboard/contact-settlements',
+  received_cheques: '/dashboard/received-cheques',
+  received_cheque_operations: '/dashboard/received-cheques',
 };
 
 const SHARED_MODELS = new Set([
