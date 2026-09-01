@@ -120,6 +120,7 @@ model Organization {
   chequeRefundHistories    ChequeRefundHistory[]
   chequeClearings          ChequeClearing[]
   chequeClearingHistories  ChequeClearingHistory[]
+  cardReaders              CardReader[]
 
   @@map("organizations")
 }
@@ -2795,4 +2796,169 @@ model ChequeClearingHistory {
   clearing        ChequeClearing @relation(fields: [clearingId], references: [id], onDelete: Cascade)
 
   @@map("cheque_clearing_history")
+}
+
+// ============ CARD READERS (کارتخوان — عملیاتی) ============
+
+model CardReader {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId                 String?  @db.Uuid
+  number                String   // شناسه داخلی یکتا
+  tid                   String   @unique // شماره ترمینال — یکتا
+  mid                   String   @unique // شماره پذیرنده — یکتا
+  bankName              String   // بانک / شرکت پرداخت
+  branchName            String?  // شعبه یا محل استفاده
+  bankAccountId         String?  @db.Uuid // حساب بانکی متصل
+  owner                 String?  // مالک / واحد استفاده‌کننده
+  status                String   @default("active") // active | inactive | blocked
+  startDate             DateTime @default(now()) // تاریخ شروع استفاده
+  endDate               DateTime? // تاریخ پایان استفاده
+  description           String?
+  settlementAccountId   String?  @db.Uuid // حساب در انتظار تسویه
+  bankAccountTargetId   String?  @db.Uuid // حساب بانک مقصد تسویه
+  commissionAccountId   String?  @db.Uuid // حساب کارمزد
+  discrepancyAccountId  String?  @db.Uuid // حساب اختلافات/مغایرت
+  createdBy             String   @db.Uuid
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @default(now())
+
+  org                   Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  transactions          CardReaderTransaction[]
+  settlements           CardReaderSettlement[]
+  history               CardReaderHistory[]
+
+  @@map("card_readers")
+}
+
+model CardReaderTransaction {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  number          String   // شناسه داخلی تراکنش
+  cardReaderId    String   @db.Uuid
+  transactionDate DateTime @default(now()) // تاریخ و زمان
+  amount          BigInt   @default(0) // مبلغ ناخالص
+  tid             String?  // شماره ترمینال (کپی برای کنترل تکراری)
+  mid             String?  // شماره پذیرنده
+  trackingNumber  String?  // شماره پیگیری
+  referenceNumber String?  // شماره مرجع
+  transactionType String   @default("purchase") // purchase | refund | reversal | adjustment
+  status          String   @default("registered") // registered | confirmed | pending_settlement | settled | failed | returned | discrepancy | cancelled
+  bankAccountId   String?  @db.Uuid // حساب مقصد
+  commissionAmount BigInt  @default(0) // کارمزد
+  deductions      BigInt   @default(0) // کسورات
+  netAmount       BigInt   @default(0) // مبلغ خالص تسویه
+  settlementId    String?  @db.Uuid // اتصال به تسویه
+  description     String?
+  createdBy       String   @db.Uuid
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+
+  cardReader      CardReader @relation(fields: [cardReaderId], references: [id], onDelete: Cascade)
+  settlement      CardReaderSettlement? @relation(fields: [settlementId], references: [id], onDelete: SetNull)
+  settlementItems CardReaderSettlementItem[]
+
+  @@map("card_reader_transactions")
+}
+
+model CardReaderSettlement {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId             String?  @db.Uuid
+  number            String
+  cardReaderId      String   @db.Uuid
+  settlementDate    DateTime @default(now())
+  bankAccountId     String?  @db.Uuid // حساب مقصد واریز
+  grossAmount       BigInt   @default(0) // مبلغ ناخالص
+  commissionAmount  BigInt   @default(0) // کارمزد
+  deductions        BigInt   @default(0) // کسورات
+  netAmount         BigInt   @default(0) // مبلغ خالص تسویه
+  settledAmount     BigInt   @default(0) // مبلغ واریزشده
+  discrepancyAmount BigInt   @default(0) // اختلاف
+  discrepancyType   String?  // نوع مغایرت
+  discrepancyNote   String?  // شرح مغایرت
+  status            String   @default("draft") // draft | pending_approval | approved | finalized | cancelled | voided
+  isPartial         Boolean  @default(false) // تسویه جزئی
+  remainingAmount   BigInt   @default(0) // مانده تسویه‌نشده
+  fiscalYearId      String?  @db.Uuid
+  costCenterId      String?  @db.Uuid
+  journalEntryId    String?  @db.Uuid
+  accountingPosted  Boolean  @default(false)
+  closedAt          DateTime? // بستن روز/دوره
+  description       String?
+  createdBy         String   @db.Uuid
+  approvedBy        String?  @db.Uuid
+  approvedAt        DateTime?
+  rejectedReason    String?
+  finalizedBy       String?  @db.Uuid
+  finalizedAt       DateTime?
+  voidedBy          String?  @db.Uuid
+  voidedAt          DateTime?
+  voidReason        String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now())
+
+  cardReader        CardReader @relation(fields: [cardReaderId], references: [id], onDelete: Cascade)
+  items             CardReaderSettlementItem[]
+  history           CardReaderSettlementHistory[]
+  transactions      CardReaderTransaction[]
+
+  @@map("card_reader_settlements")
+}
+
+model CardReaderSettlementItem {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId             String?  @db.Uuid
+  settlementId      String   @db.Uuid
+  transactionId     String   @db.Uuid
+  grossAmount       BigInt   @default(0)
+  commissionAmount  BigInt   @default(0)
+  deductions        BigInt   @default(0)
+  netAmount         BigInt   @default(0)
+  settledAmount     BigInt   @default(0)
+  discrepancyAmount BigInt   @default(0)
+  discrepancyNote   String?
+  itemStatus        String   @default("open") // open | partial | settled | discrepancy | voided
+  createdAt         DateTime @default(now())
+
+  settlement        CardReaderSettlement @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+  transaction       CardReaderTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@map("card_reader_settlement_items")
+}
+
+model CardReaderSettlementHistory {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId         String?  @db.Uuid
+  settlementId  String   @db.Uuid
+  action        String   // created | submitted | approved | rejected | finalized | cancelled | voided | status_changed
+  actionBy      String   @db.Uuid
+  actionAt      DateTime @default(now())
+  fromStatus    String?
+  toStatus      String?
+  reason        String?
+  details       Json     @default("{}")
+  createdAt     DateTime @default(now())
+
+  settlement    CardReaderSettlement @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+
+  @@map("card_reader_settlement_history")
+}
+
+model CardReaderHistory {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  cardReaderId    String   @db.Uuid
+  action          String   // created | activated | deactivated | blocked | transaction | settlement | discrepancy | amended | voided | status_changed
+  actionBy        String   @db.Uuid
+  actionAt        DateTime @default(now())
+  fromStatus      String?
+  toStatus        String?
+  amount          BigInt?
+  journalEntryId  String?  @db.Uuid
+  reason          String?
+  details         Json     @default("{}")
+  createdAt       DateTime @default(now())
+
+  cardReader      CardReader @relation(fields: [cardReaderId], references: [id], onDelete: Cascade)
+
+  @@map("card_reader_history")
 }

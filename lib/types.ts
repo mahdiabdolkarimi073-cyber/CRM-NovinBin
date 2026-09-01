@@ -1380,3 +1380,146 @@ export interface ChequeClearingHistory {
   details: any;
   createdAt: string;
 }
+
+// ============ CARD READERS (کارتخوان — عملیاتی) ============
+
+export interface CardReader {
+  id: string;
+  orgId: string | null;
+  number: string;
+  tid: string;
+  mid: string;
+  bankName: string;
+  branchName: string | null;
+  bankAccountId: string | null;
+  owner: string | null;
+  status: string; // active | inactive | blocked
+  startDate: string;
+  endDate: string | null;
+  description: string | null;
+  settlementAccountId: string | null;
+  bankAccountTargetId: string | null;
+  commissionAccountId: string | null;
+  discrepancyAccountId: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  transactions?: CardReaderTransaction[];
+  settlements?: CardReaderSettlement[];
+  history?: CardReaderHistory[];
+}
+
+export interface CardReaderTransaction {
+  id: string;
+  orgId: string | null;
+  number: string;
+  cardReaderId: string;
+  transactionDate: string;
+  amount: number;
+  tid: string | null;
+  mid: string | null;
+  trackingNumber: string | null;
+  referenceNumber: string | null;
+  transactionType: string; // purchase | refund | reversal | adjustment
+  status: string; // registered | confirmed | pending_settlement | settled | failed | returned | discrepancy | cancelled
+  bankAccountId: string | null;
+  commissionAmount: number;
+  deductions: number;
+  netAmount: number;
+  settlementId: string | null;
+  description: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  cardReader?: CardReader;
+  settlement?: CardReaderSettlement | null;
+  settlementItems?: CardReaderSettlementItem[];
+}
+
+export interface CardReaderSettlement {
+  id: string;
+  orgId: string | null;
+  number: string;
+  cardReaderId: string;
+  settlementDate: string;
+  bankAccountId: string | null;
+  grossAmount: number;
+  commissionAmount: number;
+  deductions: number;
+  netAmount: number;
+  settledAmount: number;
+  discrepancyAmount: number;
+  discrepancyType: string | null;
+  discrepancyNote: string | null;
+  status: string; // draft | pending_approval | approved | finalized | cancelled | voided
+  isPartial: boolean;
+  remainingAmount: number;
+  fiscalYearId: string | null;
+  costCenterId: string | null;
+  journalEntryId: string | null;
+  accountingPosted: boolean;
+  closedAt: string | null;
+  description: string | null;
+  createdBy: string;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  rejectedReason: string | null;
+  finalizedBy: string | null;
+  finalizedAt: string | null;
+  voidedBy: string | null;
+  voidedAt: string | null;
+  voidReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+  cardReader?: CardReader;
+  items?: CardReaderSettlementItem[];
+  history?: CardReaderSettlementHistory[];
+  transactions?: CardReaderTransaction[];
+}
+
+export interface CardReaderSettlementItem {
+  id: string;
+  orgId: string | null;
+  settlementId: string;
+  transactionId: string;
+  grossAmount: number;
+  commissionAmount: number;
+  deductions: number;
+  netAmount: number;
+  settledAmount: number;
+  discrepancyAmount: number;
+  discrepancyNote: string | null;
+  itemStatus: string; // open | partial | settled | discrepancy | voided
+  createdAt: string;
+  transaction?: CardReaderTransaction;
+}
+
+export interface CardReaderSettlementHistory {
+  id: string;
+  orgId: string | null;
+  settlementId: string;
+  action: string;
+  actionBy: string;
+  actionAt: string;
+  fromStatus: string | null;
+  toStatus: string | null;
+  reason: string | null;
+  details: any;
+  createdAt: string;
+}
+
+export interface CardReaderHistory {
+  id: string;
+  orgId: string | null;
+  cardReaderId: string;
+  action: string;
+  actionBy: string;
+  actionAt: string;
+  fromStatus: string | null;
+  toStatus: string | null;
+  amount: number | null;
+  journalEntryId: string | null;
+  reason: string | null;
+  details: any;
+  createdAt: string;
+}

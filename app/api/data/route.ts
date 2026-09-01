@@ -131,6 +131,12 @@ const MODEL_MAP: Record<string, any> = {
   cheque_refund_history: prisma.chequeRefundHistory,
   cheque_clearings: prisma.chequeClearing,
   cheque_clearing_history: prisma.chequeClearingHistory,
+  card_readers: prisma.cardReader,
+  card_reader_transactions: prisma.cardReaderTransaction,
+  card_reader_settlements: prisma.cardReaderSettlement,
+  card_reader_settlement_items: prisma.cardReaderSettlementItem,
+  card_reader_settlement_history: prisma.cardReaderSettlementHistory,
+  card_reader_history: prisma.cardReaderHistory,
 };
 
 function getAuth(req: NextRequest) {
@@ -187,6 +193,12 @@ const MODEL_PAGE: Record<string, string> = {
   cheque_refund_history: '/dashboard/cheque-refunds',
   cheque_clearings: '/dashboard/cheque-clearings',
   cheque_clearing_history: '/dashboard/cheque-clearings',
+  card_readers: '/dashboard/card-readers',
+  card_reader_transactions: '/dashboard/card-readers',
+  card_reader_settlements: '/dashboard/card-reader-settlements',
+  card_reader_settlement_items: '/dashboard/card-reader-settlements',
+  card_reader_settlement_history: '/dashboard/card-reader-settlements',
+  card_reader_history: '/dashboard/card-readers',
 };
 
 const SHARED_MODELS = new Set([

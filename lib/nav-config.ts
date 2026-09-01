@@ -6,7 +6,7 @@ import {
   ShoppingBag, Landmark, FileText, ArrowDownToLine, RotateCcw,
   GraduationCap, BadgePercent, Ticket, StickyNote, MessageCircle,
   UserCheck, ClipboardList, Network, Contact, Megaphone, Wallet,
-  FileCheck, Banknote,
+  FileCheck, Banknote, CreditCard, ArrowRightLeft,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { Profile } from '@/lib/types';
@@ -64,6 +64,8 @@ export const financeItems: NavItem[] = [
   { href: '/dashboard/received-cheques', label: 'چک‌های دریافتی', icon: WalletCards },
   { href: '/dashboard/cheque-refunds', label: 'استرداد چک', icon: RotateCcw },
   { href: '/dashboard/cheque-clearings', label: 'وصول چک پرداختی', icon: Banknote },
+  { href: '/dashboard/card-readers', label: 'کارتخوان', icon: CreditCard },
+  { href: '/dashboard/card-reader-settlements', label: 'تسویه کارتخوان', icon: ArrowRightLeft },
   { href: '/dashboard/bank-accounts', label: 'حساب‌های بانکی', icon: Landmark },
   { href: '/dashboard/financial-reports', label: 'گزارش‌های مالی', icon: BarChart3 },
   { href: '/dashboard/finance-academy', label: 'مالی آموزشگاه', icon: GraduationCap },
