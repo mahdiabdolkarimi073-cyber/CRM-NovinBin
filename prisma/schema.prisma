@@ -109,6 +109,8 @@ model Organization {
   pettyCashPayments    PettyCashPayment[]
   pettyCashExpenses    PettyCashExpense[]
   pettyCashExpenseStatements PettyCashExpenseStatement[]
+  pettyCashMergeStatements PettyCashMergeStatement[]
+  documentIssuances       DocumentIssuance[]
 
   @@map("organizations")
 }
@@ -543,6 +545,7 @@ model Account {
   org            Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
   pettyCashCustodians PettyCashCustodian[]
   pettyCashExpenseItems PettyCashExpenseStatementItem[]
+  documentIssuanceLines DocumentIssuanceLine[]
 
   @@map("accounts")
 }
@@ -594,6 +597,7 @@ model FiscalYear {
   org       Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
   periods   FiscalPeriod[]
   pettyCashExpenseStatements PettyCashExpenseStatement[]
+  documentIssuances DocumentIssuance[]
 
   @@map("fiscal_years")
 }
@@ -626,6 +630,8 @@ model CostCenter {
   org       Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
   pettyCashExpenseStatements PettyCashExpenseStatement[]
   pettyCashExpenseItems PettyCashExpenseStatementItem[]
+  documentIssuances DocumentIssuance[]
+  documentIssuanceLines DocumentIssuanceLine[]
 
   @@map("cost_centers")
 }
@@ -2263,6 +2269,7 @@ model PettyCashCustodian {
   payments        PettyCashPayment[]
   expenses        PettyCashExpense[]
   expenseStatements PettyCashExpenseStatement[]
+  mergeStatements  PettyCashMergeStatement[]
 
   @@map("petty_cash_custodians")
 }
@@ -2299,8 +2306,11 @@ model PettyCashExpense {
   approvedAt      DateTime?
   createdBy       String   @db.Uuid
   createdAt       DateTime @default(now())
+  mergeStatementId String?  @db.Uuid // سند ادغام مرتبط
+  mergeStatus     String   @default("mergeable") // mergeable | merged | merge_cancelled | not_mergeable
   org             Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
   custodian       PettyCashCustodian @relation(fields: [custodianId], references: [id], onDelete: Cascade)
+  mergeStatement  PettyCashMergeStatement? @relation(fields: [mergeStatementId], references: [id], onDelete: SetNull)
 
   @@map("petty_cash_expenses")
 }
@@ -2376,6 +2386,135 @@ model PettyCashExpenseDocument {
   item            PettyCashExpenseStatementItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   @@map("petty_cash_expense_documents")
+}
+
+// ============ PETTY CASH MERGE STATEMENT (صورت ادغام اسناد) ============
+
+model PettyCashMergeStatement {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  number          String   // شماره یکتای سیستمی سند ادغام
+  custodianId     String   @db.Uuid // تنخواه‌دار
+  fiscalYearId    String?  @db.Uuid // دوره مالی
+  costCenterId    String?  @db.Uuid // مرکز هزینه
+  date            DateTime @default(now()) // تاریخ ادغام
+  description     String?  // شرح کلی
+  totalAmount     BigInt   @default(0) // جمع کل اسناد ادغام‌شده
+  status          String   @default("draft") // draft | submitted | pending_approval | approved | rejected | returned | accounting_posted | settled | cancelled
+  approvedBy      String?  @db.Uuid
+  approvedAt      DateTime?
+  rejectedReason  String?
+  postedToAccounting Boolean @default(false)
+  settledAt       DateTime?
+  cancelledAt     DateTime?
+  cancelledBy     String?  @db.Uuid
+  cancelReason    String?
+  createdBy       String   @db.Uuid
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+
+  org             Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  custodian       PettyCashCustodian @relation(fields: [custodianId], references: [id], onDelete: Cascade)
+  fiscalYear      FiscalYear?  @relation(fields: [fiscalYearId], references: [id], onDelete: SetNull)
+  costCenter      CostCenter?  @relation(fields: [costCenterId], references: [id], onDelete: SetNull)
+  expenses        PettyCashExpense[]
+  history         PettyCashMergeHistory[]
+
+  @@map("petty_cash_merge_statements")
+}
+
+model PettyCashMergeHistory {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  mergeStatementId String   @db.Uuid
+  action          String   // created | cancelled | status_changed
+  actionBy        String   @db.Uuid
+  actionAt        DateTime @default(now())
+  details         Json     @default("{}") // جزئیات اکشن (لیست اسناد، وضعیت قبلی/جدید و ...)
+  fromStatus      String?
+  toStatus        String?
+
+  mergeStatement  PettyCashMergeStatement @relation(fields: [mergeStatementId], references: [id], onDelete: Cascade)
+
+  @@map("petty_cash_merge_histories")
+}
+
+// ============ DOCUMENT ISSUANCE (صدور اسناد) ============
+
+model DocumentIssuance {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  number          String   // شماره یکتای سیستمی سند صدور
+  documentType    String   @default("petty_cash_expense") // petty_cash_expense | petty_cash_merge | expense_statement
+  referenceType   String   // نوع سند مبنا: petty_cash_expense | petty_cash_merge_statement | petty_cash_expense_statement
+  referenceId     String   @db.Uuid // شناسه سند مبنا
+  fiscalYearId    String?  @db.Uuid
+  costCenterId    String?  @db.Uuid
+  operationDate  DateTime // تاریخ عملیات
+  documentDate    DateTime // تاریخ سند حسابداری
+  issueDate       DateTime @default(now()) // تاریخ صدور
+  description     String?
+  totalDebit      BigInt   @default(0) // جمع بدهکار
+  totalCredit     BigInt   @default(0) // جمع بستانکار
+  status          String   @default("draft") // draft | ready_to_issue | issued | finalized | rejected | voided | amended
+  issuedBy        String?  @db.Uuid
+  issuedAt        DateTime?
+  finalizedBy     String?  @db.Uuid
+  finalizedAt     DateTime?
+  voidedBy        String?  @db.Uuid
+  voidedAt        DateTime?
+  voidReason      String?
+  amendedFromId   String?  @db.Uuid // سند قبلی در صورت اصلاح
+  priority        String?  // low | medium | high | urgent
+  assignedTo      String?  @db.Uuid // مسئول رسیدگی
+  lockedBy        String?  @db.Uuid // کاربری که سند را برای بررسی قفل کرده
+  lockedAt        DateTime?
+  createdBy       String   @db.Uuid
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+
+  org             Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  fiscalYear      FiscalYear?  @relation(fields: [fiscalYearId], references: [id], onDelete: SetNull)
+  costCenter      CostCenter?  @relation(fields: [costCenterId], references: [id], onDelete: SetNull)
+  lines           DocumentIssuanceLine[]
+  history         DocumentIssuanceHistory[]
+  amendedFrom     DocumentIssuance? @relation("DocumentIssuanceAmendment", fields: [amendedFromId], references: [id], onDelete: SetNull)
+  amendedTo       DocumentIssuance? @relation("DocumentIssuanceAmendment", fields: [id], references: [amendedFromId], onDelete: SetNull)
+
+  @@map("document_issuances")
+}
+
+model DocumentIssuanceLine {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  documentIssuanceId String @db.Uuid
+  accountId       String   @db.Uuid // حساب حسابداری
+  accountRole     String   // expense | custodian | payable | tax | other
+  debit           BigInt   @default(0)
+  credit          BigInt   @default(0)
+  description     String?
+  costCenterId    String?  @db.Uuid
+  referenceLineId String?  @db.Uuid // ردیف هزینه مبنا (در صورت وجود)
+
+  documentIssuance DocumentIssuance @relation(fields: [documentIssuanceId], references: [id], onDelete: Cascade)
+  account          Account          @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  costCenter       CostCenter?      @relation(fields: [costCenterId], references: [id], onDelete: SetNull)
+
+  @@map("document_issuance_lines")
+}
+
+model DocumentIssuanceHistory {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  documentIssuanceId String @db.Uuid
+  action          String   // created | issued | finalized | voided | amended | status_changed
+  actionBy        String   @db.Uuid
+  actionAt        DateTime @default(now())
+  fromStatus      String?
+  toStatus        String?
+  details         Json     @default("{}")
+
+  documentIssuance DocumentIssuance @relation(fields: [documentIssuanceId], references: [id], onDelete: Cascade)
+
+  @@map("document_issuance_histories")
 }
 
 

@@ -972,6 +972,8 @@ export interface PettyCashExpense {
   approvedAt: string | null;
   createdBy: string;
   createdAt: string;
+  mergeStatementId: string | null;
+  mergeStatus: string;
 }
 
 // ============ PETTY CASH EXPENSE STATEMENT (صورت هزینه تنخواه) ============
@@ -1033,4 +1035,111 @@ export interface PettyCashExpenseDocument {
   attachmentName: string | null;
   status: string;
   createdAt: string;
+}
+
+// ============ PETTY CASH MERGE STATEMENT (صورت ادغام اسناد) ============
+
+export interface PettyCashMergeStatement {
+  id: string;
+  orgId: string | null;
+  number: string;
+  custodianId: string;
+  fiscalYearId: string | null;
+  costCenterId: string | null;
+  date: string;
+  description: string | null;
+  totalAmount: number;
+  status: string;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  rejectedReason: string | null;
+  postedToAccounting: boolean;
+  settledAt: string | null;
+  cancelledAt: string | null;
+  cancelledBy: string | null;
+  cancelReason: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  custodian?: PettyCashCustodian | null;
+  fiscalYear?: FiscalYear | null;
+  costCenter?: CostCenter | null;
+  expenses?: PettyCashExpense[];
+  history?: PettyCashMergeHistory[];
+}
+
+export interface PettyCashMergeHistory {
+  id: string;
+  orgId: string | null;
+  mergeStatementId: string;
+  action: string;
+  actionBy: string;
+  actionAt: string;
+  details: any;
+  fromStatus: string | null;
+  toStatus: string | null;
+}
+
+// ============ DOCUMENT ISSUANCE (صدور اسناد) ============
+
+export interface DocumentIssuance {
+  id: string;
+  orgId: string | null;
+  number: string;
+  documentType: string;
+  referenceType: string;
+  referenceId: string;
+  fiscalYearId: string | null;
+  costCenterId: string | null;
+  operationDate: string;
+  documentDate: string;
+  issueDate: string;
+  description: string | null;
+  totalDebit: number;
+  totalCredit: number;
+  status: string;
+  issuedBy: string | null;
+  issuedAt: string | null;
+  finalizedBy: string | null;
+  finalizedAt: string | null;
+  voidedBy: string | null;
+  voidedAt: string | null;
+  voidReason: string | null;
+  amendedFromId: string | null;
+  priority: string | null;
+  assignedTo: string | null;
+  lockedBy: string | null;
+  lockedAt: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  fiscalYear?: FiscalYear | null;
+  costCenter?: CostCenter | null;
+  lines?: DocumentIssuanceLine[];
+  history?: DocumentIssuanceHistory[];
+}
+
+export interface DocumentIssuanceLine {
+  id: string;
+  documentIssuanceId: string;
+  accountId: string;
+  accountRole: string;
+  debit: number;
+  credit: number;
+  description: string | null;
+  costCenterId: string | null;
+  referenceLineId: string | null;
+  account?: Account | null;
+  costCenter?: CostCenter | null;
+}
+
+export interface DocumentIssuanceHistory {
+  id: string;
+  documentIssuanceId: string;
+  action: string;
+  actionBy: string;
+  actionAt: string;
+  fromStatus: string | null;
+  toStatus: string | null;
+  details: any;
 }

@@ -6,6 +6,7 @@ import {
   ShoppingBag, Landmark, FileText, ArrowDownToLine, RotateCcw,
   GraduationCap, BadgePercent, Ticket, StickyNote, MessageCircle,
   UserCheck, ClipboardList, Network, Contact, Megaphone, Wallet,
+  FileCheck,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { Profile } from '@/lib/types';
@@ -47,6 +48,7 @@ export const cartableItems: NavItem[] = [
   { href: '/dashboard/customers-chat', label: 'چت مشتری', icon: Send },
   { href: '/dashboard/tickets', label: 'تیکت‌ها', icon: MessageSquare },
   { href: '/dashboard/tasks', label: 'تسک‌ها', icon: CheckSquare },
+  { href: '/dashboard/doc-issuance-workboard', label: 'کارتابل صدور سند', icon: FileCheck },
 ];
 
 export const financeItems: NavItem[] = [
@@ -56,6 +58,8 @@ export const financeItems: NavItem[] = [
   { href: '/dashboard/payment-announcements', label: 'اعلامیه‌های پرداخت', icon: Megaphone },
   { href: '/dashboard/petty-cash', label: 'تنخواه‌دار', icon: Wallet },
   { href: '/dashboard/petty-cash-expenses', label: 'صورت هزینه تنخواه', icon: FileText },
+  { href: '/dashboard/petty-cash-merge', label: 'صورت ادغام اسناد', icon: FileText },
+  { href: '/dashboard/document-issuance', label: 'صدور اسناد', icon: FileText },
   { href: '/dashboard/bank-accounts', label: 'حساب‌های بانکی', icon: Landmark },
   { href: '/dashboard/financial-reports', label: 'گزارش‌های مالی', icon: BarChart3 },
   { href: '/dashboard/finance-academy', label: 'مالی آموزشگاه', icon: GraduationCap },
