@@ -115,6 +115,13 @@ const MODEL_MAP: Record<string, any> = {
   petty_cash_custodians: prisma.pettyCashCustodian,
   petty_cash_payments: prisma.pettyCashPayment,
   petty_cash_expenses: prisma.pettyCashExpense,
+  petty_cash_expense_statements: prisma.pettyCashExpenseStatement,
+  petty_cash_expense_statement_items: prisma.pettyCashExpenseStatementItem,
+  petty_cash_merge_statements: prisma.pettyCashMergeStatement,
+  petty_cash_merge_histories: prisma.pettyCashMergeHistory,
+  document_issuances: prisma.documentIssuance,
+  document_issuance_lines: prisma.documentIssuanceLine,
+  document_issuance_histories: prisma.documentIssuanceHistory,
 };
 
 function getAuth(req: NextRequest) {
@@ -155,6 +162,13 @@ const MODEL_PAGE: Record<string, string> = {
   petty_cash_custodians: '/dashboard/petty-cash',
   petty_cash_payments: '/dashboard/petty-cash',
   petty_cash_expenses: '/dashboard/petty-cash',
+  petty_cash_expense_statements: '/dashboard/petty-cash',
+  petty_cash_expense_statement_items: '/dashboard/petty-cash',
+  petty_cash_merge_statements: '/dashboard/petty-cash-merge',
+  petty_cash_merge_histories: '/dashboard/petty-cash-merge',
+  document_issuances: '/dashboard/document-issuance',
+  document_issuance_lines: '/dashboard/document-issuance',
+  document_issuance_histories: '/dashboard/document-issuance',
 };
 
 const SHARED_MODELS = new Set([

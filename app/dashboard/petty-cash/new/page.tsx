@@ -186,10 +186,10 @@ export default function NewPettyCashPage() {
 
               <div className="space-y-2">
                 <Label className="text-sm font-semibold text-[#344054]">حساب تفصیلی مرتبط</Label>
-                <Select value={accountId} onValueChange={setAccountId}>
+                <Select value={accountId || '__none__'} onValueChange={(v) => setAccountId(v === '__none__' ? '' : v)}>
                   <SelectTrigger className="h-[42px] rounded-[10px] border-[#DCE3EE]"><SelectValue placeholder="انتخاب حساب..." /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">بدون حساب</SelectItem>
+                    <SelectItem value="__none__">بدون حساب</SelectItem>
                     {accounts.map((a) => <SelectItem key={a.id} value={a.id}>{a.code} - {a.name}</SelectItem>)}
                   </SelectContent>
                 </Select>

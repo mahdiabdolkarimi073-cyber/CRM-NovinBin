@@ -260,13 +260,13 @@ export default function NewPettyCashExpensePage() {
 
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold text-[#344054]">دوره مالی</Label>
-                    <Select value={fiscalYearId} onValueChange={setFiscalYearId}>
+                    <Select value={fiscalYearId || '__none__'} onValueChange={(v) => setFiscalYearId(v === '__none__' ? '' : v)}>
                       <SelectTrigger className="h-[42px] rounded-[10px] border-[#DCE3EE]">
                         <span className="flex items-center gap-2"><Landmark className="h-4 w-4 text-[#98A2B3]" /></span>
                         <SelectValue placeholder="انتخاب دوره مالی..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">بدون دوره</SelectItem>
+                        <SelectItem value="__none__">بدون دوره</SelectItem>
                         {fiscalYears.map((fy) => <SelectItem key={fy.id} value={fy.id}>{fy.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
@@ -274,13 +274,13 @@ export default function NewPettyCashExpensePage() {
 
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold text-[#344054]">مرکز هزینه</Label>
-                    <Select value={costCenterId} onValueChange={setCostCenterId}>
+                    <Select value={costCenterId || '__none__'} onValueChange={(v) => setCostCenterId(v === '__none__' ? '' : v)}>
                       <SelectTrigger className="h-[42px] rounded-[10px] border-[#DCE3EE]">
                         <span className="flex items-center gap-2"><Landmark className="h-4 w-4 text-[#98A2B3]" /></span>
                         <SelectValue placeholder="انتخاب مرکز هزینه..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">بدون مرکز هزینه</SelectItem>
+                        <SelectItem value="__none__">بدون مرکز هزینه</SelectItem>
                         {costCenters.map((cc) => <SelectItem key={cc.id} value={cc.id}>{cc.code} - {cc.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
@@ -325,10 +325,10 @@ export default function NewPettyCashExpensePage() {
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-xs text-[#667085]">حساب هزینه</Label>
-                          <Select value={row.accountId} onValueChange={(v) => updateRow(row.id, 'accountId', v)}>
+                          <Select value={row.accountId || '__none__'} onValueChange={(v) => updateRow(row.id, 'accountId', v === '__none__' ? '' : v)}>
                             <SelectTrigger className="h-[38px] rounded-[8px] border-[#DCE3EE] text-sm"><SelectValue placeholder="انتخاب حساب..." /></SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">بدون حساب</SelectItem>
+                              <SelectItem value="__none__">بدون حساب</SelectItem>
                               {accounts.map((a) => <SelectItem key={a.id} value={a.id}>{a.code} - {a.name}</SelectItem>)}
                             </SelectContent>
                           </Select>
@@ -344,10 +344,10 @@ export default function NewPettyCashExpensePage() {
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-xs text-[#667085]">مرکز هزینه</Label>
-                          <Select value={row.costCenterId} onValueChange={(v) => updateRow(row.id, 'costCenterId', v)}>
+                          <Select value={row.costCenterId || '__none__'} onValueChange={(v) => updateRow(row.id, 'costCenterId', v === '__none__' ? '' : v)}>
                             <SelectTrigger className="h-[38px] rounded-[8px] border-[#DCE3EE] text-sm"><SelectValue placeholder="انتخاب..." /></SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">بدون مرکز هزینه</SelectItem>
+                              <SelectItem value="__none__">بدون مرکز هزینه</SelectItem>
                               {costCenters.map((cc) => <SelectItem key={cc.id} value={cc.id}>{cc.code} - {cc.name}</SelectItem>)}
                             </SelectContent>
                           </Select>

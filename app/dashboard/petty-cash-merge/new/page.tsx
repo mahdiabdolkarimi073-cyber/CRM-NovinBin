@@ -234,13 +234,13 @@ export default function NewPettyCashMergePage() {
 
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold text-[#344054]">دوره مالی</Label>
-                    <Select value={fiscalYearId} onValueChange={setFiscalYearId}>
+                    <Select value={fiscalYearId || '__none__'} onValueChange={(v) => setFiscalYearId(v === '__none__' ? '' : v)}>
                       <SelectTrigger className="h-[42px] rounded-[10px] border-[#DCE3EE]">
                         <span className="flex items-center gap-2"><Landmark className="h-4 w-4 text-[#98A2B3]" /></span>
                         <SelectValue placeholder="انتخاب دوره مالی..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">بدون دوره</SelectItem>
+                        <SelectItem value="__none__">بدون دوره</SelectItem>
                         {fiscalYears.map((fy) => <SelectItem key={fy.id} value={fy.id}>{fy.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
@@ -248,13 +248,13 @@ export default function NewPettyCashMergePage() {
 
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold text-[#344054]">مرکز هزینه</Label>
-                    <Select value={costCenterId} onValueChange={setCostCenterId}>
+                    <Select value={costCenterId || '__none__'} onValueChange={(v) => setCostCenterId(v === '__none__' ? '' : v)}>
                       <SelectTrigger className="h-[42px] rounded-[10px] border-[#DCE3EE]">
                         <span className="flex items-center gap-2"><Landmark className="h-4 w-4 text-[#98A2B3]" /></span>
                         <SelectValue placeholder="انتخاب مرکز هزینه..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">بدون مرکز هزینه</SelectItem>
+                        <SelectItem value="__none__">بدون مرکز هزینه</SelectItem>
                         {costCenters.map((cc) => <SelectItem key={cc.id} value={cc.id}>{cc.code} - {cc.name}</SelectItem>)}
                       </SelectContent>
                     </Select>

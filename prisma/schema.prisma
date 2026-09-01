@@ -597,6 +597,7 @@ model FiscalYear {
   org       Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
   periods   FiscalPeriod[]
   pettyCashExpenseStatements PettyCashExpenseStatement[]
+  pettyCashMergeStatements PettyCashMergeStatement[]
   documentIssuances DocumentIssuance[]
 
   @@map("fiscal_years")
@@ -630,6 +631,7 @@ model CostCenter {
   org       Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
   pettyCashExpenseStatements PettyCashExpenseStatement[]
   pettyCashExpenseItems PettyCashExpenseStatementItem[]
+  pettyCashMergeStatements PettyCashMergeStatement[]
   documentIssuances DocumentIssuance[]
   documentIssuanceLines DocumentIssuanceLine[]
 
@@ -2464,7 +2466,7 @@ model DocumentIssuance {
   voidedBy        String?  @db.Uuid
   voidedAt        DateTime?
   voidReason      String?
-  amendedFromId   String?  @db.Uuid // سند قبلی در صورت اصلاح
+  amendedFromId   String?  @unique @db.Uuid // سند قبلی در صورت اصلاح
   priority        String?  // low | medium | high | urgent
   assignedTo      String?  @db.Uuid // مسئول رسیدگی
   lockedBy        String?  @db.Uuid // کاربری که سند را برای بررسی قفل کرده
@@ -2479,7 +2481,7 @@ model DocumentIssuance {
   lines           DocumentIssuanceLine[]
   history         DocumentIssuanceHistory[]
   amendedFrom     DocumentIssuance? @relation("DocumentIssuanceAmendment", fields: [amendedFromId], references: [id], onDelete: SetNull)
-  amendedTo       DocumentIssuance? @relation("DocumentIssuanceAmendment", fields: [id], references: [amendedFromId], onDelete: SetNull)
+  amendedTo       DocumentIssuance? @relation("DocumentIssuanceAmendment")
 
   @@map("document_issuances")
 }

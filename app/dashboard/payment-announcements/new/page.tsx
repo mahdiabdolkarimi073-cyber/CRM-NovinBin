@@ -253,10 +253,10 @@ export default function NewPaymentAnnouncementPage() {
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-semibold text-[#344054]">حساب بانکی</Label>
-                <Select value={bankAccountId} onValueChange={setBankAccountId}>
+                <Select value={bankAccountId || '__none__'} onValueChange={(v) => setBankAccountId(v === '__none__' ? '' : v)}>
                   <SelectTrigger className="h-[42px] rounded-[10px] border-[#DCE3EE]"><SelectValue placeholder="انتخاب حساب..." /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">بدون حساب</SelectItem>
+                    <SelectItem value="__none__">بدون حساب</SelectItem>
                     {bankAccounts.map((b) => <SelectItem key={b.id} value={b.id}>{b.bankName} - {b.accountNo}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -315,10 +315,10 @@ export default function NewPaymentAnnouncementPage() {
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-xs text-[#667085]">حساب بانکی</Label>
-                        <Select value={w.bankAccountId} onValueChange={(v) => updateWithdrawal(i, 'bankAccountId', v)}>
+                        <Select value={w.bankAccountId || '__none__'} onValueChange={(v) => updateWithdrawal(i, 'bankAccountId', v === '__none__' ? '' : v)}>
                           <SelectTrigger className="h-9 rounded-[8px] text-sm"><SelectValue placeholder="انتخاب..." /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">بدون حساب</SelectItem>
+                            <SelectItem value="__none__">بدون حساب</SelectItem>
                             {bankAccounts.map((b) => <SelectItem key={b.id} value={b.id}>{b.bankName} - {b.accountNo}</SelectItem>)}
                           </SelectContent>
                         </Select>
@@ -368,10 +368,10 @@ export default function NewPaymentAnnouncementPage() {
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                       <div className="space-y-1.5">
                         <Label className="text-xs text-[#667085]">حساب بانکی</Label>
-                        <Select value={c.bankAccountId} onValueChange={(v) => updateCheque(i, 'bankAccountId', v)}>
+                        <Select value={c.bankAccountId || '__none__'} onValueChange={(v) => updateCheque(i, 'bankAccountId', v === '__none__' ? '' : v)}>
                           <SelectTrigger className="h-9 rounded-[8px] text-sm"><SelectValue placeholder="انتخاب..." /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">بدون حساب</SelectItem>
+                            <SelectItem value="__none__">بدون حساب</SelectItem>
                             {bankAccounts.map((b) => <SelectItem key={b.id} value={b.id}>{b.bankName} - {b.accountNo}</SelectItem>)}
                           </SelectContent>
                         </Select>
