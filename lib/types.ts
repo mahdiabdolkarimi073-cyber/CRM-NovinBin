@@ -973,3 +973,64 @@ export interface PettyCashExpense {
   createdBy: string;
   createdAt: string;
 }
+
+// ============ PETTY CASH EXPENSE STATEMENT (صورت هزینه تنخواه) ============
+
+export interface PettyCashExpenseStatement {
+  id: string;
+  orgId: string | null;
+  number: string;
+  custodianId: string;
+  fiscalYearId: string | null;
+  costCenterId: string | null;
+  date: string;
+  description: string | null;
+  totalAmount: number;
+  status: string;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  rejectedReason: string | null;
+  postedToAccounting: boolean;
+  settledAt: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  custodian?: PettyCashCustodian | null;
+  fiscalYear?: FiscalYear | null;
+  costCenter?: CostCenter | null;
+  items?: PettyCashExpenseStatementItem[];
+}
+
+export interface PettyCashExpenseStatementItem {
+  id: string;
+  statementId: string;
+  date: string;
+  expenseType: string;
+  accountId: string | null;
+  amount: number;
+  description: string | null;
+  costCenterId: string | null;
+  vendorName: string | null;
+  invoiceNumber: string | null;
+  status: string;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  rejectedReason: string | null;
+  createdAt: string;
+  account?: Account | null;
+  costCenter?: CostCenter | null;
+  documents?: PettyCashExpenseDocument[];
+}
+
+export interface PettyCashExpenseDocument {
+  id: string;
+  itemId: string;
+  documentType: string;
+  documentNumber: string | null;
+  documentDate: string | null;
+  amount: number;
+  attachmentUrl: string | null;
+  attachmentName: string | null;
+  status: string;
+  createdAt: string;
+}

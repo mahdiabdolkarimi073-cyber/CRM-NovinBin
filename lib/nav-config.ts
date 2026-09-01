@@ -55,6 +55,7 @@ export const financeItems: NavItem[] = [
   { href: '/dashboard/contact-parties', label: 'طرف حساب', icon: Contact },
   { href: '/dashboard/payment-announcements', label: 'اعلامیه‌های پرداخت', icon: Megaphone },
   { href: '/dashboard/petty-cash', label: 'تنخواه‌دار', icon: Wallet },
+  { href: '/dashboard/petty-cash-expenses', label: 'صورت هزینه تنخواه', icon: FileText },
   { href: '/dashboard/bank-accounts', label: 'حساب‌های بانکی', icon: Landmark },
   { href: '/dashboard/financial-reports', label: 'گزارش‌های مالی', icon: BarChart3 },
   { href: '/dashboard/finance-academy', label: 'مالی آموزشگاه', icon: GraduationCap },

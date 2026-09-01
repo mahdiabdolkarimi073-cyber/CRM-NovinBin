@@ -106,6 +106,9 @@ model Organization {
   withdrawalAnnouncements WithdrawalAnnouncement[]
   myCheques            MyCheque[]
   pettyCashCustodians  PettyCashCustodian[]
+  pettyCashPayments    PettyCashPayment[]
+  pettyCashExpenses    PettyCashExpense[]
+  pettyCashExpenseStatements PettyCashExpenseStatement[]
 
   @@map("organizations")
 }
@@ -539,6 +542,7 @@ model Account {
   createdAt      DateTime @default(now())
   org            Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
   pettyCashCustodians PettyCashCustodian[]
+  pettyCashExpenseItems PettyCashExpenseStatementItem[]
 
   @@map("accounts")
 }
@@ -589,6 +593,7 @@ model FiscalYear {
   createdAt DateTime @default(now())
   org       Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
   periods   FiscalPeriod[]
+  pettyCashExpenseStatements PettyCashExpenseStatement[]
 
   @@map("fiscal_years")
 }
@@ -619,6 +624,8 @@ model CostCenter {
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   org       Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  pettyCashExpenseStatements PettyCashExpenseStatement[]
+  pettyCashExpenseItems PettyCashExpenseStatementItem[]
 
   @@map("cost_centers")
 }
@@ -2255,6 +2262,7 @@ model PettyCashCustodian {
   account         Account?     @relation(fields: [accountId], references: [id], onDelete: SetNull)
   payments        PettyCashPayment[]
   expenses        PettyCashExpense[]
+  expenseStatements PettyCashExpenseStatement[]
 
   @@map("petty_cash_custodians")
 }
@@ -2295,6 +2303,79 @@ model PettyCashExpense {
   custodian       PettyCashCustodian @relation(fields: [custodianId], references: [id], onDelete: Cascade)
 
   @@map("petty_cash_expenses")
+}
+
+// ============ PETTY CASH EXPENSE STATEMENT (صورت هزینه تنخواه) ============
+
+model PettyCashExpenseStatement {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  number          String   // شماره صورت هزینه (سیستمی، یکتا)
+  custodianId     String   @db.Uuid // تنخواه‌دار
+  fiscalYearId    String?  @db.Uuid // دوره مالی
+  costCenterId    String?  @db.Uuid // مرکز هزینه
+  date            DateTime @default(now()) // تاریخ صورت هزینه
+  description     String?  // شرح کلی
+  totalAmount     BigInt   @default(0) // جمع کل هزینه‌ها
+  status          String   @default("draft") // draft | submitted | pending_approval | approved | rejected | returned | accounting_posted | settled
+  approvedBy      String?  @db.Uuid
+  approvedAt      DateTime?
+  rejectedReason  String?
+  postedToAccounting Boolean @default(false) // ثبت حسابداری انجام شده؟
+  settledAt       DateTime? // تاریخ تسویه
+  createdBy       String   @db.Uuid
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+
+  org             Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  custodian       PettyCashCustodian @relation(fields: [custodianId], references: [id], onDelete: Cascade)
+  fiscalYear      FiscalYear?  @relation(fields: [fiscalYearId], references: [id], onDelete: SetNull)
+  costCenter      CostCenter?  @relation(fields: [costCenterId], references: [id], onDelete: SetNull)
+  items           PettyCashExpenseStatementItem[]
+
+  @@map("petty_cash_expense_statements")
+}
+
+model PettyCashExpenseStatementItem {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  statementId     String   @db.Uuid
+  date            DateTime @default(now()) // تاریخ هزینه
+  expenseType     String   // نوع/حساب هزینه
+  accountId       String?  @db.Uuid // حساب هزینه
+  amount          BigInt   @default(0) // مبلغ
+  description     String?  // شرح هزینه
+  costCenterId    String?  @db.Uuid // مرکز هزینه
+  vendorName      String?  // طرف حساب / فروشنده
+  invoiceNumber   String?  // شماره فاکتور یا رسید
+  status          String   @default("pending") // pending | approved | rejected
+  approvedBy      String?  @db.Uuid
+  approvedAt      DateTime?
+  rejectedReason  String?
+  createdAt       DateTime @default(now())
+
+  statement       PettyCashExpenseStatement @relation(fields: [statementId], references: [id], onDelete: Cascade)
+  account         Account?     @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  costCenter      CostCenter?  @relation(fields: [costCenterId], references: [id], onDelete: SetNull)
+  documents       PettyCashExpenseDocument[]
+
+  @@map("petty_cash_expense_statement_items")
+}
+
+model PettyCashExpenseDocument {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  itemId          String   @db.Uuid
+  documentType    String   @default("invoice") // invoice | receipt | other
+  documentNumber  String?  // شماره مدرک
+  documentDate    DateTime? // تاریخ مدرک
+  amount          BigInt   @default(0) // مبلغ مدرک
+  attachmentUrl   String?  // فایل پیوست
+  attachmentName  String?  // نام فایل
+  status          String   @default("pending") // pending | approved | rejected
+  createdAt       DateTime @default(now())
+
+  item            PettyCashExpenseStatementItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@map("petty_cash_expense_documents")
 }
 
 
