@@ -116,6 +116,10 @@ model Organization {
   contactSettlementHistories ContactSettlementHistory[]
   receivedCheques          ReceivedCheque[]
   receivedChequeOperations ReceivedChequeOperation[]
+  chequeRefunds            ChequeRefund[]
+  chequeRefundHistories    ChequeRefundHistory[]
+  chequeClearings          ChequeClearing[]
+  chequeClearingHistories  ChequeClearingHistory[]
 
   @@map("organizations")
 }
@@ -2245,6 +2249,13 @@ model MyCheque {
   description           String?  // شرح / توضیحات
   createdBy             String   @db.Uuid
   createdAt             DateTime @default(now())
+  status                String   @default("issued") // issued | in_clearing | cleared | returned | voided | reversed
+  dueDate               DateTime? // سررسید
+  payee                 String?  // دریافت‌کننده چک
+  clearedAmount         BigInt   @default(0) // مبلغ وصول‌شده (برای وصول جزئی)
+  clearedDate           DateTime? // تاریخ وصول
+  previousStatus        String?  // وضعیت قبلی (برای برگشت وصول)
+  updatedAt             DateTime @default(now())
   org                   Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
   paymentAnnouncement   PaymentAnnouncement @relation(fields: [paymentAnnouncementId], references: [id], onDelete: Cascade)
   bankAccount           BankAccount?  @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
@@ -2664,4 +2675,124 @@ model ReceivedChequeOperation {
   @@map("received_cheque_operations")
 }
 
+// ============ CHEQUE REFUND (استرداد چک — عملیاتی) ============
 
+model ChequeRefund {
+  id                     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId                  String?  @db.Uuid
+  number                 String
+  chequeId               String   @db.Uuid
+  recipientPartyId       String?  @db.Uuid
+  recipientName          String?
+  refundDate             DateTime @default(now())
+  amount                 BigInt   @default(0)
+  reason                 String?
+  description            String?
+  status                 String   @default("draft") // draft | pending_approval | approved | rejected | finalized | cancelled | voided
+  createdBy              String   @db.Uuid
+  approvedBy             String?  @db.Uuid
+  approvedAt             DateTime?
+  rejectedReason         String?
+  finalizedBy            String?  @db.Uuid
+  finalizedAt            DateTime?
+  journalEntryId         String?  @db.Uuid
+  originalJournalEntryId String?  @db.Uuid
+  previousChequeStatus   String?
+  voidedBy               String?  @db.Uuid
+  voidedAt               DateTime?
+  voidReason             String?
+  accountingPosted       Boolean  @default(false)
+  balanceAdjusted        Boolean  @default(false)
+  settlementsChecked     Boolean  @default(false)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @default(now())
+  org                    Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  history                ChequeRefundHistory[]
+
+  @@map("cheque_refunds")
+}
+
+model ChequeRefundHistory {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId      String?  @db.Uuid
+  refundId   String   @db.Uuid
+  action     String   // created | submitted | approved | rejected | finalized | cancelled | voided | status_changed
+  actionBy   String   @db.Uuid
+  actionAt   DateTime @default(now())
+  fromStatus String?
+  toStatus   String?
+  reason     String?
+  details    Json     @default("{}")
+  createdAt  DateTime @default(now())
+  org        Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  refund     ChequeRefund @relation(fields: [refundId], references: [id], onDelete: Cascade)
+
+  @@map("cheque_refund_history")
+}
+
+// ============ CHEQUE CLEARING (وصول چک پرداختی) ============
+
+model ChequeClearing {
+  id                     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId                  String?  @db.Uuid
+  number                 String
+  chequeId               String   @db.Uuid
+  chequeNumber           String?
+  bankName               String?
+  chequeAmount           BigInt   @default(0)
+  clearingDate           DateTime @default(now())
+  bankAccountId          String?  @db.Uuid
+  bankAccountName        String?
+  amount                 BigInt   @default(0)
+  isPartial              Boolean  @default(false)
+  remainingAmount        BigInt   @default(0)
+  payee                  String?
+  counterpartyId         String?  @db.Uuid
+  counterpartyName       String?
+  description            String?
+  reason                 String?
+  status                 String   @default("draft") // draft | pending_approval | approved | rejected | finalized | cancelled | reversed
+  createdBy              String   @db.Uuid
+  approvedBy             String?  @db.Uuid
+  approvedAt             DateTime?
+  rejectedReason         String?
+  finalizedBy            String?  @db.Uuid
+  finalizedAt            DateTime?
+  journalEntryId         String?  @db.Uuid
+  previousChequeStatus   String?
+  reversedBy             String?  @db.Uuid
+  reversedAt             DateTime?
+  reverseReason          String?
+  reverseJournalEntryId  String?  @db.Uuid
+  accountingPosted       Boolean  @default(false)
+  obligationClosed       Boolean  @default(false)
+  fiscalPeriodChecked    Boolean  @default(false)
+  bankAccountActiveChecked Boolean @default(false)
+  dueDateChecked         Boolean  @default(false)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @default(now())
+  org                    Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  history                ChequeClearingHistory[]
+
+  @@map("cheque_clearings")
+}
+
+model ChequeClearingHistory {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  clearingId      String   @db.Uuid
+  action          String   // created | submitted | approved | rejected | finalized | cancelled | reversed | status_changed
+  actionBy        String   @db.Uuid
+  actionAt        DateTime @default(now())
+  fromStatus      String?
+  toStatus        String?
+  reason          String?
+  amount          BigInt?
+  journalEntryId  String?  @db.Uuid
+  details         Json     @default("{}")
+  createdAt       DateTime @default(now())
+  org             Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  clearing        ChequeClearing @relation(fields: [clearingId], references: [id], onDelete: Cascade)
+
+  @@map("cheque_clearing_history")
+}

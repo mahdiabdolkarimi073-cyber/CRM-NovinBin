@@ -917,6 +917,13 @@ export interface MyCheque {
   description: string | null;
   createdBy: string;
   createdAt: string;
+  status: string; // issued | in_clearing | cleared | returned | voided | reversed
+  dueDate: string | null;
+  payee: string | null;
+  clearedAmount: number;
+  clearedDate: string | null;
+  previousStatus: string | null;
+  updatedAt: string;
   bankAccount?: BankAccount | null;
 }
 
@@ -1261,6 +1268,114 @@ export interface ReceivedChequeOperation {
   previousLocation: string | null;
   newLocation: string | null;
   reason: string | null;
+  journalEntryId: string | null;
+  details: any;
+  createdAt: string;
+}
+
+// ============ CHEQUE REFUND (استرداد چک) ============
+
+export interface ChequeRefund {
+  id: string;
+  orgId: string | null;
+  number: string;
+  chequeId: string;
+  recipientPartyId: string | null;
+  recipientName: string | null;
+  refundDate: string;
+  amount: number;
+  reason: string | null;
+  description: string | null;
+  status: string; // draft | pending_approval | approved | rejected | finalized | cancelled | voided
+  createdBy: string;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  rejectedReason: string | null;
+  finalizedBy: string | null;
+  finalizedAt: string | null;
+  journalEntryId: string | null;
+  originalJournalEntryId: string | null;
+  previousChequeStatus: string | null;
+  voidedBy: string | null;
+  voidedAt: string | null;
+  voidReason: string | null;
+  accountingPosted: boolean;
+  balanceAdjusted: boolean;
+  settlementsChecked: boolean;
+  createdAt: string;
+  updatedAt: string;
+  history?: ChequeRefundHistory[];
+}
+
+export interface ChequeRefundHistory {
+  id: string;
+  orgId: string | null;
+  refundId: string;
+  action: string; // created | submitted | approved | rejected | finalized | cancelled | voided | status_changed
+  actionBy: string;
+  actionAt: string;
+  fromStatus: string | null;
+  toStatus: string | null;
+  reason: string | null;
+  details: any;
+  createdAt: string;
+}
+
+// ============ CHEQUE CLEARING (وصول چک پرداختی) ============
+
+export interface ChequeClearing {
+  id: string;
+  orgId: string | null;
+  number: string;
+  chequeId: string;
+  chequeNumber: string | null;
+  bankName: string | null;
+  chequeAmount: number;
+  clearingDate: string;
+  bankAccountId: string | null;
+  bankAccountName: string | null;
+  amount: number;
+  isPartial: boolean;
+  remainingAmount: number;
+  payee: string | null;
+  counterpartyId: string | null;
+  counterpartyName: string | null;
+  description: string | null;
+  reason: string | null;
+  status: string; // draft | pending_approval | approved | rejected | finalized | cancelled | reversed
+  createdBy: string;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  rejectedReason: string | null;
+  finalizedBy: string | null;
+  finalizedAt: string | null;
+  journalEntryId: string | null;
+  previousChequeStatus: string | null;
+  reversedBy: string | null;
+  reversedAt: string | null;
+  reverseReason: string | null;
+  reverseJournalEntryId: string | null;
+  accountingPosted: boolean;
+  obligationClosed: boolean;
+  fiscalPeriodChecked: boolean;
+  bankAccountActiveChecked: boolean;
+  dueDateChecked: boolean;
+  createdAt: string;
+  updatedAt: string;
+  history?: ChequeClearingHistory[];
+}
+
+export interface ChequeClearingHistory {
+  id: string;
+  orgId: string | null;
+  clearingId: string;
+  action: string; // created | submitted | approved | rejected | finalized | cancelled | reversed | status_changed
+  actionBy: string;
+  actionAt: string;
+  fromStatus: string | null;
+  toStatus: string | null;
+  reason: string | null;
+  amount: number | null;
   journalEntryId: string | null;
   details: any;
   createdAt: string;

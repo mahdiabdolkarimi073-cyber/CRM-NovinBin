@@ -127,6 +127,10 @@ const MODEL_MAP: Record<string, any> = {
   contact_settlement_history: prisma.contactSettlementHistory,
   received_cheques: prisma.receivedCheque,
   received_cheque_operations: prisma.receivedChequeOperation,
+  cheque_refunds: prisma.chequeRefund,
+  cheque_refund_history: prisma.chequeRefundHistory,
+  cheque_clearings: prisma.chequeClearing,
+  cheque_clearing_history: prisma.chequeClearingHistory,
 };
 
 function getAuth(req: NextRequest) {
@@ -179,6 +183,10 @@ const MODEL_PAGE: Record<string, string> = {
   contact_settlement_history: '/dashboard/contact-settlements',
   received_cheques: '/dashboard/received-cheques',
   received_cheque_operations: '/dashboard/received-cheques',
+  cheque_refunds: '/dashboard/cheque-refunds',
+  cheque_refund_history: '/dashboard/cheque-refunds',
+  cheque_clearings: '/dashboard/cheque-clearings',
+  cheque_clearing_history: '/dashboard/cheque-clearings',
 };
 
 const SHARED_MODELS = new Set([
