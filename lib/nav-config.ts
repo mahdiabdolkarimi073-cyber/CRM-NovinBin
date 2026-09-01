@@ -6,7 +6,7 @@ import {
   ShoppingBag, Landmark, FileText, ArrowDownToLine, RotateCcw,
   GraduationCap, BadgePercent, Ticket, StickyNote, MessageCircle,
   UserCheck, ClipboardList, Network, Contact, Megaphone, Wallet,
-  FileCheck, Banknote, CreditCard, ArrowRightLeft,
+  FileCheck, Banknote, CreditCard, ArrowRightLeft, Sparkles,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { Profile } from '@/lib/types';
@@ -36,6 +36,7 @@ export const coreItems: NavItem[] = [
   { href: '/dashboard/notes', label: 'یادداشت‌ها', icon: StickyNote },
   { href: '/dashboard/staff-chat', label: 'چت پرسنل', icon: MessageCircle },
   { href: '/dashboard/notifications', label: 'اعلان‌ها', icon: Bell },
+  { href: '/dashboard/ai-assistant', label: 'دستیار', icon: Sparkles },
   { href: '/dashboard/settings', label: 'تنظیمات', icon: Settings },
 ];
 
@@ -136,6 +137,7 @@ export const UNIVERSAL_PAGES = new Set([
   '/dashboard/my-customers',
   '/dashboard/settings',
   '/dashboard/notifications',
+  '/dashboard/ai-assistant',
 ]);
 
 export function hasPageAccess(profile: Profile | null, href: string): boolean {
