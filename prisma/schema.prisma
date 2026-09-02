@@ -124,6 +124,17 @@ model Organization {
   stockTakings            StockTaking[]
   servicePurchaseInvoices ServicePurchaseInvoice[]
   warehouseReceipts       WarehouseReceipt[]
+  warehouseReceiptReturns  WarehouseReceiptReturn[]
+  warehouseExits           WarehouseExit[]
+  warehouseExitReturns     WarehouseExitReturn[]
+  financialAnnouncements          FinancialAnnouncement[]
+  financialAnnouncementItems      FinancialAnnouncementItem[]
+  financialAnnouncementHistory    FinancialAnnouncementHistory[]
+  commissions                      Commission[]
+  commissionItems                 CommissionItem[]
+  commissionAdjustments           CommissionAdjustment[]
+  commissionHistory               CommissionHistory[]
+  commissionRules                 CommissionRule[]
 
   @@map("organizations")
 }
@@ -3439,4 +3450,237 @@ model WarehouseExitReturnHistory {
   return          WarehouseExitReturn @relation(fields: [returnId], references: [id], onDelete: Cascade)
 
   @@map("warehouse_exit_return_history")
+}
+
+// ============ FINANCIAL ANNOUNCEMENT (اعلامیه بدهکار و بستانکار) ============
+
+model FinancialAnnouncement {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId                 String?  @db.Uuid
+  number                String
+  announcementType      String   // debit | credit
+  contactPartyId        String?  @db.Uuid
+  contactPartyName      String?
+  operationDate         DateTime
+  registeredDate        DateTime @default(now())
+  accountingDate        DateTime?
+  amount                Decimal  @default(0) @db.Decimal(18, 2)
+  currency              String   @default("IRR")
+  reasonCode            String?
+  reasonDescription     String?
+  description           String?
+  sourceDocType         String?  // invoice | receipt | payment | cheque | contract | other
+  sourceDocId           String?  @db.Uuid
+  sourceDocNumber       String?
+  fiscalYearId          String?  @db.Uuid
+  costCenterId          String?  @db.Uuid
+  projectId             String?  @db.Uuid
+  oppositeAccountId     String?  @db.Uuid
+  oppositeAccountName   String?
+  taxSubjectAmount      Decimal  @default(0) @db.Decimal(18, 2)
+  taxRate               Decimal  @default(0) @db.Decimal(5, 2)
+  taxAmount             Decimal  @default(0) @db.Decimal(18, 2)
+  taxAccountId          String?  @db.Uuid
+  taxStatus             String?  // none | pending | calculated | posted | exempt
+  journalEntryId        String?  @db.Uuid
+  balanceBefore         Decimal  @default(0) @db.Decimal(18, 2)
+  balanceAfter          Decimal  @default(0) @db.Decimal(18, 2)
+  accountingEffectApplied Boolean @default(false)
+  duplicateChecked      Boolean  @default(false)
+  duplicateHash         String?
+  status                String   @default("draft") // draft | completed | pending_approval | approved | pending_journal | journal_issued | finalized | rejected | voided | needs_correction
+  approvedBy            String?  @db.Uuid
+  approvedAt            DateTime?
+  rejectedBy            String?  @db.Uuid
+  rejectedAt            DateTime?
+  rejectedReason        String?
+  voidedBy              String?  @db.Uuid
+  voidedAt              DateTime?
+  voidReason            String?
+  amendedFromId         String?  @db.Uuid
+  createdBy             String   @db.Uuid
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @default(now())
+  org                   Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  items                 FinancialAnnouncementItem[]
+  history               FinancialAnnouncementHistory[]
+
+  @@map("financial_announcements")
+}
+
+model FinancialAnnouncementItem {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId                 String?  @db.Uuid
+  announcementId        String   @db.Uuid
+  allocationType        String   // invoice | debt | credit | receipt | payment | prepayment | on_account | open_doc | balance
+  referenceType         String?
+  referenceId           String?  @db.Uuid
+  referenceNumber       String?
+  originalAmount        Decimal  @default(0) @db.Decimal(18, 2)
+  paidAmount            Decimal  @default(0) @db.Decimal(18, 2)
+  allocationAmount      Decimal  @default(0) @db.Decimal(18, 2)
+  itemStatus            String   @default("open") // open | partial | settled | closed | voided
+  description           String?
+  createdAt             DateTime @default(now())
+  announcement          FinancialAnnouncement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  org                   Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@map("financial_announcement_items")
+}
+
+model FinancialAnnouncementHistory {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  announcementId  String   @db.Uuid
+  action          String   // created | edited | amount_changed | contact_changed | allocated | approved | rejected | journal_issued | voided | corrected | status_changed
+  actionBy        String?  @db.Uuid
+  actionAt        DateTime @default(now())
+  fromStatus      String?
+  toStatus        String?
+  details         Json     @default("{}")
+  createdAt       DateTime @default(now())
+  announcement    FinancialAnnouncement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  org             Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@map("financial_announcement_history")
+}
+
+// ============ COMMISSION (پورسانت) ============
+
+model Commission {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId                 String?  @db.Uuid
+  number                String
+  salespersonId         String?  @db.Uuid
+  salespersonName       String?
+  periodStart           DateTime
+  periodEnd             DateTime
+  calculationBasis      String   // gross_sales | net_sales | after_discount | after_return | collected | profit | subject_amount
+  ruleId                String?  @db.Uuid
+  ruleName              String?
+  subjectAmount         Decimal  @default(0) @db.Decimal(18, 2)
+  commissionRate        Decimal  @default(0) @db.Decimal(5, 2)
+  commissionFixedAmount Decimal  @default(0) @db.Decimal(18, 2)
+  calculatedCommission  Decimal  @default(0) @db.Decimal(18, 2)
+  adjustmentsTotal     Decimal  @default(0) @db.Decimal(18, 2)
+  finalPayableAmount    Decimal  @default(0) @db.Decimal(18, 2)
+  paidAmount            Decimal  @default(0) @db.Decimal(18, 2)
+  paymentStatus         String   @default("unpaid") // unpaid | partial | paid
+  status                String   @default("calculated") // calculated | review | approved | finalized | needs_correction | rejected | cancelled | corrected
+  journalEntryId        String?  @db.Uuid
+  approvedBy            String?  @db.Uuid
+  approvedAt            DateTime?
+  finalizedBy           String?  @db.Uuid
+  finalizedAt           DateTime?
+  rejectedBy            String?  @db.Uuid
+  rejectedAt            DateTime?
+  rejectedReason        String?
+  cancelledBy           String?  @db.Uuid
+  cancelledAt           DateTime?
+  cancelReason          String?
+  fiscalYearId          String?  @db.Uuid
+  description           String?
+  createdBy             String   @db.Uuid
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @default(now())
+  org                   Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  items                 CommissionItem[]
+  adjustments           CommissionAdjustment[]
+  history               CommissionHistory[]
+
+  @@map("commissions")
+}
+
+model CommissionItem {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId                 String?  @db.Uuid
+  commissionId          String   @db.Uuid
+  invoiceId             String?  @db.Uuid
+  invoiceNumber         String?
+  invoiceDate           DateTime?
+  invoiceAmount         Decimal  @default(0) @db.Decimal(18, 2)
+  discountAmount        Decimal  @default(0) @db.Decimal(18, 2)
+  returnAmount          Decimal  @default(0) @db.Decimal(18, 2)
+  collectedAmount       Decimal  @default(0) @db.Decimal(18, 2)
+  subjectAmount         Decimal  @default(0) @db.Decimal(18, 2)
+  commissionRate        Decimal  @default(0) @db.Decimal(5, 2)
+  commissionAmount      Decimal  @default(0) @db.Decimal(18, 2)
+  calcStatus            String   @default("not_included") // not_included | included | approved | finalized
+  description           String?
+  createdAt             DateTime @default(now())
+  commission            Commission @relation(fields: [commissionId], references: [id], onDelete: Cascade)
+  org                   Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@map("commission_items")
+}
+
+model CommissionAdjustment {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId                 String?  @db.Uuid
+  commissionId          String   @db.Uuid
+  adjustmentType        String   // bonus | deduction | penalty | correction | other
+  amount                Decimal  @default(0) @db.Decimal(18, 2)
+  reason                String?
+  sourceDocType         String?
+  sourceDocId           String?  @db.Uuid
+  approvedBy            String?  @db.Uuid
+  approvedAt            DateTime?
+  createdBy             String   @db.Uuid
+  createdAt             DateTime @default(now())
+  commission            Commission @relation(fields: [commissionId], references: [id], onDelete: Cascade)
+  org                   Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@map("commission_adjustments")
+}
+
+model CommissionHistory {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId                 String?  @db.Uuid
+  commissionId          String   @db.Uuid
+  action                String   // created | calculated | reviewed | approved | rejected | finalized | cancelled | corrected | paid | adjusted | status_changed
+  actionBy              String?  @db.Uuid
+  actionAt              DateTime @default(now())
+  fromStatus            String?
+  toStatus              String?
+  oldValue              String?
+  newValue              String?
+  reason                String?
+  details               Json     @default("{}")
+  createdAt             DateTime @default(now())
+  commission            Commission @relation(fields: [commissionId], references: [id], onDelete: Cascade)
+  org                   Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@map("commission_history")
+}
+
+model CommissionRule {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId                 String?  @db.Uuid
+  code                  String
+  name                  String
+  active                Boolean  @default(true)
+  validFrom             DateTime
+  validTo               DateTime?
+  salespersonId         String?  @db.Uuid
+  salespersonGroupId    String?
+  productId             String?  @db.Uuid
+  productGroupId        String?
+  customerId            String?  @db.Uuid
+  customerGroupId       String?
+  minAmount             Decimal  @default(0) @db.Decimal(18, 2)
+  maxAmount             Decimal  @default(0) @db.Decimal(18, 2)
+  commissionPct         Decimal  @default(0) @db.Decimal(5, 2)
+  fixedAmount           Decimal  @default(0) @db.Decimal(18, 2)
+  calculationBasis      String   // gross_sales | net_sales | after_discount | after_return | collected | profit | subject_amount
+  conditions            String?
+  ceilingAmount         Decimal  @default(0) @db.Decimal(18, 2)
+  floorAmount           Decimal  @default(0) @db.Decimal(18, 2)
+  roundingMethod        String   @default("none") // none | up | down | nearest
+  priority              Int      @default(0)
+  createdBy             String   @db.Uuid
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @default(now())
+  org                   Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@map("commission_rules")
 }

@@ -7,7 +7,7 @@ import {
   GraduationCap, BadgePercent, Ticket, StickyNote, MessageCircle,
   UserCheck, ClipboardList, Network, Contact, Megaphone, Wallet,
   FileCheck, Banknote, CreditCard, ArrowRightLeft, Sparkles,
-  ClipboardCheck, FileSearch, ArrowUpFromLine, Undo2,
+  ClipboardCheck, FileSearch, ArrowUpFromLine, Undo2, Percent,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { Profile } from '@/lib/types';
@@ -26,7 +26,6 @@ export interface NavGroup {
 
 export const coreItems: NavItem[] = [
   { href: '/dashboard', label: 'داشبورد', icon: LayoutDashboard },
-  { href: '/dashboard/my-customers', label: 'مشتریان من', icon: UserCheck },
   { href: '/dashboard/leads', label: 'سرنخ‌های فروش', icon: TrendingUp },
   { href: '/dashboard/orders', label: 'سفارشات', icon: ShoppingCart },
   { href: '/dashboard/meetings', label: 'جلسات', icon: Calendar },
@@ -62,6 +61,7 @@ export const financeItems: NavItem[] = [
   { href: '/dashboard/petty-cash-expenses', label: 'صورت هزینه تنخواه', icon: FileText },
   { href: '/dashboard/petty-cash-merge', label: 'صورت ادغام اسناد', icon: FileText },
   { href: '/dashboard/document-issuance', label: 'صدور اسناد', icon: FileText },
+  { href: '/dashboard/financial-announcements', label: 'اعلامیه‌های مالی', icon: FileCheck },
   { href: '/dashboard/contact-settlements', label: 'تسویه حساب طرف مقابل', icon: FileCheck },
   { href: '/dashboard/received-cheques', label: 'چک‌های دریافتی', icon: WalletCards },
   { href: '/dashboard/cheque-refunds', label: 'استرداد چک', icon: RotateCcw },
@@ -94,7 +94,12 @@ export const serviceItems: NavItem[] = [
   { href: '/dashboard/service-purchase-invoices', label: 'فاکتور خرید خدمات', icon: FileSearch },
 ];
 
+export const salesItems: NavItem[] = [
+  { href: '/dashboard/commissions', label: 'پورسانت', icon: Percent },
+];
+
 export const clubItems: NavItem[] = [
+  { href: '/dashboard/my-customers', label: 'مشتریان من', icon: UserCheck },
   { href: '/dashboard/customers', label: 'مشتریان', icon: Users },
   { href: '/dashboard/customer-segments', label: 'بخش‌بندی مشتریان', icon: BadgePercent },
   { href: '/dashboard/loyalty', label: 'امتیاز و وفاداری', icon: Award },
@@ -118,6 +123,7 @@ export const allNavGroups: NavGroup[] = [
   { label: 'گزارشات', icon: ClipboardList, items: reportsItems },
   { label: 'مالی', icon: Landmark, items: financeItems },
   { label: 'خدمات', icon: FileSearch, items: serviceItems },
+  { label: 'فروش', icon: TrendingUp, items: salesItems },
   { label: 'انبارداری', icon: Warehouse, items: inventoryItems },
   { label: 'باشگاه مشتریان', icon: Award, items: clubItems },
 ];

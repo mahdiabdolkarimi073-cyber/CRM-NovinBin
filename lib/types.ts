@@ -1954,3 +1954,207 @@ export interface WarehouseExitReturnHistory {
   details: any;
   createdAt: string;
 }
+
+// ============ FINANCIAL ANNOUNCEMENT (اعلامیه بدهکار و بستانکار) ============
+
+export interface FinancialAnnouncement {
+  id: string;
+  orgId: string | null;
+  number: string;
+  announcementType: string; // debit | credit
+  contactPartyId: string | null;
+  contactPartyName: string | null;
+  operationDate: string;
+  registeredDate: string;
+  accountingDate: string | null;
+  amount: number;
+  currency: string;
+  reasonCode: string | null;
+  reasonDescription: string | null;
+  description: string | null;
+  sourceDocType: string | null;
+  sourceDocId: string | null;
+  sourceDocNumber: string | null;
+  fiscalYearId: string | null;
+  costCenterId: string | null;
+  projectId: string | null;
+  oppositeAccountId: string | null;
+  oppositeAccountName: string | null;
+  taxSubjectAmount: number;
+  taxRate: number;
+  taxAmount: number;
+  taxAccountId: string | null;
+  taxStatus: string | null;
+  journalEntryId: string | null;
+  balanceBefore: number;
+  balanceAfter: number;
+  accountingEffectApplied: boolean;
+  duplicateChecked: boolean;
+  duplicateHash: string | null;
+  status: string; // draft | completed | pending_approval | approved | pending_journal | journal_issued | finalized | rejected | voided | needs_correction
+  approvedBy: string | null;
+  approvedAt: string | null;
+  rejectedBy: string | null;
+  rejectedAt: string | null;
+  rejectedReason: string | null;
+  voidedBy: string | null;
+  voidedAt: string | null;
+  voidReason: string | null;
+  amendedFromId: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  items?: FinancialAnnouncementItem[];
+  history?: FinancialAnnouncementHistory[];
+}
+
+export interface FinancialAnnouncementItem {
+  id: string;
+  orgId: string | null;
+  announcementId: string;
+  allocationType: string; // invoice | debt | credit | receipt | payment | prepayment | on_account | open_doc | balance
+  referenceType: string | null;
+  referenceId: string | null;
+  referenceNumber: string | null;
+  originalAmount: number;
+  paidAmount: number;
+  allocationAmount: number;
+  itemStatus: string; // open | partial | settled | closed | voided
+  description: string | null;
+  createdAt: string;
+}
+
+export interface FinancialAnnouncementHistory {
+  id: string;
+  orgId: string | null;
+  announcementId: string;
+  action: string;
+  actionBy: string | null;
+  actionAt: string;
+  fromStatus: string | null;
+  toStatus: string | null;
+  details: any;
+  createdAt: string;
+}
+
+// ============ COMMISSION (پورسانت) ============
+
+export interface Commission {
+  id: string;
+  orgId: string | null;
+  number: string;
+  salespersonId: string | null;
+  salespersonName: string | null;
+  periodStart: string;
+  periodEnd: string;
+  calculationBasis: string;
+  ruleId: string | null;
+  ruleName: string | null;
+  subjectAmount: number;
+  commissionRate: number;
+  commissionFixedAmount: number;
+  calculatedCommission: number;
+  adjustmentsTotal: number;
+  finalPayableAmount: number;
+  paidAmount: number;
+  paymentStatus: string; // unpaid | partial | paid
+  status: string; // calculated | review | approved | finalized | needs_correction | rejected | cancelled | corrected
+  journalEntryId: string | null;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  finalizedBy: string | null;
+  finalizedAt: string | null;
+  rejectedBy: string | null;
+  rejectedAt: string | null;
+  rejectedReason: string | null;
+  cancelledBy: string | null;
+  cancelledAt: string | null;
+  cancelReason: string | null;
+  fiscalYearId: string | null;
+  description: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  items?: CommissionItem[];
+  adjustments?: CommissionAdjustment[];
+  history?: CommissionHistory[];
+}
+
+export interface CommissionItem {
+  id: string;
+  orgId: string | null;
+  commissionId: string;
+  invoiceId: string | null;
+  invoiceNumber: string | null;
+  invoiceDate: string | null;
+  invoiceAmount: number;
+  discountAmount: number;
+  returnAmount: number;
+  collectedAmount: number;
+  subjectAmount: number;
+  commissionRate: number;
+  commissionAmount: number;
+  calcStatus: string; // not_included | included | approved | finalized
+  description: string | null;
+  createdAt: string;
+}
+
+export interface CommissionAdjustment {
+  id: string;
+  orgId: string | null;
+  commissionId: string;
+  adjustmentType: string; // bonus | deduction | penalty | correction | other
+  amount: number;
+  reason: string | null;
+  sourceDocType: string | null;
+  sourceDocId: string | null;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface CommissionHistory {
+  id: string;
+  orgId: string | null;
+  commissionId: string;
+  action: string;
+  actionBy: string | null;
+  actionAt: string;
+  fromStatus: string | null;
+  toStatus: string | null;
+  oldValue: string | null;
+  newValue: string | null;
+  reason: string | null;
+  details: any;
+  createdAt: string;
+}
+
+export interface CommissionRule {
+  id: string;
+  orgId: string | null;
+  code: string;
+  name: string;
+  active: boolean;
+  validFrom: string;
+  validTo: string | null;
+  salespersonId: string | null;
+  salespersonGroupId: string | null;
+  productId: string | null;
+  productGroupId: string | null;
+  customerId: string | null;
+  customerGroupId: string | null;
+  minAmount: number;
+  maxAmount: number;
+  commissionPct: number;
+  fixedAmount: number;
+  calculationBasis: string;
+  conditions: string | null;
+  ceilingAmount: number;
+  floorAmount: number;
+  roundingMethod: string;
+  priority: number;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}

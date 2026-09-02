@@ -146,6 +146,14 @@ const MODEL_MAP: Record<string, any> = {
   warehouse_receipts: prisma.warehouseReceipt,
   warehouse_receipt_items: prisma.warehouseReceiptItem,
   warehouse_receipt_history: prisma.warehouseReceiptHistory,
+  financial_announcements: prisma.financialAnnouncement,
+  financial_announcement_items: prisma.financialAnnouncementItem,
+  financial_announcement_history: prisma.financialAnnouncementHistory,
+  commissions: prisma.commission,
+  commission_items: prisma.commissionItem,
+  commission_adjustments: prisma.commissionAdjustment,
+  commission_history: prisma.commissionHistory,
+  commission_rules: prisma.commissionRule,
 };
 
 function getAuth(req: NextRequest) {
@@ -217,6 +225,14 @@ const MODEL_PAGE: Record<string, string> = {
   warehouse_receipts: '/dashboard/warehouse-receipts',
   warehouse_receipt_items: '/dashboard/warehouse-receipts',
   warehouse_receipt_history: '/dashboard/warehouse-receipts',
+  financial_announcements: '/dashboard/financial-announcements',
+  financial_announcement_items: '/dashboard/financial-announcements',
+  financial_announcement_history: '/dashboard/financial-announcements',
+  commissions: '/dashboard/commissions',
+  commission_items: '/dashboard/commissions',
+  commission_adjustments: '/dashboard/commissions',
+  commission_history: '/dashboard/commissions',
+  commission_rules: '/dashboard/commissions',
 };
 
 const SHARED_MODELS = new Set([
