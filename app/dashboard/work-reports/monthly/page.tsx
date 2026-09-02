@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { fetchData } from '@/lib/data-client';
+import { fetchData, createData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
 import { EmptyState } from '@/components/dashboard/empty-state';
 import { Button } from '@/components/ui/button';
@@ -12,8 +12,12 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Plus, FileText, Calendar, Search, ShieldCheck, Eye, ChevronRight, ChevronLeft } from 'lucide-react';
-import { formatJalali, formatJalaliDateTime } from '@/lib/format';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
+import { Plus, FileText, Calendar, Search, ShieldCheck, Eye, ChevronRight, ChevronLeft, Sparkles, Send, Loader2 } from 'lucide-react';
+import { formatJalali, formatJalaliDateTime, toLocalDateString } from '@/lib/format';
 import { toast } from 'sonner';
 import { isSuperAdminRole } from '@/lib/nav-config';
 import Link from 'next/link';
@@ -67,6 +71,14 @@ export default function MonthlyWorkReportsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+
+  // AI generate + send state
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiStep, setAiStep] = useState<'dates' | 'generating' | 'review' | 'sending'>('dates');
+  const [aiStartDate, setAiStartDate] = useState('');
+  const [aiEndDate, setAiEndDate] = useState('');
+  const [aiSummary, setAiSummary] = useState('');
+  const [aiReportCount, setAiReportCount] = useState(0);
 
   const isSuperAdmin = isSuperAdminRole(profile?.role);
 
@@ -136,6 +148,72 @@ export default function MonthlyWorkReportsPage() {
   }
   for (let i = startPage; i <= endPage; i++) pageNumbers.push(i);
 
+  // ─── AI Generate handler ───
+  const handleGenerate = async () => {
+    if (!aiStartDate || !aiEndDate) {
+      toast.error('تاریخ شروع و پایان را انتخاب کنید');
+      return;
+    }
+    setAiStep('generating');
+    try {
+      const res = await fetch('/api/work-reports/generate-monthly', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ startDate: aiStartDate, endDate: aiEndDate }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json.error || 'خطا در تولید گزارش');
+        setAiStep('dates');
+        return;
+      }
+      setAiSummary(json.summary);
+      setAiReportCount(json.reportCount);
+      setAiStep('review');
+    } catch {
+      toast.error('خطا در ارتباط با سرور');
+      setAiStep('dates');
+    }
+  };
+
+  // ─── Send monthly report handler ───
+  const handleSend = async () => {
+    if (!profile?.id) { toast.error('اطلاعات کاربری یافت نشد'); return; }
+    setAiStep('sending');
+    try {
+      const fullName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
+      await createData<MonthlyWorkReport>('monthly_work_reports', {
+        profileId: profile.id,
+        fullName,
+        nationalId: '',
+        startDate: new Date(aiStartDate),
+        endDate: new Date(aiEndDate),
+        description: aiSummary,
+        reportDate: new Date(),
+        summary: aiSummary,
+        status: 'submitted',
+      });
+      toast.success('گزارش ماهانه ارسال شد');
+      setAiOpen(false);
+      setAiStep('dates');
+      setAiSummary('');
+      setAiStartDate('');
+      setAiEndDate('');
+      loadData();
+    } catch (error: any) {
+      toast.error('خطا در ارسال گزارش: ' + (error?.message || 'خطا'));
+      setAiStep('review');
+    }
+  };
+
+  const resetAiDialog = () => {
+    setAiOpen(false);
+    setAiStep('dates');
+    setAiSummary('');
+    setAiStartDate('');
+    setAiEndDate('');
+  };
+
   return (
     <div className="w-full" dir="rtl">
       {/* Header */}
@@ -158,14 +236,23 @@ export default function MonthlyWorkReportsPage() {
               حالت مشاهده (سوپرادمین)
             </div>
           ) : (
-            <Link href="/dashboard/work-reports/monthly/new">
+            <>
               <Button
-                className="h-[44px] w-[100px] rounded-[10px] bg-[#10265F] text-[13px] font-bold text-white shadow-sm transition-all hover:-translate-y-px hover:bg-[#1a3a7a]"
+                onClick={() => setAiOpen(true)}
+                className="h-[44px] rounded-[10px] bg-[#0D9488] text-[13px] font-bold text-white shadow-sm transition-all hover:-translate-y-px hover:bg-[#0f766e]"
               >
-                <Plus className="h-4 w-4" />
-                گزارش جدید
+                <Sparkles className="h-4 w-4" />
+                گزارش هوشمند
               </Button>
-            </Link>
+              <Link href="/dashboard/work-reports/monthly/new">
+                <Button
+                  className="h-[44px] w-[100px] rounded-[10px] bg-[#10265F] text-[13px] font-bold text-white shadow-sm transition-all hover:-translate-y-px hover:bg-[#1a3a7a]"
+                >
+                  <Plus className="h-4 w-4" />
+                  گزارش جدید
+                </Button>
+              </Link>
+            </>
           )}
         </div>
       </div>
@@ -199,11 +286,16 @@ export default function MonthlyWorkReportsPage() {
             title={isSuperAdmin ? 'هنوز گزارشی ارسال نشده' : 'گزارش ماهانه‌ای ثبت نشده'}
             description={isSuperAdmin ? 'گزارش‌های ماهانه ارسال‌شده توسط کاربران اینجا نمایش داده می‌شود' : 'اولین گزارش ماهانه خود را ثبت کنید'}
             action={!isSuperAdmin ? (
-              <Link href="/dashboard/work-reports/monthly/new">
-                <Button className="rounded-[10px] bg-[#10265F] hover:bg-[#1a3a7a]">
-                  <Plus className="h-4 w-4" /> افزودن گزارش
+              <div className="flex gap-2">
+                <Button onClick={() => setAiOpen(true)} className="rounded-[10px] bg-[#0D9488] hover:bg-[#0f766e]">
+                  <Sparkles className="h-4 w-4" /> گزارش هوشمند
                 </Button>
-              </Link>
+                <Link href="/dashboard/work-reports/monthly/new">
+                  <Button className="rounded-[10px] bg-[#10265F] hover:bg-[#1a3a7a]">
+                    <Plus className="h-4 w-4" /> افزودن گزارش
+                  </Button>
+                </Link>
+              </div>
             ) : undefined}
           />
         </div>
@@ -364,6 +456,123 @@ export default function MonthlyWorkReportsPage() {
           </div>
         </>
       )}
+
+      {/* AI Generate + Send Dialog */}
+      <Dialog open={aiOpen} onOpenChange={(open) => { if (!open) resetAiDialog(); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-[18px] font-bold text-[#0F172A]">
+              <Sparkles className="h-5 w-5 text-[#0D9488]" />
+              تولید و ارسال گزارش ماهانه هوشمند
+            </DialogTitle>
+          </DialogHeader>
+
+          {/* Step 1: Date selection */}
+          {aiStep === 'dates' && (
+            <div className="space-y-5 py-2">
+              <div className="rounded-lg border border-sky-100 bg-sky-50/50 px-4 py-3 text-[13px] leading-relaxed text-slate-600">
+                این بخش گزارش‌های روزانه شما را در بازه زمانی انتخاب‌شده جمع‌آوری کرده و به‌صورت خودکار یک خلاصه ماهانه تولید می‌کند. سپس می‌توانید آن را بررسی و ارسال کنید.
+              </div>
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                <div>
+                  <Label className="mb-2 block text-[14px] font-semibold text-[#172033]">
+                    تاریخ شروع <span className="text-[#DC2626]">*</span>
+                  </Label>
+                  <JalaliDatePicker
+                    value={aiStartDate ? new Date(aiStartDate) : null}
+                    onChange={(d) => setAiStartDate(d ? toLocalDateString(d) : '')}
+                    className="h-[50px] rounded-[10px] border-[#D4DEEA] text-[14px]"
+                  />
+                </div>
+                <div>
+                  <Label className="mb-2 block text-[14px] font-semibold text-[#172033]">
+                    تاریخ پایان <span className="text-[#DC2626]">*</span>
+                  </Label>
+                  <JalaliDatePicker
+                    value={aiEndDate ? new Date(aiEndDate) : null}
+                    onChange={(d) => setAiEndDate(d ? toLocalDateString(d) : '')}
+                    className="h-[50px] rounded-[10px] border-[#D4DEEA] text-[14px]"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Generating */}
+          {aiStep === 'generating' && (
+            <div className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="h-10 w-10 animate-spin text-[#0D9488]" />
+              <p className="mt-4 text-[14px] text-slate-600">در حال جمع‌آوری و تحلیل گزارش‌های روزانه...</p>
+            </div>
+          )}
+
+          {/* Step 3: Review */}
+          {(aiStep === 'review' || aiStep === 'sending') && (
+            <div className="space-y-4 py-2">
+              <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-[13px] font-medium text-emerald-700">
+                <Sparkles className="h-4 w-4" />
+                {aiReportCount.toLocaleString('fa-IR')} گزارش روزانه تحلیل شد
+              </div>
+              <div>
+                <Label className="mb-2 block text-[14px] font-semibold text-[#172033]">
+                  خلاصه گزارش ماهانه
+                </Label>
+                <Textarea
+                  value={aiSummary}
+                  onChange={(e) => setAiSummary(e.target.value)}
+                  className="h-[300px] resize-y rounded-[10px] border-[#D4DEEA] p-4 text-[13px] leading-[1.9]"
+                  placeholder="خلاصه تولید‌شده اینجا نمایش داده می‌شود..."
+                />
+                <p className="mt-1 text-left text-[12px] text-[#94A3B8]">
+                  می‌توانید متن را ویرایش کنید قبل از ارسال
+                </p>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            {aiStep === 'dates' && (
+              <>
+                <Button variant="outline" onClick={resetAiDialog} className="rounded-[10px]">
+                  انصراف
+                </Button>
+                <Button
+                  onClick={handleGenerate}
+                  disabled={!aiStartDate || !aiEndDate}
+                  className="rounded-[10px] bg-[#0D9488] text-white hover:bg-[#0f766e]"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  تولید گزارش
+                </Button>
+              </>
+            )}
+            {(aiStep === 'review' || aiStep === 'sending') && (
+              <>
+                <Button variant="outline" onClick={() => setAiStep('dates')} className="rounded-[10px]" disabled={aiStep === 'sending'}>
+                  بازگشت
+                </Button>
+                <Button
+                  onClick={handleSend}
+                  disabled={aiStep === 'sending' || !aiSummary.trim()}
+                  className="rounded-[10px] bg-[#10265F] text-white hover:bg-[#1a3a7a]"
+                >
+                  {aiStep === 'sending' ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      در حال ارسال...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4" />
+                      ارسال گزارش ماهانه
+                    </>
+                  )}
+                </Button>
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -488,6 +488,12 @@ export function analyzePreInvoices(d: any): AnalysisResult {
   };
 }
 
+import {
+  analyzeSmartAlerts, analyzeLeadScoring, analyzeChurnPrediction,
+  analyzeCrossSell, analyzeSalesAllocation, analyzeSmartInventory,
+  analyzeCustomerProfitability, analyzeFinancialCalendar, analyzeConversionPath,
+} from './ai-smart-analyzers';
+
 export const ANALYZERS: Record<string, (d: any) => AnalysisResult> = {
   overview: analyzeOverview,
   invoices: analyzeInvoices,
@@ -502,6 +508,15 @@ export const ANALYZERS: Record<string, (d: any) => AnalysisResult> = {
   documentIssuance: analyzeDocumentIssuance,
   paymentAnnouncements: analyzePaymentAnnouncements,
   preInvoices: analyzePreInvoices,
+  smartAlerts: analyzeSmartAlerts,
+  leadScoring: analyzeLeadScoring,
+  churnPrediction: analyzeChurnPrediction,
+  crossSell: analyzeCrossSell,
+  salesAllocation: analyzeSalesAllocation,
+  smartInventory: analyzeSmartInventory,
+  customerProfitability: analyzeCustomerProfitability,
+  financialCalendar: analyzeFinancialCalendar,
+  conversionPath: analyzeConversionPath,
 };
 
 export const SECTION_LABELS: Record<string, string> = {
@@ -518,6 +533,15 @@ export const SECTION_LABELS: Record<string, string> = {
   documentIssuance: 'صدور اسناد',
   paymentAnnouncements: 'اعلامیه‌های پرداخت',
   preInvoices: 'پیش‌فاکتور و مرجوعی',
+  smartAlerts: 'هشدارهای هوشمند',
+  leadScoring: 'امتیازدهی لیدها',
+  churnPrediction: 'پیش‌بینی ریزش مشتری',
+  crossSell: 'پیشنهاد فروش متقاطع',
+  salesAllocation: 'تخصیص منابع فروش',
+  smartInventory: 'مدیریت موجودی هوشمند',
+  customerProfitability: 'سودآوری مشتری',
+  financialCalendar: 'تقویم مالی',
+  conversionPath: 'مسیر تبدیل',
 };
 
 export const INTENT_KEYWORDS: Record<string, string[]> = {
@@ -534,6 +558,15 @@ export const INTENT_KEYWORDS: Record<string, string[]> = {
   documentIssuance: ['document', 'سند', 'صدور', 'issuance'],
   paymentAnnouncements: ['announcement', 'اعلامیه', 'پرداخت'],
   preInvoices: ['pre-invoice', 'پیش‌فاکتور', 'مرجوعی', 'return', 'پیش فاکتور'],
+  smartAlerts: ['alert', 'هشدار', 'warning', 'risk', 'ریسک', 'خطر', 'بحرانی', 'proactive'],
+  leadScoring: ['lead score', 'امتیاز لید', 'امتیازدهی', 'scoring', 'داغ', 'سرد', 'گرید'],
+  churnPrediction: ['churn', 'ریزش', 'از دست دادن', 'lost customer', 'مشتری از دست', 'at risk'],
+  crossSell: ['cross sell', 'فروش متقاطع', 'up sell', 'افزایشی', 'پیشنهاد محصول', 'cross-sell'],
+  salesAllocation: ['allocation', 'تخصیص', 'assign', 'منابع فروش', 'workload', 'بار کاری'],
+  smartInventory: ['inventory', 'موجودی', 'stock', 'انبار', 'reorder', 'سفارش مجدد', 'اتمام'],
+  customerProfitability: ['profitability', 'سودآوری', 'profit per customer', 'زیان‌ده', 'حاشیه سود'],
+  financialCalendar: ['calendar', 'تقویم', 'سررسید', 'due', 'تعهد', 'commitment', 'رویداد مالی'],
+  conversionPath: ['conversion', 'تبدیل', 'funnel', 'قیف', 'مسیر', 'drop off', 'ریزش فروش', 'conversion rate'],
 };
 
 export function detectIntent(message: string): string {

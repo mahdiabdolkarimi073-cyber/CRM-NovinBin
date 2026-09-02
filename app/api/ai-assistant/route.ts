@@ -27,6 +27,8 @@ async function collectFinancialData() {
     documentIssuances, receivedCheques, chequeRefunds, chequeClearings,
     cardReaders, cardReaderTransactions, cardReaderSettlements,
     paymentAnnouncements, customers, costCenters, fiscalYears,
+    leads, products, orders, opportunities, profiles, tickets,
+    customerInteractions, stockMovements, demos,
   ] = await Promise.all([
     prisma.account.findMany({ orderBy: { code: 'asc' } }),
     prisma.journalEntry.findMany({ include: { lines: true }, orderBy: { createdAt: 'desc' }, take: 500 }),
@@ -56,6 +58,15 @@ async function collectFinancialData() {
     prisma.customer.findMany({ take: 500 }),
     prisma.costCenter.findMany(),
     prisma.fiscalYear.findMany({ orderBy: { startDate: 'desc' } }),
+    prisma.lead.findMany({ orderBy: { createdAt: 'desc' }, take: 500 }),
+    prisma.product.findMany({ take: 500 }),
+    prisma.order.findMany({ include: { items: true }, orderBy: { createdAt: 'desc' }, take: 500 }),
+    prisma.opportunity.findMany({ orderBy: { createdAt: 'desc' }, take: 200 }),
+    prisma.profile.findMany({ take: 200 }),
+    prisma.ticket.findMany({ orderBy: { createdAt: 'desc' }, take: 500 }),
+    prisma.customerInteraction.findMany({ orderBy: { createdAt: 'desc' }, take: 500 }),
+    prisma.stockMovement.findMany({ orderBy: { createdAt: 'desc' }, take: 500 }),
+    prisma.demo.findMany({ orderBy: { createdAt: 'desc' }, take: 200 }),
   ]);
 
   return {
@@ -66,6 +77,8 @@ async function collectFinancialData() {
     documentIssuances, receivedCheques, chequeRefunds, chequeClearings,
     cardReaders, cardReaderTransactions, cardReaderSettlements,
     paymentAnnouncements, customers, costCenters, fiscalYears,
+    leads, products, orders, opportunities, profiles, tickets,
+    customerInteractions, stockMovements, demos,
   };
 }
 
@@ -92,7 +105,7 @@ function isHelpRequest(msg: string): boolean {
 
 function generateHelpResponse(): AnalysisResult {
   return {
-    summary: `راهنمای دستیار هوشمند مالی\n\nمن می‌توانم در دو حوزه به شما کمک کنم:\n\n۱. تحلیل داده‌ها — برای هر بخش مالی، آمار، هشدار و توصیه ارائه می‌دهم. کافیست نام بخش را بپرسید یا روی دکمه‌های سریع کلیک کنید.\n\n۲. ایجاد رکورد — می‌توانم با راهنمایی مرحله‌ای، رکوردهای جدید در دیتابیس ایجاد کنم. مثلاً بگویید «یک تنخواه‌دار ایجاد کن» یا «فاکتور جدید بساز».\n\nبخش‌های قابل تحلیل:\n• نمای کلی مالی\n• فاکتورها و فروش\n• پرداخت‌ها و دریافت‌ها\n• چک‌های دریافتی\n• حساب‌های بانکی و خزانه‌داری\n• تنخواه‌دار\n• کارتخوان‌ها\n• مطالبات و بدهی‌ها\n• حسابداری و اسناد\n• طرف‌های حساب و تسویه\n• صدور اسناد\n• اعلامیه‌های پرداخت\n• پیش‌فاکتور و مرجوعی\n\nرکوردهای قابل ایجاد:\n• تنخواه‌دار\n• حساب بانکی\n• فاکتور\n• پرداخت\n• رسید/دریافت\n• چک دریافتی\n• کارتخوان\n• طرف حساب\n• حساب حسابداری\n• مرکز هزینه\n• سال مالی\n• چک\n• پیش‌فاکتور\n• اعلامیه پرداخت`,
+    summary: `راهنمای دستیار هوشمند مالی\n\nمن می‌توانم در دو حوزه به شما کمک کنم:\n\n۱. تحلیل داده‌ها — برای هر بخش مالی، آمار، هشدار و توصیه ارائه می‌دهم. کافیست نام بخش را بپرسید یا روی دکمه‌های سریع کلیک کنید.\n\n۲. ایجاد رکورد — می‌توانم با راهنمایی مرحله‌ای، رکوردهای جدید در دیتابیس ایجاد کنم. مثلاً بگویید «یک تنخواه‌دار ایجاد کن» یا «فاکتور جدید بساز».\n\nبخش‌های قابل تحلیل مالی:\n• نمای کلی مالی\n• فاکتورها و فروش\n• پرداخت‌ها و دریافت‌ها\n• چک‌های دریافتی\n• حساب‌های بانکی و خزانه‌داری\n• تنخواه‌دار\n• کارتخوان‌ها\n• مطالبات و بدهی‌ها\n• حسابداری و اسناد\n• طرف‌های حساب و تسویه\n• صدور اسناد\n• اعلامیه‌های پرداخت\n• پیش‌فاکتور و مرجوعی\n\nبخش‌های هوشمند CRM+ERP:\n• هشدارهای هوشمند (ریسک‌های فعال)\n• امتیازدهی لیدها\n• پیش‌بینی ریزش مشتری\n• پیشنهاد فروش متقاطع\n• تخصیص منابع فروش\n• مدیریت موجودی هوشمند\n• سودآوری مشتری\n• تقویم مالی\n• مسیر تبدیل (قیف فروش)\n\nرکوردهای قابل ایجاد:\n• تنخواه‌دار\n• حساب بانکی\n• فاکتور\n• پرداخت\n• رسید/دریافت\n• چک دریافتی\n• کارتخوان\n• طرف حساب\n• حساب حسابداری\n• مرکز هزینه\n• سال مالی\n• چک\n• پیش‌فاکتور\n• اعلامیه پرداخت`,
     details: [
       'مثال تحلیل: «وضعیت فاکتورها چطوره؟» یا «مطالبات را تحلیل کن»',
       'مثال ایجاد: «یک حساب بانکی ایجاد کن» یا «تنخواه‌دار جدید بساز»',

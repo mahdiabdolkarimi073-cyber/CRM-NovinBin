@@ -34,7 +34,7 @@ interface Message {
   createSuccess?: boolean;
 }
 
-const ANALYSIS_ACTIONS = [
+const FINANCIAL_ACTIONS = [
   { label: 'نمای کلی مالی', section: 'overview' },
   { label: 'فاکتورها', section: 'invoices' },
   { label: 'مطالبات و بدهی‌ها', section: 'receivables' },
@@ -48,6 +48,20 @@ const ANALYSIS_ACTIONS = [
   { label: 'صدور اسناد', section: 'documentIssuance' },
   { label: 'پیش‌فاکتور', section: 'preInvoices' },
 ];
+
+const SMART_ACTIONS = [
+  { label: 'هشدارهای هوشمند', section: 'smartAlerts' },
+  { label: 'امتیازدهی لیدها', section: 'leadScoring' },
+  { label: 'پیش‌بینی ریزش', section: 'churnPrediction' },
+  { label: 'فروش متقاطع', section: 'crossSell' },
+  { label: 'تخصیص منابع فروش', section: 'salesAllocation' },
+  { label: 'موجودی هوشمند', section: 'smartInventory' },
+  { label: 'سودآوری مشتری', section: 'customerProfitability' },
+  { label: 'تقویم مالی', section: 'financialCalendar' },
+  { label: 'مسیر تبدیل', section: 'conversionPath' },
+];
+
+const ANALYSIS_ACTIONS = [...FINANCIAL_ACTIONS, ...SMART_ACTIONS];
 
 const CREATE_ACTIONS = [
   { label: 'تنخواه‌دار', section: 'pettyCash' },
@@ -71,14 +85,14 @@ export default function AIAssistantPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'analyze' | 'create'>('analyze');
+  const [activeTab, setActiveTab] = useState<'analyze' | 'smart' | 'create'>('analyze');
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMessages([
       {
         role: 'assistant',
-        content: 'سلام! من دستیار هوشمند مالی شما هستم.\n\nمی‌توانم:\n• داده‌های مالی شما را تحلیل کنم\n• رکوردهای جدید ایجاد کنم (مثل فاکتور، تنخواه‌دار، حساب بانکی و...)\n• راهنمایی بدم\n\nبرای شروع، یکی از دکمه‌های زیر را انتخاب کنید یا سوال خود را بنویسید.',
+        content: 'سلام! من دستیار هوشمند مالی شما هستم.\n\nمی‌توانم:\n• داده‌های مالی شما را تحلیل کنم\n• با تحلیل‌های هوشمند، ریسک‌ها و فرصت‌ها را شناسایی کنم (ریزش مشتری، امتیاز لید، موجودی، سودآوری و...)\n• رکوردهای جدید ایجاد کنم (مثل فاکتور، تنخواه‌دار، حساب بانکی و...)\n• راهنمایی بدم\n\nبرای شروع، یکی از دکمه‌های زیر را انتخاب کنید یا سوال خود را بنویسید.',
         section: 'دستیار مالی',
       },
     ]);
@@ -184,7 +198,14 @@ export default function AIAssistantPage() {
           className={`flex-1 rounded-lg px-3 py-2 text-[13px] font-medium transition-all ${activeTab === 'analyze' ? 'bg-white text-[#0D9488] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
         >
           <BarChart3 className="ml-1 inline h-3.5 w-3.5" />
-          تحلیل
+          مالی
+        </button>
+        <button
+          onClick={() => setActiveTab('smart')}
+          className={`flex-1 rounded-lg px-3 py-2 text-[13px] font-medium transition-all ${activeTab === 'smart' ? 'bg-white text-[#0D9488] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+        >
+          <Sparkles className="ml-1 inline h-3.5 w-3.5" />
+          هوشمند
         </button>
         <button
           onClick={() => setActiveTab('create')}
@@ -198,7 +219,7 @@ export default function AIAssistantPage() {
       {/* Quick action chips */}
       <div className="mb-3 flex flex-wrap gap-2">
         {activeTab === 'analyze'
-          ? ANALYSIS_ACTIONS.map((qa) => (
+          ? FINANCIAL_ACTIONS.map((qa) => (
               <button
                 key={qa.section}
                 onClick={() => handleAnalyze(qa.section)}
@@ -206,6 +227,18 @@ export default function AIAssistantPage() {
                 className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-medium text-slate-600 transition-all hover:border-[#2DD4BF] hover:bg-[#2DD4BF]/5 hover:text-[#0D9488] disabled:opacity-50"
               >
                 <BarChart3 className="h-3.5 w-3.5" />
+                {qa.label}
+              </button>
+            ))
+          : activeTab === 'smart'
+          ? SMART_ACTIONS.map((qa) => (
+              <button
+                key={qa.section}
+                onClick={() => handleAnalyze(qa.section)}
+                disabled={loading}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-medium text-slate-600 transition-all hover:border-[#2DD4BF] hover:bg-[#2DD4BF]/5 hover:text-[#0D9488] disabled:opacity-50"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
                 {qa.label}
               </button>
             ))
