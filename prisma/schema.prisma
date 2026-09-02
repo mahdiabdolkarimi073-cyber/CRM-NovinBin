@@ -3215,3 +3215,228 @@ model WarehouseReceiptHistory {
 
   @@map("warehouse_receipt_history")
 }
+
+// ============ WAREHOUSE RECEIPT RETURN (برگشت رسید انبار) ============
+
+model WarehouseReceiptReturn {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId             String?  @db.Uuid
+  number            String
+  returnDate        DateTime @default(now())
+  registeredDate    DateTime @default(now())
+  originalReceiptId String   @db.Uuid
+  warehouseId       String?  @db.Uuid
+  contactPartyId    String?  @db.Uuid
+  contactName       String?
+  returnReason      String?
+  responsibleId     String?  @db.Uuid
+  status            String   @default("draft") // draft | pending_review | approved | applied | finalized | voided
+  totalValue        Decimal  @default(0)
+  journalEntryId    String?  @db.Uuid
+  reverseJournalEntryId String? @db.Uuid
+  voidedBy          String?  @db.Uuid
+  voidedAt          DateTime?
+  voidReason        String?
+  description       String?
+  createdBy         String   @db.Uuid
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now())
+  org               Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  items             WarehouseReceiptReturnItem[]
+  history           WarehouseReceiptReturnHistory[]
+
+  @@map("warehouse_receipt_returns")
+}
+
+model WarehouseReceiptReturnItem {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId                 String?  @db.Uuid
+  returnId              String   @db.Uuid
+  rowNumber             Int      @default(1)
+  originalReceiptItemId String?  @db.Uuid
+  productId             String?  @db.Uuid
+  productName           String?
+  qty                   Decimal  @default(0)
+  unit                  String?
+  baseUnit              String?
+  conversionFactor      Decimal  @default(1)
+  baseQty               Decimal  @default(0)
+  unitPrice             Decimal  @default(0)
+  totalValue            Decimal  @default(0)
+  location              String?
+  batchNo               String?
+  serialNo              String?
+  notes                 String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @default(now())
+  return                WarehouseReceiptReturn @relation(fields: [returnId], references: [id], onDelete: Cascade)
+
+  @@map("warehouse_receipt_return_items")
+}
+
+model WarehouseReceiptReturnHistory {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  returnId        String   @db.Uuid
+  action          String
+  actionBy        String?  @db.Uuid
+  actionAt        DateTime @default(now())
+  fromStatus      String?
+  toStatus        String?
+  details         Json     @default("{}")
+  createdAt       DateTime @default(now())
+  return          WarehouseReceiptReturn @relation(fields: [returnId], references: [id], onDelete: Cascade)
+
+  @@map("warehouse_receipt_return_history")
+}
+
+// ============ WAREHOUSE EXIT (خروج از انبار) ============
+
+model WarehouseExit {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  number          String
+  exitDate        DateTime @default(now())
+  registeredDate  DateTime @default(now())
+  warehouseId     String?  @db.Uuid
+  exitType        String   @default("sale") // sale | internal_use | production | transfer_out | return_to_supplier | consignment | scrap | adjustment | other
+  sourceDocType   String?
+  sourceDocId     String?  @db.Uuid
+  recipientUnit   String?
+  contactPartyId  String?  @db.Uuid
+  contactName     String?
+  responsibleId   String?  @db.Uuid
+  status          String   @default("draft") // draft | completed | pending_approval | approved | applied | finalized | voided
+  totalValue      Decimal  @default(0)
+  journalEntryId  String?  @db.Uuid
+  voidedBy        String?  @db.Uuid
+  voidedAt        DateTime?
+  voidReason      String?
+  description     String?
+  createdBy       String   @db.Uuid
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+  org             Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  items           WarehouseExitItem[]
+  history         WarehouseExitHistory[]
+
+  @@map("warehouse_exits")
+}
+
+model WarehouseExitItem {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  exitId          String   @db.Uuid
+  rowNumber       Int      @default(1)
+  productId       String?  @db.Uuid
+  productName     String?
+  qty             Decimal  @default(0)
+  unit            String?
+  baseUnit        String?
+  conversionFactor Decimal @default(1)
+  baseQty         Decimal  @default(0)
+  unitPrice       Decimal  @default(0)
+  totalValue      Decimal  @default(0)
+  location        String?
+  batchNo         String?
+  serialNo        String?
+  productionDate  DateTime?
+  expiryDate      DateTime?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+  exit            WarehouseExit @relation(fields: [exitId], references: [id], onDelete: Cascade)
+
+  @@map("warehouse_exit_items")
+}
+
+model WarehouseExitHistory {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  exitId          String   @db.Uuid
+  action          String
+  actionBy        String?  @db.Uuid
+  actionAt        DateTime @default(now())
+  fromStatus      String?
+  toStatus        String?
+  details         Json     @default("{}")
+  createdAt       DateTime @default(now())
+  exit            WarehouseExit @relation(fields: [exitId], references: [id], onDelete: Cascade)
+
+  @@map("warehouse_exit_history")
+}
+
+// ============ WAREHOUSE EXIT RETURN (برگشت خروج از انبار) ============
+
+model WarehouseExitReturn {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  number          String
+  returnDate      DateTime @default(now())
+  registeredDate  DateTime @default(now())
+  originalExitId  String   @db.Uuid
+  warehouseId     String?  @db.Uuid
+  contactPartyId  String?  @db.Uuid
+  contactName     String?
+  returnReason    String?
+  itemCondition   String?  // usable | quarantine | defective | scrap | needs_inspection
+  responsibleId   String?  @db.Uuid
+  status          String   @default("draft") // draft | pending_review | approved | applied | finalized | voided
+  totalValue      Decimal  @default(0)
+  journalEntryId  String?  @db.Uuid
+  reverseJournalEntryId String? @db.Uuid
+  voidedBy        String?  @db.Uuid
+  voidedAt        DateTime?
+  voidReason      String?
+  description     String?
+  createdBy       String   @db.Uuid
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+  org             Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  items           WarehouseExitReturnItem[]
+  history         WarehouseExitReturnHistory[]
+
+  @@map("warehouse_exit_returns")
+}
+
+model WarehouseExitReturnItem {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId               String?  @db.Uuid
+  returnId            String   @db.Uuid
+  rowNumber           Int      @default(1)
+  originalExitItemId  String?  @db.Uuid
+  productId           String?  @db.Uuid
+  productName         String?
+  qty                 Decimal  @default(0)
+  unit                String?
+  baseUnit            String?
+  conversionFactor    Decimal  @default(1)
+  baseQty             Decimal  @default(0)
+  unitPrice           Decimal  @default(0)
+  totalValue          Decimal  @default(0)
+  location            String?
+  batchNo             String?
+  serialNo            String?
+  notes               String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @default(now())
+  return              WarehouseExitReturn @relation(fields: [returnId], references: [id], onDelete: Cascade)
+
+  @@map("warehouse_exit_return_items")
+}
+
+model WarehouseExitReturnHistory {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  returnId        String   @db.Uuid
+  action          String
+  actionBy        String?  @db.Uuid
+  actionAt        DateTime @default(now())
+  fromStatus      String?
+  toStatus        String?
+  details         Json     @default("{}")
+  createdAt       DateTime @default(now())
+  return          WarehouseExitReturn @relation(fields: [returnId], references: [id], onDelete: Cascade)
+
+  @@map("warehouse_exit_return_history")
+}

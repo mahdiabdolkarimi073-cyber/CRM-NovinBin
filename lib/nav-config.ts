@@ -7,7 +7,7 @@ import {
   GraduationCap, BadgePercent, Ticket, StickyNote, MessageCircle,
   UserCheck, ClipboardList, Network, Contact, Megaphone, Wallet,
   FileCheck, Banknote, CreditCard, ArrowRightLeft, Sparkles,
-  ClipboardCheck, FileSearch,
+  ClipboardCheck, FileSearch, ArrowUpFromLine, Undo2,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { Profile } from '@/lib/types';
@@ -85,6 +85,9 @@ export const inventoryItems: NavItem[] = [
   { href: '/dashboard/stock-transfers', label: 'انتقال بین انبارها', icon: Package },
   { href: '/dashboard/stock-taking', label: 'انبارگردانی', icon: ClipboardCheck },
   { href: '/dashboard/warehouse-receipts', label: 'رسید انبار', icon: ArrowDownToLine },
+  { href: '/dashboard/warehouse-receipt-returns', label: 'برگشت رسید انبار', icon: Undo2 },
+  { href: '/dashboard/warehouse-exits', label: 'خروج از انبار', icon: ArrowUpFromLine },
+  { href: '/dashboard/warehouse-exit-returns', label: 'برگشت خروج از انبار', icon: RotateCcw },
 ];
 
 export const serviceItems: NavItem[] = [

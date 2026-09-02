@@ -1756,3 +1756,201 @@ export interface WarehouseReceiptHistory {
   details: any;
   createdAt: string;
 }
+
+// ============ WAREHOUSE RECEIPT RETURN (برگشت رسید انبار) ============
+
+export interface WarehouseReceiptReturn {
+  id: string;
+  orgId: string | null;
+  number: string;
+  returnDate: string;
+  registeredDate: string;
+  originalReceiptId: string;
+  warehouseId: string | null;
+  contactPartyId: string | null;
+  contactName: string | null;
+  returnReason: string | null;
+  responsibleId: string | null;
+  status: string;
+  totalValue: number;
+  journalEntryId: string | null;
+  reverseJournalEntryId: string | null;
+  voidedBy: string | null;
+  voidedAt: string | null;
+  voidReason: string | null;
+  description: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  items?: WarehouseReceiptReturnItem[];
+  history?: WarehouseReceiptReturnHistory[];
+}
+
+export interface WarehouseReceiptReturnItem {
+  id: string;
+  orgId: string | null;
+  returnId: string;
+  rowNumber: number;
+  originalReceiptItemId: string | null;
+  productId: string | null;
+  productName: string | null;
+  qty: number;
+  unit: string | null;
+  baseUnit: string | null;
+  conversionFactor: number;
+  baseQty: number;
+  unitPrice: number;
+  totalValue: number;
+  location: string | null;
+  batchNo: string | null;
+  serialNo: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WarehouseReceiptReturnHistory {
+  id: string;
+  orgId: string | null;
+  returnId: string;
+  action: string;
+  actionBy: string | null;
+  actionAt: string;
+  fromStatus: string | null;
+  toStatus: string | null;
+  details: any;
+  createdAt: string;
+}
+
+// ============ WAREHOUSE EXIT (خروج از انبار) ============
+
+export interface WarehouseExit {
+  id: string;
+  orgId: string | null;
+  number: string;
+  exitDate: string;
+  registeredDate: string;
+  warehouseId: string | null;
+  exitType: string;
+  sourceDocType: string | null;
+  sourceDocId: string | null;
+  recipientUnit: string | null;
+  contactPartyId: string | null;
+  contactName: string | null;
+  responsibleId: string | null;
+  status: string;
+  totalValue: number;
+  journalEntryId: string | null;
+  voidedBy: string | null;
+  voidedAt: string | null;
+  voidReason: string | null;
+  description: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  items?: WarehouseExitItem[];
+  history?: WarehouseExitHistory[];
+}
+
+export interface WarehouseExitItem {
+  id: string;
+  orgId: string | null;
+  exitId: string;
+  rowNumber: number;
+  productId: string | null;
+  productName: string | null;
+  qty: number;
+  unit: string | null;
+  baseUnit: string | null;
+  conversionFactor: number;
+  baseQty: number;
+  unitPrice: number;
+  totalValue: number;
+  location: string | null;
+  batchNo: string | null;
+  serialNo: string | null;
+  productionDate: string | null;
+  expiryDate: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WarehouseExitHistory {
+  id: string;
+  orgId: string | null;
+  exitId: string;
+  action: string;
+  actionBy: string | null;
+  actionAt: string;
+  fromStatus: string | null;
+  toStatus: string | null;
+  details: any;
+  createdAt: string;
+}
+
+// ============ WAREHOUSE EXIT RETURN (برگشت خروج از انبار) ============
+
+export interface WarehouseExitReturn {
+  id: string;
+  orgId: string | null;
+  number: string;
+  returnDate: string;
+  registeredDate: string;
+  originalExitId: string;
+  warehouseId: string | null;
+  contactPartyId: string | null;
+  contactName: string | null;
+  returnReason: string | null;
+  itemCondition: string | null;
+  responsibleId: string | null;
+  status: string;
+  totalValue: number;
+  journalEntryId: string | null;
+  reverseJournalEntryId: string | null;
+  voidedBy: string | null;
+  voidedAt: string | null;
+  voidReason: string | null;
+  description: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  items?: WarehouseExitReturnItem[];
+  history?: WarehouseExitReturnHistory[];
+}
+
+export interface WarehouseExitReturnItem {
+  id: string;
+  orgId: string | null;
+  returnId: string;
+  rowNumber: number;
+  originalExitItemId: string | null;
+  productId: string | null;
+  productName: string | null;
+  qty: number;
+  unit: string | null;
+  baseUnit: string | null;
+  conversionFactor: number;
+  baseQty: number;
+  unitPrice: number;
+  totalValue: number;
+  location: string | null;
+  batchNo: string | null;
+  serialNo: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WarehouseExitReturnHistory {
+  id: string;
+  orgId: string | null;
+  returnId: string;
+  action: string;
+  actionBy: string | null;
+  actionAt: string;
+  fromStatus: string | null;
+  toStatus: string | null;
+  details: any;
+  createdAt: string;
+}
