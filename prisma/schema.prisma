@@ -121,6 +121,9 @@ model Organization {
   chequeClearings          ChequeClearing[]
   chequeClearingHistories  ChequeClearingHistory[]
   cardReaders              CardReader[]
+  stockTakings            StockTaking[]
+  servicePurchaseInvoices ServicePurchaseInvoice[]
+  warehouseReceipts       WarehouseReceipt[]
 
   @@map("organizations")
 }
@@ -2961,4 +2964,254 @@ model CardReaderHistory {
   cardReader      CardReader @relation(fields: [cardReaderId], references: [id], onDelete: Cascade)
 
   @@map("card_reader_history")
+}
+
+// ============ STOCK TAKING (انبارگردانی) ============
+
+model StockTaking {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  number          String
+  warehouseId     String?  @db.Uuid
+  stockTakingType String   @default("full")
+  scopeType       String   @default("all")
+  scopeValue      String?
+  responsibleId   String?  @db.Uuid
+  startDate       DateTime?
+  endDate         DateTime?
+  status          String   @default("draft")
+  description     String?
+  freezeOperations Boolean @default(false)
+  approvedBy      String?  @db.Uuid
+  approvedAt      DateTime?
+  closedBy        String?  @db.Uuid
+  closedAt        DateTime?
+  cancelledBy     String?  @db.Uuid
+  cancelledAt     DateTime?
+  cancelReason    String?
+  journalEntryId  String?  @db.Uuid
+  createdBy       String   @db.Uuid
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+  org             Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  items           StockTakingItem[]
+  history         StockTakingHistory[]
+
+  @@map("stock_takings")
+}
+
+model StockTakingItem {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  stockTakingId   String   @db.Uuid
+  productId       String?  @db.Uuid
+  productName     String?
+  unit            String?
+  systemQty       Decimal  @default(0)
+  countedQty      Decimal  @default(0)
+  recountQty      Decimal?
+  finalQty        Decimal  @default(0)
+  discrepancy    Decimal  @default(0)
+  discrepancyType String   @default("none")
+  location        String?
+  batchNo         String?
+  serialNo        String?
+  counterId       String?  @db.Uuid
+  countedAt       DateTime?
+  approved        Boolean  @default(false)
+  adjustmentPosted Boolean @default(false)
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+  stockTaking     StockTaking @relation(fields: [stockTakingId], references: [id], onDelete: Cascade)
+
+  @@map("stock_taking_items")
+}
+
+model StockTakingHistory {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  stockTakingId   String   @db.Uuid
+  action          String
+  actionBy        String?  @db.Uuid
+  actionAt        DateTime @default(now())
+  fromStatus      String?
+  toStatus        String?
+  details         Json     @default("{}")
+  createdAt       DateTime @default(now())
+  stockTaking     StockTaking @relation(fields: [stockTakingId], references: [id], onDelete: Cascade)
+
+  @@map("stock_taking_history")
+}
+
+// ============ SERVICE PURCHASE INVOICE (فاکتور خرید خدمات) ============
+
+model ServicePurchaseInvoice {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId               String?  @db.Uuid
+  internalNumber      String
+  supplierInvoiceNo   String?
+  supplierId          String?  @db.Uuid
+  supplierName        String?
+  purchaseType        String   @default("service")
+  fiscalYearId        String?  @db.Uuid
+  invoiceDate         DateTime @default(now())
+  registeredDate      DateTime @default(now())
+  currency            String   @default("IRR")
+  exchangeRate        Decimal  @default(1)
+  subtotal            Decimal  @default(0)
+  totalDiscount       Decimal  @default(0)
+  totalTax            Decimal  @default(0)
+  totalDuty           Decimal  @default(0)
+  totalAdditions      Decimal  @default(0)
+  totalDeductions     Decimal  @default(0)
+  finalAmount         Decimal  @default(0)
+  paidAmount          Decimal  @default(0)
+  balanceDue          Decimal  @default(0)
+  status              String   @default("draft")
+  serviceConfirmed    Boolean  @default(false)
+  serviceConfirmedBy  String?  @db.Uuid
+  serviceConfirmedAt  DateTime?
+  financeApproved     Boolean  @default(false)
+  financeApprovedBy   String?  @db.Uuid
+  financeApprovedAt   DateTime?
+  journalEntryId      String?  @db.Uuid
+  sentToWorkboard     Boolean  @default(false)
+  voidedBy            String?  @db.Uuid
+  voidedAt            DateTime?
+  voidReason          String?
+  description         String?
+  createdBy           String   @db.Uuid
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @default(now())
+  org                 Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  items               ServicePurchaseInvoiceItem[]
+  history             ServicePurchaseInvoiceHistory[]
+
+  @@map("service_purchase_invoices")
+}
+
+model ServicePurchaseInvoiceItem {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  invoiceId       String   @db.Uuid
+  rowNumber       Int      @default(1)
+  serviceId       String?  @db.Uuid
+  serviceName     String?
+  description     String?
+  qty             Decimal  @default(0)
+  unit            String?
+  unitPrice       Decimal  @default(0)
+  grossAmount     Decimal  @default(0)
+  discountAmount  Decimal  @default(0)
+  discountPct     Decimal  @default(0)
+  taxableAmount   Decimal  @default(0)
+  taxAmount       Decimal  @default(0)
+  taxPct          Decimal  @default(0)
+  dutyAmount      Decimal  @default(0)
+  dutyPct         Decimal  @default(0)
+  additions       Decimal  @default(0)
+  deductions      Decimal  @default(0)
+  finalPrice      Decimal  @default(0)
+  costCenterId    String?  @db.Uuid
+  accountId       String?  @db.Uuid
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+  invoice         ServicePurchaseInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@map("service_purchase_invoice_items")
+}
+
+model ServicePurchaseInvoiceHistory {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  invoiceId       String   @db.Uuid
+  action          String
+  actionBy        String?  @db.Uuid
+  actionAt        DateTime @default(now())
+  fromStatus      String?
+  toStatus        String?
+  details         Json     @default("{}")
+  createdAt       DateTime @default(now())
+  invoice         ServicePurchaseInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@map("service_purchase_invoice_history")
+}
+
+// ============ WAREHOUSE RECEIPT (رسید انبار) ============
+
+model WarehouseReceipt {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  number          String
+  receiptDate     DateTime @default(now())
+  registeredDate  DateTime @default(now())
+  warehouseId     String?  @db.Uuid
+  receiptType     String   @default("purchase")
+  contactPartyId  String?  @db.Uuid
+  contactName     String?
+  sourceDocType   String?
+  sourceDocId     String?  @db.Uuid
+  responsibleId   String?  @db.Uuid
+  status          String   @default("draft")
+  totalValue      Decimal  @default(0)
+  journalEntryId  String?  @db.Uuid
+  voidedBy        String?  @db.Uuid
+  voidedAt        DateTime?
+  voidReason      String?
+  description     String?
+  createdBy       String   @db.Uuid
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+  org             Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  items           WarehouseReceiptItem[]
+  history         WarehouseReceiptHistory[]
+
+  @@map("warehouse_receipts")
+}
+
+model WarehouseReceiptItem {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  receiptId       String   @db.Uuid
+  rowNumber       Int      @default(1)
+  productId       String?  @db.Uuid
+  productName     String?
+  qty             Decimal  @default(0)
+  unit            String?
+  baseUnit        String?
+  conversionFactor Decimal @default(1)
+  baseQty         Decimal  @default(0)
+  unitPrice       Decimal  @default(0)
+  totalValue      Decimal  @default(0)
+  discount        Decimal  @default(0)
+  tax             Decimal  @default(0)
+  location        String?
+  batchNo         String?
+  serialNo        String?
+  productionDate  DateTime?
+  expiryDate      DateTime?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+  receipt         WarehouseReceipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+
+  @@map("warehouse_receipt_items")
+}
+
+model WarehouseReceiptHistory {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  receiptId       String   @db.Uuid
+  action          String
+  actionBy        String?  @db.Uuid
+  actionAt        DateTime @default(now())
+  fromStatus      String?
+  toStatus        String?
+  details         Json     @default("{}")
+  createdAt       DateTime @default(now())
+  receipt         WarehouseReceipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+
+  @@map("warehouse_receipt_history")
 }

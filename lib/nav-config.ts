@@ -7,6 +7,7 @@ import {
   GraduationCap, BadgePercent, Ticket, StickyNote, MessageCircle,
   UserCheck, ClipboardList, Network, Contact, Megaphone, Wallet,
   FileCheck, Banknote, CreditCard, ArrowRightLeft, Sparkles,
+  ClipboardCheck, FileSearch,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { Profile } from '@/lib/types';
@@ -82,6 +83,12 @@ export const inventoryItems: NavItem[] = [
   { href: '/dashboard/products', label: 'محصولات و خدمات', icon: Boxes },
   { href: '/dashboard/purchase', label: 'خرید و تأمین', icon: ShoppingBag },
   { href: '/dashboard/stock-transfers', label: 'انتقال بین انبارها', icon: Package },
+  { href: '/dashboard/stock-taking', label: 'انبارگردانی', icon: ClipboardCheck },
+  { href: '/dashboard/warehouse-receipts', label: 'رسید انبار', icon: ArrowDownToLine },
+];
+
+export const serviceItems: NavItem[] = [
+  { href: '/dashboard/service-purchase-invoices', label: 'فاکتور خرید خدمات', icon: FileSearch },
 ];
 
 export const clubItems: NavItem[] = [
@@ -107,6 +114,7 @@ export const allNavGroups: NavGroup[] = [
   { label: 'کارتابل', icon: Inbox, items: cartableItems },
   { label: 'گزارشات', icon: ClipboardList, items: reportsItems },
   { label: 'مالی', icon: Landmark, items: financeItems },
+  { label: 'خدمات', icon: FileSearch, items: serviceItems },
   { label: 'انبارداری', icon: Warehouse, items: inventoryItems },
   { label: 'باشگاه مشتریان', icon: Award, items: clubItems },
 ];

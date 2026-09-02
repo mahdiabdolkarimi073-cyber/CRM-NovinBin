@@ -1523,3 +1523,236 @@ export interface CardReaderHistory {
   details: any;
   createdAt: string;
 }
+
+export interface Warehouse {
+  id: string;
+  orgId: string | null;
+  name: string;
+  address: string | null;
+  manager: string | null;
+  active: boolean;
+  createdAt: string;
+}
+
+// ============ STOCK TAKING (انبارگردانی) ============
+
+export interface StockTaking {
+  id: string;
+  orgId: string | null;
+  number: string;
+  warehouseId: string | null;
+  stockTakingType: string;
+  scopeType: string;
+  scopeValue: string | null;
+  responsibleId: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  status: string;
+  description: string | null;
+  freezeOperations: boolean;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  closedBy: string | null;
+  closedAt: string | null;
+  cancelledBy: string | null;
+  cancelledAt: string | null;
+  cancelReason: string | null;
+  journalEntryId: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  items?: StockTakingItem[];
+  history?: StockTakingHistory[];
+}
+
+export interface StockTakingItem {
+  id: string;
+  orgId: string | null;
+  stockTakingId: string;
+  productId: string | null;
+  productName: string | null;
+  unit: string | null;
+  systemQty: number;
+  countedQty: number;
+  recountQty: number | null;
+  finalQty: number;
+  discrepancy: number;
+  discrepancyType: string;
+  location: string | null;
+  batchNo: string | null;
+  serialNo: string | null;
+  counterId: string | null;
+  countedAt: string | null;
+  approved: boolean;
+  adjustmentPosted: boolean;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StockTakingHistory {
+  id: string;
+  orgId: string | null;
+  stockTakingId: string;
+  action: string;
+  actionBy: string | null;
+  actionAt: string;
+  fromStatus: string | null;
+  toStatus: string | null;
+  details: any;
+  createdAt: string;
+}
+
+// ============ SERVICE PURCHASE INVOICE (فاکتور خرید خدمات) ============
+
+export interface ServicePurchaseInvoice {
+  id: string;
+  orgId: string | null;
+  internalNumber: string;
+  supplierInvoiceNo: string | null;
+  supplierId: string | null;
+  supplierName: string | null;
+  purchaseType: string;
+  fiscalYearId: string | null;
+  invoiceDate: string;
+  registeredDate: string;
+  currency: string;
+  exchangeRate: number;
+  subtotal: number;
+  totalDiscount: number;
+  totalTax: number;
+  totalDuty: number;
+  totalAdditions: number;
+  totalDeductions: number;
+  finalAmount: number;
+  paidAmount: number;
+  balanceDue: number;
+  status: string;
+  serviceConfirmed: boolean;
+  serviceConfirmedBy: string | null;
+  serviceConfirmedAt: string | null;
+  financeApproved: boolean;
+  financeApprovedBy: string | null;
+  financeApprovedAt: string | null;
+  journalEntryId: string | null;
+  sentToWorkboard: boolean;
+  voidedBy: string | null;
+  voidedAt: string | null;
+  voidReason: string | null;
+  description: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  items?: ServicePurchaseInvoiceItem[];
+  history?: ServicePurchaseInvoiceHistory[];
+}
+
+export interface ServicePurchaseInvoiceItem {
+  id: string;
+  orgId: string | null;
+  invoiceId: string;
+  rowNumber: number;
+  serviceId: string | null;
+  serviceName: string | null;
+  description: string | null;
+  qty: number;
+  unit: string | null;
+  unitPrice: number;
+  grossAmount: number;
+  discountAmount: number;
+  discountPct: number;
+  taxableAmount: number;
+  taxAmount: number;
+  taxPct: number;
+  dutyAmount: number;
+  dutyPct: number;
+  additions: number;
+  deductions: number;
+  finalPrice: number;
+  costCenterId: string | null;
+  accountId: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ServicePurchaseInvoiceHistory {
+  id: string;
+  orgId: string | null;
+  invoiceId: string;
+  action: string;
+  actionBy: string | null;
+  actionAt: string;
+  fromStatus: string | null;
+  toStatus: string | null;
+  details: any;
+  createdAt: string;
+}
+
+// ============ WAREHOUSE RECEIPT (رسید انبار) ============
+
+export interface WarehouseReceipt {
+  id: string;
+  orgId: string | null;
+  number: string;
+  receiptDate: string;
+  registeredDate: string;
+  warehouseId: string | null;
+  receiptType: string;
+  contactPartyId: string | null;
+  contactName: string | null;
+  sourceDocType: string | null;
+  sourceDocId: string | null;
+  responsibleId: string | null;
+  status: string;
+  totalValue: number;
+  journalEntryId: string | null;
+  voidedBy: string | null;
+  voidedAt: string | null;
+  voidReason: string | null;
+  description: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  items?: WarehouseReceiptItem[];
+  history?: WarehouseReceiptHistory[];
+}
+
+export interface WarehouseReceiptItem {
+  id: string;
+  orgId: string | null;
+  receiptId: string;
+  rowNumber: number;
+  productId: string | null;
+  productName: string | null;
+  qty: number;
+  unit: string | null;
+  baseUnit: string | null;
+  conversionFactor: number;
+  baseQty: number;
+  unitPrice: number;
+  totalValue: number;
+  discount: number;
+  tax: number;
+  location: string | null;
+  batchNo: string | null;
+  serialNo: string | null;
+  productionDate: string | null;
+  expiryDate: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WarehouseReceiptHistory {
+  id: string;
+  orgId: string | null;
+  receiptId: string;
+  action: string;
+  actionBy: string | null;
+  actionAt: string;
+  fromStatus: string | null;
+  toStatus: string | null;
+  details: any;
+  createdAt: string;
+}

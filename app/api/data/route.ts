@@ -137,6 +137,15 @@ const MODEL_MAP: Record<string, any> = {
   card_reader_settlement_items: prisma.cardReaderSettlementItem,
   card_reader_settlement_history: prisma.cardReaderSettlementHistory,
   card_reader_history: prisma.cardReaderHistory,
+  stock_takings: prisma.stockTaking,
+  stock_taking_items: prisma.stockTakingItem,
+  stock_taking_history: prisma.stockTakingHistory,
+  service_purchase_invoices: prisma.servicePurchaseInvoice,
+  service_purchase_invoice_items: prisma.servicePurchaseInvoiceItem,
+  service_purchase_invoice_history: prisma.servicePurchaseInvoiceHistory,
+  warehouse_receipts: prisma.warehouseReceipt,
+  warehouse_receipt_items: prisma.warehouseReceiptItem,
+  warehouse_receipt_history: prisma.warehouseReceiptHistory,
 };
 
 function getAuth(req: NextRequest) {
@@ -199,6 +208,15 @@ const MODEL_PAGE: Record<string, string> = {
   card_reader_settlement_items: '/dashboard/card-reader-settlements',
   card_reader_settlement_history: '/dashboard/card-reader-settlements',
   card_reader_history: '/dashboard/card-readers',
+  stock_takings: '/dashboard/stock-taking',
+  stock_taking_items: '/dashboard/stock-taking',
+  stock_taking_history: '/dashboard/stock-taking',
+  service_purchase_invoices: '/dashboard/service-purchase-invoices',
+  service_purchase_invoice_items: '/dashboard/service-purchase-invoices',
+  service_purchase_invoice_history: '/dashboard/service-purchase-invoices',
+  warehouse_receipts: '/dashboard/warehouse-receipts',
+  warehouse_receipt_items: '/dashboard/warehouse-receipts',
+  warehouse_receipt_history: '/dashboard/warehouse-receipts',
 };
 
 const SHARED_MODELS = new Set([
