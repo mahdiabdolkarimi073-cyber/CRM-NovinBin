@@ -46,10 +46,14 @@ export async function POST(req: NextRequest) {
       }, { status: 404 });
     }
 
-    // Also fetch the user's profile for name
+    // Also fetch the user's profile for name (email lives on the related User model)
     const profile = await prisma.profile.findUnique({
       where: { id: auth.userId },
-      select: { firstName: true, lastName: true, email: true },
+      select: {
+        firstName: true,
+        lastName: true,
+        user: { select: { email: true } },
+      },
     });
 
     const fullName = `${profile?.firstName || ''} ${profile?.lastName || ''}`.trim() || 'ناشناخته';

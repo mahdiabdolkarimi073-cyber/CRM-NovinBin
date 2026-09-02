@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Sparkles, Bot, User, TrendingUp, AlertTriangle, Lightbulb, BarChart3, Loader2, Plus, HelpCircle, Check, X } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
+import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
+import { toLocalDateString } from '@/lib/format';
 
 interface CreateField {
   key: string;
@@ -21,6 +23,13 @@ interface CreateSchema {
   fields: CreateField[];
 }
 
+interface ExtractedField {
+  key: string;
+  label: string;
+  value: any;
+  source: 'extracted' | 'default' | 'missing';
+}
+
 interface Message {
   role: 'user' | 'assistant';
   content: string;
@@ -32,6 +41,8 @@ interface Message {
   timestamp?: string;
   createSchema?: CreateSchema;
   createSuccess?: boolean;
+  extractedFields?: ExtractedField[] | null;
+  confidence?: number;
 }
 
 const FINANCIAL_ACTIONS = [
@@ -92,7 +103,7 @@ export default function AIAssistantPage() {
     setMessages([
       {
         role: 'assistant',
-        content: 'سلام! من دستیار هوشمند مالی شما هستم.\n\nمی‌توانم:\n• داده‌های مالی شما را تحلیل کنم\n• با تحلیل‌های هوشمند، ریسک‌ها و فرصت‌ها را شناسایی کنم (ریزش مشتری، امتیاز لید، موجودی، سودآوری و...)\n• رکوردهای جدید ایجاد کنم (مثل فاکتور، تنخواه‌دار، حساب بانکی و...)\n• راهنمایی بدم\n\nبرای شروع، یکی از دکمه‌های زیر را انتخاب کنید یا سوال خود را بنویسید.',
+        content: 'سلام! من دستیار هوشمند مالی شما هستم.\n\nمی‌توانم:\n• داده‌های مالی شما را تحلیل کنم\n• با تحلیل‌های هوشمند، ریسک‌ها و فرصت‌ها را شناسایی کنم (ریزش مشتری، امتیاز لید، موجودی، سودآوری و...)\n• رکوردهای جدید ایجاد کنم — کافیست با زبان طبیعی بگویید چه می‌خواهید، مثلاً: «یک فاکتور ۵۰۰۰۰۰ تومانی برای علی ایجاد کن» یا «چک دریافتی ۱۰۰۰۰۰ تومانی از بانک ملت بساز»\n• راهنمایی بدم\n\nبرای شروع، یکی از دکمه‌های زیر را انتخاب کنید یا درخواست خود را بنویسید.',
         section: 'دستیار مالی',
       },
     ]);
@@ -130,6 +141,8 @@ export default function AIAssistantPage() {
         timestamp: json.timestamp,
         createSchema: json.createSchema,
         createSuccess: json.type === 'create_success',
+        extractedFields: json.extractedFields || null,
+        confidence: json.confidence || 0,
       };
       setMessages((prev) => [...prev, assistantMsg]);
     } catch (e: any) {
@@ -281,7 +294,7 @@ export default function AIAssistantPage() {
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="سوال خود را بنویسید... (مثلاً: سلام، یا: یک فاکتور ایجاد کن)"
+          placeholder="سوال خود را بنویسید... (مثلاً: یک فاکتور ۵۰۰۰۰۰ تومانی برای علی ایجاد کن)"
           disabled={loading}
           className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#2DD4BF] focus:outline-none focus:ring-2 focus:ring-[#2DD4BF]/20 disabled:opacity-50"
         />
@@ -332,7 +345,7 @@ function MessageBubble({ msg, onCreateSubmit, loading }: { msg: Message; onCreat
 
         {/* Create form */}
         {msg.createSchema && !msg.createSuccess && (
-          <CreateForm schema={msg.createSchema} onSubmit={onCreateSubmit} loading={loading} />
+          <CreateForm schema={msg.createSchema} onSubmit={onCreateSubmit} loading={loading} extractedFields={msg.extractedFields} confidence={msg.confidence} />
         )}
 
         {/* Stats grid */}
@@ -396,16 +409,25 @@ function MessageBubble({ msg, onCreateSubmit, loading }: { msg: Message; onCreat
   );
 }
 
-function CreateForm({ schema, onSubmit, loading }: { schema: CreateSchema; onSubmit: (schema: CreateSchema, values: Record<string, any>) => void; loading: boolean }) {
+function CreateForm({ schema, onSubmit, loading, extractedFields, confidence }: { schema: CreateSchema; onSubmit: (schema: CreateSchema, values: Record<string, any>) => void; loading: boolean; extractedFields?: ExtractedField[] | null; confidence?: number }) {
   const [values, setValues] = useState<Record<string, any>>({});
 
   useEffect(() => {
-    const defaults: Record<string, any> = {};
+    const init: Record<string, any> = {};
+    // Start with schema defaults
     for (const f of schema.fields) {
-      if (f.default !== undefined) defaults[f.key] = f.default;
+      if (f.default !== undefined) init[f.key] = f.default;
     }
-    setValues(defaults);
-  }, [schema.model]);
+    // Override with extracted values
+    if (extractedFields) {
+      for (const ef of extractedFields) {
+        if (ef.source === 'extracted' && ef.value !== '' && ef.value !== null && ef.value !== undefined) {
+          init[ef.key] = ef.value;
+        }
+      }
+    }
+    setValues(init);
+  }, [schema.model, extractedFields]);
 
   const handleChange = (key: string, val: any) => {
     setValues((prev) => ({ ...prev, [key]: val }));
@@ -416,18 +438,44 @@ function CreateForm({ schema, onSubmit, loading }: { schema: CreateSchema; onSub
     onSubmit(schema, values);
   };
 
+  // Build a lookup map for extracted field sources
+  const extractedMap: Record<string, 'extracted' | 'default' | 'missing'> = {};
+  if (extractedFields) {
+    for (const ef of extractedFields) {
+      extractedMap[ef.key] = ef.source;
+    }
+  }
+
+  const confPercent = confidence ? Math.round(confidence * 100) : 0;
+
   return (
     <form onSubmit={handleSubmit} className="rounded-xl border border-[#2DD4BF]/30 bg-white p-4 space-y-3">
-      <div className="flex items-center gap-1.5 text-[13px] font-semibold text-[#0D9488]">
-        <Plus className="h-4 w-4" />
-        فرم {schema.title}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5 text-[13px] font-semibold text-[#0D9488]">
+          <Plus className="h-4 w-4" />
+          فرم {schema.title}
+        </div>
+        {extractedFields && extractedFields.some((ef) => ef.source === 'extracted') && (
+          <div className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${confPercent >= 80 ? 'bg-emerald-50 text-emerald-700' : confPercent >= 40 ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
+            <Sparkles className="h-3 w-3" />
+            {confPercent}٪ استخراج خودکار
+          </div>
+        )}
       </div>
+      {extractedFields && extractedFields.some((ef) => ef.source === 'extracted') && (
+        <div className="rounded-lg bg-[#2DD4BF]/5 border border-[#2DD4BF]/20 px-3 py-2 text-[11px] text-slate-600">
+          فیلدهای سبزرنگ از پیام شما استخراج شده‌اند. لطفاً بررسی کنید و در صورت نیاز اصلاح نمایید.
+        </div>
+      )}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {schema.fields.map((f) => (
-          <div key={f.key} className="space-y-1">
+        {schema.fields.map((f) => {
+          const isExtracted = extractedMap[f.key] === 'extracted';
+          return (
+          <div key={f.key} className={`space-y-1 rounded-lg px-2 py-1.5 transition-colors ${isExtracted ? 'bg-emerald-50/40' : ''}`}>
             <label className="text-[12px] font-medium text-slate-600">
               {f.label}
               {f.required && <span className="text-red-500"> *</span>}
+              {isExtracted && <span className="mr-1 text-[10px] text-emerald-600">✓ استخراج شد</span>}
             </label>
             {f.type === 'select' ? (
               <select
@@ -453,9 +501,16 @@ function CreateForm({ schema, onSubmit, loading }: { schema: CreateSchema; onSub
                 </div>
                 {values[f.key] ? 'بله' : 'خیر'}
               </button>
+            ) : f.type === 'date' ? (
+              <JalaliDatePicker
+                value={values[f.key] ? new Date(values[f.key]) : null}
+                onChange={(d) => handleChange(f.key, d ? toLocalDateString(d) : '')}
+                placeholder={f.placeholder || 'انتخاب تاریخ'}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px] text-slate-800 focus:border-[#2DD4BF] focus:outline-none focus:ring-1 focus:ring-[#2DD4BF]/30 disabled:opacity-50"
+              />
             ) : (
               <input
-                type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'}
+                type={f.type === 'number' ? 'number' : 'text'}
                 value={values[f.key] ?? ''}
                 onChange={(e) => handleChange(f.key, e.target.value)}
                 placeholder={f.placeholder}
@@ -464,7 +519,8 @@ function CreateForm({ schema, onSubmit, loading }: { schema: CreateSchema; onSub
               />
             )}
           </div>
-        ))}
+        );
+        })}
       </div>
       <button
         type="submit"

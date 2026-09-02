@@ -105,7 +105,7 @@ export const CREATE_SCHEMAS: Record<string, CreateSchema> = {
         { value: 'cheque', label: 'چک' },
       ], default: 'cash' },
       { key: 'payerName', label: 'نام پرداخت‌کننده', type: 'text' },
-      { key: 'description', label: 'توضیحات', type: 'text' },
+      { key: 'notes', label: 'توضیحات', type: 'text' },
     ],
   },
   receivedCheque: {

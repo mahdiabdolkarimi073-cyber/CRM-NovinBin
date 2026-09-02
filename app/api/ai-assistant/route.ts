@@ -5,6 +5,7 @@ import {
   ANALYZERS, SECTION_LABELS, detectIntent, type AnalysisResult,
 } from '@/lib/ai-analyzers';
 import { CREATE_SCHEMAS } from '@/lib/ai-create-schemas';
+import { extractFieldsFromText, generateExtractionSummary } from '@/lib/ai-field-extractor';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
 
@@ -238,12 +239,24 @@ export async function POST(req: NextRequest) {
         }
 
         // Convert types
+        const BIGINT_FIELDS = ['amount', 'balance', 'ceiling', 'paid', 'finalAmount', 'totalAmount', 'chequeAmount', 'grossAmount', 'commissionAmount', 'deductions', 'netAmount', 'openingBalance', 'salary', 'supplierBalance', 'customerBalance', 'periodBalance', 'bankFee', 'clearedAmount', 'remainingAmount', 'settledAmount', 'discrepancyAmount'];
+        const UUID_FIELDS = ['customerId', 'contactPartyId', 'profileId', 'accountId', 'bankAccountId', 'cashFundId', 'costCenterId', 'fiscalYearId', 'supplierId', 'employeeId', 'issuerPartyId', 'settlementAccountId', 'bankAccountTargetId', 'commissionAccountId', 'discrepancyAccountId'];
         const data: Record<string, any> = {};
         for (const field of schema.fields) {
           const val = fieldValues[field.key];
           if (val === undefined || val === '') continue;
-          if (field.type === 'number') {
-            data[field.key] = Number(val);
+          // Skip UUID fields that don't look like valid UUIDs
+          if (UUID_FIELDS.includes(field.key)) {
+            if (typeof val === 'string' && val.length === 36 && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val)) {
+              data[field.key] = val;
+            }
+            continue;
+          }
+          // BigInt fields
+          if (BIGINT_FIELDS.includes(field.key) || field.type === 'number') {
+            const n = Number(val);
+            if (isNaN(n)) continue;
+            data[field.key] = BigInt(Math.trunc(n));
           } else if (field.type === 'boolean') {
             data[field.key] = val === true || val === 'true' || val === 'on';
           } else if (field.type === 'date') {
@@ -264,7 +277,7 @@ export async function POST(req: NextRequest) {
             type: 'create_success',
             section: schema.title,
             summary: `✓ ${schema.title} با موفقیت ایجاد شد!\n\nرکورد جدید در دیتابیس ذخیره شد.`,
-            details: Object.entries(data).slice(0, 8).map(([k, v]) => `• ${k}: ${typeof v === 'object' ? (v as Date)?.toISOString?.() || String(v) : String(v)}`),
+            details: Object.entries(data).slice(0, 8).map(([k, v]) => `• ${k}: ${typeof v === 'bigint' ? v.toString() : typeof v === 'object' ? (v as Date)?.toISOString?.() || String(v) : String(v)}`),
             alerts: [],
             recommendations: ['برای مشاهده رکورد جدید، به صفحه مربوطه در منوی مالی مراجعه کنید.'],
             stats: [],
@@ -298,6 +311,8 @@ export async function POST(req: NextRequest) {
           description: schema.description,
           fields: schema.fields,
         },
+        extractedFields: null,
+        confidence: 0,
       });
     }
 
@@ -323,10 +338,12 @@ export async function POST(req: NextRequest) {
       const createIntent = detectCreateIntent(message);
       if (createIntent) {
         const schema = CREATE_SCHEMAS[createIntent];
+        const { fields, confidence } = extractFieldsFromText(message, schema);
+        const summary = generateExtractionSummary(schema, fields, confidence);
         return NextResponse.json({
           type: 'create_form',
           section: schema.title,
-          summary: `عالی! بیایید با هم یک ${schema.title} ایجاد کنیم.\n\n${schema.description}\n\nلطفاً اطلاعات زیر را وارد کنید:`,
+          summary,
           details: [],
           alerts: [],
           recommendations: [],
@@ -337,6 +354,8 @@ export async function POST(req: NextRequest) {
             description: schema.description,
             fields: schema.fields,
           },
+          extractedFields: fields,
+          confidence,
         });
       }
     }
