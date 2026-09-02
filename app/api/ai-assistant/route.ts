@@ -188,12 +188,16 @@ export async function POST(req: NextRequest) {
 
     // ─── MODE: CREATE ───
     if (mode === 'create') {
-      const schema = createSection ? CREATE_SCHEMAS[createSection] : null;
+      let schema = createSection ? CREATE_SCHEMAS[createSection] : null;
+      // If not found by camelCase key, try reverse lookup by table name (schema.model)
+      if (!schema && createSection) {
+        schema = Object.values(CREATE_SCHEMAS).find((s) => s.model === createSection) || null;
+      }
       if (!schema) {
         return NextResponse.json({
           error: 'بخش مورد نظر برای ایجاد یافت نشد.',
           availableSections: Object.keys(CREATE_SCHEMAS),
-        });
+        }, { status: 400 });
       }
 
       // If confirmCreate, actually create the record
@@ -217,7 +221,7 @@ export async function POST(req: NextRequest) {
 
         const delegate = modelMap[schema.model];
         if (!delegate) {
-          return NextResponse.json({ error: 'مدل دیتابیس برای این بخش پشتیبانی نمی‌شود.' });
+          return NextResponse.json({ error: 'مدل دیتابیس برای این بخش پشتیبانی نمی‌شود.' }, { status: 400 });
         }
 
         // Convert types
@@ -236,8 +240,8 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // Add createdBy for models that need it
-        if (['invoices', 'payments', 'receipts', 'received_cheques', 'cheques', 'pre_invoices', 'payment_announcements'].includes(schema.model)) {
+        // Add createdBy for models that require it (non-optional createdBy field in schema)
+        if (['invoices', 'payments', 'receipts', 'received_cheques', 'pre_invoices', 'payment_announcements', 'petty_cash_custodians', 'card_readers'].includes(schema.model)) {
           data.createdBy = auth.userId;
         }
 

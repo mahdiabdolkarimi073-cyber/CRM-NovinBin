@@ -26,9 +26,9 @@ export const CREATE_SCHEMAS: Record<string, CreateSchema> = {
       { key: 'code', label: 'کد تنخواه‌دار', type: 'text', placeholder: 'مثلاً: PC-001', required: true },
       { key: 'ceiling', label: 'سقف تنخواه (تومان)', type: 'number', placeholder: 'مثلاً: 5000000', required: true, default: 0 },
       { key: 'type', label: 'نوع تنخواه', type: 'select', options: [
-        { value: 'cash', label: 'نقدی' },
-        { value: 'bank', label: 'بانکی' },
-      ], default: 'cash' },
+        { value: 'fixed', label: 'ثابت' },
+        { value: 'variable', label: 'متغیر' },
+      ], default: 'fixed' },
       { key: 'startDate', label: 'تاریخ شروع', type: 'date', default: new Date().toISOString().slice(0, 10) },
       { key: 'active', label: 'فعال', type: 'boolean', default: true },
       { key: 'description', label: 'توضیحات', type: 'text', placeholder: 'توضیحات اختیاری' },
