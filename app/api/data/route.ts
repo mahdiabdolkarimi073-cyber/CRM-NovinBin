@@ -154,6 +154,18 @@ const MODEL_MAP: Record<string, any> = {
   commission_adjustments: prisma.commissionAdjustment,
   commission_history: prisma.commissionHistory,
   commission_rules: prisma.commissionRule,
+  customs_declarations: prisma.customsDeclaration,
+  customs_declaration_items: prisma.customsDeclarationItem,
+  customs_declaration_costs: prisma.customsDeclarationCost,
+  customs_declaration_payments: prisma.customsDeclarationPayment,
+  customs_declaration_history: prisma.customsDeclarationHistory,
+  process_agents: prisma.processAgent,
+  process_agent_roles: prisma.processAgentRole,
+  process_agent_debts: prisma.processAgentDebt,
+  process_agent_history: prisma.processAgentHistory,
+  sales_invoices: prisma.salesInvoice,
+  sales_invoice_items: prisma.salesInvoiceItem,
+  sales_invoice_history: prisma.salesInvoiceHistory,
 };
 
 function getAuth(req: NextRequest) {
@@ -233,6 +245,18 @@ const MODEL_PAGE: Record<string, string> = {
   commission_adjustments: '/dashboard/commissions',
   commission_history: '/dashboard/commissions',
   commission_rules: '/dashboard/commissions',
+  customs_declarations: '/dashboard/customs-declarations',
+  customs_declaration_items: '/dashboard/customs-declarations',
+  customs_declaration_costs: '/dashboard/customs-declarations',
+  customs_declaration_payments: '/dashboard/customs-declarations',
+  customs_declaration_history: '/dashboard/customs-declarations',
+  process_agents: '/dashboard/process-agents',
+  process_agent_roles: '/dashboard/process-agents',
+  process_agent_debts: '/dashboard/process-agents',
+  process_agent_history: '/dashboard/process-agents',
+  sales_invoices: '/dashboard/sales-invoices',
+  sales_invoice_items: '/dashboard/sales-invoices',
+  sales_invoice_history: '/dashboard/sales-invoices',
 };
 
 const SHARED_MODELS = new Set([

@@ -135,6 +135,18 @@ model Organization {
   commissionAdjustments           CommissionAdjustment[]
   commissionHistory               CommissionHistory[]
   commissionRules                 CommissionRule[]
+  customsDeclarations             CustomsDeclaration[]
+  customsDeclarationItems         CustomsDeclarationItem[]
+  customsDeclarationCosts         CustomsDeclarationCost[]
+  customsDeclarationPayments      CustomsDeclarationPayment[]
+  customsDeclarationHistory       CustomsDeclarationHistory[]
+  processAgents                   ProcessAgent[]
+  processAgentRoles               ProcessAgentRole[]
+  processAgentDebts               ProcessAgentDebt[]
+  processAgentHistory             ProcessAgentHistory[]
+  salesInvoices                   SalesInvoice[]
+  salesInvoiceItems               SalesInvoiceItem[]
+  salesInvoiceHistory             SalesInvoiceHistory[]
 
   @@map("organizations")
 }
@@ -3683,4 +3695,368 @@ model CommissionRule {
   org                   Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   @@map("commission_rules")
+}
+
+// ============ CUSTOMS DECLARATION (اظهارات گمرکی) ============
+
+model CustomsDeclaration {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId                 String?  @db.Uuid
+  internalNumber        String
+  customsNumber         String?  @unique
+  operationType         String   // import | export
+  customsOffice         String?
+  declarationDate       DateTime
+  registeredDate        DateTime @default(now())
+  contactPartyId        String?  @db.Uuid
+  contactName           String?
+  originCountry         String?
+  destinationCountry    String?
+  currency              String   @default("IRR")
+  exchangeRate          Decimal  @default(1) @db.Decimal(18, 4)
+  exchangeRateDate      DateTime?
+  exchangeRateSource    String?
+  contractType          String?  // purchase | sale | consignment | other
+  status                String   @default("draft") // draft | completed_info | registered | under_review | approved | cleared | finalized | needs_correction | rejected | cancelled | voided | amended
+  sourceDocType         String?  // purchase_order | purchase_invoice | contract | proforma | other
+  sourceDocId           String?  @db.Uuid
+  clearedDate           DateTime?
+  clearedQty            Decimal  @default(0) @db.Decimal(18, 2)
+  remainingQty          Decimal  @default(0) @db.Decimal(18, 2)
+  warehouseReceiptId    String?  @db.Uuid
+  totalGoodsValue       Decimal  @default(0) @db.Decimal(18, 2)
+  totalCustomsValue     Decimal  @default(0) @db.Decimal(18, 2)
+  totalCurrencyValue    Decimal  @default(0) @db.Decimal(18, 2)
+  totalRialValue        Decimal  @default(0) @db.Decimal(18, 2)
+  totalCosts            Decimal  @default(0) @db.Decimal(18, 2)
+  totalPaidAmount       Decimal  @default(0) @db.Decimal(18, 2)
+  accountingPosted      Boolean  @default(false)
+  journalEntryId        String?  @db.Uuid
+  voidedBy               String?  @db.Uuid
+  voidedAt               DateTime?
+  voidReason             String?
+  amendedFromId          String?  @db.Uuid
+  description           String?
+  createdBy             String   @db.Uuid
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @default(now())
+  org                   Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  items                 CustomsDeclarationItem[]
+  costs                 CustomsDeclarationCost[]
+  payments              CustomsDeclarationPayment[]
+  history               CustomsDeclarationHistory[]
+
+  @@map("customs_declarations")
+}
+
+model CustomsDeclarationItem {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId                 String?  @db.Uuid
+  declarationId         String   @db.Uuid
+  rowNumber              Int
+  productId             String?  @db.Uuid
+  productCode           String?
+  productName           String?
+  description           String?
+  hsCode                String?
+  originCountry         String?
+  qty                   Decimal  @default(0) @db.Decimal(18, 2)
+  unit                  String?
+  netWeight             Decimal  @default(0) @db.Decimal(18, 2)
+  grossWeight           Decimal  @default(0) @db.Decimal(18, 2)
+  unitValue             Decimal  @default(0) @db.Decimal(18, 2)
+  totalValue            Decimal  @default(0) @db.Decimal(18, 2)
+  currency              String   @default("IRR")
+  conversionRate        Decimal  @default(1) @db.Decimal(18, 4)
+  rialValue             Decimal  @default(0) @db.Decimal(18, 2)
+  customsValue          Decimal  @default(0) @db.Decimal(18, 2)
+  packagingInfo         String?
+  packageCount          Int      @default(0)
+  packagingType         String?
+  serialNo              String?
+  batchNo               String?
+  clearedQty            Decimal  @default(0) @db.Decimal(18, 2)
+  warehouseQty          Decimal  @default(0) @db.Decimal(18, 2)
+  createdAt             DateTime @default(now())
+  declaration           CustomsDeclaration @relation(fields: [declarationId], references: [id], onDelete: Cascade)
+  org                   Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@map("customs_declaration_items")
+}
+
+model CustomsDeclarationCost {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId                 String?  @db.Uuid
+  declarationId         String   @db.Uuid
+  costType              String   // duty | surcharge | vat | customs_fee | freight | insurance | clearance | storage | other
+  amount                Decimal  @default(0) @db.Decimal(18, 2)
+  currency              String   @default("IRR")
+  conversionRate        Decimal  @default(1) @db.Decimal(18, 4)
+  rialAmount            Decimal  @default(0) @db.Decimal(18, 2)
+  contactPartyId        String?  @db.Uuid
+  contactName           String?
+  accountId             String?  @db.Uuid
+  sourceDocType         String?
+  sourceDocId           String?  @db.Uuid
+  paymentStatus         String   @default("unpaid") // unpaid | partial | paid
+  createdAt             DateTime @default(now())
+  declaration           CustomsDeclaration @relation(fields: [declarationId], references: [id], onDelete: Cascade)
+  org                   Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@map("customs_declaration_costs")
+}
+
+model CustomsDeclarationPayment {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId                 String?  @db.Uuid
+  declarationId         String   @db.Uuid
+  amount                Decimal  @default(0) @db.Decimal(18, 2)
+  paymentDate           DateTime
+  payerAccountId        String?  @db.Uuid
+  receiverPartyId       String?  @db.Uuid
+  receiverName          String?
+  paymentType           String   // cash | bank | cheque | other
+  trackingNumber        String?
+  sourceDocType         String?
+  sourceDocId           String?  @db.Uuid
+  paymentStatus         String   @default("unpaid") // unpaid | partial | paid
+  createdAt             DateTime @default(now())
+  declaration           CustomsDeclaration @relation(fields: [declarationId], references: [id], onDelete: Cascade)
+  org                   Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@map("customs_declaration_payments")
+}
+
+model CustomsDeclarationHistory {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  declarationId   String   @db.Uuid
+  action          String   // created | info_changed | amount_changed | item_changed | qty_changed | rate_changed | status_changed | approved | cleared | paid | amended | voided | journal_issued
+  actionBy        String?  @db.Uuid
+  actionAt        DateTime @default(now())
+  fromStatus      String?
+  toStatus        String?
+  oldValue        String?
+  newValue        String?
+  reason          String?
+  details         Json     @default("{}")
+  createdAt       DateTime @default(now())
+  declaration     CustomsDeclaration @relation(fields: [declarationId], references: [id], onDelete: Cascade)
+  org             Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@map("customs_declaration_history")
+}
+
+// ============ PROCESS AGENT (عامل فرایند) ============
+
+model ProcessAgent {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId                 String?  @db.Uuid
+  code                  String   @unique
+  name                  String
+  agentType             String   // individual | company | broker | representative | other
+  contactPartyId        String?  @db.Uuid
+  contactName           String?
+  active                Boolean  @default(true)
+  startDate             DateTime?
+  endDate               DateTime?
+  accountId             String?  @db.Uuid
+  settlementInfo        String?
+  description           String?
+  totalDebt             Decimal  @default(0) @db.Decimal(18, 2)
+  totalPaid             Decimal  @default(0) @db.Decimal(18, 2)
+  balance               Decimal  @default(0) @db.Decimal(18, 2)
+  status                String   @default("draft") // draft | active | inactive
+  createdBy             String   @db.Uuid
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @default(now())
+  org                   Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  roles                 ProcessAgentRole[]
+  debts                 ProcessAgentDebt[]
+  history               ProcessAgentHistory[]
+
+  @@map("process_agents")
+}
+
+model ProcessAgentRole {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId                 String?  @db.Uuid
+  agentId               String   @db.Uuid
+  roleTitle             String
+  roleCode              String?
+  active                Boolean  @default(true)
+  validFrom             DateTime
+  validTo               DateTime?
+  calcMethod            String   // percentage | fixed_amount | tiered
+  commissionRate        Decimal  @default(0) @db.Decimal(5, 2)
+  fixedAmount           Decimal  @default(0) @db.Decimal(18, 2)
+  accountId             String?  @db.Uuid
+  settlementTerms       String?
+  scopeBranch           String?
+  scopeSalesperson      String?
+  scopeCustomer         String?
+  scopeProduct          String?
+  scopeGeo              String?
+  saleType              String?
+  minAmount             Decimal  @default(0) @db.Decimal(18, 2)
+  maxAmount             Decimal  @default(0) @db.Decimal(18, 2)
+  createdAt             DateTime @default(now())
+  agent                 ProcessAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  org                   Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@map("process_agent_roles")
+}
+
+model ProcessAgentDebt {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId                 String?  @db.Uuid
+  agentId               String   @db.Uuid
+  amount                Decimal  @default(0) @db.Decimal(18, 2)
+  debtDate              DateTime
+  period                String?
+  sourceDocType         String?  // sales_invoice | commission | manual
+  sourceDocId           String?  @db.Uuid
+  debtType              String   // commission | bonus | advance | other
+  paidAmount            Decimal  @default(0) @db.Decimal(18, 2)
+  balance               Decimal  @default(0) @db.Decimal(18, 2)
+  status                String   @default("open") // open | partial | settled
+  journalEntryId        String?  @db.Uuid
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @default(now())
+  agent                 ProcessAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  org                   Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@map("process_agent_debts")
+}
+
+model ProcessAgentHistory {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  agentId         String   @db.Uuid
+  action          String   // created | info_changed | status_changed | assigned_to_sale | rule_changed | commission_calculated | approved | debt_created | paid | settled | amended | voided | deactivated
+  actionBy        String?  @db.Uuid
+  actionAt        DateTime @default(now())
+  fromStatus      String?
+  toStatus        String?
+  oldValue        String?
+  newValue        String?
+  reason          String?
+  details         Json     @default("{}")
+  createdAt       DateTime @default(now())
+  agent           ProcessAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  org             Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@map("process_agent_history")
+}
+
+// ============ SALES INVOICE (فاکتور فروش) ============
+
+model SalesInvoice {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId                 String?  @db.Uuid
+  internalNumber        String
+  invoiceNumber         String?  @unique
+  saleDate              DateTime
+  registeredDate        DateTime @default(now())
+  customerId            String?  @db.Uuid
+  customerName          String?
+  saleType              String   // cash | credit | installment | mixed
+  sellerId              String?  @db.Uuid
+  sellerName            String?
+  agentId               String?  @db.Uuid
+  agentName             String?
+  currency              String   @default("IRR")
+  exchangeRate          Decimal  @default(1) @db.Decimal(18, 4)
+  paymentTerms          String?
+  warehouseId           String?  @db.Uuid
+  fiscalYearId          String?  @db.Uuid
+  subtotal              Decimal  @default(0) @db.Decimal(18, 2)
+  totalDiscount         Decimal  @default(0) @db.Decimal(18, 2)
+  taxableAmount         Decimal  @default(0) @db.Decimal(18, 2)
+  totalTax              Decimal  @default(0) @db.Decimal(18, 2)
+  totalDuty             Decimal  @default(0) @db.Decimal(18, 2)
+  totalAdditions        Decimal  @default(0) @db.Decimal(18, 2)
+  totalDeductions       Decimal  @default(0) @db.Decimal(18, 2)
+  finalAmount           Decimal  @default(0) @db.Decimal(18, 2)
+  paidAmount            Decimal  @default(0) @db.Decimal(18, 2)
+  balanceDue            Decimal  @default(0) @db.Decimal(18, 2)
+  commissionAmount      Decimal  @default(0) @db.Decimal(18, 2)
+  status                String   @default("draft") // draft | completed | pending_approval | approved | finalized | needs_correction | rejected | cancelled | voided | returned | amended
+  accountingPosted      Boolean  @default(false)
+  journalEntryId        String?  @db.Uuid
+  warehouseExitId       String?  @db.Uuid
+  sourceDocType         String?  // sales_order | pre_invoice | contract | other
+  sourceDocId           String?  @db.Uuid
+  voidedBy              String?  @db.Uuid
+  voidedAt              DateTime?
+  voidReason            String?
+  amendedFromId         String?  @db.Uuid
+  description           String?
+  createdBy             String   @db.Uuid
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @default(now())
+  org                   Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  items                 SalesInvoiceItem[]
+  history               SalesInvoiceHistory[]
+
+  @@map("sales_invoices")
+}
+
+model SalesInvoiceItem {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId                 String?  @db.Uuid
+  invoiceId             String   @db.Uuid
+  rowNumber             Int
+  productId             String?  @db.Uuid
+  productCode           String?
+  productName           String?
+  serviceType           String?
+  qty                   Decimal  @default(0) @db.Decimal(18, 2)
+  unit                  String?
+  baseUnit              String?
+  conversionFactor      Decimal  @default(1) @db.Decimal(18, 4)
+  baseQty               Decimal  @default(0) @db.Decimal(18, 2)
+  unitPrice             Decimal  @default(0) @db.Decimal(18, 2)
+  grossAmount           Decimal  @default(0) @db.Decimal(18, 2)
+  discountAmount        Decimal  @default(0) @db.Decimal(18, 2)
+  discountPct           Decimal  @default(0) @db.Decimal(5, 2)
+  taxableAmount         Decimal  @default(0) @db.Decimal(18, 2)
+  taxAmount             Decimal  @default(0) @db.Decimal(18, 2)
+  taxPct                Decimal  @default(0) @db.Decimal(5, 2)
+  dutyAmount            Decimal  @default(0) @db.Decimal(18, 2)
+  dutyPct               Decimal  @default(0) @db.Decimal(5, 2)
+  additions             Decimal  @default(0) @db.Decimal(18, 2)
+  deductions            Decimal  @default(0) @db.Decimal(18, 2)
+  finalPrice            Decimal  @default(0) @db.Decimal(18, 2)
+  warehouseId           String?  @db.Uuid
+  location              String?
+  serialNo              String?
+  batchNo               String?
+  costCenterId           String?  @db.Uuid
+  description           String?
+  createdAt             DateTime @default(now())
+  invoice               SalesInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  org                   Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@map("sales_invoice_items")
+}
+
+model SalesInvoiceHistory {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  invoiceId       String   @db.Uuid
+  action          String   // created | edited | approved | rejected | finalized | inventory_reserved | goods_exited | payment_received | commission_calculated | journal_issued | amended | returned | voided | status_changed
+  actionBy        String?  @db.Uuid
+  actionAt        DateTime @default(now())
+  fromStatus      String?
+  toStatus        String?
+  oldValue        String?
+  newValue        String?
+  reason          String?
+  details         Json     @default("{}")
+  createdAt       DateTime @default(now())
+  invoice         SalesInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  org             Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@map("sales_invoice_history")
 }

@@ -2158,3 +2158,321 @@ export interface CommissionRule {
   createdAt: string;
   updatedAt: string;
 }
+// ============ CUSTOMS DECLARATION (اظهارات گمرکی) ============
+
+export interface CustomsDeclaration {
+  id: string;
+  orgId: string | null;
+  internalNumber: string;
+  customsNumber: string | null;
+  operationType: string; // import | export
+  customsOffice: string | null;
+  declarationDate: string;
+  registeredDate: string;
+  contactPartyId: string | null;
+  contactName: string | null;
+  originCountry: string | null;
+  destinationCountry: string | null;
+  currency: string;
+  exchangeRate: number;
+  exchangeRateDate: string | null;
+  exchangeRateSource: string | null;
+  contractType: string | null;
+  status: string; // draft | completed_info | registered | under_review | approved | cleared | finalized | needs_correction | rejected | cancelled | voided | amended
+  sourceDocType: string | null;
+  sourceDocId: string | null;
+  clearedDate: string | null;
+  clearedQty: number;
+  remainingQty: number;
+  warehouseReceiptId: string | null;
+  totalGoodsValue: number;
+  totalCustomsValue: number;
+  totalCurrencyValue: number;
+  totalRialValue: number;
+  totalCosts: number;
+  totalPaidAmount: number;
+  accountingPosted: boolean;
+  journalEntryId: string | null;
+  voidedBy: string | null;
+  voidedAt: string | null;
+  voidReason: string | null;
+  amendedFromId: string | null;
+  description: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  items?: CustomsDeclarationItem[];
+  costs?: CustomsDeclarationCost[];
+  payments?: CustomsDeclarationPayment[];
+  history?: CustomsDeclarationHistory[];
+}
+
+export interface CustomsDeclarationItem {
+  id: string;
+  orgId: string | null;
+  declarationId: string;
+  rowNumber: number;
+  productId: string | null;
+  productCode: string | null;
+  productName: string | null;
+  description: string | null;
+  hsCode: string | null;
+  originCountry: string | null;
+  qty: number;
+  unit: string | null;
+  netWeight: number;
+  grossWeight: number;
+  unitValue: number;
+  totalValue: number;
+  currency: string;
+  conversionRate: number;
+  rialValue: number;
+  customsValue: number;
+  packagingInfo: string | null;
+  packageCount: number;
+  packagingType: string | null;
+  serialNo: string | null;
+  batchNo: string | null;
+  clearedQty: number;
+  warehouseQty: number;
+  createdAt: string;
+}
+
+export interface CustomsDeclarationCost {
+  id: string;
+  orgId: string | null;
+  declarationId: string;
+  costType: string; // duty | surcharge | vat | customs_fee | freight | insurance | clearance | storage | other
+  amount: number;
+  currency: string;
+  conversionRate: number;
+  rialAmount: number;
+  contactPartyId: string | null;
+  contactName: string | null;
+  accountId: string | null;
+  sourceDocType: string | null;
+  sourceDocId: string | null;
+  paymentStatus: string; // unpaid | partial | paid
+  createdAt: string;
+}
+
+export interface CustomsDeclarationPayment {
+  id: string;
+  orgId: string | null;
+  declarationId: string;
+  amount: number;
+  paymentDate: string;
+  payerAccountId: string | null;
+  receiverPartyId: string | null;
+  receiverName: string | null;
+  paymentType: string; // cash | bank | cheque | other
+  trackingNumber: string | null;
+  sourceDocType: string | null;
+  sourceDocId: string | null;
+  paymentStatus: string; // unpaid | partial | paid
+  createdAt: string;
+}
+
+export interface CustomsDeclarationHistory {
+  id: string;
+  orgId: string | null;
+  declarationId: string;
+  action: string;
+  actionBy: string | null;
+  actionAt: string;
+  fromStatus: string | null;
+  toStatus: string | null;
+  oldValue: string | null;
+  newValue: string | null;
+  reason: string | null;
+  details: any;
+  createdAt: string;
+}
+
+// ============ PROCESS AGENT (عامل فرایند) ============
+
+export interface ProcessAgent {
+  id: string;
+  orgId: string | null;
+  code: string;
+  name: string;
+  agentType: string; // individual | company | broker | representative | other
+  contactPartyId: string | null;
+  contactName: string | null;
+  active: boolean;
+  startDate: string | null;
+  endDate: string | null;
+  accountId: string | null;
+  settlementInfo: string | null;
+  description: string | null;
+  totalDebt: number;
+  totalPaid: number;
+  balance: number;
+  status: string; // draft | active | inactive
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  roles?: ProcessAgentRole[];
+  debts?: ProcessAgentDebt[];
+  history?: ProcessAgentHistory[];
+}
+
+export interface ProcessAgentRole {
+  id: string;
+  orgId: string | null;
+  agentId: string;
+  roleTitle: string;
+  roleCode: string | null;
+  active: boolean;
+  validFrom: string;
+  validTo: string | null;
+  calcMethod: string; // percentage | fixed_amount | tiered
+  commissionRate: number;
+  fixedAmount: number;
+  accountId: string | null;
+  settlementTerms: string | null;
+  scopeBranch: string | null;
+  scopeSalesperson: string | null;
+  scopeCustomer: string | null;
+  scopeProduct: string | null;
+  scopeGeo: string | null;
+  saleType: string | null;
+  minAmount: number;
+  maxAmount: number;
+  createdAt: string;
+}
+
+export interface ProcessAgentDebt {
+  id: string;
+  orgId: string | null;
+  agentId: string;
+  amount: number;
+  debtDate: string;
+  period: string | null;
+  sourceDocType: string | null;
+  sourceDocId: string | null;
+  debtType: string; // commission | bonus | advance | other
+  paidAmount: number;
+  balance: number;
+  status: string; // open | partial | settled
+  journalEntryId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProcessAgentHistory {
+  id: string;
+  orgId: string | null;
+  agentId: string;
+  action: string;
+  actionBy: string | null;
+  actionAt: string;
+  fromStatus: string | null;
+  toStatus: string | null;
+  oldValue: string | null;
+  newValue: string | null;
+  reason: string | null;
+  details: any;
+  createdAt: string;
+}
+
+// ============ SALES INVOICE (فاکتور فروش) ============
+
+export interface SalesInvoice {
+  id: string;
+  orgId: string | null;
+  internalNumber: string;
+  invoiceNumber: string | null;
+  saleDate: string;
+  registeredDate: string;
+  customerId: string | null;
+  customerName: string | null;
+  saleType: string; // cash | credit | installment | mixed
+  sellerId: string | null;
+  sellerName: string | null;
+  agentId: string | null;
+  agentName: string | null;
+  currency: string;
+  exchangeRate: number;
+  paymentTerms: string | null;
+  warehouseId: string | null;
+  fiscalYearId: string | null;
+  subtotal: number;
+  totalDiscount: number;
+  taxableAmount: number;
+  totalTax: number;
+  totalDuty: number;
+  totalAdditions: number;
+  totalDeductions: number;
+  finalAmount: number;
+  paidAmount: number;
+  balanceDue: number;
+  commissionAmount: number;
+  status: string; // draft | completed | pending_approval | approved | finalized | needs_correction | rejected | cancelled | voided | returned | amended
+  accountingPosted: boolean;
+  journalEntryId: string | null;
+  warehouseExitId: string | null;
+  sourceDocType: string | null;
+  sourceDocId: string | null;
+  voidedBy: string | null;
+  voidedAt: string | null;
+  voidReason: string | null;
+  amendedFromId: string | null;
+  description: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  items?: SalesInvoiceItem[];
+  history?: SalesInvoiceHistory[];
+}
+
+export interface SalesInvoiceItem {
+  id: string;
+  orgId: string | null;
+  invoiceId: string;
+  rowNumber: number;
+  productId: string | null;
+  productCode: string | null;
+  productName: string | null;
+  serviceType: string | null;
+  qty: number;
+  unit: string | null;
+  baseUnit: string | null;
+  conversionFactor: number;
+  baseQty: number;
+  unitPrice: number;
+  grossAmount: number;
+  discountAmount: number;
+  discountPct: number;
+  taxableAmount: number;
+  taxAmount: number;
+  taxPct: number;
+  dutyAmount: number;
+  dutyPct: number;
+  additions: number;
+  deductions: number;
+  finalPrice: number;
+  warehouseId: string | null;
+  location: string | null;
+  serialNo: string | null;
+  batchNo: string | null;
+  costCenterId: string | null;
+  description: string | null;
+  createdAt: string;
+}
+
+export interface SalesInvoiceHistory {
+  id: string;
+  orgId: string | null;
+  invoiceId: string;
+  action: string;
+  actionBy: string | null;
+  actionAt: string;
+  fromStatus: string | null;
+  toStatus: string | null;
+  oldValue: string | null;
+  newValue: string | null;
+  reason: string | null;
+  details: any;
+  createdAt: string;
+}

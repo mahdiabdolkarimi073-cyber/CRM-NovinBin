@@ -95,6 +95,9 @@ export const serviceItems: NavItem[] = [
 ];
 
 export const salesItems: NavItem[] = [
+  { href: '/dashboard/customs-declarations', label: 'اظهارات گمرکی', icon: FileSearch },
+  { href: '/dashboard/process-agents', label: 'عامل فرایند', icon: Network },
+  { href: '/dashboard/sales-invoices', label: 'فاکتور فروش', icon: FileText },
   { href: '/dashboard/commissions', label: 'پورسانت', icon: Percent },
 ];
 

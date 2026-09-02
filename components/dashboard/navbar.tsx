@@ -11,13 +11,13 @@ import {
 } from '@/components/ui/dropdown-menu';
 import {
   Shield, Menu, X, ChevronDown, User, Settings, LogOut,
-  Inbox, Landmark, Warehouse, Award, ClipboardList,
+  Inbox, Landmark, Warehouse, Award, ClipboardList, TrendingUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/dashboard/logo';
 import {
   coreItems, cartableItems, financeItems, inventoryItems, clubItems, adminItems,
-  reportsItems, isSuperAdminRole, filterByAccess, type NavItem, type NavGroup,
+  reportsItems, salesItems, isSuperAdminRole, filterByAccess, type NavItem, type NavGroup,
 } from '@/lib/nav-config';
 import { NotificationBell } from '@/components/dashboard/notification-bell';
 
@@ -40,6 +40,7 @@ export function DashboardNavbar() {
   const visibleCartable = filterByAccess(profile, cartableItems);
   const visibleAdmin = filterByAccess(profile, adminItems);
   const visibleReports = filterByAccess(profile, reportsItems);
+  const visibleSales = filterByAccess(profile, salesItems);
 
   const displayName = profile ? `${profile.firstName || ''} ${profile.lastName || ''}`.trim() : 'کاربر';
   const initials = (profile?.firstName?.[0] || 'ن').toUpperCase();
@@ -49,6 +50,7 @@ export function DashboardNavbar() {
     { label: 'کارتابل', icon: Inbox, items: visibleCartable },
     { label: 'گزارشات', icon: ClipboardList, items: visibleReports },
     { label: 'مالی', icon: Landmark, items: visibleFinance },
+    { label: 'فروش', icon: TrendingUp, items: visibleSales },
     { label: 'انبارداری', icon: Warehouse, items: visibleInventory },
     { label: 'باشگاه مشتریان', icon: Award, items: visibleClub },
   ];
@@ -363,6 +365,7 @@ export function DashboardNavbar() {
           {renderMobileGroup({ label: 'کارتابل', icon: Inbox, items: [] } as NavGroup, visibleCartable)}
           {renderMobileGroup({ label: 'گزارشات', icon: ClipboardList, items: [] } as NavGroup, visibleReports)}
           {renderMobileGroup({ label: 'مالی', icon: Landmark, items: [] } as NavGroup, visibleFinance)}
+          {renderMobileGroup({ label: 'فروش', icon: TrendingUp, items: [] } as NavGroup, visibleSales)}
           {renderMobileGroup({ label: 'انبارداری', icon: Warehouse, items: [] } as NavGroup, visibleInventory)}
           {renderMobileGroup({ label: 'باشگاه مشتریان', icon: Award, items: [] } as NavGroup, visibleClub)}
           {visibleAdmin.length > 0 && renderMobileGroup({ label: 'مدیریت', icon: Shield, items: [] } as NavGroup, visibleAdmin)}
