@@ -147,6 +147,11 @@ model Organization {
   salesInvoices                   SalesInvoice[]
   salesInvoiceItems               SalesInvoiceItem[]
   salesInvoiceHistory             SalesInvoiceHistory[]
+  salesReturnInvoices             SalesReturnInvoice[]
+  salesReturnInvoiceItems         SalesReturnInvoiceItem[]
+  salesReturnInvoiceHistory       SalesReturnInvoiceHistory[]
+  productBundles                  ProductBundle[]
+  productBundleItems              ProductBundleItem[]
 
   @@map("organizations")
 }
@@ -4059,4 +4064,121 @@ model SalesInvoiceHistory {
   org             Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   @@map("sales_invoice_history")
+}
+
+// ============ SALES RETURN INVOICE ============
+
+model SalesReturnInvoice {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  number          String
+  returnDate      DateTime @default(now())
+  customerId      String?  @db.Uuid
+  customerName    String?
+  originalInvoiceId String? @db.Uuid
+  sellerId        String?  @db.Uuid
+  sellerName      String?
+  warehouseId     String?  @db.Uuid
+  returnReason    String?
+  subtotal        Decimal  @default(0) @db.Decimal(18, 2)
+  totalDiscount   Decimal  @default(0) @db.Decimal(18, 2)
+  totalTax        Decimal  @default(0) @db.Decimal(18, 2)
+  finalAmount     Decimal  @default(0) @db.Decimal(18, 2)
+  status          String   @default("draft") // draft | confirmed | voided
+  voidedBy        String?  @db.Uuid
+  voidedAt        DateTime?
+  voidReason      String?
+  notes           String?
+  createdBy       String   @db.Uuid
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+  org             Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  items           SalesReturnInvoiceItem[]
+  history         SalesReturnInvoiceHistory[]
+
+  @@map("sales_return_invoices")
+}
+
+model SalesReturnInvoiceItem {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  returnInvoiceId String   @db.Uuid
+  rowNumber       Int
+  productId       String?  @db.Uuid
+  productCode     String?
+  productName     String
+  unit            String?
+  qty             Decimal  @default(0) @db.Decimal(18, 2)
+  unitPrice       Decimal  @default(0) @db.Decimal(18, 2)
+  discountAmount  Decimal  @default(0) @db.Decimal(18, 2)
+  taxAmount       Decimal  @default(0) @db.Decimal(18, 2)
+  finalPrice      Decimal  @default(0) @db.Decimal(18, 2)
+  description     String?
+  createdAt       DateTime @default(now())
+  returnInvoice   SalesReturnInvoice @relation(fields: [returnInvoiceId], references: [id], onDelete: Cascade)
+  org             Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@map("sales_return_invoice_items")
+}
+
+model SalesReturnInvoiceHistory {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  returnInvoiceId String   @db.Uuid
+  action          String   // created | confirmed | voided | status_changed
+  actionBy        String?  @db.Uuid
+  actionAt        DateTime @default(now())
+  fromStatus      String?
+  toStatus        String?
+  reason          String?
+  details         Json     @default("{}")
+  createdAt       DateTime @default(now())
+  returnInvoice   SalesReturnInvoice @relation(fields: [returnInvoiceId], references: [id], onDelete: Cascade)
+  org             Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@map("sales_return_invoice_history")
+}
+
+// ============ PRODUCT BUNDLE ============
+
+model ProductBundle {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  code            String?
+  name            String
+  description     String?
+  unit           String?
+  totalCost       Decimal  @default(0) @db.Decimal(18, 2)
+  totalPrice     Decimal  @default(0) @db.Decimal(18, 2)
+  discountPct     Decimal  @default(0) @db.Decimal(5, 2)
+  finalPrice     Decimal  @default(0) @db.Decimal(18, 2)
+  active          Boolean  @default(true)
+  createdBy       String   @db.Uuid
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+  org             Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  items           ProductBundleItem[]
+
+  @@map("product_bundles")
+}
+
+model ProductBundleItem {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?  @db.Uuid
+  bundleId        String   @db.Uuid
+  rowNumber       Int
+  productId       String?  @db.Uuid
+  productCode     String?
+  productName     String
+  unit            String?
+  qty             Decimal  @default(0) @db.Decimal(18, 2)
+  unitPrice       Decimal  @default(0) @db.Decimal(18, 2)
+  totalCost       Decimal  @default(0) @db.Decimal(18, 2)
+  totalPrice      Decimal  @default(0) @db.Decimal(18, 2)
+  description     String?
+  createdAt       DateTime @default(now())
+  bundle          ProductBundle @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  org             Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@map("product_bundle_items")
 }

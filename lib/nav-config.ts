@@ -43,6 +43,7 @@ export const coreItems: NavItem[] = [
 export const cartableItems: NavItem[] = [
   { href: '/dashboard/invoices', label: 'فاکتورها', icon: FileText },
   { href: '/dashboard/pre-invoices', label: 'پیش‌فاکتور', icon: FileOutput },
+  { href: '/dashboard/pre-invoices-sales', label: 'پیش فاکتور فروش', icon: FileOutput },
   { href: '/dashboard/returns', label: 'مرجوعی', icon: RotateCcw },
   { href: '/dashboard/payments', label: 'پرداخت‌ها', icon: WalletCards },
   { href: '/dashboard/receipts', label: 'دریافت‌ها', icon: ArrowDownToLine },
@@ -98,6 +99,8 @@ export const salesItems: NavItem[] = [
   { href: '/dashboard/customs-declarations', label: 'اظهارات گمرکی', icon: FileSearch },
   { href: '/dashboard/process-agents', label: 'عامل فرایند', icon: Network },
   { href: '/dashboard/sales-invoices', label: 'فاکتور فروش', icon: FileText },
+  { href: '/dashboard/sales-return-invoices', label: 'فاکتور برگشت از فروش', icon: RotateCcw },
+  { href: '/dashboard/product-bundles', label: 'بسته محصول فروش', icon: Boxes },
   { href: '/dashboard/commissions', label: 'پورسانت', icon: Percent },
 ];
 

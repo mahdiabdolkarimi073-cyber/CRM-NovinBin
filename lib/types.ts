@@ -547,6 +547,7 @@ export interface PreInvoice {
   createdBy: string;
   createdAt: string;
   preInvoiceItems?: PreInvoiceItem[];
+  items?: PreInvoiceItem[];
 }
 
 export interface PreInvoiceItem {
@@ -2474,5 +2475,104 @@ export interface SalesInvoiceHistory {
   newValue: string | null;
   reason: string | null;
   details: any;
+  createdAt: string;
+}
+
+// ============ SALES RETURN INVOICE ============
+
+export interface SalesReturnInvoice {
+  id: string;
+  orgId: string | null;
+  number: string;
+  returnDate: string;
+  customerId: string | null;
+  customerName: string | null;
+  originalInvoiceId: string | null;
+  sellerId: string | null;
+  sellerName: string | null;
+  warehouseId: string | null;
+  returnReason: string | null;
+  subtotal: number;
+  totalDiscount: number;
+  totalTax: number;
+  finalAmount: number;
+  status: string;
+  voidedBy: string | null;
+  voidedAt: string | null;
+  voidReason: string | null;
+  notes: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  items?: SalesReturnInvoiceItem[];
+  history?: SalesReturnInvoiceHistory[];
+}
+
+export interface SalesReturnInvoiceItem {
+  id: string;
+  orgId: string | null;
+  returnInvoiceId: string;
+  rowNumber: number;
+  productId: string | null;
+  productCode: string | null;
+  productName: string;
+  unit: string | null;
+  qty: number;
+  unitPrice: number;
+  discountAmount: number;
+  taxAmount: number;
+  finalPrice: number;
+  description: string | null;
+  createdAt: string;
+}
+
+export interface SalesReturnInvoiceHistory {
+  id: string;
+  orgId: string | null;
+  returnInvoiceId: string;
+  action: string;
+  actionBy: string | null;
+  actionAt: string;
+  fromStatus: string | null;
+  toStatus: string | null;
+  reason: string | null;
+  details: any;
+  createdAt: string;
+}
+
+// ============ PRODUCT BUNDLE ============
+
+export interface ProductBundle {
+  id: string;
+  orgId: string | null;
+  code: string | null;
+  name: string;
+  description: string | null;
+  unit: string | null;
+  totalCost: number;
+  totalPrice: number;
+  discountPct: number;
+  finalPrice: number;
+  active: boolean;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  items?: ProductBundleItem[];
+}
+
+export interface ProductBundleItem {
+  id: string;
+  orgId: string | null;
+  bundleId: string;
+  rowNumber: number;
+  productId: string | null;
+  productCode: string | null;
+  productName: string;
+  unit: string | null;
+  qty: number;
+  unitPrice: number;
+  totalCost: number;
+  totalPrice: number;
+  description: string | null;
   createdAt: string;
 }
