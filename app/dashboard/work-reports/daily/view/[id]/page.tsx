@@ -11,6 +11,7 @@ import { formatJalali, formatJalaliDateTime, toLocalDateString } from '@/lib/for
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { isSuperAdminRole } from '@/lib/nav-config';
+import { LinkifyText } from '@/components/ui/linkify-text';
 
 type DailyWorkReport = {
   id: string;
@@ -212,7 +213,7 @@ export default function DailyReportViewPage({ params }: { params: { id: string }
           <div className="mb-6">
             <h3 className="mb-2 text-sm font-semibold text-[#172033]">خلاصه فعالیت‌های انجام شده</h3>
             <div className="whitespace-pre-wrap rounded-[10px] border border-[#DCE4EF] bg-[#F8FAFC] p-4 text-sm leading-7 text-slate-600">
-              {report.description}
+              <LinkifyText text={report.description} />
             </div>
           </div>
         )}
@@ -222,7 +223,7 @@ export default function DailyReportViewPage({ params }: { params: { id: string }
           <div className="mb-6">
             <h3 className="mb-2 text-sm font-semibold text-[#172033]">جزئیات فعالیت‌ها</h3>
             <div className="whitespace-pre-wrap rounded-[10px] border border-[#DCE4EF] bg-[#F8FAFC] p-4 text-sm leading-7 text-slate-600">
-              {report.details}
+              <LinkifyText text={report.details} />
             </div>
           </div>
         )}

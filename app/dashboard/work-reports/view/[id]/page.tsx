@@ -11,6 +11,7 @@ import { formatJalali, formatJalaliDateTime } from '@/lib/format';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { isSuperAdminRole } from '@/lib/nav-config';
+import { LinkifyText } from '@/components/ui/linkify-text';
 
 type WorkReportImage = { id: string; imageUrl: string };
 type ReportWithImages = {
@@ -231,7 +232,7 @@ export default function MonthlyReportViewPage({ params }: { params: { id: string
           <div className="mb-6">
             <h3 className="mb-2 text-sm font-semibold text-[#172033]">خلاصه عملکرد ماهانه</h3>
             <div className="whitespace-pre-wrap rounded-[10px] border border-[#DCE4EF] bg-[#F8FAFC] p-4 text-sm leading-7 text-slate-600">
-              {report.summary}
+              <LinkifyText text={report.summary} />
             </div>
           </div>
         )}
@@ -241,7 +242,7 @@ export default function MonthlyReportViewPage({ params }: { params: { id: string
           <div className="mb-6">
             <h3 className="mb-2 text-sm font-semibold text-[#172033]">جزئیات فعالیت‌ها و دستاوردها</h3>
             <div className="whitespace-pre-wrap rounded-[10px] border border-[#DCE4EF] bg-[#F8FAFC] p-4 text-sm leading-7 text-slate-600">
-              {report.details}
+              <LinkifyText text={report.details} />
             </div>
           </div>
         )}
@@ -251,7 +252,7 @@ export default function MonthlyReportViewPage({ params }: { params: { id: string
           <div className="mb-6">
             <h3 className="mb-2 text-sm font-semibold text-[#172033]">شرح کارهای انجام‌شده</h3>
             <div className="whitespace-pre-wrap rounded-[10px] border border-[#DCE4EF] bg-[#F8FAFC] p-4 text-sm leading-7 text-slate-600">
-              {report.description}
+              <LinkifyText text={report.description} />
             </div>
           </div>
         )}

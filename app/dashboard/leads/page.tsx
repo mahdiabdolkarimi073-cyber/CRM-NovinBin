@@ -382,10 +382,10 @@ export default function LeadsPage() {
 
                       <div className="lead-card-contacts">
                         {lead.phone && (
-                          <div className="lead-contact-row">
+                          <a href={`tel:${lead.phone.replace(/[\s-]/g, '')}`} className="lead-contact-row" style={{ textDecoration: 'none', cursor: 'pointer' }} title="تماس با این شماره">
                             <Phone className="h-4 w-4" />
                             <span dir="ltr">{lead.phone}</span>
-                          </div>
+                          </a>
                         )}
                         {lead.email && (
                           <div className="lead-contact-row">
@@ -616,10 +616,10 @@ export default function LeadsPage() {
                   <Badge style={{ backgroundColor: statusInfo(viewLead.status).color + '20', color: statusInfo(viewLead.status).color }}>{statusInfo(viewLead.status).label}</Badge>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                 {viewLead.company && <div><span className="text-slate-400">شرکت:</span> <span className="font-medium">{viewLead.company}</span></div>}
                 {viewLead.source && <div><span className="text-slate-400">منبع:</span> <span className="font-medium">{viewLead.source}</span></div>}
-                {viewLead.phone && <div><span className="text-slate-400">تلفن:</span> <span className="font-medium" dir="ltr">{viewLead.phone}</span></div>}
+                {viewLead.phone && <div><span className="text-slate-400">تلفن:</span> <a href={`tel:${viewLead.phone.replace(/[\s-]/g, '')}`} className="font-medium text-[#2563EB]" dir="ltr" style={{ textDecoration: 'underline' }}>{viewLead.phone}</a></div>}
                 {viewLead.email && <div><span className="text-slate-400">ایمیل:</span> <span className="font-medium" dir="ltr">{viewLead.email}</span></div>}
               </div>
               {viewLead.notes && (
@@ -642,7 +642,7 @@ export default function LeadsPage() {
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>ویرایش سرنخ</DialogTitle></DialogHeader>
           <form onSubmit={handleEditSave} className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>نام *</Label>
                 <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
@@ -652,7 +652,7 @@ export default function LeadsPage() {
                 <Input value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>تلفن</Label>
                 <Input dir="ltr" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />

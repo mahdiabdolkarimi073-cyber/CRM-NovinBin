@@ -3227,6 +3227,12 @@
   .leads-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .leads-title-row h1 { font-size: 26px; }
 }
+@media (max-width: 900px) {
+  .leads-layout { grid-template-columns: 1fr; }
+  .leads-sidebar { flex-direction: row; flex-wrap: wrap; gap: 14px; }
+  .leads-sidebar-section { flex: 1; min-width: 280px; }
+  .leads-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 @media (max-width: 767px) {
   .leads-page { max-width: calc(100% - 24px); padding-top: 16px; }
   .leads-header { flex-direction: column; align-items: stretch; }
@@ -3234,17 +3240,40 @@
   .leads-toolbar { flex-direction: column; align-items: stretch; }
   .leads-filter-dropdown { width: 100%; }
   .leads-layout { grid-template-columns: 1fr; }
+  .leads-sidebar { flex-direction: column; }
+  .leads-sidebar-section { min-width: 0; }
   .leads-grid { grid-template-columns: 1fr; }
   .leads-title-row h1 { font-size: 24px; }
   .leads-form-grid { grid-template-columns: 1fr; }
   .leads-modal-content { width: calc(100% - 24px); max-height: 90vh; overflow-y: auto; }
   .leads-pagination { flex-direction: column; align-items: stretch; }
+  .leads-page-buttons { flex-wrap: wrap; justify-content: center; }
+  .leads-alarm-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .leads-alarm-item { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .leads-alarm-item-actions { width: 100%; }
+  .leads-alarm-follow { flex: 1; }
+  .lead-card-actions { flex-wrap: wrap; }
+  .lead-status-switcher { flex-wrap: wrap; gap: 4px; }
+  .lead-status-chip { font-size: 10px; padding: 4px 8px; }
+  .lead-card-header { flex-direction: column; gap: 10px; }
+  .lead-card-status-wrap { align-self: flex-start; }
+  .leads-search-wrap { height: 44px; }
+  .leads-select-trigger { height: 44px !important; }
+  .leads-stats-grid { grid-template-columns: repeat(3, 1fr); }
+  .leads-quick-actions { grid-template-columns: 1fr 1fr 1fr; }
+  .lead-mini-stat { height: 70px; }
+  .lead-mini-stat strong { font-size: 18px; }
 }
 @media (max-width: 480px) {
   .leads-page { max-width: calc(100% - 24px); padding-top: 12px; }
   .leads-title-row h1 { font-size: 22px; }
   .lead-card { padding: 14px; border-radius: 12px; }
   .leads-quick-actions { grid-template-columns: 1fr 1fr; }
+  .leads-stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .lead-card-actions { flex-direction: column; }
+  .lead-action-btn { width: 100%; }
+  .leads-page-btn { min-width: 32px; height: 32px; padding: 0 8px; font-size: 12px; }
+  .leads-page-size { justify-content: center; }
 }
 
 /* ===== New Ticket Page ===== */
