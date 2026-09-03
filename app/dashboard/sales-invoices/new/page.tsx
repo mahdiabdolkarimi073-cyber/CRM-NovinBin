@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatToman, toEnglishDigits, parseNumber } from '@/lib/format';
+import { fullName } from '@/lib/constants';
 import type { Customer, ProcessAgent, Warehouse, Product, Profile } from '@/lib/types';
 
 interface ItemRow {

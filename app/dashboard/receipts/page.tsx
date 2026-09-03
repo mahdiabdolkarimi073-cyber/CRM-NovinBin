@@ -16,6 +16,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from '@/components/ui/dialog';
 import { Banknote, Plus, Search, Eye, Trash2 } from 'lucide-react';
+import Link from 'next/link';
 import { SuperAdminActions } from '@/components/dashboard/super-admin-actions';
 import { formatToman, formatJalali, toLocalDateString } from '@/lib/format';
 import { toast } from 'sonner';
@@ -180,140 +181,9 @@ export default function ReceiptsPage() {
         title="رسیدها"
         description="ثبت و مدیریت رسیدهای دریافتی"
         action={
-          <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
-            <DialogTrigger asChild>
-              <Button size="sm"><Plus className="w-4 h-4" /> رسید جدید</Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader><DialogTitle>ثبت رسید جدید</DialogTitle></DialogHeader>
-              <form onSubmit={handleCreate} className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2 col-span-2">
-                    <Label>فاکتور مرتبط</Label>
-                    <Select value={form.invoice_id || 'none'} onValueChange={(v) => setForm({ ...form, invoice_id: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">ندارد</SelectItem>
-                        {invoices.map((inv) => (
-                          <SelectItem key={inv.id} value={inv.id}>{inv.number} — {formatToman(Number(inv.amount))} ت</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>مبلغ (تومان) *</Label>
-                    <Input dir="ltr" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="0" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>واریز به</Label>
-                    <Select value={form.deposit_to} onValueChange={(v) => setForm({ ...form, deposit_to: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {DEPOSIT_TO.map((d) => <SelectItem key={d.key} value={d.key}>{d.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>نوع رسید</Label>
-                    <Select value={form.receipt_type} onValueChange={(v) => setForm({ ...form, receipt_type: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {RECEIPT_TYPES.map((t) => <SelectItem key={t.key} value={t.key}>{t.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>شماره دستی</Label>
-                    <Input dir="ltr" value={form.manual_number} onChange={(e) => setForm({ ...form, manual_number: e.target.value })} />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>نوع پرداخت‌کننده</Label>
-                    <Select value={form.payer_type} onValueChange={(v) => setForm({ ...form, payer_type: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {PAYER_TYPES.map((p) => <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>نام پرداخت‌کننده</Label>
-                    <Input value={form.payer_name} onChange={(e) => setForm({ ...form, payer_name: e.target.value })} />
-                  </div>
-                </div>
-
-                {showCashMethod && (
-                  <div className="space-y-2">
-                    <Label>روش نقدی</Label>
-                    <Select value={form.cash_method} onValueChange={(v) => setForm({ ...form, cash_method: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {CASH_METHODS.map((c) => <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
-                {showBankFields && (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label>نام بانک</Label>
-                      <Input value={form.bank_name} onChange={(e) => setForm({ ...form, bank_name: e.target.value })} />
-                    </div>
-                    {form.receipt_type === 'cheque' && (
-                      <>
-                        <div className="space-y-2">
-                          <Label>شماره چک</Label>
-                          <Input dir="ltr" value={form.cheque_number} onChange={(e) => setForm({ ...form, cheque_number: e.target.value })} />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>کد شعبه</Label>
-                          <Input dir="ltr" value={form.branch_code} onChange={(e) => setForm({ ...form, branch_code: e.target.value })} />
-                        </div>
-                      </>
-                    )}
-                    {(form.receipt_type === 'bank_transfer' || form.receipt_type === 'card_to_card') && (
-                      <div className="space-y-2">
-                        <Label>شماره پیگیری</Label>
-                        <Input dir="ltr" value={form.tracking_number} onChange={(e) => setForm({ ...form, tracking_number: e.target.value })} />
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>تاریخ دریافت</Label>
-                    <JalaliDatePicker value={form.received_date ? new Date(form.received_date) : null} onChange={(d) => setForm({ ...form, received_date: d ? toLocalDateString(d) : '' })} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>یادآوری</Label>
-                    <Select value={form.reminder} onValueChange={(v) => setForm({ ...form, reminder: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {REMINDERS.map((r) => <SelectItem key={r.key} value={r.key}>{r.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>توضیحات</Label>
-                  <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-                </div>
-
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>انصراف</Button>
-                  <Button type="submit" disabled={creating}>{creating ? 'در حال ثبت...' : 'ثبت رسید'}</Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <Link href="/dashboard/receipts/new">
+            <Button size="sm"><Plus className="w-4 h-4" /> رسید جدید</Button>
+          </Link>
         }
       />
 
@@ -332,7 +202,7 @@ export default function ReceiptsPage() {
             icon={<Banknote className="w-8 h-8" />}
             title="رسیدی یافت نشد"
             description="اولین رسید را ثبت کنید"
-            action={<Button onClick={() => setDialogOpen(true)}><Plus className="w-4 h-4" /> رسید جدید</Button>}
+            action={<Link href="/dashboard/receipts/new"><Button><Plus className="w-4 h-4" /> رسید جدید</Button></Link>}
           />
         </Card>
       ) : (

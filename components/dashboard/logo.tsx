@@ -8,7 +8,7 @@ interface LogoProps {
   textClassName?: string;
 }
 
-export function Logo({ size = 40, className, withText = true, textClassName }: LogoProps) {
+export function Logo({ size = 80, className, withText = true, textClassName }: LogoProps) {
   return (
     <div className={cn('flex items-center gap-2.5', className)}>
       <div

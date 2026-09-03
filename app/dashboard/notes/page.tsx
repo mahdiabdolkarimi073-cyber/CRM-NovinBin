@@ -30,6 +30,7 @@ import {
   Trash2,
   Users,
 } from 'lucide-react';
+import Link from 'next/link';
 import { relativeTime } from '@/lib/format';
 import { toast } from 'sonner';
 import type { PersonalNote } from '@/lib/types';
@@ -199,7 +200,7 @@ export default function NotesPage() {
           <div className="notes-title-row"><span className="notes-title-marker" /><h1>یادداشت‌ها</h1></div>
           <p>یادداشت‌های شخصی خود را مدیریت و سازماندهی کنید</p>
         </div>
-        <Button onClick={openNew} className="notes-new-button"><Plus className="h-[18px] w-[18px]" /> یادداشت جدید</Button>
+        <Link href="/dashboard/notes/new"><Button className="notes-new-button"><Plus className="h-[18px] w-[18px]" /> یادداشت جدید</Button></Link>
       </header>
 
       <div className="notes-search-wrap">
@@ -241,7 +242,7 @@ export default function NotesPage() {
             </div>
           </div>
 
-          {loading ? <div className="notes-loading"><span /></div> : notes.length === 0 ? <div className="notes-empty"><EmptyState icon={<StickyNote className="h-8 w-8" />} title="هیچ یادداشتی وجود ندارد" description="یادداشت‌های شخصی خود را اینجا ذخیره کنید" action={<Button size="sm" onClick={openNew}><Plus className="h-4 w-4" /> یادداشت جدید</Button>} /></div> : filteredNotes.length === 0 ? <div className="notes-empty"><StickyNote className="h-10 w-10 text-slate-300" /><p>یادداشتی با این جستجو پیدا نشد.</p></div> : <>
+          {loading ? <div className="notes-loading"><span /></div> : notes.length === 0 ? <div className="notes-empty"><EmptyState icon={<StickyNote className="h-8 w-8" />} title="هیچ یادداشتی وجود ندارد" description="یادداشت‌های شخصی خود را اینجا ذخیره کنید" action={<Link href="/dashboard/notes/new"><Button size="sm"><Plus className="h-4 w-4" /> یادداشت جدید</Button></Link>} /></div> : filteredNotes.length === 0 ? <div className="notes-empty"><StickyNote className="h-10 w-10 text-slate-300" /><p>یادداشتی با این جستجو پیدا نشد.</p></div> : <>
             <div className="notes-grid">
               {filteredNotes.map((note) => <NoteCard key={note.id} note={note} favorite={favorites.includes(note.id)} onFavorite={toggleFavorite} onEdit={openEdit} onDelete={handleDelete} onPin={togglePin} />)}
             </div>

@@ -25,6 +25,7 @@ import {
   Plus, Users, Sparkles, Trash2, UserPlus, Crown, Heart, AlertTriangle,
   Search, X, Tag, Layers, Target,
 } from 'lucide-react';
+import Link from 'next/link';
 import { formatJalali, relativeTime } from '@/lib/format';
 import { fullName, CUSTOMER_LEVELS } from '@/lib/constants';
 import { toast } from 'sonner';
@@ -367,10 +368,12 @@ export default function CustomerSegmentsPage() {
         title="بخش‌بندی مشتریان"
         description="تقسیم‌بندی مشتریان بر اساس رفتار، ارزش و سطح"
         action={
-          <Button size="sm" onClick={openCreate} disabled={customers.length === 0}>
-            <Plus className="w-4 h-4" />
-            ایجاد بخش جدید
-          </Button>
+          <Link href="/dashboard/customer-segments/new">
+            <Button size="sm" disabled={customers.length === 0}>
+              <Plus className="w-4 h-4" />
+              ایجاد بخش جدید
+            </Button>
+          </Link>
         }
       />
 
@@ -452,7 +455,7 @@ export default function CustomerSegmentsPage() {
                 icon={<Layers className="w-8 h-8" />}
                 title="بخشی ایجاد نشده"
                 description="از پیشنهادهای آماده استفاده کنید یا بخش دلخواه بسازید"
-                action={<Button onClick={openCreate}><Plus className="w-4 h-4" />ایجاد بخش</Button>}
+                action={<Link href="/dashboard/customer-segments/new"><Button><Plus className="w-4 h-4" />ایجاد بخش</Button></Link>}
               />
             </Card>
           ) : (

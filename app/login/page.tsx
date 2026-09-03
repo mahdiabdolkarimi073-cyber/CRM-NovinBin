@@ -57,14 +57,14 @@ export default function UnifiedLoginPage() {
 
         <div className="relative w-full max-w-lg animate-fade-in">
           <Link href="/" className="mb-10 flex flex-col items-center">
-            <div className="relative h-36 w-36 overflow-hidden drop-shadow-lg sm:h-40 sm:w-40">
+            <div className="relative h-72 w-72 overflow-hidden drop-shadow-lg sm:h-80 sm:w-80">
               <Image
                 src="/images/1.png"
                 alt="نوین‌بین"
                 fill
                 priority
                 className="object-contain object-center"
-                sizes="96px"
+                sizes="192px"
               />
             </div>
           </Link>

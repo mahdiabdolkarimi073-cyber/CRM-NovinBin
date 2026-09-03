@@ -16,6 +16,7 @@ import {
   ArrowRightLeft, Plus, Truck, CheckCircle2, XCircle, Clock, Package,
   Warehouse, MapPin, Calendar, PackageCheck, AlertCircle,
 } from 'lucide-react';
+import Link from 'next/link';
 import { formatToman, formatJalali, relativeTime } from '@/lib/format';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -195,85 +196,9 @@ export default function StockTransfersPage() {
         title="انتقال بین انبارها"
         description="مدیریت انتقال کالا بین انبارهای سازمان"
         action={
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button><Plus className="w-4 h-4" /> انتقال جدید</Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <ArrowRightLeft className="w-5 h-5 text-blue-500" /> ایجاد انتقال بین انباری
-                </DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                {/* product */}
-                <div className="space-y-2">
-                  <Label>محصول *</Label>
-                  <Select value={form.productId} onValueChange={(v) => setForm({ ...form, productId: v })}>
-                    <SelectTrigger><SelectValue placeholder="انتخاب محصول..." /></SelectTrigger>
-                    <SelectContent>
-                      {products.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.name} {p.sku ? `(${p.sku})` : ''} — موجودی: {p.stock.toLocaleString('fa-IR')}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* from / to warehouses */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>انبار مبدأ *</Label>
-                    <Select value={form.fromWarehouseId} onValueChange={(v) => setForm({ ...form, fromWarehouseId: v })}>
-                      <SelectTrigger><SelectValue placeholder="مبدأ..." /></SelectTrigger>
-                      <SelectContent>
-                        {warehouses.map((w) => (
-                          <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>انبار مقصد *</Label>
-                    <Select value={form.toWarehouseId} onValueChange={(v) => setForm({ ...form, toWarehouseId: v })}>
-                      <SelectTrigger><SelectValue placeholder="مقصد..." /></SelectTrigger>
-                      <SelectContent>
-                        {warehouses.map((w) => (
-                          <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {form.fromWarehouseId && form.toWarehouseId && form.fromWarehouseId === form.toWarehouseId && (
-                  <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 rounded-lg p-2">
-                    <AlertCircle className="w-4 h-4" /> انبار مبدأ و مقصد یکسان هستند
-                  </div>
-                )}
-
-                {/* qty + notes */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>تعداد *</Label>
-                    <Input type="number" dir="ltr" min="1" value={form.qty} onChange={(e) => setForm({ ...form, qty: e.target.value })} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>یادداشت</Label>
-                    <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="اختیاری..." />
-                  </div>
-                </div>
-
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>انصراف</Button>
-                  <Button onClick={handleCreate} disabled={submitting}>
-                    {submitting ? 'در حال ثبت...' : 'ثبت انتقال'}
-                  </Button>
-                </DialogFooter>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Link href="/dashboard/stock-transfers/new">
+            <Button><Plus className="w-4 h-4" /> انتقال جدید</Button>
+          </Link>
         }
       />
 
@@ -310,9 +235,9 @@ export default function StockTransfersPage() {
               </div>
               <p className="text-slate-600 font-medium">انتقالی ثبت نشده</p>
               <p className="text-sm text-slate-400 mt-1">برای شروع، اولین انتقال بین انباری را ایجاد کنید</p>
-              <Button className="mt-4" size="sm" onClick={() => setDialogOpen(true)}>
+              <Link href="/dashboard/stock-transfers/new"><Button className="mt-4" size="sm">
                 <Plus className="w-4 h-4" /> انتقال جدید
-              </Button>
+              </Button></Link>
             </div>
           ) : (
             <Table>

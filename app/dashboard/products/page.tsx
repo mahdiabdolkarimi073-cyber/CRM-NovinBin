@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Package, Plus, Search, AlertTriangle, Eye } from 'lucide-react';
+import Link from 'next/link';
 import { SuperAdminActions } from '@/components/dashboard/super-admin-actions';
 import { formatToman } from '@/lib/format';
 import { toast } from 'sonner';
@@ -124,68 +125,9 @@ export default function ProductsPage() {
         title="محصولات"
         description="مدیریت کالاها و خدمات"
         action={
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" onClick={openCreate}><Plus className="w-4 h-4" /> محصول جدید</Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg">
-              <DialogHeader><DialogTitle>{editing ? 'ویرایش محصول' : 'افزودن محصول جدید'}</DialogTitle></DialogHeader>
-              <form onSubmit={handleSave} className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>نام *</Label>
-                    <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>نوع</Label>
-                    <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="product">کالا</SelectItem>
-                        <SelectItem value="service">خدمت</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-2">
-                    <Label>کد (SKU)</Label>
-                    <Input dir="ltr" value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>برند</Label>
-                    <Input value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>واحد</Label>
-                    <Input value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} />
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-2">
-                    <Label>قیمت (ت)</Label>
-                    <Input dir="ltr" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="0" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>موجودی</Label>
-                    <Input dir="ltr" type="number" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>حداقل موجودی</Label>
-                    <Input dir="ltr" type="number" value={form.min_stock} onChange={(e) => setForm({ ...form, min_stock: e.target.value })} />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>توضیحات</Label>
-                  <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-                </div>
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>انصراف</Button>
-                  <Button type="submit" disabled={saving}>{saving ? 'در حال ذخیره...' : 'ذخیره'}</Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <Link href="/dashboard/products/new">
+            <Button size="sm"><Plus className="w-4 h-4" /> محصول جدید</Button>
+          </Link>
         }
       />
 
@@ -204,7 +146,7 @@ export default function ProductsPage() {
             icon={<Package className="w-8 h-8" />}
             title="محصولی یافت نشد"
             description="اولین محصول خود را اضافه کنید"
-            action={<Button onClick={openCreate}><Plus className="w-4 h-4" /> افزودن محصول</Button>}
+            action={<Link href="/dashboard/products/new"><Button><Plus className="w-4 h-4" /> افزودن محصول</Button></Link>}
           />
         </Card>
       ) : (

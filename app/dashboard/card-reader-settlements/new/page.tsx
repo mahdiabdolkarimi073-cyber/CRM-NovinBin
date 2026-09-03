@@ -107,7 +107,7 @@ export default function NewCardReaderSettlementPage() {
         setAvailableTxns(eligible);
 
         // Also load existing pending settlements to prevent double-selection
-        const sData = await fetchData<CardReaderSettlement>('card_reader_settlements', {
+        const sData = await fetchData<any>('card_reader_settlements', {
           where: { cardReaderId, status: { in: ['draft', 'pending_approval', 'approved'] } },
           include: { items: true },
         });

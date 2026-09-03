@@ -242,7 +242,7 @@ export default function NewPaymentAnnouncementPage() {
                     <SelectContent>
                       {counterparty === 'contact_party'
                         ? counterpartyOptions.map((p: any) => <SelectItem key={p.id} value={p.id}>{partyLabel(p)}</SelectItem>)
-                        : (counterpartyOptions as Profile[]).map((s) => <SelectItem key={s.id} value={s.id}>{`${s.firstName || ''} ${s.lastName || ''}`.trim() || s.email}</SelectItem>)}
+                        : (counterpartyOptions as Profile[]).map((s) => <SelectItem key={s.id} value={s.id}>{`${s.firstName || ''} ${s.lastName || ''}`.trim() || s.phone || s.id.slice(0, 8)}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>

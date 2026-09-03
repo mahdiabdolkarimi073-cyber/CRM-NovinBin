@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/select';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import { Plus, FileSignature, Search, Calendar } from 'lucide-react';
+import Link from 'next/link';
 import { SuperAdminActions } from '@/components/dashboard/super-admin-actions';
 import { formatJalali, formatToman, toLocalDateString } from '@/lib/format';
 import { toast } from 'sonner';
@@ -153,75 +154,9 @@ export default function ContractsPage() {
         title="قراردادهای پرسنلی"
         description="مدیریت قراردادهای کارکنان و پرسنل"
         action={
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm"><Plus className="w-4 h-4" /> قرارداد جدید</Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg">
-              <DialogHeader><DialogTitle>ثبت قرارداد جدید</DialogTitle></DialogHeader>
-              <form onSubmit={handleCreate} className="space-y-4">
-                <div className="space-y-2">
-                  <Label>نام و نام خانوادگی *</Label>
-                  <Input
-                    value={form.fullName}
-                    onChange={(e) => setForm({ ...form, fullName: e.target.value })}
-                    placeholder="نام کامل پرسنل"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>نوع قرارداد</Label>
-                  <Select value={form.contractType} onValueChange={(v) => setForm({ ...form, contractType: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {CONTRACT_TYPES.map((t) => (
-                        <SelectItem key={t.key} value={t.key}>{t.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>تاریخ شروع *</Label>
-                    <JalaliDatePicker
-                      value={form.startDate ? new Date(form.startDate) : null}
-                      onChange={(d) => setForm({ ...form, startDate: d ? toLocalDateString(d) : '' })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>تاریخ پایان</Label>
-                    <JalaliDatePicker
-                      value={form.endDate ? new Date(form.endDate) : null}
-                      onChange={(d) => setForm({ ...form, endDate: d ? toLocalDateString(d) : '' })}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>حقوق (تومان)</Label>
-                  <Input
-                    type="number"
-                    dir="ltr"
-                    value={form.salary}
-                    onChange={(e) => setForm({ ...form, salary: e.target.value })}
-                    placeholder="0"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>یادداشت</Label>
-                  <Textarea
-                    value={form.notes}
-                    onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                    placeholder="توضیحات اختیاری"
-                    rows={3}
-                  />
-                </div>
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>انصراف</Button>
-                  <Button type="submit" disabled={creating}>{creating ? 'در حال ثبت...' : 'ثبت'}</Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <Link href="/dashboard/contracts/new">
+            <Button size="sm"><Plus className="w-4 h-4" /> قرارداد جدید</Button>
+          </Link>
         }
       />
 
@@ -246,7 +181,7 @@ export default function ContractsPage() {
               icon={<FileSignature className="w-8 h-8" />}
               title="قراردادی ثبت نشده"
               description="اولین قرارداد پرسنلی را ثبت کنید"
-              action={<Button onClick={() => setDialogOpen(true)}><Plus className="w-4 h-4" /> افزودن قرارداد</Button>}
+              action={<Link href="/dashboard/contracts/new"><Button><Plus className="w-4 h-4" /> افزودن قرارداد</Button></Link>}
             />
           </CardContent>
         </Card>

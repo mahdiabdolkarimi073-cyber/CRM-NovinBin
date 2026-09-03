@@ -15,6 +15,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter
 } from '@/components/ui/dialog';
 import { Plus, FileText } from 'lucide-react';
+import Link from 'next/link';
 import { formatToman, toLocalDateString } from '@/lib/format';
 import { INVOICE_STATUSES, fullName, tomanShort } from '@/lib/constants';
 import { toast } from 'sonner';
@@ -163,56 +164,9 @@ export default function InvoicesPage() {
         title="فاکتورها"
         description="مدیریت فاکتورها و پرداخت‌ها"
         action={
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm"><Plus className="w-4 h-4" /> فاکتور جدید</Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg">
-              <DialogHeader><DialogTitle>صدور فاکتور جدید</DialogTitle></DialogHeader>
-              <form onSubmit={handleCreate} className="space-y-4">
-                <div className="space-y-2">
-                  <Label>مشتری *</Label>
-                  <Select value={form.customerId} onValueChange={(v) => setForm({ ...form, customerId: v })}>
-                    <SelectTrigger><SelectValue placeholder="انتخاب مشتری..." /></SelectTrigger>
-                    <SelectContent>
-                      {customers.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.type === 'company' ? c.companyName : fullName(c.firstName, c.lastName)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>سفارش مرتبط</Label>
-                  <Select value={form.orderId} onValueChange={(v) => setForm({ ...form, orderId: v })}>
-                    <SelectTrigger><SelectValue placeholder="بدون سفارش" /></SelectTrigger>
-                    <SelectContent>
-                      {orders.map((o) => <SelectItem key={o.id} value={o.id}>{o.number || o.id.slice(0, 8)}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>مبلغ (ت) *</Label>
-                    <Input dir="ltr" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="0" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>سررسید</Label>
-                    <JalaliDatePicker value={form.dueDate ? new Date(form.dueDate) : null} onChange={(d) => setForm({ ...form, dueDate: d ? toLocalDateString(d) : '' })} />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>توضیحات</Label>
-                  <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-                </div>
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>انصراف</Button>
-                  <Button type="submit" disabled={creating}>{creating ? 'در حال صدور...' : 'صدور فاکتور'}</Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <Link href="/dashboard/invoices/new">
+            <Button size="sm"><Plus className="w-4 h-4" /> فاکتور جدید</Button>
+          </Link>
         }
       />
 
