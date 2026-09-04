@@ -27,6 +27,7 @@ const MODEL_MAP: Record<string, any> = {
   opportunities: prisma.opportunity,
   tasks: prisma.task,
   task_comments: prisma.taskComment,
+  task_assignees: prisma.taskAssignee,
   products: prisma.product,
   product_categories: prisma.productCategory,
   orders: prisma.order,
@@ -184,7 +185,8 @@ function cleanWhere(where: any): any {
 
 const MODEL_PAGE: Record<string, string> = {
   customers: '/dashboard/customers', leads: '/dashboard/leads', opportunities: '/dashboard/pipeline',
-  tasks: '/dashboard/tasks', products: '/dashboard/products', product_categories: '/dashboard/products',
+  tasks: '/dashboard/tasks',
+  task_assignees: '/dashboard/tasks', products: '/dashboard/products', product_categories: '/dashboard/products',
   orders: '/dashboard/orders', invoices: '/dashboard/invoices', meetings: '/dashboard/meetings',
   tickets: '/dashboard/tickets', notifications: '/dashboard/notifications', profiles: '/dashboard/users',
   organizations: '/dashboard/organization', accounts: '/dashboard/accounting', journal_entries: '/dashboard/accounting',
@@ -262,6 +264,7 @@ const MODEL_PAGE: Record<string, string> = {
 const SHARED_MODELS = new Set([
   'profiles', 'user_manager', 'customers', 'notifications',
   'personal_notes', 'staff_chat_messages', 'my_customers', 'ticket_messages',
+  'task_assignees',
 ]);
 
 async function canAccess(auth: { userId: string }, model: string): Promise<boolean> {

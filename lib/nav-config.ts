@@ -27,9 +27,6 @@ export interface NavGroup {
 export const coreItems: NavItem[] = [
   { href: '/dashboard', label: 'داشبورد', icon: LayoutDashboard },
   { href: '/dashboard/leads', label: 'سرنخ‌های فروش', icon: TrendingUp },
-  { href: '/dashboard/orders', label: 'سفارشات', icon: ShoppingCart },
-  { href: '/dashboard/meetings', label: 'جلسات', icon: Calendar },
-  { href: '/dashboard/calls', label: 'مکالمات', icon: Phone },
   { href: '/dashboard/demos', label: 'دموها', icon: Clock },
   { href: '/dashboard/contracts', label: 'قراردادها', icon: FileSignature },
   { href: '/dashboard/hr', label: 'منابع انسانی', icon: UserCog },
@@ -51,6 +48,8 @@ export const cartableItems: NavItem[] = [
   { href: '/dashboard/tickets', label: 'تیکت‌ها', icon: MessageSquare },
   { href: '/dashboard/tasks', label: 'تسک‌ها', icon: CheckSquare },
   { href: '/dashboard/doc-issuance-workboard', label: 'کارتابل صدور سند', icon: FileCheck },
+  { href: '/dashboard/meetings', label: 'جلسات', icon: Calendar },
+  { href: '/dashboard/calls', label: 'مکالمات', icon: Phone },
 ];
 
 export const financeItems: NavItem[] = [
@@ -102,6 +101,7 @@ export const salesItems: NavItem[] = [
   { href: '/dashboard/sales-return-invoices', label: 'فاکتور برگشت از فروش', icon: RotateCcw },
   { href: '/dashboard/product-bundles', label: 'بسته محصول فروش', icon: Boxes },
   { href: '/dashboard/commissions', label: 'پورسانت', icon: Percent },
+  { href: '/dashboard/orders', label: 'سفارشات', icon: ShoppingCart },
 ];
 
 export const clubItems: NavItem[] = [

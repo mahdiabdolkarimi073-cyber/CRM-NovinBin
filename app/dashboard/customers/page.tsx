@@ -322,10 +322,16 @@ export default function CustomersPage() {
                     </Badge>
                   </div>
                   <div className="space-y-1.5 text-sm">
-                    {c.mobile && (
+                    {c.mobile && isSuperAdmin && (
                       <div className="flex items-center gap-2 text-slate-500">
                         <Phone className="w-3.5 h-3.5 text-slate-400" />
                         <span dir="ltr">{c.mobile}</span>
+                      </div>
+                    )}
+                    {c.mobile && !isSuperAdmin && (
+                      <div className="flex items-center gap-2 text-slate-500">
+                        <Phone className="w-3.5 h-3.5 text-slate-400" />
+                        <span dir="ltr" className="tracking-widest">••••••••</span>
                       </div>
                     )}
                     {c.email && (
@@ -380,8 +386,10 @@ export default function CustomersPage() {
                 {viewCustomer.firstName && <div><span className="text-slate-400">نام:</span> <span className="font-medium">{viewCustomer.firstName}</span></div>}
                 {viewCustomer.lastName && <div><span className="text-slate-400">نام خانوادگی:</span> <span className="font-medium">{viewCustomer.lastName}</span></div>}
                 {viewCustomer.email && <div><span className="text-slate-400">ایمیل:</span> <span className="font-medium" dir="ltr">{viewCustomer.email}</span></div>}
-                {viewCustomer.mobile && <div><span className="text-slate-400">موبایل:</span> <span className="font-medium" dir="ltr">{viewCustomer.mobile}</span></div>}
-                {viewCustomer.phone && <div><span className="text-slate-400">تلفن:</span> <span className="font-medium" dir="ltr">{viewCustomer.phone}</span></div>}
+                {viewCustomer.mobile && isSuperAdmin && <div><span className="text-slate-400">موبایل:</span> <span className="font-medium" dir="ltr">{viewCustomer.mobile}</span></div>}
+                {viewCustomer.mobile && !isSuperAdmin && <div><span className="text-slate-400">موبایل:</span> <span className="font-medium tracking-widest" dir="ltr">••••••••</span></div>}
+                {viewCustomer.phone && isSuperAdmin && <div><span className="text-slate-400">تلفن:</span> <span className="font-medium" dir="ltr">{viewCustomer.phone}</span></div>}
+                {viewCustomer.phone && !isSuperAdmin && <div><span className="text-slate-400">تلفن:</span> <span className="font-medium tracking-widest" dir="ltr">••••••••</span></div>}
                 {viewCustomer.city && <div><span className="text-slate-400">شهر:</span> <span className="font-medium">{viewCustomer.city}</span></div>}
               </div>
               {viewCustomer.address && (

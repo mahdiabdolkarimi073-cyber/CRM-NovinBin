@@ -341,6 +341,7 @@ model Task {
   updatedAt   DateTime @default(now())
   org         Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
   comments    TaskComment[]
+  assignees   TaskAssignee[]
 
   @@map("tasks")
 }
@@ -354,6 +355,17 @@ model TaskComment {
   task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   @@map("task_comments")
+}
+
+model TaskAssignee {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  taskId    String   @db.Uuid
+  profileId String   @db.Uuid
+  createdAt DateTime @default(now())
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, profileId])
+  @@map("task_assignees")
 }
 
 // ============ SALES ============

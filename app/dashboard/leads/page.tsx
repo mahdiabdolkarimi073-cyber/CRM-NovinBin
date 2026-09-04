@@ -381,11 +381,17 @@ export default function LeadsPage() {
                       </div>
 
                       <div className="lead-card-contacts">
-                        {lead.phone && (
+                        {lead.phone && isSuperAdmin && (
                           <a href={`tel:${lead.phone.replace(/[\s-]/g, '')}`} className="lead-contact-row" style={{ textDecoration: 'none', cursor: 'pointer' }} title="تماس با این شماره">
                             <Phone className="h-4 w-4" />
                             <span dir="ltr">{lead.phone}</span>
                           </a>
+                        )}
+                        {lead.phone && !isSuperAdmin && (
+                          <div className="lead-contact-row">
+                            <Phone className="h-4 w-4" />
+                            <span dir="ltr" className="tracking-widest">••••••••</span>
+                          </div>
                         )}
                         {lead.email && (
                           <div className="lead-contact-row">
@@ -619,7 +625,8 @@ export default function LeadsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                 {viewLead.company && <div><span className="text-slate-400">شرکت:</span> <span className="font-medium">{viewLead.company}</span></div>}
                 {viewLead.source && <div><span className="text-slate-400">منبع:</span> <span className="font-medium">{viewLead.source}</span></div>}
-                {viewLead.phone && <div><span className="text-slate-400">تلفن:</span> <a href={`tel:${viewLead.phone.replace(/[\s-]/g, '')}`} className="font-medium text-[#2563EB]" dir="ltr" style={{ textDecoration: 'underline' }}>{viewLead.phone}</a></div>}
+                {viewLead.phone && isSuperAdmin && <div><span className="text-slate-400">تلفن:</span> <a href={`tel:${viewLead.phone.replace(/[\s-]/g, '')}`} className="font-medium text-[#2563EB]" dir="ltr" style={{ textDecoration: 'underline' }}>{viewLead.phone}</a></div>}
+                {viewLead.phone && !isSuperAdmin && <div><span className="text-slate-400">تلفن:</span> <span className="font-medium tracking-widest" dir="ltr">••••••••</span></div>}
                 {viewLead.email && <div><span className="text-slate-400">ایمیل:</span> <span className="font-medium" dir="ltr">{viewLead.email}</span></div>}
               </div>
               {viewLead.notes && (

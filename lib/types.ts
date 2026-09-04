@@ -186,6 +186,14 @@ export interface Task {
   createdAt: string;
   updatedAt: string;
   task_comments?: TaskComment[];
+  task_assignees?: TaskAssignee[];
+}
+
+export interface TaskAssignee {
+  id: string;
+  taskId: string;
+  profileId: string;
+  createdAt: string;
 }
 
 export interface TaskComment {

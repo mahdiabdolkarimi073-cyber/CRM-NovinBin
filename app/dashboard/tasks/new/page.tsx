@@ -14,12 +14,12 @@ import {
 } from '@/components/ui/select';
 import {
   ArrowRight, Clipboard, Calendar, User, Flag, Activity, Lightbulb,
-  Info, Type, AlignRight, Gauge, Clock, UserCheck, Loader2,
+  Info, Type, AlignRight, Gauge, Clock, UserCheck, Loader2, Check,
 } from 'lucide-react';
 import { TASK_STATUSES, TASK_PRIORITIES, fullName } from '@/lib/constants';
 import { toLocalDateString } from '@/lib/format';
 import { toast } from 'sonner';
-import type { Profile } from '@/lib/types';
+import type { Profile, TaskAssignee } from '@/lib/types';
 
 const MAX_DESC = 1000;
 
@@ -46,6 +46,7 @@ export default function NewTaskPage() {
     status: 'new',
     dueDate: '',
   });
+  const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
 
   const loadStaff = useCallback(async () => {
     try {
@@ -70,43 +71,55 @@ export default function NewTaskPage() {
     return Object.keys(e).length === 0;
   };
 
+  const toggleAssignee = (id: string) => {
+    setAssigneeIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile) { toast.error('اطلاعات کاربر بارگذاری نشده'); return; }
     if (!validate()) return;
     setSubmitting(true);
     try {
-      await createData('tasks', {
+      const task = await createData<{ id: string }>('tasks', {
         title: form.title.trim(),
         description: form.description || null,
-        assignedTo: form.assignedTo || null,
+        assignedTo: form.assignedTo || (assigneeIds.length > 0 ? assigneeIds[0] : null),
         priority: form.priority,
         status: form.status,
         dueDate: form.dueDate ? new Date(form.dueDate).toISOString() : null,
         createdBy: profile.id,
       });
+      const allAssignees = new Set<string>(assigneeIds);
+      if (form.assignedTo) allAssignees.add(form.assignedTo);
+      const assigneePromises = Array.from(allAssignees).map((aid) =>
+        createData<TaskAssignee>('task_assignees', { taskId: task.id, profileId: aid }).catch(() => {})
+      );
+      await Promise.all(assigneePromises);
       const myName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
       const notifPromises: Promise<any>[] = [];
-      if (form.assignedTo && form.assignedTo !== profile.id) {
-        notifPromises.push(
-          createData('notifications', {
-            profileId: form.assignedTo,
-            title: 'وظیفه جدید به شما اختصاص داده شد',
-            body: `یک تسک «${form.title}» توسط ${myName} به شما اختصاص داده شد`,
-            type: 'task',
-            priority: form.priority === 'critical' ? 'urgent' : 'normal',
-            link: '/dashboard/tasks',
-          }).catch(() => {})
-        );
-      }
+      allAssignees.forEach((aid) => {
+        if (aid !== profile.id) {
+          notifPromises.push(
+            createData('notifications', {
+              profileId: aid,
+              title: 'وظیفه جدید به شما اختصاص داده شد',
+              body: `یک تسک «${form.title}» توسط ${myName} به شما اختصاص داده شد`,
+              type: 'task',
+              priority: form.priority === 'critical' ? 'urgent' : 'normal',
+              link: '/dashboard/tasks',
+            }).catch(() => {})
+          );
+        }
+      });
       const superAdmins = staff.filter((s) => s.role === 'super_admin' || s.role === 'owner');
       superAdmins.forEach((admin) => {
-        if (admin.id !== profile.id && admin.id !== form.assignedTo) {
+        if (admin.id !== profile.id && !allAssignees.has(admin.id)) {
           notifPromises.push(
             createData('notifications', {
               profileId: admin.id,
               title: 'وظیفه جدید ایجاد شد',
-              body: `${myName} یک وظیفه جدید «${form.title}» ایجاد کرد${form.assignedTo ? ' و به فردی اختصاص داد' : ''}`,
+              body: `${myName} یک وظیفه جدید «${form.title}» ایجاد کرد${allAssignees.size > 0 ? ' و به افراد اختصاص داد' : ''}`,
               type: 'task',
               priority: 'normal',
               link: '/dashboard/tasks',
@@ -190,28 +203,55 @@ export default function NewTaskPage() {
                 {errors.description && <span className="field-error">{errors.description}</span>}
               </div>
 
-              {/* Management row: 3 selects */}
-              <div className="management-row">
-                <div className="field-group">
-                  <Label className="field-label">مسئول انجام <span className="required-star">*</span></Label>
-                  <Select
-                    value={form.assignedTo || 'none'}
-                    onValueChange={(v) => setForm({ ...form, assignedTo: v === 'none' ? '' : v })}
-                  >
-                    <SelectTrigger className="task-select">
-                      <span className="select-icon-right"><User className="h-4 w-4" /></span>
-                      <SelectValue placeholder="انتخاب فرد مسئول…" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">بدون تخصیص</SelectItem>
-                      {staff.map((s) => (
-                        <SelectItem key={s.id} value={s.id}>
-                          {fullName(s.firstName, s.lastName)}{s.id === profile?.id ? ' (خودم)' : ''}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              {/* Primary assignee */}
+              <div className="field-group">
+                <Label className="field-label">مسئول اصلی</Label>
+                <Select
+                  value={form.assignedTo || 'none'}
+                  onValueChange={(v) => setForm({ ...form, assignedTo: v === 'none' ? '' : v })}
+                >
+                  <SelectTrigger className="task-select">
+                    <span className="select-icon-right"><User className="h-4 w-4" /></span>
+                    <SelectValue placeholder="انتخاب فرد مسئول اصلی…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">بدون تخصیص</SelectItem>
+                    {staff.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {fullName(s.firstName, s.lastName)}{s.id === profile?.id ? ' (خودم)' : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Multi-assignee checkboxes */}
+              <div className="field-group">
+                <Label className="field-label">مسئولین بیشتر (اختیاری)</Label>
+                <div className="flex flex-wrap gap-2 rounded-lg border border-[#E2E8F0] bg-white p-3">
+                  {loadingStaff ? (
+                    <span className="text-sm text-slate-400">در حال بارگذاری...</span>
+                  ) : staff.length === 0 ? (
+                    <span className="text-sm text-slate-400">کارمندی یافت نشد</span>
+                  ) : staff.map((s) => {
+                    const checked = assigneeIds.includes(s.id);
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => toggleAssignee(s.id)}
+                        className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${checked ? 'border-[#2563EB] bg-[#EFF4FF] text-[#2563EB]' : 'border-[#E2E8F0] bg-white text-slate-600 hover:border-[#94A3B8]'}`}
+                      >
+                        {checked && <Check className="h-3 w-3" />}
+                        {fullName(s.firstName, s.lastName)}{s.id === profile?.id ? ' (خودم)' : ''}
+                      </button>
+                    );
+                  })}
                 </div>
+              </div>
+
+              {/* Management row: 2 selects */}
+              <div className="management-row">
 
                 <div className="field-group">
                   <Label className="field-label">اولویت <span className="required-star">*</span></Label>

@@ -15,6 +15,7 @@ import {
   ShoppingCart, FileText, CheckSquare, Calendar, MessageSquare,
   Award, Activity, Edit, Star
 } from 'lucide-react';
+import { useAuth } from '@/components/providers/auth-provider';
 import { formatToman, formatJalali, relativeTime } from '@/lib/format';
 import { fullName, CUSTOMER_LEVELS, ORDER_STATUSES, INVOICE_STATUSES, TASK_STATUSES, TASK_PRIORITIES, TICKET_STATUSES } from '@/lib/constants';
 import type { Customer, Order, Invoice, Task, Meeting, Ticket } from '@/lib/types';
@@ -26,6 +27,8 @@ export default function CustomerDetailPage() {
   const params = useParams();
   const router = useRouter();
   const customerId = params.id as string;
+  const { profile } = useAuth();
+  const isSuperAdmin = profile?.role === 'super_admin' || profile?.role === 'owner';
 
   const [customer, setCustomer] = useState<any | null>(null);
   const [orders, setOrders] = useState<any[]>([]);
@@ -166,8 +169,8 @@ export default function CustomerDetailPage() {
             <CardHeader><CardTitle className="text-base">اطلاعات تماس</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <InfoRow icon={Phone} label="موبایل" value={customer.mobile} ltr />
-                <InfoRow icon={Phone} label="تلفن" value={customer.phone} ltr />
+                <InfoRow icon={Phone} label="موبایل" value={isSuperAdmin ? customer.mobile : '••••••••'} ltr />
+                <InfoRow icon={Phone} label="تلفن" value={isSuperAdmin ? customer.phone : '••••••••'} ltr />
                 <InfoRow icon={Mail} label="ایمیل" value={customer.email} ltr />
                 <InfoRow icon={MapPin} label="شهر" value={customer.city} />
                 <InfoRow icon={MapPin} label="استان" value={customer.province} />
