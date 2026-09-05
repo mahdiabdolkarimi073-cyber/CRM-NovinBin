@@ -16,12 +16,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
   TrendingUp, Plus, Phone, Mail, MapPin, Search, Eye, Pencil, Trash2,
   BarChart3, Filter, Zap, FileBarChart, FileSpreadsheet, ChevronLeft, ChevronRight,
-  UserCheck, Clock, AlertTriangle, Bell, X,
+  UserCheck, Clock, AlertTriangle, Bell, X, Calendar, Video, Loader2,
 } from 'lucide-react';
-import { relativeTime } from '@/lib/format';
-import { LEAD_STATUSES, LEAD_SOURCES } from '@/lib/constants';
+import { relativeTime, formatJalaliDateTime, toLocalDateString } from '@/lib/format';
+import { LEAD_STATUSES, LEAD_SOURCES, fullName } from '@/lib/constants';
+import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 import { toast } from 'sonner';
-import type { Lead } from '@/lib/types';
+import type { Lead, Profile } from '@/lib/types';
 
 const statusInfo = (key: string) => LEAD_STATUSES.find((s) => s.key === key) || LEAD_STATUSES[0];
 
@@ -61,6 +62,13 @@ export default function LeadsPage() {
   const [dismissedAlarms, setDismissedAlarms] = useState<Set<string>>(new Set());
   const [form, setForm] = useState({
     name: '', company: '', phone: '', email: '', city: '', source: '', notes: '',
+  });
+  const [meetingDialogOpen, setMeetingDialogOpen] = useState(false);
+  const [meetingLead, setMeetingLead] = useState<Lead | null>(null);
+  const [meetingStaff, setMeetingStaff] = useState<Profile[]>([]);
+  const [meetingSaving, setMeetingSaving] = useState(false);
+  const [meetingForm, setMeetingForm] = useState({
+    contact_name: '', assigned_to: 'none', date: '', time: '', topic: '', location: '', online_link: '', agenda: '',
   });
 
   const isSuperAdmin = profile?.role === 'super_admin' || profile?.role === 'owner';
@@ -223,6 +231,74 @@ export default function LeadsPage() {
       loadLeads();
       toast.success('وضعیت سرنخ تغییر کرد');
     } catch (error: any) { toast.error('تغییر وضعیت ناموفق: ' + error.message); }
+  };
+
+  const openScheduleMeeting = async (lead: Lead) => {
+    setMeetingLead(lead);
+    const contactName = lead.company ? `${lead.name} - ${lead.company}` : lead.name;
+    setMeetingForm({
+      contact_name: contactName, assigned_to: 'none', date: '', time: '',
+      topic: '', location: '', online_link: '', agenda: '',
+    });
+    setMeetingDialogOpen(true);
+    if (meetingStaff.length === 0) {
+      try {
+        const data = await fetchData<Profile>('profiles', {
+          where: { userType: 'staff', role: { in: ['personnel', 'admin', 'super_admin', 'owner'] }, active: true },
+          orderBy: { firstName: 'asc' },
+        });
+        setMeetingStaff(data || []);
+      } catch { setMeetingStaff([]); }
+    }
+  };
+
+  const handleScheduleMeeting = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profile || !meetingLead) return;
+    if (!meetingForm.contact_name.trim()) { toast.error('نام هدف الزامی است'); return; }
+    if (meetingForm.assigned_to === 'none') { toast.error('تخصیص به پرسنل الزامی است'); return; }
+    if (!meetingForm.date) { toast.error('تاریخ جلسه الزامی است'); return; }
+    if (!meetingForm.time) { toast.error('زمان جلسه الزامی است'); return; }
+    setMeetingSaving(true);
+    try {
+      const meetingDateTime = new Date(`${meetingForm.date}T${meetingForm.time}`);
+      const meetingData = await createData('meetings', {
+        title: meetingForm.contact_name.trim(),
+        topic: meetingForm.topic || null,
+        agenda: meetingForm.agenda || null,
+        date: meetingDateTime.toISOString(),
+        location: meetingForm.location || null,
+        onlineLink: meetingForm.online_link || null,
+        createdBy: profile.id,
+      });
+      await createData('meeting_assignments', {
+        meetingId: meetingData.id,
+        assignedTo: meetingForm.assigned_to,
+        contactName: meetingForm.contact_name.trim(),
+        createdBy: profile.id,
+      });
+      const myName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
+      const notifPromises: Promise<any>[] = [];
+      if (meetingForm.assigned_to !== profile.id) {
+        notifPromises.push(createData('notifications', {
+          profileId: meetingForm.assigned_to,
+          title: 'جلسه جدید به شما تخصیص داده شد',
+          body: `جلسه با ${meetingForm.contact_name} در ${formatJalaliDateTime(meetingDateTime)} توسط ${myName}`,
+          type: 'meeting', priority: 'normal', link: '/dashboard/meetings',
+        }).catch(() => {}));
+      }
+      meetingStaff.filter((s) => (s.role === 'super_admin' || s.role === 'owner') && s.id !== profile.id && s.id !== meetingForm.assigned_to).forEach((admin) => {
+        notifPromises.push(createData('notifications', {
+          profileId: admin.id, title: 'جلسه جدید ایجاد شد',
+          body: `${myName} یک جلسه با ${meetingForm.contact_name} ایجاد کرد`,
+          type: 'meeting', priority: 'normal', link: '/dashboard/meetings',
+        }).catch(() => {}));
+      });
+      await Promise.all(notifPromises);
+      toast.success('جلسه ایجاد و در بخش جلسات ثبت شد');
+      setMeetingDialogOpen(false); setMeetingLead(null);
+    } catch (error: any) { toast.error('ایجاد جلسه ناموفق: ' + error.message); }
+    setMeetingSaving(false);
   };
 
   const exportExcel = () => {
@@ -441,6 +517,10 @@ export default function LeadsPage() {
                         <button className="lead-action-btn lead-action-edit" onClick={() => openEdit(lead)}>
                           <Pencil className="h-3.5 w-3.5" />
                           ویرایش
+                        </button>
+                        <button className="lead-action-btn lead-action-meeting" onClick={() => openScheduleMeeting(lead)}>
+                          <Calendar className="h-3.5 w-3.5" />
+                          تنظیم جلسه
                         </button>
                         <button className="lead-action-btn lead-action-delete" onClick={() => handleDelete(lead)}>
                           <Trash2 className="h-3.5 w-3.5" />
@@ -701,6 +781,69 @@ export default function LeadsPage() {
               )}
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Schedule Meeting Dialog */}
+      <Dialog open={meetingDialogOpen} onOpenChange={setMeetingDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>تنظیم جلسه برای سرنخ</DialogTitle></DialogHeader>
+          {meetingLead && (
+            <form onSubmit={handleScheduleMeeting} className="space-y-4">
+              <div className="rounded-lg bg-sky-50 p-3 text-sm text-sky-700">
+                جلسه به‌طور خودکار با سرنخ «{meetingLead.name}» مرتبط می‌شود.
+              </div>
+              <div className="space-y-2">
+                <Label>نام هدف/مشتری/شرکت *</Label>
+                <Input value={meetingForm.contact_name} onChange={(e) => setMeetingForm({ ...meetingForm, contact_name: e.target.value })} required />
+              </div>
+              <div className="space-y-2">
+                <Label>تخصیص به پرسنل *</Label>
+                <Select value={meetingForm.assigned_to} onValueChange={(v) => setMeetingForm({ ...meetingForm, assigned_to: v })}>
+                  <SelectTrigger><SelectValue placeholder="انتخاب فرد مسئول..." /></SelectTrigger>
+                  <SelectContent>
+                    {meetingStaff.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>{fullName(s.firstName, s.lastName)}{s.id === profile?.id ? ' (خودم)' : ''}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>تاریخ *</Label>
+                  <JalaliDatePicker value={meetingForm.date ? new Date(meetingForm.date) : null} onChange={(d) => setMeetingForm({ ...meetingForm, date: d ? toLocalDateString(d) : '' })} placeholder="انتخاب تاریخ" />
+                </div>
+                <div className="space-y-2">
+                  <Label>زمان *</Label>
+                  <Input type="time" dir="ltr" value={meetingForm.time} onChange={(e) => setMeetingForm({ ...meetingForm, time: e.target.value })} required />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>موضوع</Label>
+                <Input value={meetingForm.topic} onChange={(e) => setMeetingForm({ ...meetingForm, topic: e.target.value })} placeholder="موضوع جلسه" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>مکان</Label>
+                  <Input value={meetingForm.location} onChange={(e) => setMeetingForm({ ...meetingForm, location: e.target.value })} placeholder="محل برگزاری" />
+                </div>
+                <div className="space-y-2">
+                  <Label>لینک آنلاین</Label>
+                  <Input dir="ltr" value={meetingForm.online_link} onChange={(e) => setMeetingForm({ ...meetingForm, online_link: e.target.value })} placeholder="https://..." />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>دستور جلسه</Label>
+                <Textarea value={meetingForm.agenda} onChange={(e) => setMeetingForm({ ...meetingForm, agenda: e.target.value })} placeholder="دستور جلسه را بنویسید..." />
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setMeetingDialogOpen(false)}>انصراف</Button>
+                <Button type="submit" disabled={meetingSaving}>
+                  {meetingSaving ? (<><Loader2 className="h-4 w-4 animate-spin" /> در حال ایجاد...</>) : 'ایجاد جلسه'}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
-import { formatJalali } from '@/lib/format';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
 
@@ -13,10 +12,6 @@ function getAuth(req: NextRequest) {
   } catch {
     return null;
   }
-}
-
-function fmtJalali(date: Date | string): string {
-  return formatJalali(date);
 }
 
 export async function POST(req: NextRequest) {
@@ -58,72 +53,32 @@ export async function POST(req: NextRequest) {
 
     const fullName = `${profile?.firstName || ''} ${profile?.lastName || ''}`.trim() || 'ناشناخته';
 
-    // Build the summary from daily reports
-    const totalReports = dailyReports.length;
-    const completed = dailyReports.filter((r) => r.status === 'completed').length;
-    const inProgress = dailyReports.filter((r) => r.status === 'in_progress').length;
-    const incomplete = dailyReports.filter((r) => r.status === 'incomplete').length;
-    const needsFollowup = dailyReports.filter((r) => r.status === 'needs_followup').length;
+    // Only extract the "خلاصه فعالیت‌های انجام شده" field (stored as `description`)
+    // from each daily report — no other fields are read or processed.
+    // Preserve the text verbatim, no editing or rewriting.
+    // Each entry is included separately even if duplicated across days.
+    const sortedReports = [...dailyReports].sort(
+      (a, b) => new Date(a.reportDate).getTime() - new Date(b.reportDate).getTime()
+    );
 
-    // Collect all titles and descriptions
-    const reportEntries = dailyReports.map((r, idx) => {
-      const date = fmtJalali(r.reportDate);
-      let entry = `${idx + 1}. [${date}] ${r.title}`;
-      if (r.project) entry += ` (پروژه: ${r.project})`;
-      if (r.description) entry += `\n   ${r.description}`;
-      if (r.details) entry += `\n   جزئیات: ${r.details}`;
-      if (r.duration) entry += `\n   مدت زمان: ${r.duration}`;
-      return entry;
-    });
+    const activityEntries = sortedReports
+      .map((r) => r.description?.trim())
+      .filter((text): text is string => !!text && text.length > 0);
 
-    // Group by project
-    const projectGroups: Record<string, number> = {};
-    for (const r of dailyReports) {
-      const proj = r.project || 'عمومی';
-      projectGroups[proj] = (projectGroups[proj] || 0) + 1;
+    if (activityEntries.length === 0) {
+      return NextResponse.json({
+        error: 'هیچ فعالیت‌ای در گزارش‌های روزانه این بازه ثبت نشده است.',
+      }, { status: 404 });
     }
 
-    const projectSummary = Object.entries(projectGroups)
-      .sort((a, b) => b[1] - a[1])
-      .map(([proj, count]) => `• ${proj}: ${count.toLocaleString('fa-IR')} گزارش`)
-      .join('\n');
-
-    // Build the AI-generated summary
-    const dateRangeText = startDate && endDate
-      ? `از ${fmtJalali(startDate)} تا ${fmtJalali(endDate)}`
-      : 'تمام دوره';
-
-    const summaryText = `گزارش کار ماهانه — ${fullName}
-بازه: ${dateRangeText}
-
-خلاصه عملکرد:
-در این بازه زمانی، مجموعاً ${totalReports.toLocaleString('fa-IR')} گزارش کار روزانه ثبت شده است.
-• تکمیل شده: ${completed.toLocaleString('fa-IR')}
-• در حال انجام: ${inProgress.toLocaleString('fa-IR')}
-• ناقص: ${incomplete.toLocaleString('fa-IR')}
-• نیازمند پیگیری: ${needsFollowup.toLocaleString('fa-IR')}
-
-پروژه‌ها و فعالیت‌ها:
-${projectSummary}
-
-شرح فعالیت‌ها:
-${reportEntries.join('\n\n')}
-
-ارزیابی کلی:
-${completed === totalReports
-  ? 'تمام گزارش‌ها تکمیل شده‌اند — عملکرد بسیار خوب.'
-  : completed > totalReports * 0.7
-  ? 'بیش از ۷۰٪ گزارش‌ها تکمیل شده‌اند — عملکرد مطلوب.'
-  : completed > totalReports * 0.5
-  ? 'حدود نیمی از گزارش‌ها تکمیل شده‌اند — نیاز به بهبود.'
-  : 'کمتر از نیمی از گزارش‌ها تکمیل شده‌اند — نیاز به پیگیری جدی.'
-}
-${needsFollowup > 0 ? `${needsFollowup.toLocaleString('fa-IR')} مورد نیازمند پیگیری است.` : 'هیچ مورد نیازمند پیگیری باقی نمانده است.'}`;
+    // Build a single continuous text containing all activities in order,
+    // preserving the original wording exactly, with no deduplication or merging.
+    const summaryText = activityEntries.join('\n');
 
     return NextResponse.json({
       success: true,
       summary: summaryText,
-      reportCount: totalReports,
+      reportCount: dailyReports.length,
       fullName,
       profileId: auth.userId,
     });

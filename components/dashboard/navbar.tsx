@@ -119,11 +119,11 @@ export function DashboardNavbar() {
           background: 'linear-gradient(135deg, #0A2A2A 0%, #0F3D38 50%, #0A2A2A 100%)',
         }}
       >
-        <div className="flex items-center justify-between gap-4 px-4 lg:px-5 xl:px-8" style={{ height: '60px' }}>
+        <div className="flex items-center justify-between gap-4 px-4 lg:px-5 xl:px-8" style={{ height: '72px' }}>
           {/* Right side: Logo + desktop nav */}
           <div className="flex items-center gap-4 lg:gap-6 xl:gap-8">
-            <Link href={isSuperAdmin ? '/super-admin' : '/dashboard'} className="transition-transform hover:scale-105">
-              <Logo size={216} withText={true} textClassName="hidden sm:block [&_div]:text-white [&_.text-muted-foreground]:text-[#6BA89E]" />
+            <Link href={isSuperAdmin ? '/super-admin' : '/dashboard'} className="flex items-center transition-transform hover:scale-105">
+              <Logo size={44} withText={true} textClassName="hidden sm:block [&_div]:text-white [&_.text-muted-foreground]:text-[#6BA89E]" />
             </Link>
 
             {/* Desktop full nav (≥1024px) */}
@@ -250,8 +250,6 @@ export function DashboardNavbar() {
               )}
             </nav>
 
-            {/* Laptop compact nav removed — inline nav now shows at ≥1024px */}
-            <div className="hidden xl:hidden" />
           </div>
 
           {/* Left side: notifications + profile + hamburger */}
@@ -331,8 +329,8 @@ export function DashboardNavbar() {
         dir="rtl"
         style={{ background: 'linear-gradient(180deg, #0A2A2A 0%, #0F3D38 100%)' }}
       >
-        <div className="flex items-center justify-between border-b border-white/10 px-4" style={{ height: '60px' }}>
-          <Logo size={180} withText={false} />
+        <div className="flex items-center justify-between border-b border-white/10 px-4" style={{ height: '72px' }}>
+          <Logo size={44} withText={false} />
           <button
             onClick={() => setMobileOpen(false)}
             className="flex h-9 w-9 items-center justify-center rounded-xl text-white/60 hover:bg-white/10"

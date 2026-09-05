@@ -11,7 +11,6 @@ export const SALES_STAGES = [
 export const TASK_STATUSES = [
   { key: 'new', label: 'جدید', color: '#64748b' },
   { key: 'in_progress', label: 'در حال انجام', color: '#3b82f6' },
-  { key: 'review', label: 'بررسی', color: '#f59e0b' },
   { key: 'completed', label: 'تکمیل شده', color: '#10b981' },
   { key: 'cancelled', label: 'لغو شده', color: '#ef4444' },
 ];

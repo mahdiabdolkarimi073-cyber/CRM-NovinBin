@@ -23,7 +23,7 @@ import {
 import {
   CheckSquare, Plus, Search, Calendar, GripVertical, Clock, Trash2, Edit,
   MessageSquare, Send, Forward, Inbox, BarChart3, Circle, CheckCircle2,
-  XCircle, PlayCircle, Eye, LayoutGrid, Filter, Flag, Bookmark, ChevronDown,
+  XCircle, PlayCircle, LayoutGrid, Filter, Flag, Bookmark, ChevronDown,
 } from 'lucide-react';
 import { formatJalali, relativeTime, toLocalDateString } from '@/lib/format';
 import { TASK_STATUSES, TASK_PRIORITIES, fullName } from '@/lib/constants';
@@ -260,6 +260,11 @@ export default function TasksPage() {
   const getStaffName = (id: string | null) => { if (!id) return null; const s = allStaff.find((p) => p.id === id); return s ? fullName(s.firstName, s.lastName) : null; };
   const canEdit = (task?: Task) => isSuperAdmin && (!task || task.status !== 'completed');
   const canDelete = (task?: Task) => isSuperAdmin && (!task || task.status !== 'completed');
+  const canDrag = (task: Task) => {
+    // Completed tasks can only be dragged by super admin
+    if (task.status === 'completed' && !isSuperAdmin) return false;
+    return true;
+  };
   const canRefer = referOptions.length > 0;
   const taskSummary = [...TASK_STATUSES].reverse().map((stage) => ({ ...stage, count: displayTasks.filter((task) => task.status === stage.key).length }));
   const totalTasks = displayTasks.length;
@@ -279,7 +284,7 @@ export default function TasksPage() {
     const cCount = commentCounts[task.id] || 0;
     const unread = hasUnreadComments(task.id);
     return (
-      <div draggable onDragStart={() => setDragId(task.id)} onDragEnd={() => { setDragId(null); setDragOver(null); }} onClick={() => openDetail(task)}
+      <div draggable={canDrag(task)} onDragStart={() => canDrag(task) && setDragId(task.id)} onDragEnd={() => { setDragId(null); setDragOver(null); }} onClick={() => openDetail(task)}
         className={`cursor-grab rounded-[11px] border bg-white p-[14px] shadow-[0_2px_8px_rgba(20,40,80,.04)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_6px_16px_rgba(20,40,80,.08)] active:cursor-grabbing ${dragId === task.id ? 'opacity-50' : ''} ${isReferred ? 'border-amber-200 bg-amber-50/30' : 'border-[#E7ECF3]'} ${unread ? 'ring-2 ring-sky-400/50' : ''}`}>
         <div className="mb-2 flex items-start gap-2">
           <GripVertical className="mt-1 h-4 w-4 shrink-0 text-[#98A2B3]" />
@@ -446,7 +451,7 @@ export default function TasksPage() {
       {/* Stat cards */}
       <div className="mb-5 grid grid-cols-2 gap-4 xl:grid-cols-5">
         {taskSummary.map((stage) => {
-          const Icon = stage.key === 'completed' ? CheckCircle2 : stage.key === 'cancelled' ? XCircle : stage.key === 'in_progress' ? PlayCircle : stage.key === 'review' ? Eye : Circle;
+          const Icon = stage.key === 'completed' ? CheckCircle2 : stage.key === 'cancelled' ? XCircle : stage.key === 'in_progress' ? PlayCircle : Circle;
           return (
             <div key={stage.key} className="flex min-h-[150px] flex-col justify-between rounded-[14px] border border-[#E7ECF3] bg-white p-5 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
               <div className="flex items-center justify-between">

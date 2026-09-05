@@ -496,11 +496,39 @@ export async function PATCH(req: NextRequest) {
   }
 
   try {
-    // Only super_admin / owner can edit tasks
+    // Task edit permissions
     if (model === 'tasks') {
       const actor = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });
-      if (!actor || (actor.role !== 'super_admin' && actor.role !== 'owner')) {
-        return NextResponse.json({ error: 'فقط سوپرادمین می‌تواند وظیفه را ویرایش کند' }, { status: 403 });
+      const isSuperAdminRole = actor?.role === 'super_admin' || actor?.role === 'owner';
+      if (!actor) {
+        return NextResponse.json({ error: 'کاربر یافت نشد' }, { status: 403 });
+      }
+      if (!isSuperAdminRole) {
+        // Non-super-admin: only allowed to change status (drag-and-drop)
+        const isStatusOnlyUpdate = Object.keys(data).every((k) => k === 'status' || k === 'completedAt');
+        if (!isStatusOnlyUpdate) {
+          return NextResponse.json({ error: 'فقط سوپرادمین می‌تواند وظیفه را ویرایش کند' }, { status: 403 });
+        }
+        // Check the current task state
+        const currentTask = await prisma.task.findUnique({ where: { id: where.id }, select: { status: true, createdBy: true, assignedTo: true } });
+        if (!currentTask) {
+          return NextResponse.json({ error: 'وظیفه یافت نشد' }, { status: 404 });
+        }
+        // Once completed, only super admin can move it
+        if (currentTask.status === 'completed' && data.status !== 'completed') {
+          return NextResponse.json({ error: 'تنها سوپرادمین می‌تواند وظیفه تکمیل‌شده را جابجا کند' }, { status: 403 });
+        }
+        // Only the creator or assignee can change status
+        if (currentTask.createdBy !== auth.userId && currentTask.assignedTo !== auth.userId) {
+          return NextResponse.json({ error: 'فقط ایجادکننده یا مسئول وظیفه می‌تواند وضعیت را تغییر دهد' }, { status: 403 });
+        }
+      }
+    }
+    // Personal notes: enforce ownership
+    if (model === 'personal_notes') {
+      const existing = await prisma.personalNote.findFirst({ where: { id: where.id, profileId: auth.userId } });
+      if (!existing) {
+        return NextResponse.json({ error: 'این یادداشت متعلق به شما نیست' }, { status: 403 });
       }
     }
     const record = await MODEL_MAP[model].update({ where, data, include });
@@ -557,6 +585,13 @@ export async function DELETE(req: NextRequest) {
       const actor = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });
       if (!actor || (actor.role !== 'super_admin' && actor.role !== 'owner')) {
         return NextResponse.json({ error: 'فقط سوپرادمین می‌تواند وظیفه را حذف کند' }, { status: 403 });
+      }
+    }
+    // Personal notes: enforce ownership
+    if (model === 'personal_notes') {
+      const existing = await prisma.personalNote.findFirst({ where: { id: where.id, profileId: auth.userId } });
+      if (!existing) {
+        return NextResponse.json({ error: 'این یادداشت متعلق به شما نیست' }, { status: 403 });
       }
     }
     await MODEL_MAP[model].delete({ where });
