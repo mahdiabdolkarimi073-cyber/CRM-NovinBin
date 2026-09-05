@@ -1,6 +1,6 @@
 'use client';
 
-import { Navbar } from '@/components/dashboard/navbar';
+import { Navbar } from '@/components/dashboard/sidebar';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
@@ -43,9 +43,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isDashboardHome = pathname === '/dashboard';
 
   return (
-    <div className="min-h-screen bg-[#F6F8FC]" dir="rtl">
+    <div className="sb-layout min-h-screen bg-[#F6F8FC]" dir="rtl">
       <Navbar />
-      <main className={`mx-auto px-4 pt-6 pb-10 lg:px-6 ${isDashboardHome ? 'max-w-[1470px]' : 'max-w-[1280px]'}`}>
+      <main className={`sb-main ${isDashboardHome ? 'sb-main-wide' : 'sb-main-normal'}`}>
         {needsGuard && !hasAccess ? <PageGuard href={pathname}>{children}</PageGuard> : children}
       </main>
     </div>

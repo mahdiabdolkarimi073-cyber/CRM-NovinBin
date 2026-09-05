@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
-  TrendingUp, Plus, Phone, Mail, MapPin, Search, Eye, Pencil, Trash2,
+  TrendingUp, Plus, Phone, Mail, Search, Eye, Pencil, Trash2,
   BarChart3, Filter, Zap, FileBarChart, FileSpreadsheet, ChevronLeft, ChevronRight,
   UserCheck, Clock, AlertTriangle, Bell, X, Calendar, Video, Loader2,
   Users, Save, Send, ClipboardList,
@@ -532,26 +532,27 @@ export default function LeadsPage() {
                   const isAlarm = alarmLeads.some((a) => a.lead.id === lead.id);
                   return (
                     <article key={lead.id} className={`lead-card ${isAlarm ? 'lead-card-alarm' : ''}`}>
+                      <div className="lead-card-top-bar" style={{ backgroundColor: st.color }} />
                       <div className="lead-card-header">
-                        <div className="lead-card-id">
-                          <div className="lead-card-avatar" style={{ backgroundColor: st.color + '20', color: st.color }}>
-                            {lead.name?.[0] || '؟'}
-                          </div>
-                          <div className="lead-card-name-wrap">
-                            <h3>{lead.name}</h3>
-                            <span>{lead.company || 'مشتری بالقوه'}</span>
-                          </div>
+                        <div className="lead-card-avatar-lg" style={{ backgroundColor: st.color + '20', color: st.color, borderColor: st.color + '40' }}>
+                          {lead.name?.[0] || '؟'}
                         </div>
-                        <div className="lead-card-status-wrap">
-                          {isAlarm && (
-                            <span className="lead-card-alarm-dot" title="پیگیری نشده">
-                              <Bell className="h-3 w-3" />
-                            </span>
-                          )}
-                          <Badge className="lead-status-badge" style={{ backgroundColor: st.color + '18', color: st.color }}>
-                            {st.label}
-                          </Badge>
+                        <div className="lead-card-name-wrap">
+                          <h3>{lead.name}</h3>
+                          <span>{lead.company || 'مشتری بالقوه'}</span>
                         </div>
+                        {isAlarm && (
+                          <span className="lead-card-alarm-dot" title="پیگیری نشده">
+                            <Bell className="h-3 w-3" />
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="lead-card-status-row">
+                        <Badge className="lead-status-badge" style={{ backgroundColor: st.color + '18', color: st.color }}>
+                          {st.label}
+                        </Badge>
+                        <span className="lead-card-source">{lead.source || '—'}</span>
                       </div>
 
                       <div className="lead-card-contacts">
@@ -573,13 +574,14 @@ export default function LeadsPage() {
                             <span dir="ltr" className="truncate">{lead.email}</span>
                           </div>
                         )}
-                        {lead.source && (
-                          <div className="lead-contact-row">
-                            <MapPin className="h-4 w-4" />
-                            <span className="truncate">{lead.source}</span>
-                          </div>
-                        )}
                       </div>
+
+                      {lead.notes && (
+                        <div className="lead-card-notes">
+                          <span className="lead-card-notes-label">یادداشت:</span>
+                          <p className="lead-card-notes-text">{lead.notes}</p>
+                        </div>
+                      )}
 
                       <div className="lead-progress-wrap">
                         <div className="lead-progress-track">
@@ -588,7 +590,6 @@ export default function LeadsPage() {
                         <span className="lead-progress-time">{relativeTime(lead.createdAt)}</span>
                       </div>
 
-                      {/* Status Switcher */}
                       <div className="lead-status-switcher">
                         {LEAD_STATUSES.map((s) => (
                           <button
@@ -608,25 +609,20 @@ export default function LeadsPage() {
                       </div>
 
                       <div className="lead-card-actions">
-                        <button className="lead-action-btn lead-action-view" onClick={() => openView(lead)}>
-                          <Eye className="h-3.5 w-3.5" />
-                          مشاهده
+                        <button className="lead-action-btn lead-action-view" onClick={() => openView(lead)} title="مشاهده">
+                          <Eye className="h-4 w-4" />
                         </button>
-                        <button className="lead-action-btn lead-action-edit" onClick={() => openEdit(lead)}>
-                          <Pencil className="h-3.5 w-3.5" />
-                          ویرایش
+                        <button className="lead-action-btn lead-action-edit" onClick={() => openEdit(lead)} title="ویرایش">
+                          <Pencil className="h-4 w-4" />
                         </button>
-                        <button className="lead-action-btn lead-action-referral" onClick={() => openReferral(lead)}>
-                          <Users className="h-3.5 w-3.5" />
-                          ارجاع
+                        <button className="lead-action-btn lead-action-referral" onClick={() => openReferral(lead)} title="ارجاع">
+                          <Users className="h-4 w-4" />
                         </button>
-                        <button className="lead-action-btn lead-action-meeting" onClick={() => openScheduleMeeting(lead)}>
-                          <Calendar className="h-3.5 w-3.5" />
-                          جلسه
+                        <button className="lead-action-btn lead-action-meeting" onClick={() => openScheduleMeeting(lead)} title="جلسه">
+                          <Calendar className="h-4 w-4" />
                         </button>
-                        <button className="lead-action-btn lead-action-delete" onClick={() => handleDelete(lead)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                          حذف
+                        <button className="lead-action-btn lead-action-delete" onClick={() => handleDelete(lead)} title="حذف">
+                          <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
 
@@ -636,7 +632,7 @@ export default function LeadsPage() {
                           onClick={() => convertToCustomer(lead)}
                           disabled={converting}
                         >
-                          <UserCheck className="h-3.5 w-3.5" />
+                          <UserCheck className="h-4 w-4" />
                           {converting ? 'در حال تبدیل...' : 'تبدیل به مشتری'}
                         </button>
                       )}
@@ -689,12 +685,28 @@ export default function LeadsPage() {
               آمار سرنخ‌ها
             </h2>
             <div className="leads-stats-grid">
-              {stats.map((s) => (
-                <div key={s.key} className="lead-mini-stat">
-                  <strong style={{ color: s.color }}>{s.count.toLocaleString('fa-IR')}</strong>
-                  <span>{s.label}</span>
-                </div>
-              ))}
+              <button
+                className={`lead-mini-stat ${filterStatus === 'all' ? 'lead-mini-stat-active' : ''}`}
+                onClick={() => setFilterStatus('all')}
+                style={filterStatus === 'all' ? { borderColor: '#10B981', background: '#10B98112' } : undefined}
+              >
+                <strong style={{ color: '#10B981' }}>{leads.length.toLocaleString('fa-IR')}</strong>
+                <span>همه</span>
+              </button>
+              {stats.map((s) => {
+                const isActive = filterStatus === s.key;
+                return (
+                  <button
+                    key={s.key}
+                    className={`lead-mini-stat ${isActive ? 'lead-mini-stat-active' : ''}`}
+                    onClick={() => setFilterStatus(isActive ? 'all' : s.key)}
+                    style={isActive ? { borderColor: s.color, background: s.color + '12' } : undefined}
+                  >
+                    <strong style={{ color: s.color }}>{s.count.toLocaleString('fa-IR')}</strong>
+                    <span>{s.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </section>
 
