@@ -276,25 +276,41 @@ model Customer {
 }
 
 model Lead {
-  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  orgId         String?    @db.Uuid
-  name          String
-  company       String?
-  phone         String?
-  email         String?
-  source        String?
-  score         Int       @default(0)
-  status        String    @default("new")
-  assignedTo    String?   @db.Uuid
-  customerId    String?   @db.Uuid
-  notes         String?
-  nextFollowUp  DateTime?
-  createdBy     String    @db.Uuid
-  createdAt     DateTime  @default(now())
-  org           Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  customer      Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String?    @db.Uuid
+  name            String
+  company         String?
+  phone           String?
+  email           String?
+  source          String?
+  score           Int       @default(0)
+  status          String    @default("new")
+  assignedTo      String?   @db.Uuid
+  customerId      String?   @db.Uuid
+  notes           String?
+  followUpResult  String?
+  nextFollowUp    DateTime?
+  createdBy       String    @db.Uuid
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @default(now())
+  org             Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  customer        Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  referrals       LeadReferral[]
 
   @@map("leads")
+}
+
+model LeadReferral {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  leadId              String   @db.Uuid
+  referredToProfileId String?  @db.Uuid
+  referredByProfileId String?  @db.Uuid
+  status              String   @default("active")
+  note                String?
+  createdAt           DateTime @default(now())
+  lead                Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@map("lead_referrals")
 }
 
 model Opportunity {

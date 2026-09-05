@@ -17,12 +17,13 @@ import {
   TrendingUp, Plus, Phone, Mail, MapPin, Search, Eye, Pencil, Trash2,
   BarChart3, Filter, Zap, FileBarChart, FileSpreadsheet, ChevronLeft, ChevronRight,
   UserCheck, Clock, AlertTriangle, Bell, X, Calendar, Video, Loader2,
+  Users, Save, Send, ClipboardList,
 } from 'lucide-react';
 import { relativeTime, formatJalaliDateTime, toLocalDateString } from '@/lib/format';
 import { LEAD_STATUSES, LEAD_SOURCES, fullName } from '@/lib/constants';
 import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 import { toast } from 'sonner';
-import type { Lead, Profile } from '@/lib/types';
+import type { Lead, Profile, LeadReferral } from '@/lib/types';
 
 const statusInfo = (key: string) => LEAD_STATUSES.find((s) => s.key === key) || LEAD_STATUSES[0];
 
@@ -32,7 +33,8 @@ const PAGE_SIZE = 12;
 
 const ALARM_INTERVALS: Record<string, number> = {
   serious: 2 * 24 * 60 * 60 * 1000,
-  contacted: 7 * 24 * 60 * 60 * 1000,
+  contacted: 3 * 24 * 60 * 60 * 1000,
+  new: 4 * 24 * 60 * 60 * 1000,
 };
 
 interface AlarmLead {
@@ -70,6 +72,16 @@ export default function LeadsPage() {
   const [meetingForm, setMeetingForm] = useState({
     contact_name: '', assigned_to: 'none', date: '', time: '', topic: '', location: '', online_link: '', agenda: '',
   });
+  const [referralDialogOpen, setReferralDialogOpen] = useState(false);
+  const [referralLead, setReferralLead] = useState<Lead | null>(null);
+  const [referralStaff, setReferralStaff] = useState<Profile[]>([]);
+  const [selectedReferees, setSelectedReferees] = useState<Set<string>>(new Set());
+  const [referralNote, setReferralNote] = useState('');
+  const [referralSaving, setReferralSaving] = useState(false);
+  const [viewReferrals, setViewReferrals] = useState<LeadReferral[]>([]);
+  const [viewReferralProfiles, setViewReferralProfiles] = useState<Record<string, Profile>>({});
+  const [followUpResult, setFollowUpResult] = useState('');
+  const [followUpSaving, setFollowUpSaving] = useState(false);
 
   const isSuperAdmin = profile?.role === 'super_admin' || profile?.role === 'owner';
 
@@ -181,7 +193,27 @@ export default function LeadsPage() {
     setEditDialogOpen(true);
   };
 
-  const openView = (lead: Lead) => { setViewLead(lead); setViewDialogOpen(true); };
+  const openView = async (lead: Lead) => {
+    setViewLead(lead);
+    setViewDialogOpen(true);
+    setFollowUpResult(lead.followUpResult || '');
+    try {
+      const refs = await fetchData<LeadReferral>('lead_referrals', { where: { leadId: lead.id }, orderBy: { createdAt: 'desc' } });
+      setViewReferrals(refs || []);
+      const profileIds = Array.from(new Set((refs || []).map(r => r.referredToProfileId).filter(Boolean) as string[]));
+      if (profileIds.length > 0) {
+        const profiles = await fetchData<Profile>('profiles', { where: { id: { in: profileIds } } });
+        const map: Record<string, Profile> = {};
+        (profiles || []).forEach(p => { map[p.id] = p; });
+        setViewReferralProfiles(map);
+      } else {
+        setViewReferralProfiles({});
+      }
+    } catch {
+      setViewReferrals([]);
+      setViewReferralProfiles({});
+    }
+  };
 
   const handleEditSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -299,6 +331,72 @@ export default function LeadsPage() {
       setMeetingDialogOpen(false); setMeetingLead(null);
     } catch (error: any) { toast.error('ایجاد جلسه ناموفق: ' + error.message); }
     setMeetingSaving(false);
+  };
+
+  const openReferral = async (lead: Lead) => {
+    setReferralLead(lead);
+    setSelectedReferees(new Set());
+    setReferralNote('');
+    setReferralDialogOpen(true);
+    if (referralStaff.length === 0) {
+      try {
+        const data = await fetchData<Profile>('profiles', {
+          where: { userType: 'staff', role: { in: ['super_admin', 'admin', 'personnel', 'owner'] }, active: true },
+          orderBy: { firstName: 'asc' },
+        });
+        setReferralStaff(data || []);
+      } catch { setReferralStaff([]); }
+    }
+  };
+
+  const toggleReferee = (id: string) => {
+    const updated = new Set(selectedReferees);
+    if (updated.has(id)) updated.delete(id); else updated.add(id);
+    setSelectedReferees(updated);
+  };
+
+  const handleReferralSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profile || !referralLead) return;
+    if (selectedReferees.size === 0) { toast.error('حداقل یک فرد انتخاب کنید'); return; }
+    setReferralSaving(true);
+    try {
+      const myName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
+      const promises: Promise<any>[] = [];
+      for (const targetId of Array.from(selectedReferees)) {
+        promises.push(createData('lead_referrals', {
+          leadId: referralLead.id,
+          referredToProfileId: targetId,
+          referredByProfileId: profile.id,
+          status: 'active',
+          note: referralNote || null,
+        }).catch(() => {}));
+        if (targetId !== profile.id) {
+          promises.push(createData('notifications', {
+            profileId: targetId,
+            title: 'ارجاع سرنخ فروش به شما',
+            body: `سرنخ «${referralLead.name}» توسط ${myName} به شما ارجاع داده شد.`,
+            type: 'lead_referral', priority: 'high', link: '/dashboard/leads',
+          }).catch(() => {}));
+        }
+      }
+      await Promise.all(promises);
+      toast.success(`سرنخ به ${selectedReferees.size.toLocaleString('fa-IR')} نفر ارجاع داده شد`);
+      setReferralDialogOpen(false); setReferralLead(null);
+      loadLeads();
+    } catch (error: any) { toast.error('ارجاع ناموفق: ' + error.message); }
+    setReferralSaving(false);
+  };
+
+  const saveFollowUpResult = async () => {
+    if (!viewLead) return;
+    setFollowUpSaving(true);
+    try {
+      await updateData('leads', { id: viewLead.id }, { followUpResult: followUpResult || null });
+      toast.success('نتیجه پیگیری ذخیره شد');
+      loadLeads();
+    } catch (error: any) { toast.error('ذخیره ناموفق: ' + error.message); }
+    setFollowUpSaving(false);
   };
 
   const exportExcel = () => {
@@ -518,9 +616,13 @@ export default function LeadsPage() {
                           <Pencil className="h-3.5 w-3.5" />
                           ویرایش
                         </button>
+                        <button className="lead-action-btn lead-action-referral" onClick={() => openReferral(lead)}>
+                          <Users className="h-3.5 w-3.5" />
+                          ارجاع
+                        </button>
                         <button className="lead-action-btn lead-action-meeting" onClick={() => openScheduleMeeting(lead)}>
                           <Calendar className="h-3.5 w-3.5" />
-                          تنظیم جلسه
+                          جلسه
                         </button>
                         <button className="lead-action-btn lead-action-delete" onClick={() => handleDelete(lead)}>
                           <Trash2 className="h-3.5 w-3.5" />
@@ -715,9 +817,73 @@ export default function LeadsPage() {
                   {viewLead.notes}
                 </div>
               )}
+
+              {/* Follow-up Result Section */}
+              <div className="rounded-lg border border-slate-200 p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <ClipboardList className="h-4 w-4 text-[#2563EB]" />
+                  <span className="text-sm font-bold text-slate-700">نتیجه پیگیری</span>
+                </div>
+                <Textarea
+                  value={followUpResult}
+                  onChange={(e) => setFollowUpResult(e.target.value)}
+                  placeholder="نتیجه پیگیری این سرنخ را وارد کنید..."
+                  rows={3}
+                  className="text-sm"
+                />
+                <div className="flex justify-end mt-2">
+                  <Button size="sm" onClick={saveFollowUpResult} disabled={followUpSaving}>
+                    {followUpSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                    {followUpSaving ? 'در حال ذخیره...' : 'ذخیره نتیجه'}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Referrals Section */}
+              <div className="rounded-lg border border-slate-200 p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-[#16B981]" />
+                    <span className="text-sm font-bold text-slate-700">ارجاع‌ها</span>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => { setViewDialogOpen(false); if (viewLead) openReferral(viewLead); }}>
+                    <Send className="h-3.5 w-3.5" />
+                    ارجاع جدید
+                  </Button>
+                </div>
+                {viewReferrals.length === 0 ? (
+                  <p className="text-xs text-slate-400">هنوز ارجاعی ثبت نشده است</p>
+                ) : (
+                  <div className="space-y-2">
+                    {viewReferrals.map((ref) => {
+                      const p = ref.referredToProfileId ? viewReferralProfiles[ref.referredToProfileId] : null;
+                      const name = p ? fullName(p.firstName, p.lastName) : 'کاربر حذف شده';
+                      const roleLabel = p?.role === 'super_admin' || p?.role === 'owner' ? 'سوپرادمین' : p?.role === 'admin' ? 'مدیر' : 'پرسنل';
+                      return (
+                        <div key={ref.id} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-xs">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-full bg-[#16B981]/15 text-[#16B981] flex items-center justify-center font-bold">
+                              {name?.[0] || '؟'}
+                            </div>
+                            <div>
+                              <div className="font-medium text-slate-700">{name}</div>
+                              <div className="text-[10px] text-slate-400">{roleLabel} • {relativeTime(ref.createdAt)}</div>
+                            </div>
+                          </div>
+                          <Badge className={ref.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}>
+                            {ref.status === 'active' ? 'فعال' : 'بسته شده'}
+                          </Badge>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
               <div className="text-xs text-slate-400 flex items-center gap-1">
                 <Clock className="h-3 w-3" />
                 ایجاد شده: {relativeTime(viewLead.createdAt)}
+                {viewLead.updatedAt && <span className="mr-2">• آخرین به‌روزرسانی: {relativeTime(viewLead.updatedAt)}</span>}
               </div>
             </div>
           )}
@@ -781,6 +947,66 @@ export default function LeadsPage() {
               )}
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Referral Dialog */}
+      <Dialog open={referralDialogOpen} onOpenChange={setReferralDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>ارجاع سرنخ</DialogTitle></DialogHeader>
+          {referralLead && (
+            <form onSubmit={handleReferralSubmit} className="space-y-4">
+              <div className="rounded-lg bg-sky-50 p-3 text-sm text-sky-700">
+                سرنخ «{referralLead.name}» به افراد انتخاب‌شده ارجاع داده می‌شود و برای هر کدام اعلان درون‌سیستمی ارسال می‌شود.
+              </div>
+              <div className="space-y-2">
+                <Label>انتخاب افراد (می‌توانید چند نفر انتخاب کنید) *</Label>
+                <div className="max-h-64 overflow-y-auto rounded-lg border border-slate-200 p-2 space-y-1">
+                  {referralStaff.length === 0 && (
+                    <p className="text-xs text-slate-400 p-2">کاربری یافت نشد</p>
+                  )}
+                  {referralStaff.map((s) => {
+                    const checked = selectedReferees.has(s.id);
+                    const roleLabel = s.role === 'super_admin' || s.role === 'owner' ? 'سوپرادمین' : s.role === 'admin' ? 'مدیر' : 'پرسنل';
+                    return (
+                      <label
+                        key={s.id}
+                        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm cursor-pointer transition-colors ${checked ? 'bg-[#2DD4BF]/10' : 'hover:bg-slate-50'}`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleReferee(s.id)}
+                          className="h-4 w-4 rounded accent-[#2DD4BF]"
+                        />
+                        <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-600">
+                          {(s.firstName?.[0] || 'ن').toUpperCase()}
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-slate-700">{fullName(s.firstName, s.lastName)}{s.id === profile?.id ? ' (خودم)' : ''}</div>
+                          <div className="text-[10px] text-slate-400">{roleLabel}{s.position ? ` • ${s.position}` : ''}</div>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+                {selectedReferees.size > 0 && (
+                  <p className="text-xs text-[#2DD4BF] font-medium">{selectedReferees.size.toLocaleString('fa-IR')} نفر انتخاب شده</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>یادداشت ارجاع (اختیاری)</Label>
+                <Textarea value={referralNote} onChange={(e) => setReferralNote(e.target.value)} placeholder="توضیحات مربوط به این ارجاع..." rows={2} />
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setReferralDialogOpen(false)}>انصراف</Button>
+                <Button type="submit" disabled={referralSaving}>
+                  {referralSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  {referralSaving ? 'در حال ارجاع...' : 'ثبت ارجاع'}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
 

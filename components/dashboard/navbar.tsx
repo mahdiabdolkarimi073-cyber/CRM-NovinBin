@@ -119,15 +119,15 @@ export function DashboardNavbar() {
           background: 'linear-gradient(135deg, #0A2A2A 0%, #0F3D38 50%, #0A2A2A 100%)',
         }}
       >
-        <div className="flex items-center justify-between gap-4 px-4 lg:px-5 xl:px-8" style={{ height: '72px' }}>
+        <div className="flex items-center justify-between gap-4 px-4 lg:px-5 xl:px-8" style={{ height: '140px' }}>
           {/* Right side: Logo + desktop nav */}
           <div className="flex items-center gap-4 lg:gap-6 xl:gap-8">
             <Link href={isSuperAdmin ? '/super-admin' : '/dashboard'} className="flex items-center transition-transform hover:scale-105">
-              <Logo size={44} withText={true} textClassName="hidden sm:block [&_div]:text-white [&_.text-muted-foreground]:text-[#6BA89E]" />
+              <Logo size={120} withText={true} textClassName="hidden sm:block [&_div]:text-white [&_.text-muted-foreground]:text-[#6BA89E]" />
             </Link>
 
             {/* Desktop full nav (≥1024px) */}
-            <nav className="hidden items-center xl:flex" style={{ gap: '22px' }}>
+            <nav className="hidden items-center lg:flex" style={{ gap: '22px' }}>
               {topLinks.map((item) => {
                 const active = matches(pathname, item.href);
                 return (
@@ -303,7 +303,7 @@ export function DashboardNavbar() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Hamburger (tablet + mobile) */}
+            {/* Hamburger (tablet + mobile only, <1024px) */}
             <button
               onClick={() => setMobileOpen(true)}
               className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/20 text-white/70 transition-colors hover:bg-white/10 hover:text-white lg:hidden"
@@ -314,7 +314,7 @@ export function DashboardNavbar() {
         </div>
       </header>
 
-      {/* Mobile/tablet drawer */}
+      {/* Mobile/tablet drawer (<1024px) */}
       {mobileOpen && (
         <div
           className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm lg:hidden"
@@ -329,8 +329,8 @@ export function DashboardNavbar() {
         dir="rtl"
         style={{ background: 'linear-gradient(180deg, #0A2A2A 0%, #0F3D38 100%)' }}
       >
-        <div className="flex items-center justify-between border-b border-white/10 px-4" style={{ height: '72px' }}>
-          <Logo size={44} withText={false} />
+        <div className="flex items-center justify-between border-b border-white/10 px-4" style={{ height: '140px' }}>
+          <Logo size={120} withText={false} />
           <button
             onClick={() => setMobileOpen(false)}
             className="flex h-9 w-9 items-center justify-center rounded-xl text-white/60 hover:bg-white/10"

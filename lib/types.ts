@@ -78,8 +78,21 @@ export interface Lead {
   assignedTo: string | null;
   customerId: string | null;
   notes: string | null;
+  followUpResult: string | null;
   nextFollowUp: string | null;
   createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  referrals?: LeadReferral[];
+}
+
+export interface LeadReferral {
+  id: string;
+  leadId: string;
+  referredToProfileId: string | null;
+  referredByProfileId: string | null;
+  status: string;
+  note: string | null;
   createdAt: string;
 }
 

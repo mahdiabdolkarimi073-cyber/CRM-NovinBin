@@ -167,6 +167,7 @@ const MODEL_MAP: Record<string, any> = {
   sales_invoices: prisma.salesInvoice,
   sales_invoice_items: prisma.salesInvoiceItem,
   sales_invoice_history: prisma.salesInvoiceHistory,
+  lead_referrals: prisma.leadReferral,
 };
 
 function getAuth(req: NextRequest) {
@@ -259,12 +260,13 @@ const MODEL_PAGE: Record<string, string> = {
   sales_invoices: '/dashboard/sales-invoices',
   sales_invoice_items: '/dashboard/sales-invoices',
   sales_invoice_history: '/dashboard/sales-invoices',
+  lead_referrals: '/dashboard/leads',
 };
 
 const SHARED_MODELS = new Set([
   'profiles', 'user_manager', 'customers', 'notifications',
   'personal_notes', 'staff_chat_messages', 'my_customers', 'ticket_messages',
-  'task_assignees',
+  'task_assignees', 'lead_referrals',
 ]);
 
 async function canAccess(auth: { userId: string }, model: string): Promise<boolean> {
