@@ -3,18 +3,22 @@
 import { Navbar } from '@/components/dashboard/sidebar';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useRouter, usePathname } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Logo } from '@/components/dashboard/logo';
 import { PageGuard } from '@/components/dashboard/page-guard';
 import { hasPageAccess } from '@/lib/nav-config';
+import { cn } from '@/lib/utils';
 
 const PUBLIC_DASHBOARD_PATHS = ['/dashboard'];
+const SIDEBAR_WIDTH = 272;
+const STORAGE_KEY = 'sb-open';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { profile, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
     if (!loading) {
@@ -25,6 +29,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       }
     }
   }, [profile, loading, router]);
+
+  // Sync with sidebar's open/close state via custom event
+  useEffect(() => {
+    const stored = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
+    if (stored !== null) setSidebarOpen(stored === 'true');
+
+    const handler = () => {
+      const val = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
+      setSidebarOpen(val === 'true');
+    };
+    window.addEventListener('sb-toggle', handler);
+    return () => window.removeEventListener('sb-toggle', handler);
+  }, []);
 
   if (loading || !profile) {
     return (
@@ -43,9 +60,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isDashboardHome = pathname === '/dashboard';
 
   return (
-    <div className="sb-layout min-h-screen bg-[#F6F8FC]" dir="rtl">
+    <div className="min-h-screen bg-[#F6F8FC]" dir="rtl">
       <Navbar />
-      <main className={`sb-main ${isDashboardHome ? 'sb-main-wide' : 'sb-main-normal'}`}>
+      <main
+        className={cn(
+          'mx-auto px-4 pb-10 pt-6 transition-all duration-300 ease-in-out lg:px-6',
+          isDashboardHome ? 'max-w-[1470px]' : 'max-w-[1280px]',
+          sidebarOpen ? 'lg:pr-[280px]' : 'lg:pr-4'
+        )}
+      >
         {needsGuard && !hasAccess ? <PageGuard href={pathname}>{children}</PageGuard> : children}
       </main>
     </div>
