@@ -152,6 +152,9 @@ model Organization {
   salesReturnInvoiceHistory       SalesReturnInvoiceHistory[]
   productBundles                  ProductBundle[]
   productBundleItems              ProductBundleItem[]
+  siteVerifications               SiteVerification[]
+  hostDomains                     HostDomain[]
+  smsLogs                         SmsLog[]
 
   @@map("organizations")
 }
@@ -4209,4 +4212,67 @@ model ProductBundleItem {
   org             Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   @@map("product_bundle_items")
+}
+
+// ============ SITE VERIFICATIONS (تاییدیه‌های سایت مشتریان) ============
+
+model SiteVerification {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId        String?   @db.Uuid
+  title        String
+  description  String?
+  category     String    @default("general")
+  status       String    @default("pending") // pending | reviewed | approved | rejected
+  fileUrl      String
+  fileName     String?
+  fileType     String?
+  fileSize     BigInt    @default(0)
+  submittedBy  String    @db.Uuid
+  reviewedBy   String?   @db.Uuid
+  reviewedAt   DateTime?
+  reviewNote   String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now())
+  org          Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@map("site_verifications")
+}
+
+// ============ HOST / DOMAIN REGISTRATION (ثبت هاست و دامنه) ============
+
+model HostDomain {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId          String?   @db.Uuid
+  customerNumber String
+  firstName      String
+  lastName       String
+  phoneNumber    String
+  domainName     String?
+  hostType       String    @default("host") // host | domain | host_domain
+  startDate      DateTime  @default(now())
+  expiryDate     DateTime
+  smsSent        Boolean   @default(false)
+  smsSentAt      DateTime?
+  notes          String?
+  createdBy      String    @db.Uuid
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now())
+  org            Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@map("host_domains")
+}
+
+model SmsLog {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId      String?  @db.Uuid
+  mobile     String
+  message    String
+  status     String   @default("sent") // sent | failed
+  response   String?
+  type       String   @default("manual") // manual | expiry_reminder
+  relatedId  String?  @db.Uuid
+  createdAt  DateTime @default(now())
+  org        Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@map("sms_logs")
 }

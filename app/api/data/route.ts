@@ -168,6 +168,9 @@ const MODEL_MAP: Record<string, any> = {
   sales_invoice_items: prisma.salesInvoiceItem,
   sales_invoice_history: prisma.salesInvoiceHistory,
   lead_referrals: prisma.leadReferral,
+  site_verifications: prisma.siteVerification,
+  host_domains: prisma.hostDomain,
+  sms_logs: prisma.smsLog,
 };
 
 function getAuth(req: NextRequest) {
@@ -261,12 +264,15 @@ const MODEL_PAGE: Record<string, string> = {
   sales_invoice_items: '/dashboard/sales-invoices',
   sales_invoice_history: '/dashboard/sales-invoices',
   lead_referrals: '/dashboard/leads',
+  site_verifications: '/dashboard/site-verifications',
+  host_domains: '/dashboard/host-domains',
+  sms_logs: '/dashboard/sms-logs',
 };
 
 const SHARED_MODELS = new Set([
   'profiles', 'user_manager', 'customers', 'notifications',
   'personal_notes', 'staff_chat_messages', 'my_customers', 'ticket_messages',
-  'task_assignees', 'lead_referrals',
+  'task_assignees', 'lead_referrals', 'site_verifications',
 ]);
 
 async function canAccess(auth: { userId: string }, model: string): Promise<boolean> {
@@ -313,6 +319,12 @@ export async function GET(req: NextRequest) {
     const fullProfile = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });
     if (fullProfile?.role !== 'super_admin' && fullProfile?.role !== 'owner') {
       where = { ...where, profileId: auth.userId };
+    }
+  }
+  if (model === 'site_verifications') {
+    const fullProfile = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });
+    if (fullProfile?.role !== 'super_admin' && fullProfile?.role !== 'owner') {
+      where = { ...where, submittedBy: auth.userId };
     }
   }
   if (model === 'meetings' || model === 'meeting_assignments' || model === 'notifications') {
@@ -378,6 +390,12 @@ export async function POST(req: NextRequest) {
     } else {
       postData = { ...data, profileId: data.profileId || auth.userId };
     }
+  }
+  if (model === 'site_verifications') {
+    postData = { ...data, submittedBy: auth.userId };
+  }
+  if (model === 'host_domains') {
+    postData = { ...data, createdBy: auth.userId };
   }
 
   try {
@@ -451,6 +469,33 @@ export async function POST(req: NextRequest) {
               type: 'report',
               priority: 'normal',
               link: `/dashboard/work-reports/view/${record.id}`,
+            })),
+          });
+        }
+      } catch {}
+    }
+
+    // Notify super-admins when a site verification is submitted
+    if (model === 'site_verifications') {
+      try {
+        const author = await prisma.profile.findUnique({
+          where: { id: auth.userId },
+          select: { firstName: true, lastName: true },
+        });
+        const authorName = [author?.firstName, author?.lastName].filter(Boolean).join(' ') || 'کاربر';
+        const superAdmins = await prisma.profile.findMany({
+          where: { role: { in: ['super_admin', 'owner'] }, active: true, id: { not: auth.userId } },
+          select: { id: true },
+        });
+        if (superAdmins.length > 0) {
+          await prisma.notification.createMany({
+            data: superAdmins.map((sa) => ({
+              profileId: sa.id,
+              title: `تاییدیه جدید از ${authorName}`,
+              body: postData.title ? String(postData.title).slice(0, 120) : null,
+              type: 'verification',
+              priority: 'normal',
+              link: '/super-admin/site-verifications',
             })),
           });
         }
@@ -533,7 +578,28 @@ export async function PATCH(req: NextRequest) {
         return NextResponse.json({ error: 'این یادداشت متعلق به شما نیست' }, { status: 403 });
       }
     }
-    const record = await MODEL_MAP[model].update({ where, data, include });
+    // Site verifications: only super_admin/owner can review (change status/reviewedBy/reviewNote)
+    let updateData = data;
+    if (model === 'site_verifications') {
+      const actor = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });
+      const isSuperAdminRole = actor?.role === 'super_admin' || actor?.role === 'owner';
+      if (!isSuperAdminRole) {
+        const existing = await (prisma as any).siteVerification.findFirst({ where: { id: where.id, submittedBy: auth.userId } });
+        if (!existing) {
+          return NextResponse.json({ error: 'این تاییدیه متعلق به شما نیست' }, { status: 403 });
+        }
+        const allowedFields = new Set(['title', 'description', 'category', 'fileUrl', 'fileName', 'fileType', 'fileSize']);
+        const tryingReviewFields = Object.keys(data).some((k) => !allowedFields.has(k));
+        if (tryingReviewFields) {
+          return NextResponse.json({ error: 'فقط سوپرادمین می‌تواند وضعیت تاییدیه را تغییر دهد' }, { status: 403 });
+        }
+      } else {
+        if (data.status && (data.status === 'approved' || data.status === 'rejected' || data.status === 'reviewed')) {
+          updateData = { ...data, reviewedBy: auth.userId, reviewedAt: new Date() };
+        }
+      }
+    }
+    const record = await MODEL_MAP[model].update({ where, data: updateData, include });
 
     // Notify super-admins when a daily work report is edited
     if (model === 'daily_work_reports') {
@@ -594,6 +660,17 @@ export async function DELETE(req: NextRequest) {
       const existing = await prisma.personalNote.findFirst({ where: { id: where.id, profileId: auth.userId } });
       if (!existing) {
         return NextResponse.json({ error: 'این یادداشت متعلق به شما نیست' }, { status: 403 });
+      }
+    }
+    // Site verifications: super_admin/owner can delete any; submitter can delete own
+    if (model === 'site_verifications') {
+      const actor = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });
+      const isSuperAdminRole = actor?.role === 'super_admin' || actor?.role === 'owner';
+      if (!isSuperAdminRole) {
+        const existing = await (prisma as any).siteVerification.findFirst({ where: { id: where.id, submittedBy: auth.userId } });
+        if (!existing) {
+          return NextResponse.json({ error: 'این تاییدیه متعلق به شما نیست' }, { status: 403 });
+        }
       }
     }
     await MODEL_MAP[model].delete({ where });

@@ -7,7 +7,7 @@ import {
   GraduationCap, BadgePercent, Ticket, StickyNote, MessageCircle,
   UserCheck, ClipboardList, Network, Contact, Megaphone, Wallet,
   FileCheck, Banknote, CreditCard, ArrowRightLeft, Sparkles,
-  ClipboardCheck, FileSearch, ArrowUpFromLine, Undo2, Percent,
+  ClipboardCheck, FileSearch, ArrowUpFromLine, Undo2, Percent, Server,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { Profile } from '@/lib/types';
@@ -47,6 +47,9 @@ export const cartableItems: NavItem[] = [
   { href: '/dashboard/customers-chat', label: 'چت مشتری', icon: Send },
   { href: '/dashboard/tickets', label: 'تیکت‌ها', icon: MessageSquare },
   { href: '/dashboard/tasks', label: 'تسک‌ها', icon: CheckSquare },
+  { href: '/dashboard/site-verifications', label: 'تاییدیه‌های سایت', icon: FileCheck },
+  { href: '/dashboard/host-domains', label: 'ثبت هاست و دامنه', icon: Server },
+  { href: '/dashboard/sms-logs', label: 'پیامک‌ها', icon: Send },
   { href: '/dashboard/doc-issuance-workboard', label: 'کارتابل صدور سند', icon: FileCheck },
   { href: '/dashboard/meetings', label: 'جلسات', icon: Calendar },
   { href: '/dashboard/calls', label: 'مکالمات', icon: Phone },

@@ -67,6 +67,28 @@ export const LEAD_SOURCES = [
   'سایر',
 ];
 
+export const VERIFICATION_CATEGORIES = [
+  { key: 'general', label: 'عمومی' },
+  { key: 'identity', label: 'احراز هویت' },
+  { key: 'contract', label: 'قرارداد' },
+  { key: 'payment', label: 'پرداخت' },
+  { key: 'technical', label: 'فنی' },
+  { key: 'other', label: 'سایر' },
+];
+
+export const VERIFICATION_STATUSES = [
+  { key: 'pending', label: 'در انتظار بررسی', color: '#F59E0B' },
+  { key: 'reviewed', label: 'بررسی شده', color: '#3B82F6' },
+  { key: 'approved', label: 'تایید شده', color: '#22C55E' },
+  { key: 'rejected', label: 'رد شده', color: '#EF4444' },
+];
+
+export const HOST_TYPES = [
+  { key: 'host', label: 'هاست' },
+  { key: 'domain', label: 'دامنه' },
+  { key: 'host_domain', label: 'هاست و دامنه' },
+];
+
 export const PLAN_LABELS: Record<string, string> = {
   starter: 'استارتر',
   business: 'بیزینس',

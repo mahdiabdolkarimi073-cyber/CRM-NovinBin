@@ -14,6 +14,7 @@ import { allNavGroups, coreItems, adminItems } from '@/lib/nav-config';
 const superAdminNav = [
   { href: '/super-admin', label: 'داشبورد' },
   { href: '/super-admin/work-reports', label: 'گزارش‌های کار' },
+  { href: '/super-admin/site-verifications', label: 'تاییدیه‌های سایت' },
   { href: '/super-admin/tenants', label: 'سازمان‌ها' },
   { href: '/super-admin/plans', label: 'پلن‌ها' },
   { href: '/super-admin/modules', label: 'ماژول‌ها' },

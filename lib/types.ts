@@ -276,6 +276,56 @@ export interface Notification {
   createdAt: string;
 }
 
+export interface SiteVerification {
+  id: string;
+  orgId: string | null;
+  title: string;
+  description: string | null;
+  category: string;
+  status: string;
+  fileUrl: string;
+  fileName: string | null;
+  fileType: string | null;
+  fileSize: number;
+  submittedBy: string;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  reviewNote: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface HostDomain {
+  id: string;
+  orgId: string | null;
+  customerNumber: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+  domainName: string | null;
+  hostType: string;
+  startDate: string;
+  expiryDate: string;
+  smsSent: boolean;
+  smsSentAt: string | null;
+  notes: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SmsLog {
+  id: string;
+  orgId: string | null;
+  mobile: string;
+  message: string;
+  status: string;
+  response: string | null;
+  type: string;
+  relatedId: string | null;
+  createdAt: string;
+}
+
 export interface LoyaltyTransaction {
   id: string;
   customerId: string;
