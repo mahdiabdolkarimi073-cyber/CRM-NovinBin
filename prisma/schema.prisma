@@ -490,23 +490,27 @@ model Invoice {
 // ============ MEETINGS ============
 
 model Meeting {
-  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  orgId      String?    @db.Uuid
-  title      String
-  topic      String?
-  agenda     String?
-  date       DateTime  @default(now())
-  endTime    DateTime?
-  location   String?
-  onlineLink String?
-  notes      String?
-  minutes    String?
-  outcome    String?
-  createdBy  String    @db.Uuid
-  createdAt  DateTime  @default(now())
-  org        Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  participants MeetingParticipant[]
-  assignments  MeetingAssignment[]
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId         String?    @db.Uuid
+  title         String
+  topic         String?
+  agenda        String?
+  date          DateTime  @default(now())
+  endTime        DateTime?
+  location      String?
+  onlineLink    String?
+  notes         String?
+  minutes       String?
+  outcome       String?
+  staffPhone    String?
+  customerPhone String?
+  smsSent       Boolean   @default(false)
+  smsSentAt     DateTime?
+  createdBy     String    @db.Uuid
+  createdAt     DateTime  @default(now())
+  org           Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  participants  MeetingParticipant[]
+  assignments   MeetingAssignment[]
 
   @@map("meetings")
 }

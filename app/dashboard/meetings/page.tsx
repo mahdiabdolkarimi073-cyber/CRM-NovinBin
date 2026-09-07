@@ -103,6 +103,7 @@ export default function MeetingsPage() {
 
   useEffect(() => {
     load();
+    fetch('/api/meetings/check-sms', { method: 'POST' }).catch(() => {});
   }, [load]);
 
   const openView = (m: MeetingWithAssignment) => {
@@ -227,6 +228,9 @@ export default function MeetingsPage() {
                 <div><span className="text-slate-400">زمان:</span> <span className="font-medium">{formatJalaliDateTime(viewMeeting.date)}</span></div>
                 {viewMeeting.assigned_to_name && <div><span className="text-slate-400">تخصیص به:</span> <span className="font-medium">{viewMeeting.assigned_to_name}</span></div>}
                 {viewMeeting.location && <div><span className="text-slate-400">مکان:</span> <span className="font-medium">{viewMeeting.location}</span></div>}
+              {viewMeeting.staffPhone && <div><span className="text-slate-400">شماره پرسنل:</span> <span className="font-medium" dir="ltr">{viewMeeting.staffPhone}</span></div>}
+              {viewMeeting.customerPhone && <div><span className="text-slate-400">شماره مشتری:</span> <span className="font-medium" dir="ltr">{viewMeeting.customerPhone}</span></div>}
+              {viewMeeting.smsSent && <div><span className="text-slate-400">پیامک:</span> <span className="font-medium text-emerald-600">ارسال شد</span></div>}
               </div>
               {viewMeeting.onlineLink && (
                 <a href={viewMeeting.onlineLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sky-600 text-sm hover:underline">

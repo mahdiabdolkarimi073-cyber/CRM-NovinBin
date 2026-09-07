@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/select';
 import {
   ArrowRight, Calendar, Clock, MapPin, Video, Lightbulb, Info,
-  UserCheck, FileText, Link2, ClipboardList, Loader2,
+  UserCheck, FileText, Link2, ClipboardList, Loader2, Phone,
 } from 'lucide-react';
 import { fullName } from '@/lib/constants';
 import { formatJalaliDateTime, toLocalDateString } from '@/lib/format';
@@ -46,6 +46,8 @@ export default function NewMeetingPage() {
     location: '',
     online_link: '',
     agenda: '',
+    staff_phone: '',
+    customer_phone: '',
   });
 
   const loadStaff = useCallback(async () => {
@@ -97,6 +99,8 @@ export default function NewMeetingPage() {
         date: meetingDateTime.toISOString(),
         location: form.location || null,
         onlineLink: form.online_link || null,
+        staffPhone: form.staff_phone.trim() || null,
+        customerPhone: form.customer_phone.trim() || null,
         createdBy: profile.id,
       });
 
@@ -297,6 +301,40 @@ export default function NewMeetingPage() {
                       className="meeting-date-input"
                     />
                   </div>
+                </div>
+              </div>
+
+              {/* Phone numbers for SMS */}
+              <div className="meeting-row-2">
+                <div className="meeting-field-group">
+                  <Label className="meeting-field-label">شماره موبایل پرسنل/ادمین (برای پیامک)</Label>
+                  <div className="meeting-date-wrap">
+                    <span className="meeting-date-icon"><Phone className="h-4 w-4" /></span>
+                    <input
+                      type="tel"
+                      dir="ltr"
+                      value={form.staff_phone}
+                      onChange={(e) => setForm({ ...form, staff_phone: e.target.value })}
+                      placeholder="09xxxxxxxxx"
+                      className="meeting-date-input"
+                    />
+                  </div>
+                  <span className="meeting-field-hint">در روز جلسه، پیامک یادآوری به این شماره ارسال می‌شود</span>
+                </div>
+                <div className="meeting-field-group">
+                  <Label className="meeting-field-label">شماره موبایل مشتری (برای پیامک)</Label>
+                  <div className="meeting-date-wrap">
+                    <span className="meeting-date-icon"><Phone className="h-4 w-4" /></span>
+                    <input
+                      type="tel"
+                      dir="ltr"
+                      value={form.customer_phone}
+                      onChange={(e) => setForm({ ...form, customer_phone: e.target.value })}
+                      placeholder="09xxxxxxxxx"
+                      className="meeting-date-input"
+                    />
+                  </div>
+                  <span className="meeting-field-hint">در روز جلسه، پیامک یادآوری به این شماره ارسال می‌شود</span>
                 </div>
               </div>
 

@@ -229,6 +229,10 @@ export interface Meeting {
   notes: string | null;
   minutes: string | null;
   outcome: string | null;
+  staffPhone: string | null;
+  customerPhone: string | null;
+  smsSent: boolean;
+  smsSentAt: string | null;
   createdBy: string;
   createdAt: string;
   meeting_participants?: { profileId: string }[];

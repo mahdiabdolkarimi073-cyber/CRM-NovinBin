@@ -146,7 +146,7 @@ export function DashboardSidebar() {
           <span className="flex-1 truncate text-right">{group.label}</span>
           <ChevronDown className={cn('h-4 w-4 shrink-0 transition-transform duration-200', expanded && 'rotate-180')} />
         </button>
-        <div className={cn('overflow-hidden transition-all duration-300', expanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0')}>
+        <div className={cn('overflow-hidden transition-all duration-300', expanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0')}>
           <div className="flex flex-col gap-0.5 pr-4 pt-1">
             {group.items.map((item) => renderNavLink(item))}
           </div>
