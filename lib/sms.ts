@@ -19,8 +19,8 @@ export async function sendSms(
   if (!normalizedMobile) {
     return { success: false, response: 'شماره موبایل نامعتبر است' };
   }
-  if (!SMS_IR_TOKEN) {
-    return { success: false, response: 'توکن پیامک پیکربندی نشده است' };
+  if (!SMS_IR_TOKEN || !SMS_IR_LINE_NUMBER) {
+    return { success: false, response: 'اعتبارنامه پیامک پیکربندی نشده است' };
   }
 
   try {
@@ -36,14 +36,19 @@ export async function sendSms(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SMS_IR_TOKEN}`,
+        'Accept': 'application/json',
+        'x-api-key': SMS_IR_TOKEN,
       },
       body: JSON.stringify(body),
     });
 
     const data = await res.json();
-    const success = data.status === 1 || res.ok;
+    const success = data.status === 1;
     const responseText = JSON.stringify(data);
+
+    if (!success) {
+      console.error('SMS.ir error:', responseText);
+    }
 
     try {
       await prisma.smsLog.create({
