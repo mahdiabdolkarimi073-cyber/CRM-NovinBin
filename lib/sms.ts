@@ -19,13 +19,18 @@ export async function sendSms(
   if (!normalizedMobile) {
     return { success: false, response: 'شماره موبایل نامعتبر است' };
   }
+  // جلوگیری از ارسال متن خالی یا فقط فضای خالی
+  const trimmedMessage = (message || '').trim();
+  if (!trimmedMessage) {
+    return { success: false, response: 'متن پیامک خالی است' };
+  }
   if (!SMS_IR_TOKEN || !SMS_IR_LINE_NUMBER) {
     return { success: false, response: 'اعتبارنامه پیامک پیکربندی نشده است' };
   }
 
   try {
     const body: Record<string, any> = {
-      messageTexts: [message],
+      messageTexts: [trimmedMessage],
       mobiles: [normalizedMobile],
     };
     if (SMS_IR_LINE_NUMBER) {
@@ -54,7 +59,7 @@ export async function sendSms(
       await prisma.smsLog.create({
         data: {
           mobile: normalizedMobile,
-          message,
+          message: trimmedMessage,
           status: success ? 'sent' : 'failed',
           response: responseText,
           type,
@@ -70,7 +75,7 @@ export async function sendSms(
       await prisma.smsLog.create({
         data: {
           mobile: normalizedMobile,
-          message,
+          message: trimmedMessage,
           status: 'failed',
           response: errMsg,
           type,

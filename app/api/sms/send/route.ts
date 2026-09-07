@@ -25,10 +25,12 @@ export async function POST(req: NextRequest) {
 
     if (action === 'send_single') {
       const { mobile, message } = body;
-      if (!mobile || !message) {
+      const trimmedMessage = (message || '').trim();
+      const trimmedMobile = (mobile || '').trim();
+      if (!trimmedMobile || !trimmedMessage) {
         return NextResponse.json({ error: 'شماره موبایل و متن پیامک الزامی است' }, { status: 400 });
       }
-      const result = await sendSms(mobile, message, 'manual');
+      const result = await sendSms(trimmedMobile, trimmedMessage, 'manual');
       return NextResponse.json(result);
     }
 
