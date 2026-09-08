@@ -259,6 +259,9 @@ model Customer {
   loyaltyPoints Int      @default(0)
   source        String?
   assignedTo    String?  @db.Uuid
+  activityType   String?
+  serviceTypes   Json     @default("[]")
+  additionalPhones Json   @default("[]")
   notes         String?
   createdBy     String   @db.Uuid
   createdAt     DateTime @default(now())
@@ -1008,6 +1011,8 @@ model Module {
   description String?
   price       BigInt   @default(0)
   active      Boolean  @default(true)
+  pageHref    String?
+  clubActive  Boolean  @default(false)
   createdAt   DateTime @default(now())
   tenantModules TenantModule[]
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { fetchData, createData, updateData, deleteData } from '@/lib/data-client';
+import { fetchData, updateData, deleteData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { EmptyState } from '@/components/dashboard/empty-state';
@@ -14,12 +14,12 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
 } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users, Plus, Search, Building2, User, Phone, Mail, MapPin } from 'lucide-react';
-import { formatToman, relativeTime } from '@/lib/format';
-import { fullName, CUSTOMER_LEVELS } from '@/lib/constants';
+import { Users, Plus, Search, Building2, User, Phone, Mail, MapPin, Briefcase, Award, Check, X } from 'lucide-react';
+import { relativeTime } from '@/lib/format';
+import { fullName, CUSTOMER_LEVELS, SERVICE_TYPES, ACTIVITY_TYPES } from '@/lib/constants';
 import { toast } from 'sonner';
 import type { Customer } from '@/lib/types';
 
@@ -29,8 +29,6 @@ export default function CustomersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('all');
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [creating, setCreating] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [viewCustomer, setViewCustomer] = useState<Customer | null>(null);
@@ -38,15 +36,19 @@ export default function CustomersPage() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     type: 'individual' as 'individual' | 'company',
-    first_name: '',
-    last_name: '',
-    company_name: '',
+    fullName: '',
+    companyName: '',
     email: '',
     mobile: '',
     phone: '',
     address: '',
     city: '',
+    activityType: '',
+    level: 'basic',
+    notes: '',
   });
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [additionalPhones, setAdditionalPhones] = useState<string[]>([]);
 
   const isSuperAdmin = profile?.role === 'super_admin' || profile?.role === 'owner';
 
@@ -77,55 +79,24 @@ export default function CustomersPage() {
     loadCustomers();
   }, [loadCustomers]);
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!profile) return;
-    if (form.type === 'individual' && !form.first_name) {
-      toast.error('نام مشتری را وارد کنید');
-      return;
-    }
-    if (form.type === 'company' && !form.company_name) {
-      toast.error('نام شرکت را وارد کنید');
-      return;
-    }
-    setCreating(true);
-    try {
-      await createData('customers', {
-        type: form.type,
-        firstName: form.first_name || null,
-        lastName: form.last_name || null,
-        companyName: form.company_name || null,
-        email: form.email || null,
-        mobile: form.mobile || null,
-        phone: form.phone || null,
-        address: form.address || null,
-        city: form.city || null,
-        level: 'bronze',
-        createdBy: profile.id,
-      });
-      toast.success('مشتری با موفقیت ایجاد شد');
-      setDialogOpen(false);
-      setForm({ type: 'individual', first_name: '', last_name: '', company_name: '', email: '', mobile: '', phone: '', address: '', city: '' });
-      loadCustomers();
-    } catch (error: any) {
-      toast.error('ایجاد مشتری ناموفق: ' + error.message);
-    }
-    setCreating(false);
-  };
-
   const openEdit = (c: Customer) => {
     setEditingCustomer(c);
+    const name = c.firstName && c.lastName ? `${c.firstName} ${c.lastName}` : (c.firstName || c.lastName || '');
     setForm({
       type: c.type,
-      first_name: c.firstName || '',
-      last_name: c.lastName || '',
-      company_name: c.companyName || '',
+      fullName: name,
+      companyName: c.companyName || '',
       email: c.email || '',
       mobile: c.mobile || '',
       phone: c.phone || '',
       address: c.address || '',
       city: c.city || '',
+      activityType: c.activityType || '',
+      level: c.level || 'basic',
+      notes: c.notes || '',
     });
+    setSelectedServices(c.serviceTypes || []);
+    setAdditionalPhones(c.additionalPhones || []);
     setEditDialogOpen(true);
   };
 
@@ -134,21 +105,42 @@ export default function CustomersPage() {
     setViewDialogOpen(true);
   };
 
+  const toggleService = (service: string) => {
+    setSelectedServices((prev) =>
+      prev.includes(service) ? prev.filter((s) => s !== service) : [...prev, service]
+    );
+  };
+
+  const addPhone = () => setAdditionalPhones((prev) => [...prev, '']);
+  const removePhone = (index: number) => setAdditionalPhones((prev) => prev.filter((_, i) => i !== index));
+  const updatePhone = (index: number, value: string) =>
+    setAdditionalPhones((prev) => prev.map((p, i) => (i === index ? value : p)));
+
   const handleEditSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingCustomer) return;
     setSaving(true);
     try {
+      const nameParts = form.fullName.trim().split(/\s+/);
+      const firstName = nameParts[0] || null;
+      const lastName = nameParts.slice(1).join(' ') || null;
+      const phones = additionalPhones.filter((p) => p.trim() !== '');
+
       await updateData('customers', { id: editingCustomer.id }, {
         type: form.type,
-        firstName: form.first_name || null,
-        lastName: form.last_name || null,
-        companyName: form.company_name || null,
+        firstName,
+        lastName,
+        companyName: form.companyName || null,
         email: form.email || null,
         mobile: form.mobile || null,
         phone: form.phone || null,
         address: form.address || null,
         city: form.city || null,
+        activityType: form.activityType || null,
+        serviceTypes: selectedServices,
+        additionalPhones: phones,
+        level: form.level,
+        notes: form.notes || null,
       });
       toast.success('مشتری ویرایش شد');
       setEditDialogOpen(false);
@@ -180,78 +172,12 @@ export default function CustomersPage() {
         title="مشتریان"
         description="مدیریت مشتریان حقیقی و حقوقی"
         action={
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm">
-                <Plus className="w-4 h-4" />
-                مشتری جدید
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg">
-              <DialogHeader>
-                <DialogTitle>افزودن مشتری جدید</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleCreate} className="space-y-4">
-                <div className="space-y-2">
-                  <Label>نوع مشتری</Label>
-                  <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v as 'individual' | 'company' })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="individual">حقیقی</SelectItem>
-                      <SelectItem value="company">حقوقی</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                {form.type === 'individual' ? (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label>نام</Label>
-                      <Input value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} required />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>نام خانوادگی</Label>
-                      <Input value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <Label>نام شرکت</Label>
-                    <Input value={form.company_name} onChange={(e) => setForm({ ...form, company_name: e.target.value })} required />
-                  </div>
-                )}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>ایمیل</Label>
-                    <Input type="email" dir="ltr" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>موبایل</Label>
-                    <Input dir="ltr" value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })} />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>شهر</Label>
-                    <Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>تلفن ثابت</Label>
-                    <Input dir="ltr" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>آدرس</Label>
-                  <Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
-                </div>
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>انصراف</Button>
-                  <Button type="submit" disabled={creating}>
-                    {creating ? 'در حال ایجاد...' : 'ایجاد مشتری'}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <Link href="/dashboard/customers/new">
+            <Button size="sm">
+              <Plus className="w-4 h-4" />
+              مشتری جدید
+            </Button>
+          </Link>
         }
       />
 
@@ -290,10 +216,12 @@ export default function CustomersPage() {
             title="مشتری‌ای یافت نشد"
             description="برای شروع، اولین مشتری خود را اضافه کنید"
             action={
-              <Button onClick={() => setDialogOpen(true)}>
-                <Plus className="w-4 h-4" />
-                افزودن مشتری
-              </Button>
+              <Link href="/dashboard/customers/new">
+                <Button>
+                  <Plus className="w-4 h-4" />
+                  افزودن مشتری
+                </Button>
+              </Link>
             }
           />
         </Card>
@@ -322,6 +250,12 @@ export default function CustomersPage() {
                     </Badge>
                   </div>
                   <div className="space-y-1.5 text-sm">
+                    {c.activityType && (
+                      <div className="flex items-center gap-2 text-slate-500">
+                        <Briefcase className="w-3.5 h-3.5 text-slate-400" />
+                        {c.activityType}
+                      </div>
+                    )}
                     {c.mobile && isSuperAdmin && (
                       <div className="flex items-center gap-2 text-slate-500">
                         <Phone className="w-3.5 h-3.5 text-slate-400" />
@@ -344,6 +278,13 @@ export default function CustomersPage() {
                       <div className="flex items-center gap-2 text-slate-500">
                         <MapPin className="w-3.5 h-3.5 text-slate-400" />
                         {c.city}
+                      </div>
+                    )}
+                    {c.serviceTypes && c.serviceTypes.length > 0 && (
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        {c.serviceTypes.map((s) => (
+                          <span key={s} className="text-[10px] bg-slate-100 text-slate-600 rounded px-1.5 py-0.5">{s}</span>
+                        ))}
                       </div>
                     )}
                   </div>
@@ -382,9 +323,9 @@ export default function CustomersPage() {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3 text-sm">
-                {viewCustomer.type === 'company' && viewCustomer.companyName && <div><span className="text-slate-400">شرکت:</span> <span className="font-medium">{viewCustomer.companyName}</span></div>}
                 {viewCustomer.firstName && <div><span className="text-slate-400">نام:</span> <span className="font-medium">{viewCustomer.firstName}</span></div>}
                 {viewCustomer.lastName && <div><span className="text-slate-400">نام خانوادگی:</span> <span className="font-medium">{viewCustomer.lastName}</span></div>}
+                {viewCustomer.activityType && <div><span className="text-slate-400">نوع فعالیت:</span> <span className="font-medium">{viewCustomer.activityType}</span></div>}
                 {viewCustomer.email && <div><span className="text-slate-400">ایمیل:</span> <span className="font-medium" dir="ltr">{viewCustomer.email}</span></div>}
                 {viewCustomer.mobile && isSuperAdmin && <div><span className="text-slate-400">موبایل:</span> <span className="font-medium" dir="ltr">{viewCustomer.mobile}</span></div>}
                 {viewCustomer.mobile && !isSuperAdmin && <div><span className="text-slate-400">موبایل:</span> <span className="font-medium tracking-widest" dir="ltr">••••••••</span></div>}
@@ -392,10 +333,36 @@ export default function CustomersPage() {
                 {viewCustomer.phone && !isSuperAdmin && <div><span className="text-slate-400">تلفن:</span> <span className="font-medium tracking-widest" dir="ltr">••••••••</span></div>}
                 {viewCustomer.city && <div><span className="text-slate-400">شهر:</span> <span className="font-medium">{viewCustomer.city}</span></div>}
               </div>
+              {viewCustomer.additionalPhones && viewCustomer.additionalPhones.length > 0 && isSuperAdmin && (
+                <div className="text-sm">
+                  <span className="text-slate-400 block mb-1">شماره‌های اضافی:</span>
+                  <div className="flex flex-wrap gap-2">
+                    {viewCustomer.additionalPhones.map((p, i) => (
+                      <span key={i} dir="ltr" className="font-medium bg-slate-50 rounded px-2 py-1">{p}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {viewCustomer.serviceTypes && viewCustomer.serviceTypes.length > 0 && (
+                <div className="text-sm">
+                  <span className="text-slate-400 block mb-1">خدمات دریافتی:</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {viewCustomer.serviceTypes.map((s) => (
+                      <span key={s} className="text-xs bg-blue-50 text-blue-700 rounded px-2 py-1">{s}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
               {viewCustomer.address && (
                 <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
                   <span className="text-slate-400 block mb-1">آدرس:</span>
                   {viewCustomer.address}
+                </div>
+              )}
+              {viewCustomer.notes && (
+                <div className="rounded-lg bg-amber-50 p-3 text-sm text-slate-600">
+                  <span className="text-slate-400 block mb-1">یادداشت:</span>
+                  {viewCustomer.notes}
                 </div>
               )}
               <div className="text-xs text-slate-400">ایجاد شده: {relativeTime(viewCustomer.createdAt)}</div>
@@ -406,7 +373,7 @@ export default function CustomersPage() {
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>ویرایش مشتری</DialogTitle></DialogHeader>
           <form onSubmit={handleEditSave} className="space-y-4">
             <div className="space-y-2">
@@ -420,36 +387,64 @@ export default function CustomersPage() {
               </Select>
             </div>
             {form.type === 'individual' ? (
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label>نام</Label>
-                  <Input value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} />
-                </div>
-                <div className="space-y-2">
-                  <Label>نام خانوادگی</Label>
-                  <Input value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} />
-                </div>
+              <div className="space-y-2">
+                <Label>نام و نام خانوادگی</Label>
+                <Input value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} placeholder="نام و نام خانوادگی" />
               </div>
             ) : (
               <div className="space-y-2">
                 <Label>نام شرکت</Label>
-                <Input value={form.company_name} onChange={(e) => setForm({ ...form, company_name: e.target.value })} />
+                <Input value={form.companyName} onChange={(e) => setForm({ ...form, companyName: e.target.value })} />
               </div>
             )}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label>ایمیل</Label>
-                <Input type="email" dir="ltr" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+                <Label>نوع فعالیت</Label>
+                <Select value={form.activityType || 'none'} onValueChange={(v) => setForm({ ...form, activityType: v === 'none' ? '' : v })}>
+                  <SelectTrigger><SelectValue placeholder="انتخاب..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">بدون انتخاب</SelectItem>
+                    {ACTIVITY_TYPES.map((a) => (
+                      <SelectItem key={a} value={a}>{a}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
-                <Label>موبایل</Label>
-                <Input dir="ltr" value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })} />
+                <Label>سطح مشتری</Label>
+                <Select value={form.level} onValueChange={(v) => setForm({ ...form, level: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {CUSTOMER_LEVELS.map((l) => (
+                      <SelectItem key={l.key} value={l.key}>{l.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>خدمات دریافتی</Label>
+              <div className="flex flex-wrap gap-2 rounded-lg border border-slate-200 bg-white p-3">
+                {SERVICE_TYPES.map((service) => {
+                  const checked = selectedServices.includes(service);
+                  return (
+                    <button
+                      key={service}
+                      type="button"
+                      onClick={() => toggleService(service)}
+                      className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${checked ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-400'}`}
+                    >
+                      {checked && <Check className="h-3 w-3" />}
+                      {service}
+                    </button>
+                  );
+                })}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label>شهر</Label>
-                <Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+                <Label>موبایل</Label>
+                <Input dir="ltr" value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })} />
               </div>
               <div className="space-y-2">
                 <Label>تلفن ثابت</Label>
@@ -457,8 +452,53 @@ export default function CustomersPage() {
               </div>
             </div>
             <div className="space-y-2">
+              <Label>شماره تلفن‌های اضافی</Label>
+              <div className="space-y-2">
+                {additionalPhones.map((phone, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <Input
+                      dir="ltr"
+                      value={phone}
+                      onChange={(e) => updatePhone(index, e.target.value)}
+                      placeholder="شماره تلفن اضافی"
+                      className="flex-1"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removePhone(index)}
+                      className="flex items-center justify-center w-11 h-11 rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-red-500 hover:border-red-300 transition-all shrink-0"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={addPhone}
+                  className="flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                >
+                  <Plus className="h-4 w-4" />
+                  افزودن شماره تلفن
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>ایمیل</Label>
+                <Input type="email" dir="ltr" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>شهر</Label>
+                <Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+              </div>
+            </div>
+            <div className="space-y-2">
               <Label>آدرس</Label>
               <Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>یادداشت</Label>
+              <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>انصراف</Button>

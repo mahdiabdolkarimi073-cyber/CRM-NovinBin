@@ -60,6 +60,9 @@ export interface Customer {
   loyaltyPoints: number;
   source: string | null;
   assignedTo: string | null;
+  activityType: string | null;
+  serviceTypes: string[] | null;
+  additionalPhones: string[] | null;
   notes: string | null;
   createdBy: string;
   createdAt: string;

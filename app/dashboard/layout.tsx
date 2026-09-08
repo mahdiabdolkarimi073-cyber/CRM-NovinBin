@@ -1,6 +1,7 @@
 'use client';
 
-import { Navbar } from '@/components/dashboard/sidebar';
+import { GlobalNavbar } from '@/components/dashboard/global-navbar';
+import { DashboardSidebar } from '@/components/dashboard/sidebar';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -30,18 +31,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [profile, loading, router]);
 
-  // Sync with sidebar's open/close state via custom event
+  // Restore sidebar preference from localStorage
   useEffect(() => {
     const stored = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
     if (stored !== null) setSidebarOpen(stored === 'true');
-
-    const handler = () => {
-      const val = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
-      setSidebarOpen(val === 'true');
-    };
-    window.addEventListener('sb-toggle', handler);
-    return () => window.removeEventListener('sb-toggle', handler);
   }, []);
+
+  // Persist sidebar preference
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEY, String(sidebarOpen));
+    }
+  }, [sidebarOpen]);
+
+  const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
   if (loading || !profile) {
     return (
@@ -61,7 +64,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen bg-[#F6F8FC]" dir="rtl">
-      <Navbar />
+      <GlobalNavbar sidebarOpen={sidebarOpen} onToggleSidebar={toggleSidebar} />
+      <DashboardSidebar open={sidebarOpen} onToggle={toggleSidebar} />
       <main
         className={cn(
           'mx-auto px-4 pb-10 pt-6 transition-all duration-300 ease-in-out lg:px-6',

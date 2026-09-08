@@ -9,139 +9,193 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { Package, Plus, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Package, Pencil, Save, Loader2 } from 'lucide-react';
 import { formatToman } from '@/lib/format';
 import { toast } from 'sonner';
+import { allPageModules } from '@/lib/nav-config';
 
-const MODULE_NAME_MAP: Record<string, string> = {
-  crm: 'مدیریت ارتباط با مشتری (CRM)',
-  inventory: 'انبار و لجستیک',
-  finance: 'مالی و حسابداری',
-  hr: 'منابع انسانی',
-  loyalty: 'باشگاه مشتریان',
-  academy: 'آکادمی',
-  approvals: 'تأییدها',
-  documents: 'اسناد و دانش',
-  knowledge: 'پایگاه دانش',
-  performance: 'عملکرد',
-};
-
-const MODULE_DESC_MAP: Record<string, string> = {
-  crm: 'مدیریت مشتریان، سرنخ‌ها و قیف فروش',
-  inventory: 'مدیریت انبارها، موجودی و حرکات کالا',
-  finance: 'حسابداری سازمانی، خزانه‌داری و چک‌ها',
-  hr: 'مدیریت پرسنل، حضور و غیاب و مرخصی',
-  loyalty: 'مدیریت امتیازات و وفاداری مشتریان',
-  academy: 'مدیریت هنرجویان و ثبت‌نام دوره‌ها',
-  approvals: 'مدیریت درخواست‌های تأیید و سلسله‌مراتب',
-  documents: 'مدیریت اسناد و پایگاه دانش',
-  knowledge: 'مدیریت مقالات و دانش سازمانی',
-  performance: 'مدیریت اهداف و شاخص‌های عملکرد',
-};
-
-function translateModuleName(name: string): string {
-  return MODULE_NAME_MAP[name] || name;
-}
-
-function translateModuleDesc(name: string, desc: string | null): string {
-  if (MODULE_DESC_MAP[name]) return MODULE_DESC_MAP[name];
-  if (desc && desc.startsWith('ماژول ')) return MODULE_DESC_MAP[name] || desc;
-  return desc || '';
+interface ModuleRecord {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  active: boolean;
+  pageHref: string | null;
+  clubActive: boolean;
+  createdAt: string;
 }
 
 export default function ModulesPage() {
-  const [modules, setModules] = useState<any[]>([]);
+  const [modules, setModules] = useState<ModuleRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState({ name: '', description: '', price: '' });
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingModule, setEditingModule] = useState<ModuleRecord | null>(null);
+  const [editForm, setEditForm] = useState({ name: '', description: '', price: '' });
+  const [saving, setSaving] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await fetchData('modules', { orderBy: { name: 'asc' } });
-      setModules(data);
+      const data = await fetchData<ModuleRecord>('modules', { orderBy: { name: 'asc' } });
+      setModules(data || []);
     } catch {
       setModules([]);
     }
     setLoading(false);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+    // Seed modules for all site pages if not already present
+    seedModules();
+  }, [load]);
 
-  const handleCreate = async () => {
-    if (!form.name) { toast.error('نام ماژول را وارد کنید'); return; }
+  const seedModules = async () => {
     try {
-      await createData('modules', {
-        name: form.name,
-        description: form.description || null,
-        price: Number(form.price.replace(/[^0-9]/g, '')) || 0,
-        active: true,
-      });
-      toast.success('ماژول ایجاد شد');
-      setDialogOpen(false);
-      setForm({ name: '', description: '', price: '' });
-      load();
-    } catch (e: any) { toast.error(e.message || 'خطا'); }
+      const existing = await fetchData<ModuleRecord>('modules', {});
+      const existingHrefs = new Set((existing || []).filter((m) => m.pageHref).map((m) => m.pageHref));
+      const toCreate = allPageModules.filter((p) => !existingHrefs.has(p.href));
+      for (const page of toCreate) {
+        await createData('modules', {
+          name: page.label,
+          description: `ماژول ${page.label}`,
+          price: 0,
+          active: true,
+          pageHref: page.href,
+          clubActive: false,
+        });
+      }
+      if (toCreate.length > 0) load();
+    } catch {
+      // silent — might fail if table doesn't exist yet
+    }
   };
 
-  const toggleActive = async (mod: any) => {
+  const openEdit = (mod: ModuleRecord) => {
+    setEditingModule(mod);
+    setEditForm({
+      name: mod.name,
+      description: mod.description || '',
+      price: String(mod.price),
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleEditSave = async () => {
+    if (!editingModule) return;
+    if (!editForm.name.trim()) {
+      toast.error('نام ماژول را وارد کنید');
+      return;
+    }
+    setSaving(true);
+    try {
+      await updateData('modules', { id: editingModule.id }, {
+        name: editForm.name,
+        description: editForm.description || null,
+        price: Number(editForm.price.replace(/[^0-9]/g, '')) || 0,
+      });
+      toast.success('ماژول ویرایش شد');
+      setEditDialogOpen(false);
+      setEditingModule(null);
+      load();
+    } catch (e: any) {
+      toast.error(e.message || 'خطا در ویرایش');
+    }
+    setSaving(false);
+  };
+
+  const toggleClubActive = async (mod: ModuleRecord) => {
+    setTogglingId(mod.id);
+    try {
+      await updateData('modules', { id: mod.id }, { clubActive: !mod.clubActive });
+      load();
+    } catch (e: any) {
+      toast.error(e.message || 'خطا');
+    }
+    setTogglingId(null);
+  };
+
+  const toggleActive = async (mod: ModuleRecord) => {
+    setTogglingId(mod.id);
     try {
       await updateData('modules', { id: mod.id }, { active: !mod.active });
       load();
-    } catch (e: any) { toast.error(e.message || 'خطا'); }
+    } catch (e: any) {
+      toast.error(e.message || 'خطا');
+    }
+    setTogglingId(null);
   };
 
   return (
     <div>
       <PageHeader
         title="ماژول‌ها"
-        description="مدیریت ماژول‌های قابل فروش پلتفرم"
-        action={
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4" /> ماژول جدید</Button></DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader><DialogTitle>ایجاد ماژول</DialogTitle></DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2"><Label>نام ماژول *</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-                <div className="space-y-2"><Label>توضیحات</Label><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
-                <div className="space-y-2"><Label>قیمت (تومان)</Label><Input dir="ltr" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} /></div>
-                <DialogFooter><Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>انصراف</Button><Button onClick={handleCreate}>ایجاد</Button></DialogFooter>
-              </div>
-            </DialogContent>
-          </Dialog>
-        }
+        description="مدیریت ماژول‌های قابل فروش پلتفرم — هر صفحه به‌صورت ماژول مستقل با قیمت اختصاصی"
       />
 
       {loading ? (
-        <div className="flex items-center justify-center h-64"><div className="animate-spin w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full" /></div>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
+        </div>
       ) : modules.length === 0 ? (
-        <Card><CardContent className="py-16 text-center text-slate-400">ماژولی ثبت نشده</CardContent></Card>
+        <Card>
+          <CardContent className="py-16 text-center text-slate-400">ماژولی ثبت نشده</CardContent>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {modules.map((m) => {
-            const displayName = translateModuleName(m.name);
-            const displayDesc = translateModuleDesc(m.name, m.description);
+            const pageModule = allPageModules.find((p) => p.href === m.pageHref);
+            const Icon = pageModule?.icon || Package;
             return (
               <Card key={m.id} className="hover:shadow-md transition-smooth">
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${m.active ? 'bg-sky-50 text-sky-600' : 'bg-slate-100 text-slate-400'}`}>
-                        <Package className="w-5 h-5" />
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${m.active ? 'bg-sky-50 text-sky-600' : 'bg-slate-100 text-slate-400'}`}>
+                        <Icon className="w-5 h-5" />
                       </div>
-                      <div>
-                        <div className="font-semibold text-slate-900">{displayName}</div>
-                        {displayDesc && <div className="text-xs text-slate-400 mt-0.5">{displayDesc}</div>}
+                      <div className="min-w-0">
+                        <div className="font-semibold text-slate-900 truncate">{m.name}</div>
+                        {m.description && <div className="text-xs text-slate-400 mt-0.5 truncate">{m.description}</div>}
+                        {m.pageHref && <div className="text-[10px] text-slate-300 mt-0.5 truncate" dir="ltr">{m.pageHref}</div>}
                       </div>
                     </div>
-                    <button onClick={() => toggleActive(m)}>
-                      {m.active ? <ToggleRight className="w-6 h-6 text-emerald-500" /> : <ToggleLeft className="w-6 h-6 text-slate-300" />}
+                    <button onClick={() => openEdit(m)} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:text-sky-600 hover:border-sky-300 transition-colors shrink-0">
+                      <Pencil className="h-3.5 w-3.5" />
                     </button>
                   </div>
+
                   <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                    <span className="text-sm font-bold text-slate-900">{formatToman(m.price)} ت</span>
+                    <span className="text-sm font-bold text-slate-900">{formatToman(Number(m.price))} ت</span>
                     <Badge variant={m.active ? 'default' : 'secondary'} className="text-xs">{m.active ? 'فعال' : 'غیرفعال'}</Badge>
+                  </div>
+
+                  {/* Club active toggle */}
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-medium text-slate-600">باشگاه مشتریان</span>
+                      <span className={`text-[10px] ${m.clubActive ? 'text-emerald-600' : 'text-slate-400'}`}>
+                        {m.clubActive ? 'فعال برای باشگاه' : 'غیرفعال برای باشگاه'}
+                      </span>
+                    </div>
+                    <Switch
+                      checked={m.clubActive}
+                      onCheckedChange={() => toggleClubActive(m)}
+                      disabled={togglingId === m.id}
+                    />
+                  </div>
+
+                  {/* General active toggle */}
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-xs font-medium text-slate-600">وضعیت کلی</span>
+                    <Switch
+                      checked={m.active}
+                      onCheckedChange={() => toggleActive(m)}
+                      disabled={togglingId === m.id}
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -149,6 +203,49 @@ export default function ModulesPage() {
           })}
         </div>
       )}
+
+      {/* Edit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>ویرایش ماژول</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>نام ماژول *</Label>
+              <Input
+                value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                placeholder="نام ماژول"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>توضیحات</Label>
+              <Textarea
+                value={editForm.description}
+                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                placeholder="توضیحات ماژول"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>قیمت (تومان)</Label>
+              <Input
+                dir="ltr"
+                value={editForm.price}
+                onChange={(e) => setEditForm({ ...editForm, price: e.target.value })}
+                placeholder="0"
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>انصراف</Button>
+              <Button onClick={handleEditSave} disabled={saving}>
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                ذخیره
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

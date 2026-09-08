@@ -180,3 +180,15 @@ export function filterByAccess(profile: Profile | null, items: NavItem[]): NavIt
   if (isSuperAdminRole(profile.role)) return items;
   return items.filter((item) => hasPageAccess(profile, item.href));
 }
+
+export const allPageModules: NavItem[] = [
+  ...coreItems,
+  ...cartableItems,
+  ...financeItems,
+  ...inventoryItems,
+  ...clubItems,
+  ...adminItems,
+  ...reportsItems,
+  ...salesItems,
+  ...serviceItems,
+].filter((item, index, self) => index === self.findIndex((t) => t.href === item.href));

@@ -38,10 +38,38 @@ export const INVOICE_STATUSES = [
 ];
 
 export const CUSTOMER_LEVELS = [
+  { key: 'basic', label: 'پایه', color: '#94a3b8' },
   { key: 'bronze', label: 'برنزی', color: '#b45309' },
   { key: 'silver', label: 'نقره‌ای', color: '#64748b' },
   { key: 'gold', label: 'طلایی', color: '#f59e0b' },
   { key: 'vip', label: 'ویژه', color: '#8b5cf6' },
+];
+
+export const SERVICE_TYPES = [
+  'طراحی سایت',
+  'طراحی لوگو',
+  'طراحی کاتالوگ/دیجیتال',
+  'سئو',
+  'سایت برنامه‌نویسی',
+  'ERP',
+  'طراحی بنر',
+  'کارت ویزیت',
+  'طراحی منو',
+];
+
+export const ACTIVITY_TYPES = [
+  'فناوری اطلاعات',
+  'خرده‌فروشی',
+  'تولیدی',
+  'خدمات',
+  'آموزش',
+  'بازرگانی',
+  'صادرات و واردات',
+  'ساخت‌وساز',
+  'مشاوره',
+  'سلامت و درمان',
+  'رستوران و کافه',
+  'سایر',
 ];
 
 export const TICKET_STATUSES = [
