@@ -345,13 +345,14 @@ export default function TasksPage() {
   );
 
   const renderBoard = (taskList: Task[]) => (
-    <div className="overflow-x-auto pb-4">
-      <div className="flex min-w-max gap-4">
+    <div className="w-full overflow-hidden pb-4">
+      {/* Four equal columns fill the entire available board width without horizontal scrolling. */}
+      <div className="grid w-full grid-cols-4 gap-4">
         {[...TASK_STATUSES].reverse().map((stage) => {
           const items = taskList.filter((t) => t.status === stage.key);
           const visibleItems = items.slice(0, visibleCount);
           return (
-            <div key={stage.key} className={`w-[240px] shrink-0 overflow-hidden rounded-[14px] border border-[#E6EBF2] bg-[#F8FAFD] transition-all ${dragOver === stage.key ? 'ring-2 ring-[#2563EB]/40' : ''}`}
+            <div key={stage.key} className={`min-w-0 w-full overflow-hidden rounded-[14px] border border-[#E6EBF2] bg-[#F8FAFD] transition-all ${dragOver === stage.key ? 'ring-2 ring-[#2563EB]/40' : ''}`}
               onDragOver={(e) => { e.preventDefault(); setDragOver(stage.key); }} onDragLeave={() => setDragOver(null)} onDrop={() => handleDrop(stage.key)}>
               <div className="flex h-[52px] items-center justify-between border-b-[3px] bg-white px-4" style={{ borderColor: stage.color }}>
                 <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: stage.color }} /><span className="text-sm font-bold text-[#1D2939]">{stage.label}</span></div>
@@ -537,24 +538,6 @@ export default function TasksPage() {
 
         {/* Main board area */}
         <div className="min-w-0 flex-1">
-          {/* Toolbar */}
-          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative">
-                <Search className="absolute right-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#98A2B3]" />
-                <Input placeholder="جستجوی وظیفه..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-[42px] w-full rounded-[10px] border-[#DCE3EE] bg-white pr-9 text-sm sm:w-[250px]" />
-              </div>
-              <Select value={filterPriority} onValueChange={setFilterPriority}>
-                <SelectTrigger className="h-[42px] w-36 rounded-[10px] border-[#DCE3EE] bg-white text-sm"><SelectValue placeholder="مرتب‌سازی" /></SelectTrigger>
-                <SelectContent><SelectItem value="all">همه اولویت‌ها</SelectItem>{TASK_PRIORITIES.map((p) => <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div className="flex h-[42px] items-center rounded-[10px] border border-[#DCE3EE] bg-white p-1 shadow-sm">
-              <button onClick={() => setViewMode('board')} className={`flex h-full items-center rounded-[8px] px-3 text-sm font-semibold transition-colors ${viewMode === 'board' ? 'bg-[#EFF4FF] text-[#2563EB]' : 'text-[#667085] hover:text-[#344054]'}`}><LayoutGrid className="ml-1 h-4 w-4" /> برد کانبان</button>
-              <button onClick={() => setViewMode('list')} className={`flex h-full items-center rounded-[8px] px-3 text-sm font-semibold transition-colors ${viewMode === 'list' ? 'bg-[#EFF4FF] text-[#2563EB]' : 'text-[#667085] hover:text-[#344054]'}`}><BarChart3 className="ml-1 h-4 w-4" /> لیست</button>
-            </div>
-          </div>
-
           {/* Content */}
           {loading ? (
             <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-[3px] border-[#2563EB] border-t-transparent" /></div>
@@ -562,10 +545,27 @@ export default function TasksPage() {
             <Card><EmptyState icon={<CheckSquare className="h-8 w-8" />} title="وظیفه‌ای یافت نشد" description="برای شروع، اولین وظیفه را ایجاد کنید" action={<Link href="/dashboard/tasks/new"><Button><Plus className="h-4 w-4" /> افزودن وظیفه</Button></Link>} /></Card>
           ) : (
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="mb-4">
-                <TabsTrigger value="tasks" className="flex items-center gap-1.5"><CheckSquare className="h-3.5 w-3.5" /> تسک‌ها <Badge variant="secondary" className="mr-1 text-xs">{myTasks.length.toLocaleString('fa-IR')}</Badge></TabsTrigger>
-                <TabsTrigger value="referrals" className="flex items-center gap-1.5"><Inbox className="h-3.5 w-3.5" /> ارجاعات <Badge variant="secondary" className="mr-1 text-xs">{referredTasks.length.toLocaleString('fa-IR')}</Badge></TabsTrigger>
-              </TabsList>
+              {/* Single horizontal toolbar: tabs, search, filter and view switch stay together */}
+              <div className="mb-4 flex w-full min-w-0 flex-nowrap items-center gap-2 overflow-x-auto pb-1">
+                {/* Tabs remain in the toolbar instead of creating a second row */}
+                <TabsList className="flex shrink-0 flex-nowrap">
+                  <TabsTrigger value="tasks" className="flex shrink-0 items-center gap-1.5 whitespace-nowrap"><CheckSquare className="h-3.5 w-3.5" /> تسک‌ها <Badge variant="secondary" className="mr-1 text-xs">{myTasks.length.toLocaleString('fa-IR')}</Badge></TabsTrigger>
+                  <TabsTrigger value="referrals" className="flex shrink-0 items-center gap-1.5 whitespace-nowrap"><Inbox className="h-3.5 w-3.5" /> ارجاعات <Badge variant="secondary" className="mr-1 text-xs">{referredTasks.length.toLocaleString('fa-IR')}</Badge></TabsTrigger>
+                </TabsList>
+                {/* Search expands into available space while the other controls keep usable widths */}
+                <div className="relative min-w-[140px] flex-1">
+                  <Search className="absolute right-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#98A2B3]" />
+                  <Input placeholder="جستجوی وظیفه..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-[42px] w-full min-w-0 rounded-[10px] border-[#DCE3EE] bg-white pr-9 text-sm" />
+                </div>
+                <Select value={filterPriority} onValueChange={setFilterPriority}>
+                  <SelectTrigger className="h-[42px] w-36 min-w-[120px] shrink-0 rounded-[10px] border-[#DCE3EE] bg-white text-sm"><SelectValue placeholder="مرتب‌سازی" /></SelectTrigger>
+                  <SelectContent><SelectItem value="all">همه اولویت‌ها</SelectItem>{TASK_PRIORITIES.map((p) => <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>)}</SelectContent>
+                </Select>
+                <div className="flex h-[42px] shrink-0 items-center rounded-[10px] border border-[#DCE3EE] bg-white p-1 shadow-sm">
+                  <button onClick={() => setViewMode('board')} className={`flex h-full items-center whitespace-nowrap rounded-[8px] px-3 text-sm font-semibold transition-colors ${viewMode === 'board' ? 'bg-[#EFF4FF] text-[#2563EB]' : 'text-[#667085] hover:text-[#344054]'}`}><LayoutGrid className="ml-1 h-4 w-4" /> برد کانبان</button>
+                  <button onClick={() => setViewMode('list')} className={`flex h-full items-center whitespace-nowrap rounded-[8px] px-3 text-sm font-semibold transition-colors ${viewMode === 'list' ? 'bg-[#EFF4FF] text-[#2563EB]' : 'text-[#667085] hover:text-[#344054]'}`}><BarChart3 className="ml-1 h-4 w-4" /> لیست</button>
+                </div>
+              </div>
               <TabsContent value="tasks">
                 {myTasks.length === 0 ? <Card><EmptyState icon={<CheckSquare className="h-8 w-8" />} title="تسکی وجود ندارد" description="تسک‌هایی که ایجاد کرده‌اید یا به شما اختصاص داده شده اینجا نمایش داده می‌شوند" /></Card>
                 : viewMode === 'board' ? renderBoard(myTasks) : renderList(myTasks)}
