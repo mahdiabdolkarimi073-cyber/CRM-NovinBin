@@ -171,6 +171,8 @@ const MODEL_MAP: Record<string, any> = {
   site_verifications: prisma.siteVerification,
   host_domains: prisma.hostDomain,
   sms_logs: prisma.smsLog,
+  irnic_identities: prisma.irnicIdentity,
+  employment_applications: prisma.employmentApplication,
 };
 
 function getAuth(req: NextRequest) {
@@ -267,12 +269,14 @@ const MODEL_PAGE: Record<string, string> = {
   site_verifications: '/dashboard/site-verifications',
   host_domains: '/dashboard/host-domains',
   sms_logs: '/dashboard/sms-logs',
+  irnic_identities: '/dashboard/irnic',
+  employment_applications: '/dashboard/employment-applications',
 };
 
 const SHARED_MODELS = new Set([
   'profiles', 'user_manager', 'customers', 'notifications',
   'personal_notes', 'staff_chat_messages', 'my_customers', 'ticket_messages',
-  'task_assignees', 'lead_referrals', 'site_verifications',
+  'task_assignees', 'lead_referrals', 'site_verifications', 'irnic_identities',
 ]);
 
 async function canAccess(auth: { userId: string }, model: string): Promise<boolean> {
@@ -325,6 +329,12 @@ export async function GET(req: NextRequest) {
     const fullProfile = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });
     if (fullProfile?.role !== 'super_admin' && fullProfile?.role !== 'owner') {
       where = { ...where, submittedBy: auth.userId };
+    }
+  }
+  if (model === 'irnic_identities') {
+    const fullProfile = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });
+    if (fullProfile?.role !== 'super_admin' && fullProfile?.role !== 'owner' && fullProfile?.role !== 'admin') {
+      where = { ...where, assignedTo: auth.userId };
     }
   }
   if (model === 'meetings' || model === 'meeting_assignments' || model === 'notifications') {

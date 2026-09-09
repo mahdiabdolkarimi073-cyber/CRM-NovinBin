@@ -4285,3 +4285,27 @@ model SmsLog {
 
   @@map("sms_logs")
 }
+
+model IrnicIdentity {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  customerName String
+  siteName     String
+  irnicId      String   @unique
+  password     String
+  assignedTo   String?  @db.Uuid
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now())
+
+  @@map("irnic_identities")
+}
+
+model EmploymentApplication {
+  id        String   @id @default(cuid())
+  fullName  String
+  formData  Json
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("employment_applications")
+}

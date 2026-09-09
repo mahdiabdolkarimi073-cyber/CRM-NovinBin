@@ -141,10 +141,10 @@ export function DashboardSidebar({ open, onToggle }: SidebarProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed bottom-0 z-40 flex flex-col bg-slate-900 transition-transform duration-300 ease-in-out',
+          'fixed z-40 flex flex-col bg-slate-900 transition-transform duration-300 ease-in-out scroll-smooth',
           open ? 'translate-x-0' : 'translate-x-full'
         )}
-        style={{ width: SIDEBAR_WIDTH, right: 0, top: '64px' }}
+        style={{ width: SIDEBAR_WIDTH, right: 0, top: '64px', height: 'calc(100vh - 64px)', overflowY: 'auto', scrollBehavior: 'smooth' }}
         dir="rtl"
       >
         {/* Header */}
@@ -155,7 +155,7 @@ export function DashboardSidebar({ open, onToggle }: SidebarProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="sb-nav-scroll flex-1 overflow-y-auto px-3 py-2">
+        <nav className="sb-nav-scroll flex-1 px-3 py-2">
           {/* Core links */}
           <div className="flex flex-col gap-0.5">
             {visibleCore.map((item) => renderNavLink(item))}
