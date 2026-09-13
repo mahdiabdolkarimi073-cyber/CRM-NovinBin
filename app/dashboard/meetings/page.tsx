@@ -29,7 +29,10 @@ import {
   Eye,
   CheckCircle2,
   FileText,
+  TimerReset,
+ Loader2,
 } from 'lucide-react';
+import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 
 interface MeetingWithAssignment extends Meeting {
   assigned_to_name?: string;
@@ -47,6 +50,12 @@ export default function MeetingsPage() {
   const [outcomeDialogOpen, setOutcomeDialogOpen] = useState(false);
   const [outcomeForm, setOutcomeForm] = useState({ outcome: '', minutes: '' });
   const [savingOutcome, setSavingOutcome] = useState(false);
+  const [extendMeeting, setExtendMeeting] = useState<MeetingWithAssignment | null>(null);
+  const [extendDialogOpen, setExtendDialogOpen] = useState(false);
+  const [extendDate, setExtendDate] = useState<Date | null>(null);
+  const [extendTime, setExtendTime] = useState('');
+  const [extending, setExtending] = useState(false);
+  const [extendError, setExtendError] = useState('');
 
   const isSuperAdmin = profile?.role === 'super_admin' || profile?.role === 'owner';
   const isAdmin = profile?.role === 'admin';
@@ -138,6 +147,55 @@ export default function MeetingsPage() {
     setSavingOutcome(false);
   };
 
+  const canExtendMeeting = (m: MeetingWithAssignment) => {
+    return isSuperAdmin || m.assigned_to_id === profile?.id;
+  };
+
+  const openExtend = (m: MeetingWithAssignment) => {
+    setExtendMeeting(m);
+    const currentEnd = m.endTime ? new Date(m.endTime) : new Date(m.date);
+    setExtendDate(currentEnd);
+    setExtendTime(currentEnd.toTimeString().slice(0, 5));
+    setExtendError('');
+    setExtendDialogOpen(true);
+  };
+
+  const handleExtend = async () => {
+    if (!extendMeeting || !extendDate) return;
+    setExtendError('');
+    const [hours, minutes] = extendTime.split(':').map(Number);
+    const newEnd = new Date(extendDate);
+    newEnd.setHours(hours || 23, minutes || 59, 0, 0);
+    const currentEnd = extendMeeting.endTime
+      ? new Date(extendMeeting.endTime)
+      : new Date(extendMeeting.date);
+    if (newEnd <= currentEnd) {
+      setExtendError('زمان تمدید باید بیشتر از زمان فعلی پایان جلسه باشد');
+      return;
+    }
+    setExtending(true);
+    try {
+      const res = await fetch(`/api/meetings/${extendMeeting.id}/extend`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ newEndTime: newEnd.toISOString() }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setExtendError(json.error || 'تمدید ناموفق بود');
+      } else {
+        toast.success('جلسه با موفقیت تمدید شد');
+        setExtendDialogOpen(false);
+        setExtendMeeting(null);
+        load();
+      }
+    } catch {
+      setExtendError('تمدید ناموفق بود');
+    }
+    setExtending(false);
+  };
+
   const handleDelete = async (m: MeetingWithAssignment) => {
     if (!confirm(`حذف جلسه «${m.contact_name || m.title}»؟`)) return;
     try {
@@ -193,7 +251,7 @@ export default function MeetingsPage() {
                 <section className="meetings-section">
                   <h2 className="meetings-section-title"><CalendarDays /> جلسات پیشرو ({upcoming.length.toLocaleString('fa-IR')})</h2>
                   <div className="meetings-cards">
-                    {upcoming.map((meeting) => <MeetingCard key={meeting.id} meeting={meeting} upcoming isSuperAdmin={isSuperAdmin} onView={() => openView(meeting)} onDelete={() => handleDelete(meeting)} onOutcome={() => openOutcome(meeting)} />)}
+                    {upcoming.map((meeting) => <MeetingCard key={meeting.id} meeting={meeting} upcoming isSuperAdmin={isSuperAdmin} canExtend={canExtendMeeting(meeting)} onView={() => openView(meeting)} onDelete={() => handleDelete(meeting)} onOutcome={() => openOutcome(meeting)} onExtend={() => openExtend(meeting)} />)}
                   </div>
                 </section>
               )}
@@ -201,13 +259,64 @@ export default function MeetingsPage() {
                 <section className="meetings-section meetings-past-section">
                   <h2 className="meetings-section-title meetings-past-title"><Clock /> جلسات گذشته ({past.length.toLocaleString('fa-IR')})</h2>
                   <div className="meetings-cards">
-                    {past.slice(0, 9).map((meeting) => <MeetingCard key={meeting.id} meeting={meeting} isSuperAdmin={isSuperAdmin} onView={() => openView(meeting)} onDelete={() => handleDelete(meeting)} onOutcome={() => openOutcome(meeting)} />)}
+                    {past.slice(0, 9).map((meeting) => <MeetingCard key={meeting.id} meeting={meeting} isSuperAdmin={isSuperAdmin} canExtend={canExtendMeeting(meeting)} onView={() => openView(meeting)} onDelete={() => handleDelete(meeting)} onOutcome={() => openOutcome(meeting)} onExtend={() => openExtend(meeting)} />)}
                   </div>
                 </section>
               )}
             </>
           )}
       </div>
+
+      {/* Extend Dialog */}
+      <Dialog open={extendDialogOpen} onOpenChange={setExtendDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>تمدید جلسه</DialogTitle></DialogHeader>
+          {extendMeeting && (
+            <div className="space-y-4">
+              <div className="text-sm text-slate-500">
+                جلسه: <span className="font-bold text-slate-900">{extendMeeting.contact_name || extendMeeting.title}</span>
+              </div>
+              <div className="rounded-lg bg-slate-50 p-3 text-sm">
+                <div className="text-slate-400 mb-1">زمان فعلی پایان جلسه:</div>
+                <div className="font-medium">
+                  {formatJalaliDateTime(
+                    extendMeeting.endTime || extendMeeting.date
+                  )}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>تاریخ پایان جدید</Label>
+                <JalaliDatePicker
+                  value={extendDate}
+                  onChange={(d) => setExtendDate(d || null)}
+                  placeholder="انتخاب تاریخ"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>ساعت پایان جدید</Label>
+                <input
+                  type="time"
+                  value={extendTime}
+                  onChange={(e) => setExtendTime(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                />
+              </div>
+              {extendError && (
+                <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
+                  {extendError}
+                </div>
+              )}
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setExtendDialogOpen(false)}>انصراف</Button>
+                <Button onClick={handleExtend} disabled={extending || !extendDate || !extendTime}>
+                  {extending ? <Loader2 className="h-4 w-4 animate-spin" /> : <TimerReset className="h-4 w-4" />}
+                  تمدید
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* View Dialog */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
@@ -226,6 +335,15 @@ export default function MeetingsPage() {
               </div>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div><span className="text-slate-400">زمان:</span> <span className="font-medium">{formatJalaliDateTime(viewMeeting.date)}</span></div>
+                {viewMeeting.endTime && (
+                  <div>
+                    <span className="text-slate-400">پایان:</span>{' '}
+                    <span className="font-medium">{formatJalaliDateTime(viewMeeting.endTime)}</span>
+                    {viewMeeting.isExtended && (
+                      <span className="mr-1 text-xs text-amber-600">(تمدید شده)</span>
+                    )}
+                  </div>
+                )}
                 {viewMeeting.assigned_to_name && <div><span className="text-slate-400">تخصیص به:</span> <span className="font-medium">{viewMeeting.assigned_to_name}</span></div>}
                 {viewMeeting.location && <div><span className="text-slate-400">مکان:</span> <span className="font-medium">{viewMeeting.location}</span></div>}
               {viewMeeting.staffPhone && <div><span className="text-slate-400">شماره پرسنل:</span> <span className="font-medium" dir="ltr">{viewMeeting.staffPhone}</span></div>}
@@ -236,6 +354,20 @@ export default function MeetingsPage() {
                 <a href={viewMeeting.onlineLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sky-600 text-sm hover:underline">
                   <Video className="w-4 h-4" /> پیوستن به جلسه
                 </a>
+              )}
+              {canExtendMeeting(viewMeeting) && new Date(viewMeeting.date) >= new Date() && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setViewDialogOpen(false);
+                    openExtend(viewMeeting);
+                  }}
+                >
+                  <TimerReset className="h-4 w-4" />
+                  تمدید جلسه
+                </Button>
               )}
               {viewMeeting.agenda && (
                 <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
@@ -303,16 +435,20 @@ function MeetingCard({
   meeting,
   upcoming,
   isSuperAdmin,
+  canExtend,
   onView,
   onDelete,
   onOutcome,
+  onExtend,
 }: {
   meeting: MeetingWithAssignment;
   upcoming?: boolean;
   isSuperAdmin: boolean;
+  canExtend: boolean;
   onView?: () => void;
   onDelete?: () => void;
   onOutcome?: () => void;
+  onExtend?: () => void;
 }) {
   const hasOutcome = !!meeting.outcome;
 
@@ -332,6 +468,12 @@ function MeetingCard({
           {meeting.topic && <p>{meeting.topic}</p>}
         </div>
         {upcoming && <span className="meeting-status">پیشرو</span>}
+        {meeting.isExtended && (
+          <span className="meeting-status" style={{ background: '#fef3c7', color: '#b45309' }}>
+            <TimerReset className="h-3 w-3 inline mr-1" />
+            تمدید شده
+          </span>
+        )}
       </div>
 
       {/* Outcome badge for past meetings */}
@@ -389,6 +531,12 @@ function MeetingCard({
           <button className={`meeting-outcome-btn ${hasOutcome ? 'meeting-outcome-btn-edit' : ''}`} onClick={onOutcome}>
             <CheckCircle2 className="h-3.5 w-3.5" />
             {hasOutcome ? 'ویرایش نتیجه' : 'ثبت نتیجه'}
+          </button>
+        )}
+        {canExtend && upcoming && (
+          <button className="meeting-view-btn" onClick={onExtend}>
+            <TimerReset className="h-3.5 w-3.5" />
+            تمدید
           </button>
         )}
         {isSuperAdmin && (

@@ -9,11 +9,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import {
   Loader2, Palette, Plus, FileText, Image as ImageIcon, Upload,
-  Trash2, Pencil, X, Download, File,
+  Trash2, Pencil, X, Download, File as FileIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { relativeTime } from '@/lib/format';
-import type { GraphicWork, GraphicWorkFile, GraphicWorkImage } from '@/lib/types';
+import type { GraphicWork } from '@/lib/types';
 
 interface UploadItem {
   url: string;
@@ -411,7 +411,7 @@ export default function GraphicWorksPage() {
                     <div className="flex flex-wrap gap-2">
                       {work.files.map((file) => (
                         <div key={file.id} className="group flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 hover:bg-slate-50 transition-colors">
-                          <File className="h-4 w-4 text-slate-400" />
+                          <FileIcon className="h-4 w-4 text-slate-400" />
                           <div className="min-w-0">
                             <div className="text-xs font-medium text-slate-700 truncate max-w-[160px]">
                               {file.fileName || 'فایل'}
@@ -510,7 +510,7 @@ export default function GraphicWorksPage() {
               <div className="space-y-2 mb-2">
                 {pendingFiles.map((file, idx) => (
                   <div key={idx} className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2">
-                    <File className="h-4 w-4 text-slate-400" />
+                    <FileIcon className="h-4 w-4 text-slate-400" />
                     <span className="text-xs text-slate-700 truncate flex-1">{file.name}</span>
                     <span className="text-[10px] text-slate-400">{(file.size / 1024).toFixed(0)} KB</span>
                     <button

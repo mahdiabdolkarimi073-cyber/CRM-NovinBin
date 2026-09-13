@@ -236,6 +236,8 @@ export interface Meeting {
   customerPhone: string | null;
   smsSent: boolean;
   smsSentAt: string | null;
+  isExtended: boolean;
+  extendedUntil: string | null;
   createdBy: string;
   createdAt: string;
   meeting_participants?: { profileId: string }[];
