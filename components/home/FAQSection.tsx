@@ -11,18 +11,18 @@ const questions = [
 
 export default function FAQSection() {
   return (
-    <section id="faq" className="bg-[#f8faff] px-5 py-24 lg:px-8">
-      <div className="mx-auto max-w-[760px]">
+    <section id="faq" className="bg-[#f8faff] px-4 py-16 lg:px-6">
+      <div className="mx-auto max-w-[800px]">
         <div className="text-center">
           <span className="text-[14px] font-bold text-[#3d5be1]">سوالات متداول</span>
-          <h2 className="mt-3 text-[30px] font-extrabold text-[#10286d]">سوالات متداول</h2>
-          <p className="mt-4 text-[15px] font-medium text-slate-500">پاسخ سوالاتی که بیشتر از ما پرسیده می‌شود</p>
+          <h2 className="mt-3 text-[26px] font-extrabold text-[#10286d] sm:text-[30px]">سوالات متداول</h2>
+          <p className="mt-3 text-[15px] font-medium text-slate-500">پاسخ سوالاتی که بیشتر از ما پرسیده می‌شود</p>
         </div>
-        <Accordion type="single" collapsible defaultValue="item-0" className="mt-12 overflow-hidden rounded-2xl border border-[#e5ebf7] bg-white px-6 shadow-[0_8px_25px_rgba(30,62,150,.04)]">
+        <Accordion type="single" collapsible defaultValue="item-0" className="mt-10 overflow-hidden rounded-2xl border border-[#e5ebf7] bg-white px-5 shadow-[0_8px_25px_rgba(30,62,150,.04)]">
           {questions.map(([question, answer], index) => (
             <AccordionItem key={question} value={`item-${index}`}>
               <AccordionTrigger className="text-right text-[16px] font-bold text-[#10286d] hover:no-underline">{question}</AccordionTrigger>
-              <AccordionContent className="text-right text-[15px] font-medium leading-8 text-slate-500">{answer}</AccordionContent>
+              <AccordionContent className="text-right text-[15px] font-medium leading-7 text-slate-500">{answer}</AccordionContent>
             </AccordionItem>
           ))}
         </Accordion>
