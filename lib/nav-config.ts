@@ -7,7 +7,7 @@ import {
   GraduationCap, BadgePercent, Ticket, StickyNote, MessageCircle,
   UserCheck, ClipboardList, Network, Contact, Megaphone, Wallet,
   FileCheck, Banknote, CreditCard, ArrowRightLeft, Sparkles,
-  ClipboardCheck, FileSearch, ArrowUpFromLine, Undo2, Percent, Server, Fingerprint,
+  ClipboardCheck, FileSearch, ArrowUpFromLine, Undo2, Percent, Server, Fingerprint, BriefcaseBusiness,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { Profile } from '@/lib/types';
@@ -121,6 +121,7 @@ export const adminItems: NavItem[] = [
   { href: '/dashboard/users', label: 'کاربران', icon: UserCog },
   { href: '/dashboard/registration-approval', label: 'تأیید ثبت‌نام', icon: UserPlus },
   { href: '/dashboard/customer-assignment', label: 'تخصیص مشتری', icon: HandHeart },
+  { href: '/dashboard/employment-applications', label: 'درخواست‌های استخدام', icon: BriefcaseBusiness },
 ];
 
 export const reportsItems: NavItem[] = [

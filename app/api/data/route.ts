@@ -277,6 +277,7 @@ const SHARED_MODELS = new Set([
   'profiles', 'user_manager', 'customers', 'notifications',
   'personal_notes', 'staff_chat_messages', 'my_customers', 'ticket_messages',
   'task_assignees', 'lead_referrals', 'site_verifications', 'irnic_identities',
+  'employment_applications',
 ]);
 
 async function canAccess(auth: { userId: string }, model: string): Promise<boolean> {

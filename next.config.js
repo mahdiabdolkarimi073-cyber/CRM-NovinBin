@@ -9,6 +9,7 @@ const nextConfig = {
   images: { unoptimized: true },
   webpack: (config, { isServer }) => {
     config.parallelism = 1;
+    config.cache = false;
     return config;
   },
 };
