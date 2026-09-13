@@ -173,6 +173,10 @@ const MODEL_MAP: Record<string, any> = {
   sms_logs: prisma.smsLog,
   irnic_identities: prisma.irnicIdentity,
   employment_applications: prisma.employmentApplication,
+  graphic_works: prisma.graphicWork,
+  graphic_work_files: prisma.graphicWorkFile,
+  graphic_work_images: prisma.graphicWorkImage,
+  graphic_work_access: prisma.graphicWorkAccess,
 };
 
 function getAuth(req: NextRequest) {
@@ -271,13 +275,15 @@ const MODEL_PAGE: Record<string, string> = {
   sms_logs: '/dashboard/sms-logs',
   irnic_identities: '/dashboard/irnic',
   employment_applications: '/dashboard/employment-applications',
+  graphic_works: '/dashboard/graphic-works',
+  graphic_work_access: '/super-admin/graphic-works-access',
 };
 
 const SHARED_MODELS = new Set([
   'profiles', 'user_manager', 'customers', 'notifications',
   'personal_notes', 'staff_chat_messages', 'my_customers', 'ticket_messages',
   'task_assignees', 'lead_referrals', 'site_verifications', 'irnic_identities',
-  'employment_applications',
+  'employment_applications', 'graphic_work_access',
 ]);
 
 async function canAccess(auth: { userId: string }, model: string): Promise<boolean> {

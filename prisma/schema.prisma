@@ -155,6 +155,8 @@ model Organization {
   siteVerifications               SiteVerification[]
   hostDomains                     HostDomain[]
   smsLogs                         SmsLog[]
+  graphicWorks                    GraphicWork[]
+  graphicWorkAccess               GraphicWorkAccess[]
 
   @@map("organizations")
 }
@@ -230,6 +232,8 @@ model Profile {
   org          Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
   user         User?    @relation(fields: [id], references: [id], onDelete: Cascade)
   pettyCashCustodians PettyCashCustodian[]
+  graphicWorks        GraphicWork[]
+  graphicWorkAccess   GraphicWorkAccess?
 
   @@map("profiles")
 }
@@ -4353,4 +4357,58 @@ model EmploymentApplication {
   updatedAt DateTime @updatedAt
 
   @@map("employment_applications")
+}
+
+// ============ GRAPHIC WORKS (کارهای گرافیک) ============
+
+model GraphicWork {
+  id          String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId       String?             @db.Uuid
+  userId      String              @db.Uuid
+  textContent String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  org         Organization?       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user        Profile             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  files       GraphicWorkFile[]
+  images      GraphicWorkImage[]
+
+  @@map("graphic_works")
+}
+
+model GraphicWorkFile {
+  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workId      String      @db.Uuid
+  fileUrl     String
+  fileName    String?
+  fileType    String?
+  fileSize    Int         @default(0)
+  createdAt   DateTime    @default(now())
+  work        GraphicWork @relation(fields: [workId], references: [id], onDelete: Cascade)
+
+  @@map("graphic_work_files")
+}
+
+model GraphicWorkImage {
+  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workId      String      @db.Uuid
+  imageUrl    String
+  createdAt   DateTime    @default(now())
+  work        GraphicWork @relation(fields: [workId], references: [id], onDelete: Cascade)
+
+  @@map("graphic_work_images")
+}
+
+model GraphicWorkAccess {
+  id          String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId       String?             @db.Uuid
+  profileId   String              @db.Uuid
+  granted     Boolean             @default(true)
+  grantedBy   String              @db.Uuid
+  createdAt   DateTime            @default(now())
+  org         Organization?       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  profile     Profile             @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId])
+  @@map("graphic_work_access")
 }

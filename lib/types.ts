@@ -2654,3 +2654,42 @@ export interface ProductBundleItem {
   description: string | null;
   createdAt: string;
 }
+
+// ============ GRAPHIC WORKS (کارهای گرافیک) ============
+
+export interface GraphicWork {
+  id: string;
+  orgId: string | null;
+  userId: string;
+  textContent: string | null;
+  createdAt: string;
+  updatedAt: string;
+  files?: GraphicWorkFile[];
+  images?: GraphicWorkImage[];
+}
+
+export interface GraphicWorkFile {
+  id: string;
+  workId: string;
+  fileUrl: string;
+  fileName: string | null;
+  fileType: string | null;
+  fileSize: number;
+  createdAt: string;
+}
+
+export interface GraphicWorkImage {
+  id: string;
+  workId: string;
+  imageUrl: string;
+  createdAt: string;
+}
+
+export interface GraphicWorkAccess {
+  id: string;
+  orgId: string | null;
+  profileId: string;
+  granted: boolean;
+  grantedBy: string;
+  createdAt: string;
+}

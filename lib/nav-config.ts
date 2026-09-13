@@ -8,6 +8,7 @@ import {
   UserCheck, ClipboardList, Network, Contact, Megaphone, Wallet,
   FileCheck, Banknote, CreditCard, ArrowRightLeft, Sparkles,
   ClipboardCheck, FileSearch, ArrowUpFromLine, Undo2, Percent, Server, Fingerprint, BriefcaseBusiness,
+  Palette,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { Profile } from '@/lib/types';
@@ -54,6 +55,7 @@ export const cartableItems: NavItem[] = [
   { href: '/dashboard/doc-issuance-workboard', label: 'کارتابل صدور سند', icon: FileCheck },
   { href: '/dashboard/meetings', label: 'جلسات', icon: Calendar },
   { href: '/dashboard/calls', label: 'مکالمات', icon: Phone },
+  { href: '/dashboard/graphic-works', label: 'کارهای گرافیک', icon: Palette },
 ];
 
 export const financeItems: NavItem[] = [
