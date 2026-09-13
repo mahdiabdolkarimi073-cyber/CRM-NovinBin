@@ -36,9 +36,12 @@ export default function Footer() {
         <div>
           <h3 className="text-[15px] font-bold">با ما در ارتباط باشید</h3>
           <ul className="mt-5 space-y-3.5 text-[14px] font-medium text-slate-300">
-            <li className="flex items-center gap-2"><Phone className="h-4 w-4 text-[#ff9a18]" /><span dir="ltr">021 1234 5678</span></li>
+            <li className="flex items-center gap-2"><Phone className="h-4 w-4 text-[#ff9a18]" /><span dir="ltr">09190102069</span></li>
+            <li className="flex items-center gap-2"><Phone className="h-4 w-4 text-[#ff9a18]" /><span dir="ltr">09120733094</span></li>
             <li className="flex items-center gap-2"><Mail className="h-4 w-4 text-[#ff9a18]" /><span dir="ltr">info@novinbin.ir</span></li>
             <li className="flex items-center gap-2"><MapPin className="h-4 w-4 text-[#ff9a18]" />تهران، خیابان ولیعصر</li>
+            <li className="flex items-center gap-2"><MapPin className="h-4 w-4 text-[#ff9a18]" />کرمان، خیابان خواجو غربی</li>
+            <li className="flex items-center gap-2"><MapPin className="h-4 w-4 text-[#ff9a18]" /> اصفهان،خیابان شیخ طوسی شرقی، خیابان گرکان</li>
           </ul>
           <div className="mt-5 flex gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-slate-300 hover:bg-[#2851d9]"><Instagram className="h-5 w-5" /></span>
