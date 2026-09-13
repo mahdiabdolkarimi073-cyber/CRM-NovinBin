@@ -22,6 +22,14 @@ export const TASK_PRIORITIES = [
   { key: 'critical', label: 'بحرانی', color: '#ef4444' },
 ];
 
+export const MEETING_STATUSES = [
+  { key: 'scheduled', label: 'برنامه‌ریزی شده', color: '#3b82f6' },
+  { key: 'in_progress', label: 'در حال برگزاری', color: '#f59e0b' },
+  { key: 'completed', label: 'تکمیل شده', color: '#10b981' },
+  { key: 'cancelled', label: 'لغو شده', color: '#ef4444' },
+  { key: 'postponed', label: 'به تعویق افتاده', color: '#8b5cf6' },
+];
+
 export const ORDER_STATUSES = [
   { key: 'registered', label: 'ثبت شده', color: '#3b82f6' },
   { key: 'paid', label: 'پرداخت شده', color: '#06b6d4' },

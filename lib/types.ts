@@ -220,6 +220,16 @@ export interface TaskComment {
   createdAt: string;
 }
 
+export interface MeetingImage {
+  id: string;
+  meetingId: string;
+  imageUrl: string;
+  fileName: string | null;
+  sortOrder: number;
+  uploadedBy: string | null;
+  createdAt: string;
+}
+
 export interface Meeting {
   id: string;
   title: string;
@@ -238,9 +248,17 @@ export interface Meeting {
   smsSentAt: string | null;
   isExtended: boolean;
   extendedUntil: string | null;
+  isArchived: boolean;
+  status: string;
+  mainResponsibleId: string | null;
+  conclusionDescription: string | null;
+  conclusionDate: string | null;
+  conclusionImages: any;
+  conclusionAttachments: any;
   createdBy: string;
   createdAt: string;
   meeting_participants?: { profileId: string }[];
+  images?: MeetingImage[];
 }
 
 export interface Ticket {

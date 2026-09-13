@@ -516,6 +516,8 @@ model Meeting {
   isExtended    Boolean   @default(false)
   extendedUntil DateTime?
   isArchived    Boolean   @default(false)
+  status        String    @default("scheduled")
+  mainResponsibleId String? @db.Uuid
   conclusionDescription String?
   conclusionDate        DateTime?
   conclusionImages      Json     @default("[]")
@@ -525,8 +527,22 @@ model Meeting {
   org           Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
   participants  MeetingParticipant[]
   assignments   MeetingAssignment[]
+  images        MeetingImage[]
 
   @@map("meetings")
+}
+
+model MeetingImage {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  meetingId  String   @db.Uuid
+  imageUrl   String
+  fileName   String?
+  sortOrder  Int      @default(0)
+  uploadedBy String?  @db.Uuid
+  createdAt  DateTime @default(now())
+  meeting    Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@map("meeting_images")
 }
 
 model MeetingParticipant {
