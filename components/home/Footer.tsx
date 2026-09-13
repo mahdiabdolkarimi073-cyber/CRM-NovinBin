@@ -4,8 +4,17 @@ import { Instagram, Linkedin, Mail, MapPin, Phone } from 'lucide-react';
 
 export default function Footer() {
   return (
-    <footer className="bg-[#0b1b4b] px-4 py-12 text-white lg:px-6">
-      <div className="mx-auto grid max-w-[1100px] gap-8 sm:grid-cols-2 lg:grid-cols-4">
+    <footer className="relative overflow-hidden px-4 py-12 text-white lg:px-6">
+      <Image
+        src="/images/ChatGPT_Image_Sep_13,_2026,_12_18_29_PM.png"
+        alt=""
+        fill
+        aria-hidden="true"
+        className="object-cover object-center"
+        sizes="100vw"
+      />
+      <div className="absolute inset-0 bg-black/60" />
+      <div className="relative z-10 mx-auto grid max-w-[1100px] gap-8 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <Link href="#top" className="flex items-center gap-3">
             <Image src="/images/1.png" alt="نوین بین" width={48} height={48} className="h-12 w-12 object-contain" />
@@ -49,7 +58,7 @@ export default function Footer() {
           </div>
         </div>
       </div>
-      <div className="mx-auto mt-10 max-w-[1100px] border-t border-white/10 pt-5 text-center text-[12px] font-medium text-slate-400">© ۱۴۰۵ نوین بین — تمامی حقوق این وب‌سایت محفوظ است.</div>
+      <div className="relative z-10 mx-auto mt-10 max-w-[1100px] border-t border-white/10 pt-5 text-center text-[12px] font-medium text-slate-300">© ۱۴۰۵ نوین بین — تمامی حقوق این وب‌سایت محفوظ است.</div>
     </footer>
   );
 }
