@@ -14,9 +14,17 @@ import {
 import {
   ArrowRight, Calendar, Clock, MapPin, Video, UserRound, Phone,
   FileText, CheckCircle2, Loader2, Upload, Trash2,
-  GripVertical, Image as ImageIcon, Users,
+  GripVertical, Image as ImageIcon, Users, Paperclip, X,
+  FileText as FileIcon,
 } from 'lucide-react';
-import { formatJalaliDateTime } from '@/lib/format';
+import { formatJalaliDateTime, formatFileSize } from '@/lib/format';
+
+interface ResultFile {
+  url: string;
+  name: string;
+  type: string;
+  size: number;
+}
 import { MEETING_STATUSES, fullName } from '@/lib/constants';
 import { toast } from 'sonner';
 import type { Meeting, MeetingImage, Profile } from '@/lib/types';
@@ -37,7 +45,10 @@ export default function MeetingDetailPage() {
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [outcomeForm, setOutcomeForm] = useState({ outcome: '', minutes: '' });
   const [savingOutcome, setSavingOutcome] = useState(false);
+  const [outcomeFiles, setOutcomeFiles] = useState<ResultFile[]>([]);
+  const [uploadingOutcome, setUploadingOutcome] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const outcomeFileInputRef = useRef<HTMLInputElement>(null);
 
   const isSuperAdmin = profile?.role === 'super_admin' || profile?.role === 'owner';
 
@@ -56,6 +67,11 @@ export default function MeetingDetailPage() {
         const m = mtgs[0];
         setMeeting(m);
         setOutcomeForm({ outcome: m.outcome || '', minutes: m.minutes || '' });
+        try {
+          const imgs: ResultFile[] = Array.isArray(m.conclusionImages) ? m.conclusionImages : [];
+          const docs: ResultFile[] = Array.isArray(m.conclusionAttachments) ? m.conclusionAttachments : [];
+          setOutcomeFiles([...imgs, ...docs]);
+        } catch { setOutcomeFiles([]); }
 
         if (m.meeting_participants && m.meeting_participants.length > 0) {
           const participantIds = m.meeting_participants.map((p) => p.profileId);
@@ -147,13 +163,38 @@ export default function MeetingDetailPage() {
     }
   };
 
+  const handleOutcomeFileUpload = async (files: FileList) => {
+    setUploadingOutcome(true);
+    try {
+      const uploadPromises = Array.from(files).map(async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await fetch('/api/upload/meeting-result-file', { method: 'POST', body: formData, credentials: 'include' });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'آپلود ناموفق');
+        return { url: json.url, name: json.name, type: json.type, size: json.size } as ResultFile;
+      });
+      const uploaded = await Promise.all(uploadPromises);
+      setOutcomeFiles((prev) => [...prev, ...uploaded]);
+      toast.success('فایل‌ها آپلود شد');
+    } catch (e: any) {
+      toast.error('آپلود ناموفق: ' + e.message);
+    }
+    setUploadingOutcome(false);
+    if (outcomeFileInputRef.current) outcomeFileInputRef.current.value = '';
+  };
+
   const handleOutcomeSave = async () => {
     if (!meeting) return;
     setSavingOutcome(true);
     try {
+      const imageFiles = outcomeFiles.filter((f) => f.type.startsWith('image/'));
+      const docFiles = outcomeFiles.filter((f) => !f.type.startsWith('image/'));
       await updateData('meetings', { id: meeting.id }, {
         outcome: outcomeForm.outcome || null,
         minutes: outcomeForm.minutes || null,
+        conclusionImages: imageFiles,
+        conclusionAttachments: docFiles,
       });
       toast.success('نتیجه جلسه ثبت شد');
       load();
@@ -361,7 +402,52 @@ export default function MeetingDetailPage() {
                   className="min-h-[100px]"
                 />
               </div>
-              <Button onClick={handleOutcomeSave} disabled={savingOutcome}>
+              <div>
+                <Label className="mb-1.5 block text-sm font-medium text-slate-700">فایل‌ها و تصاویر (اختیاری)</Label>
+                <div className="rounded-lg border-2 border-dashed border-slate-200 p-4">
+                  <input
+                    ref={outcomeFileInputRef}
+                    type="file"
+                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
+                    multiple
+                    className="hidden"
+                    id="detail-outcome-file-input"
+                    onChange={(e) => e.target.files && handleOutcomeFileUpload(e.target.files)}
+                  />
+                  <label htmlFor="detail-outcome-file-input" className="flex cursor-pointer flex-col items-center justify-center gap-1">
+                    {uploadingOutcome ? (
+                      <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+                    ) : (
+                      <Upload className="h-6 w-6 text-slate-300" />
+                    )}
+                    <span className="text-sm text-slate-400">برای آپلود فایل یا تصویر کلیک کنید</span>
+                    <span className="text-xs text-slate-300">JPG, PNG, PDF, DOC و ...</span>
+                  </label>
+                </div>
+                {outcomeFiles.length > 0 && (
+                  <div className="mt-2 space-y-2">
+                    {outcomeFiles.map((f, i) => (
+                      <div key={i} className="flex items-center gap-2 rounded-lg border border-slate-200 p-2">
+                        {f.type.startsWith('image/') ? (
+                          <img src={f.url} alt={f.name} className="h-10 w-10 rounded object-cover" />
+                        ) : (
+                          <FileIcon className="h-5 w-5 text-slate-400" />
+                        )}
+                        <span className="flex-1 truncate text-sm text-slate-700">{f.name}</span>
+                        <span className="text-xs text-slate-400">{formatFileSize(f.size)}</span>
+                        <button
+                          type="button"
+                          className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-500"
+                          onClick={() => setOutcomeFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <Button onClick={handleOutcomeSave} disabled={savingOutcome || uploadingOutcome}>
                 {savingOutcome ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                 ذخیره نتیجه
               </Button>

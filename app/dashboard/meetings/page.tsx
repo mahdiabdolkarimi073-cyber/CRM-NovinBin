@@ -20,10 +20,18 @@ import {
   Eye, CheckCircle2, FileText, TimerReset, Loader2, Search, LayoutGrid,
   List, Filter, Archive, Trash2,
 } from 'lucide-react';
-import { formatJalaliDateTime, formatJalali } from '@/lib/format';
+import { formatJalaliDateTime, formatJalali, toLocalDateString, formatFileSize } from '@/lib/format';
 import { MEETING_STATUSES, fullName } from '@/lib/constants';
 import { toast } from 'sonner';
 import type { Meeting, MeetingImage, Profile } from '@/lib/types';
+import { Upload, Paperclip, X, FileText as FileIcon, Image as ImageIcon } from 'lucide-react';
+
+interface ResultFile {
+  url: string;
+  name: string;
+  type: string;
+  size: number;
+}
 
 interface MeetingWithAssignment extends Meeting {
   assigned_to_name?: string;
@@ -54,7 +62,13 @@ export default function MeetingsPage() {
   const [extendTime, setExtendTime] = useState('');
   const [extending, setExtending] = useState(false);
   const [extendError, setExtendError] = useState('');
+  const [extendForm, setExtendForm] = useState({
+    title: '', topic: '', location: '', onlineLink: '', agenda: '', staffPhone: '', customerPhone: '',
+  });
   const [detailImages, setDetailImages] = useState<MeetingImage[]>([]);
+  const [outcomeFiles, setOutcomeFiles] = useState<ResultFile[]>([]);
+  const [uploadingOutcome, setUploadingOutcome] = useState(false);
+  const [detailResultFiles, setDetailResultFiles] = useState<ResultFile[]>([]);
 
   const isSuperAdmin = profile?.role === 'super_admin' || profile?.role === 'owner';
   const isAdmin = profile?.role === 'admin';
@@ -144,22 +158,57 @@ export default function MeetingsPage() {
       });
       setDetailImages(imgs || []);
     } catch { setDetailImages([]); }
+    try {
+      const imgs: ResultFile[] = Array.isArray(m.conclusionImages) ? m.conclusionImages : [];
+      const docs: ResultFile[] = Array.isArray(m.conclusionAttachments) ? m.conclusionAttachments : [];
+      setDetailResultFiles([...imgs, ...docs]);
+    } catch { setDetailResultFiles([]); }
   };
 
   const openOutcome = (m: MeetingWithAssignment) => {
     setOutcomeMeeting(m);
     setOutcomeForm({ outcome: m.outcome || '', minutes: m.minutes || '' });
+    setOutcomeFiles([]);
     setOutcomeDialogOpen(true);
+    try {
+      const existing: ResultFile[] = Array.isArray(m.conclusionAttachments) ? m.conclusionAttachments : [];
+      const imgs: ResultFile[] = Array.isArray(m.conclusionImages) ? m.conclusionImages : [];
+      setOutcomeFiles([...imgs, ...existing]);
+    } catch { setOutcomeFiles([]); }
+  };
+
+  const handleOutcomeFileUpload = async (files: FileList) => {
+    setUploadingOutcome(true);
+    try {
+      const uploadPromises = Array.from(files).map(async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await fetch('/api/upload/meeting-result-file', { method: 'POST', body: formData, credentials: 'include' });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'آپلود ناموفق');
+        return { url: json.url, name: json.name, type: json.type, size: json.size } as ResultFile;
+      });
+      const uploaded = await Promise.all(uploadPromises);
+      setOutcomeFiles((prev) => [...prev, ...uploaded]);
+      toast.success('فایل‌ها آپلود شد');
+    } catch (e: any) {
+      toast.error('آپلود ناموفق: ' + e.message);
+    }
+    setUploadingOutcome(false);
   };
 
   const handleOutcomeSave = async () => {
     if (!outcomeMeeting) return;
     setSavingOutcome(true);
     try {
+      const imageFiles = outcomeFiles.filter((f) => f.type.startsWith('image/'));
+      const docFiles = outcomeFiles.filter((f) => !f.type.startsWith('image/'));
       await updateData('meetings', { id: outcomeMeeting.id }, {
         outcome: outcomeForm.outcome || null,
         minutes: outcomeForm.minutes || null,
         status: 'completed',
+        conclusionImages: imageFiles,
+        conclusionAttachments: docFiles,
       });
       toast.success('نتیجه جلسه ثبت شد');
       setOutcomeDialogOpen(false);
@@ -180,6 +229,15 @@ export default function MeetingsPage() {
     const currentEnd = m.endTime ? new Date(m.endTime) : new Date(m.date);
     setExtendDate(currentEnd);
     setExtendTime(currentEnd.toTimeString().slice(0, 5));
+    setExtendForm({
+      title: m.title || '',
+      topic: m.topic || '',
+      location: m.location || '',
+      onlineLink: m.onlineLink || '',
+      agenda: m.agenda || '',
+      staffPhone: m.staffPhone || '',
+      customerPhone: m.customerPhone || '',
+    });
     setExtendError('');
     setExtendDialogOpen(true);
   };
@@ -187,6 +245,7 @@ export default function MeetingsPage() {
   const handleExtend = async () => {
     if (!extendMeeting || !extendDate) return;
     setExtendError('');
+    const originalDate = new Date(extendMeeting.date);
     const [hours, minutes] = extendTime.split(':').map(Number);
     const newEnd = new Date(extendDate);
     newEnd.setHours(hours || 23, minutes || 59, 0, 0);
@@ -195,13 +254,26 @@ export default function MeetingsPage() {
       setExtendError('زمان تمدید باید بیشتر از زمان فعلی پایان جلسه باشد');
       return;
     }
+    if (newEnd < originalDate) {
+      setExtendError('تاریخ تمدید نمی‌تواند قبل از تاریخ ثبت اولیه جلسه باشد');
+      return;
+    }
     setExtending(true);
     try {
       const res = await fetch(`/api/meetings/${extendMeeting.id}/extend`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ newEndTime: newEnd.toISOString() }),
+        body: JSON.stringify({
+          newEndTime: newEnd.toISOString(),
+          title: extendForm.title,
+          topic: extendForm.topic,
+          location: extendForm.location,
+          onlineLink: extendForm.onlineLink,
+          agenda: extendForm.agenda,
+          staffPhone: extendForm.staffPhone,
+          customerPhone: extendForm.customerPhone,
+        }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -454,7 +526,7 @@ export default function MeetingsPage() {
 
       {/* Extend Dialog */}
       <Dialog open={extendDialogOpen} onOpenChange={setExtendDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>تمدید جلسه</DialogTitle></DialogHeader>
           {extendMeeting && (
             <div className="space-y-4">
@@ -464,14 +536,54 @@ export default function MeetingsPage() {
               <div className="rounded-lg bg-slate-50 p-3 text-sm">
                 <div className="mb-1 text-slate-400">زمان فعلی پایان جلسه:</div>
                 <div className="font-medium">{formatJalaliDateTime(extendMeeting.endTime || extendMeeting.date)}</div>
+                <div className="mt-1 text-xs text-amber-600">تاریخ تمدید نمی‌تواند قبل از تاریخ ثبت اولیه ({formatJalali(extendMeeting.date)}) باشد</div>
               </div>
               <div className="space-y-2">
-                <Label>تاریخ پایان جدید</Label>
-                <JalaliDatePicker value={extendDate} onChange={(d) => setExtendDate(d || null)} placeholder="انتخاب تاریخ" />
+                <Label>عنوان جلسه</Label>
+                <Input value={extendForm.title} onChange={(e) => setExtendForm({ ...extendForm, title: e.target.value })} />
               </div>
               <div className="space-y-2">
-                <Label>ساعت پایان جدید</Label>
-                <input type="time" dir="ltr" value={extendTime} onChange={(e) => setExtendTime(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+                <Label>موضوع</Label>
+                <Input value={extendForm.topic} onChange={(e) => setExtendForm({ ...extendForm, topic: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>تاریخ پایان جدید</Label>
+                  <JalaliDatePicker
+                    value={extendDate}
+                    onChange={(d) => setExtendDate(d || null)}
+                    placeholder="انتخاب تاریخ"
+                    minDate={new Date(extendMeeting.date)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>ساعت پایان جدید</Label>
+                  <input type="time" dir="ltr" value={extendTime} onChange={(e) => setExtendTime(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>مکان</Label>
+                  <Input value={extendForm.location} onChange={(e) => setExtendForm({ ...extendForm, location: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>لینک آنلاین</Label>
+                  <Input value={extendForm.onlineLink} onChange={(e) => setExtendForm({ ...extendForm, onlineLink: e.target.value })} dir="ltr" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>شماره پرسنل</Label>
+                  <Input value={extendForm.staffPhone} onChange={(e) => setExtendForm({ ...extendForm, staffPhone: e.target.value })} dir="ltr" />
+                </div>
+                <div className="space-y-2">
+                  <Label>شماره مشتری</Label>
+                  <Input value={extendForm.customerPhone} onChange={(e) => setExtendForm({ ...extendForm, customerPhone: e.target.value })} dir="ltr" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>دستور جلسه</Label>
+                <Textarea value={extendForm.agenda} onChange={(e) => setExtendForm({ ...extendForm, agenda: e.target.value })} className="min-h-[80px]" />
               </div>
               {extendError && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">{extendError}</div>}
               <DialogFooter>
@@ -557,6 +669,29 @@ export default function MeetingsPage() {
                   </div>
                 </div>
               )}
+              {detailResultFiles.length > 0 && (
+                <div>
+                  <span className="mb-2 flex items-center gap-1 text-sm text-slate-400"><Paperclip className="h-4 w-4" /> فایل‌های نتیجه جلسه:</span>
+                  <div className="space-y-2">
+                    {detailResultFiles.map((f, i) => (
+                      <div key={i} className="flex items-center gap-2 rounded-lg border border-slate-200 p-2">
+                        {f.type.startsWith('image/') ? (
+                          <a href={f.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                            <img src={f.url} alt={f.name} className="h-10 w-10 rounded object-cover" />
+                            <span className="text-sm text-sky-600 hover:underline">{f.name}</span>
+                          </a>
+                        ) : (
+                          <a href={f.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                            <FileIcon className="h-5 w-5 text-slate-400" />
+                            <span className="text-sm text-sky-600 hover:underline">{f.name}</span>
+                          </a>
+                        )}
+                        <span className="text-xs text-slate-400">{formatFileSize(f.size)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="flex flex-wrap gap-2 pt-2">
                 <Link href={`/dashboard/meetings/${viewMeeting.id}`} className="inline-flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-sm font-medium text-sky-600 transition hover:bg-sky-100">
                   <Eye className="h-3.5 w-3.5" />
@@ -580,7 +715,7 @@ export default function MeetingsPage() {
 
       {/* Outcome Dialog */}
       <Dialog open={outcomeDialogOpen} onOpenChange={setOutcomeDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>ثبت نتیجه جلسه</DialogTitle></DialogHeader>
           {outcomeMeeting && (
             <div className="space-y-4">
@@ -593,9 +728,53 @@ export default function MeetingsPage() {
                 <Label>صورت‌جلسه (اختیاری)</Label>
                 <Textarea value={outcomeForm.minutes} onChange={(e) => setOutcomeForm({ ...outcomeForm, minutes: e.target.value })} placeholder="خلاصه بحث‌ها و مباحث مطرح شده..." className="min-h-[80px]" />
               </div>
+              <div className="space-y-2">
+                <Label>فایل‌ها و تصاویر (اختیاری)</Label>
+                <div className="rounded-lg border-2 border-dashed border-slate-200 p-4">
+                  <input
+                    type="file"
+                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
+                    multiple
+                    className="hidden"
+                    id="outcome-file-input"
+                    onChange={(e) => e.target.files && handleOutcomeFileUpload(e.target.files)}
+                  />
+                  <label htmlFor="outcome-file-input" className="flex cursor-pointer flex-col items-center justify-center gap-1">
+                    {uploadingOutcome ? (
+                      <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+                    ) : (
+                      <Upload className="h-6 w-6 text-slate-300" />
+                    )}
+                    <span className="text-sm text-slate-400">برای آپلود فایل یا تصویر کلیک کنید</span>
+                    <span className="text-xs text-slate-300">JPG, PNG, PDF, DOC و ...</span>
+                  </label>
+                </div>
+                {outcomeFiles.length > 0 && (
+                  <div className="space-y-2">
+                    {outcomeFiles.map((f, i) => (
+                      <div key={i} className="flex items-center gap-2 rounded-lg border border-slate-200 p-2">
+                        {f.type.startsWith('image/') ? (
+                          <img src={f.url} alt={f.name} className="h-10 w-10 rounded object-cover" />
+                        ) : (
+                          <FileIcon className="h-5 w-5 text-slate-400" />
+                        )}
+                        <span className="flex-1 truncate text-sm text-slate-700">{f.name}</span>
+                        <span className="text-xs text-slate-400">{formatFileSize(f.size)}</span>
+                        <button
+                          type="button"
+                          className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-500"
+                          onClick={() => setOutcomeFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setOutcomeDialogOpen(false)}>انصراف</Button>
-                <Button onClick={handleOutcomeSave} disabled={savingOutcome}>
+                <Button onClick={handleOutcomeSave} disabled={savingOutcome || uploadingOutcome}>
                   {savingOutcome ? 'در حال ثبت...' : 'ثبت نتیجه'}
                 </Button>
               </DialogFooter>

@@ -26,15 +26,18 @@ export async function PATCH(
   if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
-    const { newEndTime } = await req.json();
-    if (!newEndTime) {
-      return NextResponse.json({ error: 'زمان پایان جدید مورد نیاز است' }, { status: 400 });
-    }
-
-    const newEnd = new Date(newEndTime);
-    if (isNaN(newEnd.getTime())) {
-      return NextResponse.json({ error: 'تاریخ نامعتبر است' }, { status: 400 });
-    }
+    const body = await req.json();
+    const {
+      newDate,
+      newEndTime,
+      title,
+      topic,
+      location,
+      onlineLink,
+      agenda,
+      staffPhone,
+      customerPhone,
+    } = body;
 
     const meeting = await prisma.meeting.findUnique({
       where: { id: params.id },
@@ -58,24 +61,54 @@ export async function PATCH(
       return NextResponse.json({ error: 'دسترسی تمدید این جلسه را ندارید' }, { status: 403 });
     }
 
-    const currentEnd = meeting.endTime
-      ? new Date(meeting.endTime)
-      : new Date(meeting.date);
+    const originalDate = new Date(meeting.date);
 
-    if (newEnd <= currentEnd) {
-      return NextResponse.json(
-        { error: 'زمان تمدید باید بیشتر از زمان فعلی پایان جلسه باشد' },
-        { status: 400 }
-      );
+    let parsedDate: Date | undefined;
+    if (newDate) {
+      parsedDate = new Date(newDate);
+      if (isNaN(parsedDate.getTime())) {
+        return NextResponse.json({ error: 'تاریخ نامعتبر است' }, { status: 400 });
+      }
+      if (parsedDate < originalDate) {
+        return NextResponse.json(
+          { error: 'تاریخ تمدید نمی‌تواند قبل از تاریخ ثبت اولیه جلسه باشد' },
+          { status: 400 }
+        );
+      }
     }
+
+    let parsedEndTime: Date | undefined;
+    if (newEndTime) {
+      parsedEndTime = new Date(newEndTime);
+      if (isNaN(parsedEndTime.getTime())) {
+        return NextResponse.json({ error: 'زمان پایان نامعتبر است' }, { status: 400 });
+      }
+      const currentEnd = meeting.endTime ? new Date(meeting.endTime) : new Date(meeting.date);
+      if (parsedEndTime <= currentEnd) {
+        return NextResponse.json(
+          { error: 'زمان تمدید باید بیشتر از زمان فعلی پایان جلسه باشد' },
+          { status: 400 }
+        );
+      }
+    }
+
+    const updateData: Record<string, any> = { isExtended: true };
+    if (parsedDate) updateData.date = parsedDate;
+    if (parsedEndTime) {
+      updateData.endTime = parsedEndTime;
+      updateData.extendedUntil = parsedEndTime;
+    }
+    if (title !== undefined) updateData.title = title;
+    if (topic !== undefined) updateData.topic = topic || null;
+    if (location !== undefined) updateData.location = location || null;
+    if (onlineLink !== undefined) updateData.onlineLink = onlineLink || null;
+    if (agenda !== undefined) updateData.agenda = agenda || null;
+    if (staffPhone !== undefined) updateData.staffPhone = staffPhone || null;
+    if (customerPhone !== undefined) updateData.customerPhone = customerPhone || null;
 
     const updated = await prisma.meeting.update({
       where: { id: params.id },
-      data: {
-        endTime: newEnd,
-        isExtended: true,
-        extendedUntil: newEnd,
-      },
+      data: updateData,
     });
 
     return NextResponse.json({ meeting: updated });
