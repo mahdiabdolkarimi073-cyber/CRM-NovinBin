@@ -2735,6 +2735,8 @@ export interface SocialDMMessage {
   attachmentUrl: string | null;
   attachmentName: string | null;
   attachmentType: string | null;
+  replyToId: string | null;
+  editedAt: string | null;
   readAt: string | null;
   createdAt: string;
 }
@@ -2764,6 +2766,8 @@ export interface SocialGroupMessage {
   attachmentUrl: string | null;
   attachmentName: string | null;
   attachmentType: string | null;
+  replyToId: string | null;
+  editedAt: string | null;
   createdAt: string;
 }
 

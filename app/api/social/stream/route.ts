@@ -49,6 +49,7 @@ export async function GET(req: NextRequest) {
       const interval = setInterval(async () => {
         if (closed) return;
         try {
+          // New DM messages received by me
           const newDMs = await prisma.socialDMMessage.findMany({
             where: { receiverId: auth.userId, createdAt: { gt: lastCheck } },
             orderBy: { createdAt: 'asc' },
@@ -57,6 +58,7 @@ export async function GET(req: NextRequest) {
             for (const msg of newDMs) send('dm', serialize(msg));
           }
 
+          // DM read receipts for messages I sent
           const readUpdates = await prisma.socialDMMessage.findMany({
             where: { senderId: auth.userId, readAt: { gt: lastCheck } },
             orderBy: { readAt: 'asc' },
@@ -65,6 +67,23 @@ export async function GET(req: NextRequest) {
             for (const msg of readUpdates) send('dm_read', serialize(msg));
           }
 
+          // DM edits — messages I sent or received that were edited since last check
+          const dmEdits = await prisma.socialDMMessage.findMany({
+            where: {
+              editedAt: { gt: lastCheck },
+              OR: [{ senderId: auth.userId }, { receiverId: auth.userId }],
+            },
+            orderBy: { editedAt: 'asc' },
+          });
+          if (dmEdits.length > 0) {
+            for (const msg of dmEdits) send('dm_edit', serialize(msg));
+          }
+
+          // DM deletes — detect messages that no longer exist
+          // We check if any of our known messages were deleted by comparing
+          // This is handled client-side via the delete API response
+
+          // Group messages
           const myGroupIds = await prisma.socialGroupMember.findMany({
             where: { profileId: auth.userId },
             select: { groupId: true },
@@ -78,6 +97,18 @@ export async function GET(req: NextRequest) {
             });
             if (newGroupMessages.length > 0) {
               for (const msg of newGroupMessages) send('group', serialize(msg));
+            }
+
+            // Group message edits
+            const groupEdits = await prisma.socialGroupMessage.findMany({
+              where: {
+                groupId: { in: groupIdList },
+                editedAt: { gt: lastCheck },
+              },
+              orderBy: { editedAt: 'asc' },
+            });
+            if (groupEdits.length > 0) {
+              for (const msg of groupEdits) send('group_edit', serialize(msg));
             }
           }
 

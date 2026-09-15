@@ -4453,8 +4453,13 @@ model SocialDMMessage {
   attachmentUrl  String?
   attachmentName String?
   attachmentType String?
+  replyToId      String?  @db.Uuid
+  editedAt       DateTime?
   readAt         DateTime?
   createdAt      DateTime @default(now())
+
+  replyTo        SocialDMMessage?   @relation("SocialDMReply", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies        SocialDMMessage[]  @relation("SocialDMReply")
 
   @@map("social_dm_messages")
 }
@@ -4494,10 +4499,14 @@ model SocialGroupMessage {
   attachmentUrl  String?
   attachmentName String?
   attachmentType String?
+  replyToId      String?  @db.Uuid
+  editedAt       DateTime?
   createdAt      DateTime @default(now())
 
   group          SocialGroup          @relation(fields: [groupId], references: [id], onDelete: Cascade)
   reads          SocialGroupMessageRead[]
+  replyTo        SocialGroupMessage?  @relation("SocialGroupMsgReply", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies        SocialGroupMessage[] @relation("SocialGroupMsgReply")
 
   @@map("social_group_messages")
 }
