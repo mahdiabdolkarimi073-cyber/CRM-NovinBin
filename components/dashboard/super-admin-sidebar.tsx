@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { LayoutDashboard } from 'lucide-react';
 import { superAdminNavItems } from '@/lib/super-admin-nav';
 
 const SIDEBAR_WIDTH = 272;
@@ -66,9 +67,10 @@ export function SuperAdminSidebar({ open, onToggle }: SuperAdminSidebarProps) {
           <Link
             href="/dashboard"
             onClick={closeSidebar}
-            className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-sidebar-muted-foreground hover:text-sidebar-foreground hover:bg-white/5 transition-colors"
+            className="flex items-center justify-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] font-bold bg-accent/10 text-accent hover:bg-accent/20 transition-colors border border-accent/20"
           >
-            <span className="truncate">پنل سازمانی</span>
+            <LayoutDashboard className="h-4 w-4 shrink-0" />
+            <span>بازگشت به CRM</span>
           </Link>
         </nav>
       </aside>

@@ -110,6 +110,7 @@ export const salesItems: NavItem[] = [
   { href: '/dashboard/product-bundles', label: 'بسته محصول فروش', icon: Boxes },
   { href: '/dashboard/commissions', label: 'پورسانت', icon: Percent },
   { href: '/dashboard/orders', label: 'سفارشات', icon: ShoppingCart },
+  { href: '/dashboard/lead-referrals', label: 'ارجاعیات سرنخ‌های فروش', icon: Send },
 ];
 
 export const clubItems: NavItem[] = [
@@ -171,6 +172,7 @@ export const UNIVERSAL_PAGES = new Set([
   '/dashboard/settings',
   '/dashboard/notifications',
   '/dashboard/ai-assistant',
+  '/dashboard/lead-referrals',
 ]);
 
 export function hasPageAccess(profile: Profile | null, href: string): boolean {

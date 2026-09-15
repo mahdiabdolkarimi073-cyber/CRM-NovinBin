@@ -19,7 +19,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={toggle}
-      className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/20 text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+      className="nb-btn-icon flex h-10 w-10 items-center justify-center rounded-xl"
       aria-label={isDark ? 'حالت روشن' : 'حالت تاریک'}
       title={isDark ? 'حالت روشن' : 'حالت تاریک'}
     >

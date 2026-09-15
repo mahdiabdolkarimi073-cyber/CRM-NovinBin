@@ -75,12 +75,22 @@
     --chart-4: 221 83% 40%;
     --chart-5: 0 72% 51%;
     --radius: 0.75rem;
-    --sidebar: 226 60% 12%;
-    --sidebar-foreground: 210 40% 96%;
-    --sidebar-muted: 224 40% 22%;
-    --sidebar-muted-foreground: 215 20% 65%;
+    --sidebar: 220 20% 96%;
+    --sidebar-foreground: 224 47% 11%;
+    --sidebar-muted: 220 14% 90%;
+    --sidebar-muted-foreground: 220 9% 46%;
     --sidebar-active: 24 95% 53%;
     --sidebar-active-foreground: 0 0% 100%;
+    --nav-bg: linear-gradient(135deg, #f8fafc 0%, #eef2f7 50%, #f8fafc 100%);
+    --nav-text: #1e293b;
+    --nav-text-muted: #64748b;
+    --nav-border: rgba(0,0,0,.08);
+    --nav-item-hover: rgba(0,0,0,.05);
+    --nav-dropdown-bg: #ffffff;
+    --nav-dropdown-text: #475569;
+    --nav-dropdown-hover: #f1f5f9;
+    --nav-input-bg: rgba(0,0,0,.04);
+    --nav-input-border: rgba(0,0,0,.08);
   }
 
   .dark {
@@ -122,6 +132,16 @@
     --sidebar-muted-foreground: 215 20% 55%;
     --sidebar-active: 24 95% 53%;
     --sidebar-active-foreground: 0 0% 100%;
+    --nav-bg: linear-gradient(135deg, #0A2A2A 0%, #0F3D38 50%, #0A2A2A 100%);
+    --nav-text: #ffffff;
+    --nav-text-muted: #B0C4C0;
+    --nav-border: rgba(255,255,255,.12);
+    --nav-item-hover: rgba(255,255,255,.08);
+    --nav-dropdown-bg: #0F3D38;
+    --nav-dropdown-text: #B0C4C0;
+    --nav-dropdown-hover: rgba(255,255,255,.08);
+    --nav-input-bg: rgba(255,255,255,.05);
+    --nav-input-border: rgba(255,255,255,.12);
   }
 }
 
@@ -171,6 +191,46 @@
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* ===== Navbar theme utilities ===== */
+.dashboard-navbar { background: var(--nav-bg) !important; }
+.nb-text { color: var(--nav-text) !important; }
+.nb-text-muted { color: var(--nav-text-muted) !important; }
+.nb-btn-icon {
+  border: 1px solid var(--nav-border) !important;
+  color: var(--nav-text-muted) !important;
+  transition: all 0.15s ease;
+}
+.nb-btn-icon:hover {
+  background: var(--nav-item-hover) !important;
+  color: var(--nav-text) !important;
+}
+.nb-input {
+  background: var(--nav-input-bg) !important;
+  border-color: var(--nav-input-border) !important;
+  color: var(--nav-text-muted) !important;
+}
+.nb-input:hover {
+  background: var(--nav-item-hover) !important;
+  color: var(--nav-text) !important;
+}
+.nb-hover:hover {
+  background: var(--nav-item-hover) !important;
+  color: var(--nav-text) !important;
+}
+.nb-dropdown {
+  background: var(--nav-dropdown-bg) !important;
+  border-color: var(--nav-border) !important;
+}
+.nb-dropdown-item {
+  color: var(--nav-dropdown-text) !important;
+  transition: all 0.15s ease;
+}
+.nb-dropdown-item:hover {
+  background: var(--nav-dropdown-hover) !important;
+  color: var(--nav-text) !important;
+}
+.sb-hover:hover { background: hsl(var(--sidebar-muted) / 0.5); }
 
 /* ===== Persian number font tweaks ===== */
 .tnum {
@@ -1200,6 +1260,134 @@
   .social-modal-header { padding: 18px 20px; }
   .social-modal-body { padding: 20px; }
   .social-modal-footer { padding: 12px 20px 20px; }
+}
+
+/* ===== Social Network Page — Redesigned ===== */
+.social-network-page {
+  direction: rtl; width: 100%; height: 100vh; overflow: hidden;
+  background: linear-gradient(135deg, #0a1929 0%, #0f2942 50%, #0a1929 100%);
+  color: #fff; display: flex; flex-direction: column;
+  position: fixed; top: 0; right: 0; left: 0; bottom: 0; z-index: 50;
+}
+.social-network-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 24px; background: rgba(255,255,255,.02);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255,255,255,.06); flex-shrink: 0;
+}
+.social-network-header-info { display: flex; align-items: center; gap: 12px; }
+.social-network-title-accent {
+  width: 5px; height: 36px; border-radius: 4px;
+  background: linear-gradient(180deg, #F97316, #FB923C);
+  box-shadow: 0 0 12px rgba(249,115,22,.4);
+}
+.social-network-header h1 { margin: 0; font-size: 24px; font-weight: 700; color: #fff; line-height: 1.3; }
+.social-network-header p { margin: 4px 0 0; font-size: 13px; color: rgba(255,255,255,.5); }
+.social-network-close {
+  display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 20px;
+  border: 1px solid rgba(255,255,255,.12); border-radius: 12px;
+  background: rgba(255,255,255,.05); color: rgba(255,255,255,.8);
+  font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: all .2s ease; text-decoration: none;
+}
+.social-network-close:hover {
+  background: rgba(249,115,22,.1); color: #fff;
+  border-color: rgba(249,115,22,.3); box-shadow: 0 2px 12px rgba(249,115,22,.15);
+}
+.social-network-close svg { width: 18px; height: 18px; }
+.social-network-tabs {
+  display: flex; gap: 8px; padding: 14px 24px;
+  background: rgba(0,0,0,.15); border-bottom: 1px solid rgba(255,255,255,.04); flex-shrink: 0;
+}
+.social-network-tab {
+  display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 20px;
+  border: 1px solid rgba(255,255,255,.08); border-radius: 12px;
+  background: rgba(255,255,255,.03); color: rgba(255,255,255,.6);
+  font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s ease;
+}
+.social-network-tab:hover {
+  background: rgba(255,255,255,.06); color: #fff;
+  border-color: rgba(255,255,255,.15); transform: translateY(-1px);
+}
+.social-network-tab.is-active {
+  background: linear-gradient(135deg, #F97316, #FB923C); border-color: transparent;
+  color: #fff; box-shadow: 0 4px 16px rgba(249,115,22,.3);
+}
+.social-network-tab svg { width: 18px; height: 18px; }
+.social-network-body {
+  flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 300px;
+  gap: 0; direction: ltr; overflow: hidden;
+}
+.social-network-users {
+  min-width: 0; display: flex; flex-direction: column; direction: rtl;
+  background: rgba(0,0,0,.25); border-right: 1px solid rgba(255,255,255,.06); overflow: hidden;
+}
+.social-network-page .staff-chat-panel {
+  background: rgba(255,255,255,.03); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+}
+.social-network-page .staff-chat-header { background: rgba(255,255,255,.02); border-bottom-color: rgba(255,255,255,.06); }
+.social-network-page .staff-chat-person strong { color: #fff; }
+.social-network-page .staff-chat-person .staff-chat-status { color: rgba(255,255,255,.5); }
+.social-network-page .staff-chat-presence-dot { border-color: #0a1929; }
+.social-network-page .staff-chat-icon-button { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.1); color: rgba(255,255,255,.6); }
+.social-network-page .staff-chat-icon-button:hover { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.2); color: #F97316; }
+.social-network-page .staff-chat-messages { background: transparent; }
+.social-network-page .staff-chat-date { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.08); color: rgba(255,255,255,.5); }
+.social-network-page .staff-chat-bubble { background: rgba(255,255,255,.06); color: #fff; }
+.social-network-page .staff-chat-bubble.is-mine { background: linear-gradient(135deg, #F97316, #FB923C); color: #fff; }
+.social-network-page .staff-chat-bubble.is-mine .staff-chat-message-meta { color: rgba(255,255,255,.7); }
+.social-network-page .staff-chat-bubble a { color: #FB923C; }
+.social-network-page .staff-chat-composer { background: rgba(255,255,255,.02); border-top-color: rgba(255,255,255,.06); }
+.social-network-page .staff-chat-composer input { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.1); color: #fff; }
+.social-network-page .staff-chat-composer input::placeholder { color: rgba(255,255,255,.35); }
+.social-network-page .staff-chat-composer input:focus { border-color: #F97316; box-shadow: 0 0 0 3px rgba(249,115,22,.1); }
+.social-network-page .staff-chat-tool { color: rgba(255,255,255,.5); }
+.social-network-page .staff-chat-tool:hover { background: rgba(255,255,255,.05); color: #F97316; }
+.social-network-page .staff-chat-empty, .social-network-page .staff-chat-empty-panel { color: rgba(255,255,255,.4); }
+.social-network-page .staff-chat-message-search { background: rgba(0,0,0,.15); border-bottom-color: rgba(255,255,255,.06); }
+.social-network-page .staff-chat-message-search input { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.1); color: #fff; }
+.social-network-page .staff-chat-message-search input:focus { border-color: #F97316; }
+.social-network-page .staff-chat-message-search > svg { color: rgba(255,255,255,.4); }
+.social-network-page .staff-chat-attachment-preview { background: rgba(0,0,0,.15); border-top-color: rgba(255,255,255,.06); }
+.social-network-page .staff-chat-attachment-preview strong { color: rgba(255,255,255,.8); }
+.social-network-page .staff-chat-emoji-picker { background: rgba(0,0,0,.15); border-top-color: rgba(255,255,255,.06); }
+.social-network-page .staff-chat-emoji:hover { background: rgba(249,115,22,.1); }
+.social-network-page .staff-chat-users-toolbar { background: rgba(0,0,0,.15); border-bottom-color: rgba(255,255,255,.06); }
+.social-network-page .staff-chat-search input { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.1); color: #fff; }
+.social-network-page .staff-chat-search input:focus { border-color: #F97316; }
+.social-network-page .staff-chat-search svg { color: rgba(255,255,255,.4); }
+.social-network-page .staff-chat-toolbar-button { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.1); color: rgba(255,255,255,.6); }
+.social-network-page .staff-chat-toolbar-button:hover { background: rgba(255,255,255,.1); color: #fff; }
+.social-network-page .staff-chat-user:hover { background: rgba(255,255,255,.04); }
+.social-network-page .staff-chat-user.is-active { border-right-color: #F97316; background: rgba(249,115,22,.08); }
+.social-network-page .staff-chat-user-topline strong { color: #fff; }
+.social-network-page .staff-chat-user-topline time, .social-network-page .staff-chat-user-bottomline small { color: rgba(255,255,255,.4); }
+.social-network-page .staff-chat-users-list h3 { color: rgba(255,255,255,.35); }
+.social-network-page .staff-chat-no-users { color: rgba(255,255,255,.3); }
+.social-network-page .staff-chat-all-users { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.1); color: #fff; }
+.social-network-page .staff-chat-all-users:hover { background: rgba(255,255,255,.1); }
+.social-network-page .staff-chat-overlay { background: rgba(0,0,0,.5); }
+.social-network-page .staff-chat-avatar { background: linear-gradient(135deg, #F97316, #FB923C); }
+.social-network-page .call-action-btn { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.1); color: rgba(255,255,255,.6); }
+.social-network-page .call-action-btn:hover { background: rgba(255,255,255,.1); color: #F97316; }
+.social-network-page .social-members-panel { background: rgba(0,0,0,.15); border-bottom-color: rgba(255,255,255,.06); }
+.social-network-page .social-members-header { border-bottom-color: rgba(255,255,255,.06); }
+.social-network-page .social-members-header h3 { color: #fff; }
+.social-network-page .social-members-header button { color: rgba(255,255,255,.5); }
+.social-network-page .social-members-header button:hover { background: rgba(255,255,255,.05); color: #fff; }
+.social-network-page .social-member-item:hover { background: rgba(255,255,255,.04); }
+.social-network-page .social-member-info strong { color: #fff; }
+.social-network-page .social-member-info small { color: rgba(255,255,255,.4); }
+.social-network-page .social-msg-sender { color: #FB923C; }
+@media (max-width: 1199px) { .social-network-body { grid-template-columns: 1fr 260px; } }
+@media (max-width: 767px) {
+  .social-network-body { display: flex; flex-direction: column; }
+  .social-network-users { position: fixed; z-index: 1000; top: 0; right: 0; width: 85vw; max-width: 340px; height: 100vh; transform: translateX(100%); transition: transform 250ms ease; }
+  .social-network-users.is-open { transform: translateX(0); }
+  .social-network-header { padding: 12px 16px; }
+  .social-network-header h1 { font-size: 20px; }
+  .social-network-tabs { padding: 10px 16px; }
+  .social-network-tab { height: 40px; padding: 0 16px; font-size: 12px; }
 }
 
 /* ===== WebRTC Call Overlay ===== */

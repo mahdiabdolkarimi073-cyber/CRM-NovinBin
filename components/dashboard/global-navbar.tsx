@@ -16,7 +16,7 @@ import {
 import {
   Menu, Search, Bell, User, Settings, LogOut, ChevronDown,
   PanelRightClose, PanelRightOpen,
-  Inbox, Shield, Calendar, Archive, Phone, Palette,
+  Inbox, Shield, Calendar, Archive, Phone, Palette, LayoutDashboard,
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/dashboard/theme-toggle';
 import { cn } from '@/lib/utils';
@@ -111,27 +111,26 @@ export function GlobalNavbar({ sidebarOpen, onToggleSidebar, variant = 'dashboar
           href={item.href}
           className={cn(
             'flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium transition-colors',
-            active ? 'text-[#2DD4BF]' : 'text-[#B0C4C0] hover:text-white'
+            active ? 'text-[#2DD4BF]' : 'nb-dropdown-item'
           )}
         >
-          <item.icon className="h-4 w-4 shrink-0 text-[#6BA89E]" />
+          <item.icon className="h-4 w-4 shrink-0 nb-text-muted" />
           {item.label}
         </Link>
       </DropdownMenuItem>
     );
   };
 
-  const navDropdownStyle = 'relative flex items-center transition-all text-[#B0C4C0] hover:text-white';
+  const navDropdownStyle = 'relative flex items-center transition-all nb-text-muted nb-hover';
   const navDropdownItemStyle = { height: '40px', fontSize: '13px', fontWeight: 500, gap: '6px', padding: '0 10px', borderRadius: '8px' } as const;
 
   return (
     <>
       <header
-        className="sticky top-0 z-50 w-full shadow-lg"
+        className="dashboard-navbar sticky top-0 z-50 w-full shadow-lg"
         dir="rtl"
         style={{
           borderRadius: '0 0 12px 12px',
-          background: 'linear-gradient(135deg, #0A2A2A 0%, #0F3D38 50%, #0A2A2A 100%)',
         }}
       >
         <div className="flex items-center justify-between gap-3 px-4 lg:px-5 xl:px-8" style={{ height: '64px' }}>
@@ -140,33 +139,42 @@ export function GlobalNavbar({ sidebarOpen, onToggleSidebar, variant = 'dashboar
             {/* Sidebar toggle button */}
             <button
               onClick={onToggleSidebar}
-              className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/20 text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+              className="flex h-10 w-10 items-center justify-center rounded-xl border nb-btn-icon"
               aria-label={sidebarOpen ? 'بستن منو' : 'باز کردن منو'}
             >
               {sidebarOpen ? <PanelRightClose className="h-5 w-5" /> : <PanelRightOpen className="h-5 w-5" />}
             </button>
 
             <Link href={logoHref} className="flex items-center transition-transform hover:scale-105">
-              <Logo size={88} withText textClassName="hidden sm:block [&_div]:text-white [&_.text-muted-foreground]:text-[#6BA89E]" />
+              <Logo size={88} withText textClassName="hidden sm:block [&_div]:!text-[var(--nav-text)] [&_.text-muted-foreground]:!text-[var(--nav-text-muted)]" />
             </Link>
+            {variant === 'super-admin' && (
+              <Link
+                href="/dashboard"
+                className="flex items-center gap-2 rounded-xl border nb-btn-icon px-4 h-10 text-[13px] font-semibold"
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                <span className="hidden sm:inline">بازگشت به CRM</span>
+              </Link>
+            )}
           </div>
 
           {/* Center: Search bar */}
           <div className="flex-1 max-w-md hidden sm:block">
             <button
               onClick={() => setSearchOpen(true)}
-              className="flex w-full items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white/50 transition-colors hover:bg-white/10 hover:text-white/70"
+              className="flex w-full items-center gap-2 rounded-xl border nb-input px-3 py-2 text-sm nb-text-muted transition-colors nb-hover"
             >
               <Search className="h-4 w-4" />
               <span>جستجوی صفحات...</span>
-              <kbd className="mr-auto hidden rounded border border-white/20 px-1.5 py-0.5 text-[10px] text-white/40 lg:inline-block">Ctrl+K</kbd>
+              <kbd className="mr-auto hidden rounded border nb-border px-1.5 py-0.5 text-[10px] nb-text-muted lg:inline-block">Ctrl+K</kbd>
             </button>
           </div>
 
           {/* Mobile search icon */}
           <button
             onClick={() => setSearchOpen(true)}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/20 text-white/80 transition-colors hover:bg-white/10 hover:text-white sm:hidden"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border nb-btn-icon sm:hidden"
           >
             <Search className="h-5 w-5" />
           </button>
@@ -178,7 +186,7 @@ export function GlobalNavbar({ sidebarOpen, onToggleSidebar, variant = 'dashboar
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                    className={cn(navDropdownStyle, visibleCartable.some((item) => matches(item.href)) && 'text-white')}
+                    className={cn(navDropdownStyle, visibleCartable.some((item) => matches(item.href)) && 'nb-text')}
                     style={navDropdownItemStyle}
                   >
                     <Inbox className="h-[18px] w-[18px]" />
@@ -186,7 +194,7 @@ export function GlobalNavbar({ sidebarOpen, onToggleSidebar, variant = 'dashboar
                     <ChevronDown className="h-3 w-3" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-56 border-white/10 max-h-[400px] overflow-y-auto" style={{ background: 'linear-gradient(135deg, #0A2A2A 0%, #0F3D38 100%)' }}>
+                <DropdownMenuContent align="start" className="w-56 nb-dropdown max-h-[400px] overflow-y-auto">
                   {visibleCartable.map(renderDropdownItem)}
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -197,7 +205,7 @@ export function GlobalNavbar({ sidebarOpen, onToggleSidebar, variant = 'dashboar
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                    className={cn(navDropdownStyle, visibleMeetings.some((item) => matches(item.href)) && 'text-white')}
+                    className={cn(navDropdownStyle, visibleMeetings.some((item) => matches(item.href)) && 'nb-text')}
                     style={navDropdownItemStyle}
                   >
                     <Calendar className="h-[18px] w-[18px]" />
@@ -205,7 +213,7 @@ export function GlobalNavbar({ sidebarOpen, onToggleSidebar, variant = 'dashboar
                     <ChevronDown className="h-3 w-3" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-56 border-white/10" style={{ background: 'linear-gradient(135deg, #0A2A2A 0%, #0F3D38 100%)' }}>
+                <DropdownMenuContent align="start" className="w-56 nb-dropdown">
                   {visibleMeetings.map(renderDropdownItem)}
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -216,7 +224,7 @@ export function GlobalNavbar({ sidebarOpen, onToggleSidebar, variant = 'dashboar
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                    className={cn(navDropdownStyle, visibleAdmin.some((item) => matches(item.href)) && 'text-white')}
+                    className={cn(navDropdownStyle, visibleAdmin.some((item) => matches(item.href)) && 'nb-text')}
                     style={navDropdownItemStyle}
                   >
                     <Shield className="h-[18px] w-[18px]" />
@@ -224,7 +232,7 @@ export function GlobalNavbar({ sidebarOpen, onToggleSidebar, variant = 'dashboar
                     <ChevronDown className="h-3 w-3" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-56 border-white/10" style={{ background: 'linear-gradient(135deg, #0A2A2A 0%, #0F3D38 100%)' }}>
+                <DropdownMenuContent align="start" className="w-56 nb-dropdown">
                   {visibleAdmin.map(renderDropdownItem)}
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -250,31 +258,31 @@ export function GlobalNavbar({ sidebarOpen, onToggleSidebar, variant = 'dashboar
                     <AvatarFallback className="bg-[#2DD4BF] text-xs font-bold text-[#0A2A2A]">{initials}</AvatarFallback>
                   </Avatar>
                   <div className="hidden text-right lg:block">
-                    <div className="text-xs font-bold text-white">{displayName}</div>
-                    <div className="text-[10px] text-[#6BA89E]">{roleLabel}</div>
+                    <div className="text-xs font-bold nb-text">{displayName}</div>
+                    <div className="text-[10px] nb-text-muted">{roleLabel}</div>
                   </div>
-                  <ChevronDown className="hidden h-3.5 w-3.5 text-[#6BA89E] lg:block" />
+                  <ChevronDown className="hidden h-3.5 w-3.5 nb-text-muted lg:block" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 border-white/10" style={{ background: 'linear-gradient(135deg, #0A2A2A 0%, #0F3D38 100%)' }}>
+              <DropdownMenuContent align="end" className="w-56 nb-dropdown">
                 <DropdownMenuLabel>
-                  <div className="text-sm font-bold text-white">{displayName}</div>
-                  <div className="text-xs font-normal text-[#6BA89E]">{roleLabel}</div>
+                  <div className="text-sm font-bold nb-text">{displayName}</div>
+                  <div className="text-xs font-normal nb-text-muted">{roleLabel}</div>
                 </DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-white/10" />
+                <DropdownMenuSeparator className="bg-border" />
                 <DropdownMenuItem asChild>
-                  <Link href="/dashboard/settings" className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-[#B0C4C0] hover:text-white">
-                    <User className="h-4 w-4 text-[#6BA89E]" />
+                  <Link href="/dashboard/settings" className="flex items-center gap-2.5 px-3 py-2 text-[13px] nb-dropdown-item">
+                    <User className="h-4 w-4 nb-text-muted" />
                     پروفایل من
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/dashboard/settings" className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-[#B0C4C0] hover:text-white">
-                    <Settings className="h-4 w-4 text-[#6BA89E]" />
+                  <Link href="/dashboard/settings" className="flex items-center gap-2.5 px-3 py-2 text-[13px] nb-dropdown-item">
+                    <Settings className="h-4 w-4 nb-text-muted" />
                     تنظیمات
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-white/10" />
+                <DropdownMenuSeparator className="bg-border" />
                 <DropdownMenuItem
                   onClick={handleSignOut}
                   className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-red-400 focus:text-red-300"

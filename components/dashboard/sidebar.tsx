@@ -90,7 +90,7 @@ export function DashboardSidebar({ open, onToggle }: SidebarProps) {
           'flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors',
           active
             ? 'bg-accent/10 text-accent font-semibold'
-            : 'text-sidebar-muted-foreground hover:text-sidebar-foreground hover:bg-white/5'
+            : 'text-sidebar-muted-foreground hover:text-sidebar-foreground sb-hover'
         )}
       >
         <item.icon className="h-[18px] w-[18px] shrink-0" />
@@ -109,7 +109,7 @@ export function DashboardSidebar({ open, onToggle }: SidebarProps) {
         <button
           className={cn(
             'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors',
-            groupActive ? 'text-accent' : 'text-sidebar-muted-foreground hover:text-sidebar-foreground hover:bg-white/5'
+            groupActive ? 'text-accent' : 'text-sidebar-muted-foreground hover:text-sidebar-foreground sb-hover'
           )}
           onClick={() => toggleGroup(group.label)}
         >
@@ -174,7 +174,7 @@ export function DashboardSidebar({ open, onToggle }: SidebarProps) {
                 'mt-2 flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors',
                 matches(pathname, '/super-admin')
                   ? 'bg-accent/10 text-accent font-semibold'
-                  : 'text-sidebar-muted-foreground hover:text-sidebar-foreground hover:bg-white/5'
+                  : 'text-sidebar-muted-foreground hover:text-sidebar-foreground sb-hover'
               )}
             >
               <Shield className="h-[18px] w-[18px] shrink-0" />

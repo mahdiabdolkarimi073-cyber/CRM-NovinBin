@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import Link from 'next/link';
 import { fetchData, createData, updateData, deleteData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
 import { EmptyState } from '@/components/dashboard/empty-state';
-import { MessageCircle, Send, Search, Paperclip, Video, FileText, X, Info, MoreVertical, Filter, Plus, Smile, Mic, CheckCheck, Users, XCircle, UserPlus, UserMinus, Phone } from 'lucide-react';
+import { MessageCircle, Send, Search, Paperclip, Video, FileText, X, Info, MoreVertical, Filter, Plus, Smile, Mic, CheckCheck, Users, XCircle, UserPlus, UserMinus, Phone, ArrowLeft } from 'lucide-react';
 import { relativeTime, formatJalali } from '@/lib/format';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -405,25 +406,33 @@ export default function SocialNetworkPage() {
   }
 
   return (
-    <div className="staff-chat-page staff-chat-page-full">
-      <header className="staff-chat-page-header">
-        <div className="staff-chat-title"><span /><h1>شبکه اجتماعی نوین بین</h1></div>
-        <p>چت خصوصی و گروهی با کاربران سیستم</p>
+    <div className="social-network-page">
+      <header className="social-network-header">
+        <div className="social-network-header-info">
+          <span className="social-network-title-accent" />
+          <div>
+            <h1>شبکه اجتماعی نوین بین</h1>
+            <p>چت خصوصی و گروهی با کاربران سیستم</p>
+          </div>
+        </div>
+        <Link href="/dashboard" className="social-network-close">
+          <ArrowLeft className="h-4 w-4" />
+          بازگشت به CRM
+        </Link>
       </header>
 
-      {/* Tab switcher */}
-      <div className="social-tabs">
-        <button className={cn('social-tab', tab === 'dm' && 'is-active')} onClick={() => setTab('dm')}>
+      <div className="social-network-tabs">
+        <button className={cn('social-network-tab', tab === 'dm' && 'is-active')} onClick={() => setTab('dm')}>
           <MessageCircle style={{ width: 18, height: 18 }} />
           پیام‌های شخصی
         </button>
-        <button className={cn('social-tab', tab === 'groups' && 'is-active')} onClick={() => setTab('groups')}>
+        <button className={cn('social-network-tab', tab === 'groups' && 'is-active')} onClick={() => setTab('groups')}>
           <Users style={{ width: 18, height: 18 }} />
           گروه‌ها
         </button>
       </div>
 
-      <div className="staff-chat-layout">
+      <div className="social-network-body">
         <section className="staff-chat-panel">
           {tab === 'dm' && selectedUser && (
             <>
@@ -607,7 +616,7 @@ export default function SocialNetworkPage() {
           )}
         </section>
 
-        <aside className={cn('staff-chat-users-panel', isUsersOpen && 'is-open')}>
+        <aside className={cn('social-network-users', isUsersOpen && 'is-open')}>
           <div className="staff-chat-users-toolbar">
             <div className="staff-chat-search"><Search /><input placeholder={tab === 'dm' ? 'جستجوی کاربر...' : 'جستجوی گروه...'} value={search} onChange={(e) => setSearch(e.target.value)} /></div>
             <button className="staff-chat-toolbar-button" aria-label="فیلتر"><Filter /></button>
