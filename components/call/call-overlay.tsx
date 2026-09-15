@@ -65,8 +65,11 @@ export function CallOverlay({ webrtc, incomingCall, callerProfile, onAccept, onR
     return (
       <div className="call-overlay">
         <div className="call-incoming-card">
-          <div className="call-incoming-avatar">
-            <span>{getInitials(callerProfile)}</span>
+          <div className="call-incoming-ring-wrap">
+            <div className="call-incoming-ring-pulse" />
+            <div className="call-incoming-avatar">
+              <span>{getInitials(callerProfile)}</span>
+            </div>
           </div>
           <h2 className="call-incoming-name">{getName(callerProfile)}</h2>
           <div className="call-incoming-type">
@@ -134,7 +137,7 @@ export function CallOverlay({ webrtc, incomingCall, callerProfile, onAccept, onR
           <div className="call-audio-view">
             <div className="call-audio-avatar">
               <span>{getInitials(callerProfile)}</span>
-              <div className="call-audio-pulse" />
+              {(state.status === 'calling' || state.status === 'ringing') && <div className="call-audio-pulse" />}
             </div>
           </div>
         )}

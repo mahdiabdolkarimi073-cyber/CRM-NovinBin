@@ -16,6 +16,7 @@ import {
 import {
   Menu, Search, Bell, User, Settings, LogOut, ChevronDown,
   PanelRightClose, PanelRightOpen,
+  Inbox, Shield, Calendar, Archive, Phone, Palette,
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/dashboard/theme-toggle';
 import { cn } from '@/lib/utils';
@@ -88,6 +89,41 @@ export function GlobalNavbar({ sidebarOpen, onToggleSidebar, variant = 'dashboar
 
   const logoHref = variant === 'super-admin' ? '/super-admin' : (isSuperAdmin ? '/super-admin' : '/dashboard');
 
+  const visibleCartable = filterByAccess(profile, cartableItems);
+  const visibleAdmin = filterByAccess(profile, adminItems);
+
+  const meetingItems: NavItem[] = [
+    { href: '/dashboard/meetings', label: 'جلسات', icon: Calendar },
+    { href: '/dashboard/meetings/archive', label: 'آرشیو جلسات', icon: Archive },
+    { href: '/dashboard/calls', label: 'مکالمات', icon: Phone },
+    { href: '/dashboard/graphic-works', label: 'کارهای گرافیک', icon: Palette },
+  ];
+  const visibleMeetings = filterByAccess(profile, meetingItems);
+
+  const matches = (href: string) =>
+    pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
+
+  const renderDropdownItem = (item: NavItem) => {
+    const active = matches(item.href);
+    return (
+      <DropdownMenuItem key={item.href} asChild>
+        <Link
+          href={item.href}
+          className={cn(
+            'flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium transition-colors',
+            active ? 'text-[#2DD4BF]' : 'text-[#B0C4C0] hover:text-white'
+          )}
+        >
+          <item.icon className="h-4 w-4 shrink-0 text-[#6BA89E]" />
+          {item.label}
+        </Link>
+      </DropdownMenuItem>
+    );
+  };
+
+  const navDropdownStyle = 'relative flex items-center transition-all text-[#B0C4C0] hover:text-white';
+  const navDropdownItemStyle = { height: '40px', fontSize: '13px', fontWeight: 500, gap: '6px', padding: '0 10px', borderRadius: '8px' } as const;
+
   return (
     <>
       <header
@@ -134,6 +170,66 @@ export function GlobalNavbar({ sidebarOpen, onToggleSidebar, variant = 'dashboar
           >
             <Search className="h-5 w-5" />
           </button>
+
+          {/* Quick nav dropdowns */}
+          <nav className="hidden items-center gap-1 lg:flex">
+            {/* Cartable dropdown */}
+            {visibleCartable.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className={cn(navDropdownStyle, visibleCartable.some((item) => matches(item.href)) && 'text-white')}
+                    style={navDropdownItemStyle}
+                  >
+                    <Inbox className="h-[18px] w-[18px]" />
+                    کارتابل من
+                    <ChevronDown className="h-3 w-3" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56 border-white/10 max-h-[400px] overflow-y-auto" style={{ background: 'linear-gradient(135deg, #0A2A2A 0%, #0F3D38 100%)' }}>
+                  {visibleCartable.map(renderDropdownItem)}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+
+            {/* Meetings dropdown */}
+            {visibleMeetings.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className={cn(navDropdownStyle, visibleMeetings.some((item) => matches(item.href)) && 'text-white')}
+                    style={navDropdownItemStyle}
+                  >
+                    <Calendar className="h-[18px] w-[18px]" />
+                    جلسات
+                    <ChevronDown className="h-3 w-3" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56 border-white/10" style={{ background: 'linear-gradient(135deg, #0A2A2A 0%, #0F3D38 100%)' }}>
+                  {visibleMeetings.map(renderDropdownItem)}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+
+            {/* Admin dropdown */}
+            {visibleAdmin.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className={cn(navDropdownStyle, visibleAdmin.some((item) => matches(item.href)) && 'text-white')}
+                    style={navDropdownItemStyle}
+                  >
+                    <Shield className="h-[18px] w-[18px]" />
+                    مدیریت
+                    <ChevronDown className="h-3 w-3" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56 border-white/10" style={{ background: 'linear-gradient(135deg, #0A2A2A 0%, #0F3D38 100%)' }}>
+                  {visibleAdmin.map(renderDropdownItem)}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </nav>
 
           {/* Left side: notifications + profile */}
           <div className="flex items-center gap-2.5">

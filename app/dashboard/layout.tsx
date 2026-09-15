@@ -64,7 +64,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isDashboardHome = pathname === '/dashboard';
 
   return (
-    <div className="min-h-screen bg-[#F6F8FC]" dir="rtl">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-300" dir="rtl">
       <CallProvider>
         <GlobalNavbar sidebarOpen={sidebarOpen} onToggleSidebar={toggleSidebar} />
         <DashboardSidebar open={sidebarOpen} onToggle={toggleSidebar} />

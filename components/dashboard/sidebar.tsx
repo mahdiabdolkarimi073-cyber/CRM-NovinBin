@@ -91,13 +91,13 @@ export function DashboardSidebar({ open, onToggle }: SidebarProps) {
         className={cn(
           'flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors',
           active
-            ? 'bg-emerald-500/10 text-emerald-400 font-semibold'
-            : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+            ? 'bg-accent/10 text-accent font-semibold'
+            : 'text-sidebar-muted-foreground hover:text-sidebar-foreground hover:bg-white/5'
         )}
       >
         <item.icon className="h-[18px] w-[18px] shrink-0" />
         <span className="truncate">{item.label}</span>
-        {active && <span className="absolute right-0 h-5/6 w-[3px] rounded-l-full bg-emerald-400" />}
+        {active && <span className="absolute right-0 h-5/6 w-[3px] rounded-l-full bg-accent" />}
       </Link>
     );
   };
@@ -111,7 +111,7 @@ export function DashboardSidebar({ open, onToggle }: SidebarProps) {
         <button
           className={cn(
             'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors',
-            groupActive ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+            groupActive ? 'text-accent' : 'text-sidebar-muted-foreground hover:text-sidebar-foreground hover:bg-white/5'
           )}
           onClick={() => toggleGroup(group.label)}
         >
@@ -141,7 +141,7 @@ export function DashboardSidebar({ open, onToggle }: SidebarProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed z-40 flex flex-col bg-slate-900 transition-transform duration-300 ease-in-out scroll-smooth',
+          'fixed z-40 flex flex-col bg-sidebar text-sidebar-foreground border-l border-border transition-transform duration-300 ease-in-out scroll-smooth',
           open ? 'translate-x-0' : 'translate-x-full'
         )}
         style={{ width: SIDEBAR_WIDTH, right: 0, top: '64px', height: 'calc(100vh - 64px)', overflowY: 'auto', scrollBehavior: 'smooth' }}
@@ -182,8 +182,8 @@ export function DashboardSidebar({ open, onToggle }: SidebarProps) {
               className={cn(
                 'mt-2 flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors',
                 matches(pathname, '/super-admin')
-                  ? 'bg-emerald-500/10 text-emerald-400 font-semibold'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                  ? 'bg-accent/10 text-accent font-semibold'
+                  : 'text-sidebar-muted-foreground hover:text-sidebar-foreground hover:bg-white/5'
               )}
             >
               <Shield className="h-[18px] w-[18px] shrink-0" />
