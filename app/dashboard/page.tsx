@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   Activity, ArrowLeft, BarChart3, Bell, CalendarDays, CalendarCheck, CheckSquare,
   ChevronDown, ClipboardList, FileBarChart, FileText, Folder, FolderKanban, Gauge,
-  ListChecks, MessageCircle, NotebookPen, Settings, Target, TrendingUp, Users,
+  ListChecks, MessageCircle, MessagesSquare, NotebookPen, Settings, Target, TrendingUp, Users,
   Workflow, Zap,
 } from 'lucide-react';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -38,6 +38,7 @@ const quickItems: QuickItem[] = [
   { href: '/dashboard/work-reports/daily/new', title: 'ایجاد گزارش روزانه', subtitle: 'ثبت گزارش کار روزانه', icon: FileBarChart, tone: 'purple' },
   { href: '/dashboard/work-reports/monthly/new', title: 'ایجاد گزارش ماهانه', subtitle: 'ثبت گزارش کار ماهانه', icon: FileText, tone: 'blue' },
   { href: '/dashboard/tickets', title: 'پشتیبانی', subtitle: 'مرکز راهنما و پشتیبانی', icon: MessageCircle, tone: 'green' },
+  { href: '/dashboard/social', title: 'شبکه اجتماعی', subtitle: 'چت گروهی و پیام‌رسانی', icon: MessagesSquare, tone: 'blue' },
 ];
 
 const tones: Record<Tone, string> = {

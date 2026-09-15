@@ -18,10 +18,11 @@ import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 import {
   Calendar, Plus, Video, MapPin, Clock, UserRound, CalendarDays,
   Eye, CheckCircle2, FileText, TimerReset, Loader2, Search, LayoutGrid,
-  List, Filter, Archive, Trash2,
+  List, Filter, Archive, Trash2, Forward, Check,
 } from 'lucide-react';
 import { formatJalaliDateTime, formatJalali, toLocalDateString, formatFileSize } from '@/lib/format';
 import { MEETING_STATUSES, fullName } from '@/lib/constants';
+import { createData } from '@/lib/data-client';
 import { toast } from 'sonner';
 import type { Meeting, MeetingImage, Profile } from '@/lib/types';
 import { Upload, Paperclip, X, Image as ImageIcon } from 'lucide-react';
@@ -69,6 +70,10 @@ export default function MeetingsPage() {
   const [outcomeFiles, setOutcomeFiles] = useState<ResultFile[]>([]);
   const [uploadingOutcome, setUploadingOutcome] = useState(false);
   const [detailResultFiles, setDetailResultFiles] = useState<ResultFile[]>([]);
+  const [referOpen, setReferOpen] = useState(false);
+  const [referMeetingId, setReferMeetingId] = useState<string | null>(null);
+  const [referTargetIds, setReferTargetIds] = useState<string[]>([]);
+  const [referring, setReferring] = useState(false);
 
   const isSuperAdmin = profile?.role === 'super_admin' || profile?.role === 'owner';
   const isAdmin = profile?.role === 'admin';
@@ -301,6 +306,55 @@ export default function MeetingsPage() {
     }
   };
 
+  const openRefer = (m: MeetingWithAssignment) => {
+    setReferMeetingId(m.id);
+    setReferTargetIds([]);
+    setReferOpen(true);
+  };
+
+  const toggleReferTarget = (id: string) => {
+    setReferTargetIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  };
+
+  const handleRefer = async () => {
+    if (!referMeetingId || referTargetIds.length === 0 || !profile) return;
+    setReferring(true);
+    try {
+      const meeting = meetings.find((m) => m.id === referMeetingId);
+      const myName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
+      const notifPromises: Promise<any>[] = [];
+      for (const targetId of referTargetIds) {
+        await createData('meeting_assignments', {
+          meetingId: referMeetingId,
+          assignedTo: targetId,
+          contactName: meeting?.contact_name || meeting?.title || '',
+          createdBy: profile.id,
+        });
+        if (targetId !== profile.id) {
+          notifPromises.push(
+            createData('notifications', {
+              profileId: targetId,
+              title: 'جلسه‌ای به شما ارجاع داده شد',
+              body: `${myName} یک جلسه${meeting ? ` «${meeting.contact_name || meeting.title}»` : ''} را به شما ارجاع داد`,
+              type: 'meeting',
+              priority: 'normal',
+              link: '/dashboard/meetings',
+            }).catch(() => {})
+          );
+        }
+      }
+      await Promise.all(notifPromises);
+      toast.success('جلسه ارجاع داده شد');
+      setReferOpen(false);
+      setReferMeetingId(null);
+      setReferTargetIds([]);
+      load();
+    } catch (e: any) {
+      toast.error('ارجاع ناموفق: ' + e.message);
+    }
+    setReferring(false);
+  };
+
   const handleArchive = async (m: MeetingWithAssignment) => {
     try {
       await updateData('meetings', { id: m.id }, { isArchived: true });
@@ -445,6 +499,7 @@ export default function MeetingsPage() {
                     onOutcome={() => openOutcome(m)}
                     onExtend={() => openExtend(m)}
                     onArchive={() => handleArchive(m)}
+                    onRefer={() => openRefer(m)}
                   />
                 ))}
               </div>
@@ -468,6 +523,7 @@ export default function MeetingsPage() {
                     onOutcome={() => openOutcome(m)}
                     onExtend={() => openExtend(m)}
                     onArchive={() => handleArchive(m)}
+                    onRefer={() => openRefer(m)}
                   />
                 ))}
               </div>
@@ -509,6 +565,9 @@ export default function MeetingsPage() {
                             <TimerReset className="h-4 w-4" />
                           </button>
                         )}
+                        <button className="rounded p-1.5 text-amber-500 hover:bg-amber-50 hover:text-amber-600" onClick={() => openRefer(m)} title="ارجاع">
+                          <Forward className="h-4 w-4" />
+                        </button>
                         {isSuperAdmin && (
                           <button className="rounded p-1.5 text-red-400 hover:bg-red-50 hover:text-red-600" onClick={() => handleDelete(m)}>
                             <Trash2 className="h-4 w-4" />
@@ -707,6 +766,9 @@ export default function MeetingsPage() {
                     <CheckCircle2 className="h-4 w-4" /> ثبت نتیجه
                   </Button>
                 )}
+                <Button type="button" variant="outline" size="sm" onClick={() => { setViewDialogOpen(false); openRefer(viewMeeting); }}>
+                  <Forward className="h-4 w-4" /> ارجاع
+                </Button>
               </div>
             </div>
           )}
@@ -787,7 +849,7 @@ export default function MeetingsPage() {
 }
 
 function MeetingCard({
-  meeting, upcoming, isSuperAdmin, canExtend, onView, onDelete, onOutcome, onExtend, onArchive,
+  meeting, upcoming, isSuperAdmin, canExtend, onView, onDelete, onOutcome, onExtend, onArchive, onRefer,
 }: {
   meeting: MeetingWithAssignment;
   upcoming?: boolean;
@@ -798,6 +860,7 @@ function MeetingCard({
   onOutcome: () => void;
   onExtend: () => void;
   onArchive: () => void;
+  onRefer: () => void;
 }) {
   const st = statusInfo(meeting.status);
   const hasOutcome = !!meeting.outcome;
@@ -871,6 +934,9 @@ function MeetingCard({
             <CheckCircle2 className="h-3.5 w-3.5" /> {hasOutcome ? 'ویرایش نتیجه' : 'ثبت نتیجه'}
           </button>
         )}
+        <button className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-amber-600 transition hover:bg-amber-50" onClick={onRefer}>
+          <Forward className="h-3.5 w-3.5" /> ارجاع
+        </button>
         {canExtend && upcoming && (
           <button className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-amber-600 transition hover:bg-amber-50" onClick={onExtend}>
             <TimerReset className="h-3.5 w-3.5" /> تمدید
