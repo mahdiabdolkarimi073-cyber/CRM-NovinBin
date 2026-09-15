@@ -259,6 +259,17 @@ export interface Meeting {
   createdAt: string;
   meeting_participants?: { profileId: string }[];
   images?: MeetingImage[];
+  referrals?: MeetingReferral[];
+}
+
+export interface MeetingReferral {
+  id: string;
+  meetingId: string;
+  referredToProfileId: string | null;
+  referredByProfileId: string | null;
+  status: string;
+  note: string | null;
+  createdAt: string;
 }
 
 export interface Ticket {

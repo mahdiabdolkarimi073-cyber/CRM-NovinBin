@@ -24,7 +24,7 @@ import { formatJalaliDateTime, formatJalali, toLocalDateString, formatFileSize }
 import { MEETING_STATUSES, fullName } from '@/lib/constants';
 import { toast } from 'sonner';
 import type { Meeting, MeetingImage, Profile } from '@/lib/types';
-import { Upload, Paperclip, X, FileText as FileIcon, Image as ImageIcon } from 'lucide-react';
+import { Upload, Paperclip, X, Image as ImageIcon } from 'lucide-react';
 
 interface ResultFile {
   url: string;
@@ -682,7 +682,7 @@ export default function MeetingsPage() {
                           </a>
                         ) : (
                           <a href={f.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                            <FileIcon className="h-5 w-5 text-slate-400" />
+                            <FileText className="h-5 w-5 text-slate-400" />
                             <span className="text-sm text-sky-600 hover:underline">{f.name}</span>
                           </a>
                         )}
@@ -756,7 +756,7 @@ export default function MeetingsPage() {
                         {f.type.startsWith('image/') ? (
                           <img src={f.url} alt={f.name} className="h-10 w-10 rounded object-cover" />
                         ) : (
-                          <FileIcon className="h-5 w-5 text-slate-400" />
+                          <FileText className="h-5 w-5 text-slate-400" />
                         )}
                         <span className="flex-1 truncate text-sm text-slate-700">{f.name}</span>
                         <span className="text-xs text-slate-400">{formatFileSize(f.size)}</span>

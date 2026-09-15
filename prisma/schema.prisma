@@ -528,6 +528,7 @@ model Meeting {
   participants  MeetingParticipant[]
   assignments   MeetingAssignment[]
   images        MeetingImage[]
+  referrals     MeetingReferral[]
 
   @@map("meetings")
 }
@@ -553,6 +554,19 @@ model MeetingParticipant {
 
   @@unique([meetingId, profileId])
   @@map("meeting_participants")
+}
+
+model MeetingReferral {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  meetingId           String   @db.Uuid
+  referredToProfileId String?  @db.Uuid
+  referredByProfileId String?  @db.Uuid
+  status              String   @default("active")
+  note                String?
+  createdAt           DateTime @default(now())
+  meeting             Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@map("meeting_referrals")
 }
 
 // ============ TICKETS ============

@@ -13,6 +13,7 @@ import {
   Shield, Menu, X, ChevronDown, User, Settings, LogOut,
   Inbox, Landmark, Warehouse, Award, ClipboardList, TrendingUp,
 } from 'lucide-react';
+import { ThemeToggle } from '@/components/dashboard/theme-toggle';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/dashboard/logo';
 import {
@@ -254,6 +255,9 @@ export function DashboardNavbar() {
 
           {/* Left side: notifications + profile + hamburger */}
           <div className="flex items-center gap-2.5 lg:gap-3">
+            {/* Theme toggle */}
+            <ThemeToggle />
+
             {/* Notifications */}
             <div className="relative">
               <NotificationBell variant="super-admin" />

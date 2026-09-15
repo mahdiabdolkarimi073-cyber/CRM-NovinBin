@@ -1,5 +1,6 @@
 import './globals.css';
 import type { Metadata } from 'next';
+import { ThemeProvider } from 'next-themes';
 import { AuthProvider } from '@/components/providers/auth-provider';
 import { Toaster } from '@/components/ui/sonner';
 
@@ -19,12 +20,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="fa" dir="rtl">
+    <html lang="fa" dir="rtl" suppressHydrationWarning>
       <body className="font-sans antialiased">
-        <AuthProvider>
-          {children}
-          <Toaster position="top-center" dir="rtl" duration={1500} toastOptions={{ duration: 1500 }} />
-        </AuthProvider>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+          <AuthProvider>
+            {children}
+            <Toaster position="top-center" dir="rtl" duration={1500} toastOptions={{ duration: 1500 }} />
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

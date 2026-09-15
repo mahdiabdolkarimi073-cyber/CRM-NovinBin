@@ -37,6 +37,7 @@ const MODEL_MAP: Record<string, any> = {
   meeting_participants: prisma.meetingParticipant,
   meeting_assignments: prisma.meetingAssignment,
   meeting_images: prisma.meetingImage,
+  meeting_referrals: prisma.meetingReferral,
   tickets: prisma.ticket,
   notifications: prisma.notification,
   loyalty_transactions: prisma.loyaltyTransaction,
@@ -279,6 +280,7 @@ const MODEL_PAGE: Record<string, string> = {
   graphic_works: '/dashboard/graphic-works',
   graphic_work_access: '/super-admin/graphic-works-access',
   meeting_images: '/dashboard/meetings',
+  meeting_referrals: '/dashboard/meetings',
 };
 
 const SHARED_MODELS = new Set([
@@ -286,6 +288,7 @@ const SHARED_MODELS = new Set([
   'personal_notes', 'staff_chat_messages', 'my_customers', 'ticket_messages',
   'task_assignees', 'lead_referrals', 'site_verifications', 'irnic_identities',
   'employment_applications', 'graphic_work_access', 'meeting_images',
+  'meeting_referrals',
 ]);
 
 async function canAccess(auth: { userId: string }, model: string): Promise<boolean> {

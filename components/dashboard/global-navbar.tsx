@@ -17,6 +17,7 @@ import {
   Menu, Search, Bell, User, Settings, LogOut, ChevronDown,
   PanelRightClose, PanelRightOpen,
 } from 'lucide-react';
+import { ThemeToggle } from '@/components/dashboard/theme-toggle';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/dashboard/logo';
 import { NotificationBell } from '@/components/dashboard/notification-bell';
@@ -136,6 +137,9 @@ export function GlobalNavbar({ sidebarOpen, onToggleSidebar, variant = 'dashboar
 
           {/* Left side: notifications + profile */}
           <div className="flex items-center gap-2.5">
+            {/* Theme toggle */}
+            <ThemeToggle />
+
             {/* Notifications */}
             <div className="relative">
               <NotificationBell variant="super-admin" />
