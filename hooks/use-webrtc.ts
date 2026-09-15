@@ -48,10 +48,12 @@ export function useWebRTC() {
   }, []);
 
   const createPeerConnection = useCallback((sessionId: string, remoteUserId: string, isCaller: boolean) => {
+    console.log('[WEBRTC] createPeerConnection', { sessionId, remoteUserId, isCaller });
     const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
     pcRef.current = pc;
 
     pc.ontrack = (event) => {
+      console.log('[WEBRTC] ontrack received', { streams: event.streams.length });
       const stream = event.streams[0];
       remoteStreamRef.current = stream;
       updateState({ remoteStream: stream });
@@ -62,6 +64,7 @@ export function useWebRTC() {
 
     pc.onicecandidate = (event) => {
       if (event.candidate) {
+        console.log('[WEBRTC] ICE candidate generated');
         fetch('/api/call/signal', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -71,35 +74,77 @@ export function useWebRTC() {
             signalType: 'ice',
             signalData: JSON.stringify(event.candidate),
           }),
-        }).catch(() => {});
+        }).catch((e) => console.error('[WEBRTC] ICE candidate send failed', e));
+      } else {
+        console.log('[WEBRTC] ICE gathering complete');
       }
     };
 
+    pc.oniceconnectionstatechange = () => {
+      console.log('[WEBRTC] ICE connection state', pc.iceConnectionState);
+    };
+
     pc.onconnectionstatechange = () => {
+      console.log('[WEBRTC] connection state', pc.connectionState);
       if (pc.connectionState === 'failed') {
         updateState({ status: 'failed', error: 'اتصال قطع شد' });
       }
     };
 
+    pc.onsignalingstatechange = () => {
+      console.log('[WEBRTC] signaling state', pc.signalingState);
+    };
+
     return pc;
   }, [updateState]);
+
+  function formatMediaError(e: any): string {
+    const name = e?.name || '';
+    const msg = e?.message || '';
+    console.error('[WEBRTC] media error', { name, message: msg });
+    if (name === 'NotFoundError') {
+      return 'میکروفون یا دوربین روی دستگاه شما یافت نشد. لطفاً یک میکروفون متصل کنید و دوباره تلاش کنید.';
+    }
+    if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+      return 'دسترسی به میکروفون/دوربین داده نشده. لطفاً در تنظیمات مرورگر اجازه دسترسی بدهید.';
+    }
+    if (name === 'NotReadableError') {
+      return 'میکروفون/دوربین توسط برنامه دیگری در حال استفاده است. لطفاً آن برنامه را ببندید.';
+    }
+    if (name === 'OverconstrainedError') {
+      return 'دستگاه شما شرایط مورد نیاز برای تماس را پشتیبانی نمی‌کند.';
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      return 'مرورگر شما از تماس صوتی/تصویری پشتیبانی نمی‌کند. لطفاً از مرورگر Chrome یا Firefox استفاده کنید.';
+    }
+    return 'خطا در دسترسی به میکروفون/دوربین: ' + (msg || name || 'نامشخص');
+  }
 
   const getLocalMedia = useCallback(async (callType: CallType): Promise<MediaStream> => {
     const constraints: MediaStreamConstraints = {
       audio: true,
       video: callType === 'video',
     };
-    const stream = await navigator.mediaDevices.getUserMedia(constraints);
-    localStreamRef.current = stream;
-    updateState({
-      localStream: stream,
-      micEnabled: true,
-      cameraEnabled: callType === 'video',
-    });
-    if (localVideoRef.current) {
-      localVideoRef.current.srcObject = stream;
+    console.log('[WEBRTC] getUserMedia constraints', constraints);
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error('مرورگر شما از تماس صوتی/تصویری پشتیبانی نمی‌کند. لطفاً از مرورگر Chrome یا Firefox استفاده کنید.');
     }
-    return stream;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      console.log('[WEBRTC] getUserMedia success', { audioTracks: stream.getAudioTracks().length, videoTracks: stream.getVideoTracks().length });
+      localStreamRef.current = stream;
+      updateState({
+        localStream: stream,
+        micEnabled: true,
+        cameraEnabled: callType === 'video',
+      });
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+      }
+      return stream;
+    } catch (e: any) {
+      throw new Error(formatMediaError(e));
+    }
   }, [updateState]);
 
   const startCall = useCallback(async (
@@ -108,15 +153,19 @@ export function useWebRTC() {
     callType: CallType
   ) => {
     try {
+      console.log('[WEBRTC] startCall begin', { sessionId, remoteUserId, callType });
       updateState({ status: 'calling', callType, sessionId, remoteUserId, isCaller: true, error: null });
       const stream = await getLocalMedia(callType);
       const pc = createPeerConnection(sessionId, remoteUserId, true);
       stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+      console.log('[WEBRTC] tracks added to PC', { count: stream.getTracks().length });
 
       const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: callType === 'video' });
       await pc.setLocalDescription(offer);
+      console.log('[WEBRTC] offer created & setLocalDescription done', { type: offer.type, sdpLength: offer.sdp?.length });
 
-      await fetch('/api/call/signal', {
+      console.log('[WEBRTC] sending offer via /api/call/signal');
+      const sigRes = await fetch('/api/call/signal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -126,8 +175,22 @@ export function useWebRTC() {
           signalData: JSON.stringify(offer),
         }),
       });
+      const sigData = await sigRes.json();
+      console.log('[WEBRTC] signal response', { status: sigRes.status, data: sigData });
+      if (!sigRes.ok) {
+        throw new Error('ارسال سیگنال offer ناموفق بود: ' + (sigData.error || sigRes.status));
+      }
+      console.log('[WEBRTC] startCall completed successfully');
     } catch (e: any) {
+      console.error('[WEBRTC] startCall failed', e);
       updateState({ status: 'failed', error: e.message || 'خطا در برقراری تماس' });
+      if (sessionId) {
+        fetch('/api/call/end', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId, reason: 'media_failed' }),
+        }).catch(() => {});
+      }
     }
   }, [createPeerConnection, getLocalMedia, updateState]);
 
@@ -138,6 +201,7 @@ export function useWebRTC() {
     offerSdp: string
   ) => {
     try {
+      console.log('[WEBRTC] acceptCall begin', { sessionId, remoteUserId, callType, offerSdpLength: offerSdp?.length });
       updateState({ status: 'accepted', callType, sessionId, remoteUserId, isCaller: false, error: null });
       const stream = await getLocalMedia(callType);
       const pc = createPeerConnection(sessionId, remoteUserId, false);
@@ -145,11 +209,14 @@ export function useWebRTC() {
 
       const offer = JSON.parse(offerSdp) as RTCSessionDescriptionInit;
       await pc.setRemoteDescription(offer);
+      console.log('[WEBRTC] setRemoteDescription(offer) done');
 
       const answer = await pc.createAnswer({ offerToReceiveAudio: true, offerToReceiveVideo: callType === 'video' });
       await pc.setLocalDescription(answer);
+      console.log('[WEBRTC] answer created & setLocalDescription done');
 
-      await fetch('/api/call/signal', {
+      console.log('[WEBRTC] sending answer via /api/call/signal');
+      const sigRes = await fetch('/api/call/signal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -159,6 +226,11 @@ export function useWebRTC() {
           signalData: JSON.stringify(answer),
         }),
       });
+      const sigData = await sigRes.json();
+      console.log('[WEBRTC] signal response', { status: sigRes.status, data: sigData });
+      if (!sigRes.ok) {
+        throw new Error('ارسال سیگنال answer ناموفق بود: ' + (sigData.error || sigRes.status));
+      }
 
       for (const candidate of pendingCandidatesRef.current) {
         await pc.addIceCandidate(candidate).catch(() => {});
@@ -166,28 +238,46 @@ export function useWebRTC() {
       pendingCandidatesRef.current = [];
 
       updateState({ status: 'accepted' });
+      console.log('[WEBRTC] acceptCall completed successfully');
     } catch (e: any) {
+      console.error('[WEBRTC] acceptCall failed', e);
       updateState({ status: 'failed', error: e.message || 'خطا در پاسخ به تماس' });
+      if (sessionId) {
+        fetch('/api/call/end', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId, reason: 'media_failed' }),
+        }).catch(() => {});
+      }
     }
   }, [createPeerConnection, getLocalMedia, updateState]);
 
   const handleSignal = useCallback(async (signalType: string, signalData: string) => {
     const pc = pcRef.current;
-    if (!pc) return;
+    if (!pc) {
+      console.warn('[WEBRTC] handleSignal called but no PC', { signalType });
+      return;
+    }
 
     try {
       if (signalType === 'answer') {
         const answer = JSON.parse(signalData) as RTCSessionDescriptionInit;
+        console.log('[WEBRTC] setting remote description (answer)');
         await pc.setRemoteDescription(answer);
+        console.log('[WEBRTC] setRemoteDescription(answer) done');
       } else if (signalType === 'ice') {
         const candidate = JSON.parse(signalData) as RTCIceCandidateInit;
         if (pc.remoteDescription) {
           await pc.addIceCandidate(new RTCIceCandidate(candidate));
+          console.log('[WEBRTC] ICE candidate added');
         } else {
           pendingCandidatesRef.current.push(new RTCIceCandidate(candidate));
+          console.log('[WEBRTC] ICE candidate queued (no remote description yet)', { pending: pendingCandidatesRef.current.length });
         }
       }
-    } catch {}
+    } catch (err) {
+      console.error('[WEBRTC] handleSignal error', { signalType, error: err });
+    }
   }, []);
 
   const toggleMic = useCallback(() => {

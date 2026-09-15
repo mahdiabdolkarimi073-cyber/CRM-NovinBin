@@ -32,7 +32,11 @@ function serialize(data: any): any {
 
 export async function GET(req: NextRequest) {
   const auth = getAuth(req);
-  if (!auth) return new Response('Unauthorized', { status: 401 });
+  if (!auth) {
+    console.error('[API call/stream] Unauthorized');
+    return new Response('Unauthorized', { status: 401 });
+  }
+  console.log('[API call/stream] SSE connection opened', { userId: auth.userId });
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -57,7 +61,10 @@ export async function GET(req: NextRequest) {
             },
             orderBy: { createdAt: 'asc' },
           });
-          for (const call of incomingCalls) send('incoming_call', serialize(call));
+          for (const call of incomingCalls) {
+            console.log('[API call/stream] sending incoming_call', { sessionId: call.id, status: call.status, hasOffer: !!call.offerSdp });
+            send('incoming_call', serialize(call));
+          }
 
           const callUpdates = await prisma.socialCallSession.findMany({
             where: {
@@ -67,7 +74,10 @@ export async function GET(req: NextRequest) {
             },
             orderBy: { createdAt: 'asc' },
           });
-          for (const call of callUpdates) send('call_update', serialize(call));
+          for (const call of callUpdates) {
+            console.log('[API call/stream] sending call_update', { sessionId: call.id, status: call.status });
+            send('call_update', serialize(call));
+          }
 
           const signals = await prisma.socialCallSignal.findMany({
             where: {
@@ -76,10 +86,14 @@ export async function GET(req: NextRequest) {
             },
             orderBy: { createdAt: 'asc' },
           });
-          for (const sig of signals) send('call_signal', serialize(sig));
+          for (const sig of signals) {
+            console.log('[API call/stream] sending call_signal', { signalId: sig.id, signalType: sig.signalType });
+            send('call_signal', serialize(sig));
+          }
 
           lastCheck = new Date();
-        } catch {
+        } catch (err) {
+          console.error('[API call/stream] poll error', err);
           send('error', { message: 'Poll failed' });
         }
       }, 1500);
@@ -93,6 +107,7 @@ export async function GET(req: NextRequest) {
         closed = true;
         clearInterval(interval);
         clearInterval(heartbeat);
+        console.log('[API call/stream] SSE connection closed', { userId: auth.userId });
         try { controller.close(); } catch {}
       });
     },

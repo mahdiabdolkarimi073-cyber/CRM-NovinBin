@@ -170,7 +170,20 @@ export function CallOverlay({ webrtc, incomingCall, callerProfile, onAccept, onR
           </button>
         </div>
 
-        {state.error && <p className="call-error">{state.error}</p>}
+        {state.error && (
+          <div className="call-debug-panel">
+            <p className="call-error">{state.error}</p>
+            <div className="call-debug-details">
+              <span>وضعیت: {state.status}</span>
+              <span>نوع: {state.callType}</span>
+              <span>session: {state.sessionId ? state.sessionId.slice(0, 8) : '—'}</span>
+              <span>remote: {state.remoteUserId ? state.remoteUserId.slice(0, 8) : '—'}</span>
+              <span>isCaller: {String(state.isCaller)}</span>
+              <span>localStream: {state.localStream ? 'yes' : 'no'}</span>
+              <span>remoteStream: {state.remoteStream ? 'yes' : 'no'}</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -19,14 +19,22 @@ function getAuth(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const auth = getAuth(req);
-  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!auth) {
+    console.error('[API call/initiate] Unauthorized - no valid token');
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   try {
     const body = await req.json();
     const { receiverId, callType } = body as { receiverId: string; callType: string };
+    console.log('[API call/initiate]', { callerId: auth.userId, receiverId, callType });
 
-    if (!receiverId) return NextResponse.json({ error: 'شناسه گیرنده الزامی است' }, { status: 400 });
+    if (!receiverId) {
+      console.error('[API call/initiate] missing receiverId');
+      return NextResponse.json({ error: 'شناسه گیرنده الزامی است' }, { status: 400 });
+    }
     if (!['audio', 'video'].includes(callType)) {
+      console.error('[API call/initiate] invalid callType', callType);
       return NextResponse.json({ error: 'نوع تماس نامعتبر است' }, { status: 400 });
     }
 
@@ -38,9 +46,11 @@ export async function POST(req: NextRequest) {
         status: 'calling',
       },
     });
+    console.log('[API call/initiate] session created', { sessionId: session.id });
 
     return NextResponse.json({ session });
   } catch (e: any) {
+    console.error('[API call/initiate] error', e?.message || e);
     return NextResponse.json({ error: e.message || 'خطای سرور' }, { status: 500 });
   }
 }

@@ -19,7 +19,10 @@ function getAuth(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const auth = getAuth(req);
-  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!auth) {
+    console.error('[API call/signal] Unauthorized');
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   try {
     const body = await req.json();
@@ -29,18 +32,25 @@ export async function POST(req: NextRequest) {
       signalType: string;
       signalData: string;
     };
+    console.log('[API call/signal]', { senderId: auth.userId, callSessionId, receiverId, signalType, signalDataLength: signalData?.length });
 
     if (!callSessionId || !receiverId || !signalType) {
+      console.error('[API call/signal] missing params', { callSessionId, receiverId, signalType });
       return NextResponse.json({ error: 'پارامترهای ناقص' }, { status: 400 });
     }
 
     if (!['offer', 'answer', 'ice', 'end', 'reject'].includes(signalType)) {
+      console.error('[API call/signal] invalid signalType', signalType);
       return NextResponse.json({ error: 'نوع سیگنال نامعتبر' }, { status: 400 });
     }
 
     const session = await prisma.socialCallSession.findUnique({ where: { id: callSessionId } });
-    if (!session) return NextResponse.json({ error: 'تماس یافت نشد' }, { status: 404 });
+    if (!session) {
+      console.error('[API call/signal] session not found', callSessionId);
+      return NextResponse.json({ error: 'تماس یافت نشد' }, { status: 404 });
+    }
     if (session.callerId !== auth.userId && session.receiverId !== auth.userId) {
+      console.error('[API call/signal] unauthorized access', { userId: auth.userId, callerId: session.callerId, receiverId: session.receiverId });
       return NextResponse.json({ error: 'دسترسی غیرمجاز' }, { status: 403 });
     }
 
@@ -49,11 +59,13 @@ export async function POST(req: NextRequest) {
         where: { id: callSessionId },
         data: { offerSdp: signalData, status: 'ringing' },
       });
+      console.log('[API call/signal] offer saved, status -> ringing');
     } else if (signalType === 'answer') {
       await prisma.socialCallSession.update({
         where: { id: callSessionId },
         data: { answerSdp: signalData },
       });
+      console.log('[API call/signal] answer saved');
     }
 
     const signal = await prisma.socialCallSignal.create({
@@ -65,9 +77,11 @@ export async function POST(req: NextRequest) {
         signalData,
       },
     });
+    console.log('[API call/signal] signal created', { signalId: signal.id });
 
     return NextResponse.json({ signal });
   } catch (e: any) {
+    console.error('[API call/signal] error', e?.message || e);
     return NextResponse.json({ error: e.message || 'خطای سرور' }, { status: 500 });
   }
 }

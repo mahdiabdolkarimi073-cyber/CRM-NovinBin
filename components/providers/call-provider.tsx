@@ -40,42 +40,68 @@ export function CallProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const handleStartCall = useCallback(async (remoteUser: Profile, callType: 'audio' | 'video') => {
-    if (!profile) return;
+    if (!profile) {
+      console.error('[CALL] startCall failed: no profile');
+      toast.error('کاربر احراز هویت نشده');
+      return;
+    }
+    console.log('[CALL] startCall initiated', { callerId: profile.id, receiverId: remoteUser.id, callType });
     try {
+      console.log('[CALL] POST /api/call/initiate');
       const res = await fetch('/api/call/initiate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ receiverId: remoteUser.id, callType }),
       });
       const data = await res.json();
+      console.log('[CALL] initiate response', { status: res.status, data });
       if (!res.ok) {
+        console.error('[CALL] initiate failed', { status: res.status, error: data.error });
         toast.error(data.error || 'خطا در برقراری تماس');
         return;
       }
       const session: SocialCallSession = data.session;
+      console.log('[CALL] session created', { sessionId: session.id });
+      console.log('[CALL] starting WebRTC...');
       await webrtc.startCall(session.id, remoteUser.id, callType);
-    } catch {
-      toast.error('خطا در برقراری تماس');
+      console.log('[CALL] WebRTC startCall completed');
+    } catch (e: any) {
+      console.error('[CALL] startCall exception', e);
+      toast.error('خطا در برقراری تماس: ' + (e?.message || e));
     }
   }, [profile, webrtc]);
 
   const handleAcceptCall = useCallback(async () => {
     if (!incomingCall || !profile) return;
-    const res = await fetch('/api/call/accept', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId: incomingCall.id }),
-    });
-    if (!res.ok) {
-      toast.error('پاسخ به تماس ناموفق بود');
-      return;
+    console.log('[CALL] acceptCall initiated', { sessionId: incomingCall.id });
+    try {
+      const res = await fetch('/api/call/accept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: incomingCall.id }),
+      });
+      const data = await res.json();
+      console.log('[CALL] accept response', { status: res.status, data });
+      if (!res.ok) {
+        console.error('[CALL] accept failed', { status: res.status, error: data.error });
+        toast.error(data.error || 'پاسخ به تماس ناموفق بود');
+        return;
+      }
+      if (ringAudioRef.current) ringAudioRef.current.pause();
+      const offerSdp = incomingCall.offerSdp;
+      console.log('[CALL] offerSdp present?', !!offerSdp);
+      if (offerSdp) {
+        await webrtc.acceptCall(incomingCall.id, incomingCall.callerId, incomingCall.callType as 'audio' | 'video', offerSdp);
+        console.log('[CALL] WebRTC acceptCall completed');
+      } else {
+        console.error('[CALL] no offerSdp in incoming call');
+        toast.error('اطلاعات تماس ناقص است');
+      }
+      setIncomingCall(null);
+    } catch (e: any) {
+      console.error('[CALL] acceptCall exception', e);
+      toast.error('پاسخ به تماس ناموفق بود: ' + (e?.message || e));
     }
-    if (ringAudioRef.current) ringAudioRef.current.pause();
-    const offerSdp = incomingCall.offerSdp;
-    if (offerSdp) {
-      await webrtc.acceptCall(incomingCall.id, incomingCall.callerId, incomingCall.callType as 'audio' | 'video', offerSdp);
-    }
-    setIncomingCall(null);
   }, [incomingCall, profile, webrtc]);
 
   const handleRejectCall = useCallback(async () => {
@@ -92,6 +118,13 @@ export function CallProvider({ children }: { children: ReactNode }) {
   }, [webrtc]);
 
   useEffect(() => {
+    if (webrtc.state.error) {
+      console.error('[CALL] WebRTC state error', webrtc.state.error);
+      toast.error(webrtc.state.error);
+    }
+  }, [webrtc.state.error]);
+
+  useEffect(() => {
     if (!profile) return;
 
     const es = new EventSource('/api/call/stream');
@@ -100,21 +133,26 @@ export function CallProvider({ children }: { children: ReactNode }) {
     es.addEventListener('incoming_call', async (e) => {
       try {
         const call: SocialCallSession = JSON.parse(e.data);
+        console.log('[CALL] SSE incoming_call', call);
         if (call.receiverId === profile.id && (call.status === 'calling' || call.status === 'ringing')) {
           setIncomingCall(call);
           const cp = await fetchProfile(call.callerId);
+          console.log('[CALL] caller profile fetched', cp ? cp.id : 'null');
           setCallerProfile(cp);
           if (ringAudioRef.current) {
             ringAudioRef.current.loop = true;
             ringAudioRef.current.play().catch(() => {});
           }
         }
-      } catch {}
+      } catch (err) {
+        console.error('[CALL] SSE incoming_call error', err);
+      }
     });
 
     es.addEventListener('call_update', (e) => {
       try {
         const call: SocialCallSession = JSON.parse(e.data);
+        console.log('[CALL] SSE call_update', call);
         if (call.callerId === profile.id) {
           if (call.status === 'rejected') {
             if (ringAudioRef.current) ringAudioRef.current.pause();
@@ -129,12 +167,15 @@ export function CallProvider({ children }: { children: ReactNode }) {
             webrtc.endCall('missed');
           }
         }
-      } catch {}
+      } catch (err) {
+        console.error('[CALL] SSE call_update error', err);
+      }
     });
 
     es.addEventListener('call_signal', (e) => {
       try {
         const sig = JSON.parse(e.data);
+        console.log('[CALL] SSE call_signal', { signalType: sig.signalType, hasData: !!sig.signalData });
         if (sig.signalType === 'end') {
           if (ringAudioRef.current) ringAudioRef.current.pause();
           webrtc.endCall('remote_ended');
@@ -144,10 +185,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
         } else {
           webrtc.handleSignal(sig.signalType, sig.signalData);
         }
-      } catch {}
+      } catch (err) {
+        console.error('[CALL] SSE call_signal error', err);
+      }
     });
 
-    es.addEventListener('error', () => {});
+    es.addEventListener('error', (e: any) => {
+      console.error('[CALL] SSE stream error', e?.message || e);
+    });
 
     return () => {
       es.close();
