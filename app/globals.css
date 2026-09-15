@@ -4061,18 +4061,18 @@
   .academy-register-page{grid-template-columns:1fr 1fr}
   .academy-register-art{display:block}
 }
-@media(max-width:900px){
+@media(max-width:1023px){
   .academy-stat-grid{grid-template-columns:repeat(2,1fr)}
   .academy-dashboard-grid{grid-template-columns:1fr}
+  .academy-dashboard-content{padding:16px}
+  .academy-dashboard-header{padding:14px 16px}
 }
-@media(max-width:480px){
+@media(max-width:767px){
   .academy-login-card{padding:28px 22px}
   .academy-register-card{padding:24px 18px}
   .academy-stat-grid{grid-template-columns:1fr}
   .academy-dashboard-hero{min-height:200px}
   .academy-hero-content{padding:24px 18px}
-  .academy-dashboard-content{padding:16px}
-  .academy-dashboard-header{padding:14px 16px}
 }
 
 /* Academy My Classes */
@@ -4165,12 +4165,12 @@
 .academy-classes-weekly-dot{width:6px;height:6px;border-radius:50%;background:#2563EB;margin-top:2px}
 .academy-classes-weekly-col.today .academy-classes-weekly-dot{background:#fff}
 
-@media(min-width:1200px){
+@media(min-width:1024px){
   .academy-classes-sidebar{transform:translateX(0);position:fixed}
   .academy-classes-main{margin-right:280px}
   .academy-classes-overlay{display:none!important}
 }
-@media(min-width:768px) and (max-width:1199px){
+@media(max-width:1023px){
   .academy-classes-sidebar{width:260px;box-shadow:4px 0 20px rgba(0,0,0,.1)}
   .academy-classes-sidebar.open{transform:translateX(0)}
   .academy-classes-overlay{display:block}
@@ -4314,12 +4314,12 @@
 .edu-next-secondary:hover{background:#F1F5F9}
 .edu-next-secondary svg{width:16px;height:16px}
 
-@media(min-width:1200px){
+@media(min-width:1024px){
   .edu-record-sidebar{transform:translateX(0);position:fixed}
   .edu-record-main{margin-right:280px}
   .edu-record-overlay{display:none!important}
 }
-@media(min-width:768px) and (max-width:1199px){
+@media(max-width:1023px){
   .edu-record-sidebar{width:260px;box-shadow:4px 0 20px rgba(0,0,0,.1)}
   .edu-record-sidebar.open{transform:translateX(0)}
   .edu-record-overlay{display:block}
@@ -4452,12 +4452,12 @@
 .att-pager button:disabled{opacity:.5;cursor:not-allowed}
 .att-pager button svg{width:16px;height:16px}
 
-@media(min-width:1200px){
+@media(min-width:1024px){
   .att-sidebar{transform:translateX(0);position:fixed}
   .att-main{margin-right:280px}
   .att-overlay{display:none!important}
 }
-@media(min-width:768px) and (max-width:1199px){
+@media(max-width:1023px){
   .att-sidebar{width:260px;box-shadow:4px 0 20px rgba(0,0,0,.1)}
   .att-sidebar.open{transform:translateX(0)}
   .att-overlay{display:block}
@@ -4601,7 +4601,7 @@
 .fin-all-link-sm{display:block;text-align:center;margin-top:16px;font-size:13px;color:#2563EB;font-weight:500;text-decoration:none;transition:text-decoration .15s ease}
 .fin-all-link-sm:hover{text-decoration:underline}
 
-@media(max-width:1199px){
+@media(max-width:1023px){
   .fin-layout{grid-template-columns:1fr}
   .fin-sidebar{width:260px;box-shadow:4px 0 20px rgba(0,0,0,.1);transform:translateX(100%);transition:transform .25s ease}
   .fin-sidebar.open{transform:translateX(0)}
@@ -4778,7 +4778,7 @@
 .reg-history-table tbody tr:hover{background:#F8FAFC}
 .reg-history-table tbody tr:last-child td{border-bottom:none}
 
-@media(max-width:1199px){
+@media(max-width:1023px){
   .reg-layout{grid-template-columns:1fr}
   .reg-sidebar{width:260px;box-shadow:4px 0 20px rgba(0,0,0,.1);transform:translateX(100%);transition:transform .25s ease}
   .reg-sidebar.open{transform:translateX(0)}
@@ -4905,7 +4905,7 @@
 .teacher-class-card h3{font-size:16px;font-weight:700;color:#1E293B;margin:0 0 6px}
 .teacher-class-card p{font-size:13px;color:#64748B;margin:0;line-height:1.6}
 
-@media(max-width:1024px){
+@media(max-width:1023px){
   .teacher-dashboard-layout{grid-template-columns:1fr}
   .teacher-dashboard-sidebar{position:fixed;z-index:1000;top:0;right:0;width:280px;transform:translateX(100%);transition:transform .25s ease}
   .teacher-dashboard-sidebar.open{transform:translateX(0)}
@@ -5067,7 +5067,7 @@
 .student-overall-panel>a{font-size:13px;color:#2563EB;text-decoration:none;font-weight:500}
 .student-overall-panel>a:hover{text-decoration:underline}
 
-@media(max-width:1024px){
+@media(max-width:1023px){
   .student-dashboard{grid-template-columns:1fr}
   .student-dashboard-sidebar{position:fixed;z-index:1000;top:0;right:0;width:280px;transform:translateX(100%);transition:transform .25s ease}
   .student-dashboard-sidebar.open{transform:translateX(0)}
@@ -5159,7 +5159,7 @@
 .teacher-tc-rate-bar>div{height:100%;border-radius:3px;transition:width .3s ease}
 .teacher-tc-rate-cell span{font-size:12px;font-weight:600;color:#475569;white-space:nowrap}
 
-@media(max-width:1024px){
+@media(max-width:1023px){
   .teacher-tc-attendance-summary{grid-template-columns:repeat(2,1fr)}
 }
 @media(max-width:767px){
@@ -5237,7 +5237,7 @@
 .teacher-ta-save-btn:disabled{background:#CBD5E1;cursor:not-allowed}
 .teacher-ta-save-btn svg{width:18px;height:18px}
 
-@media(max-width:1024px){
+@media(max-width:1023px){
   .teacher-stat-grid{grid-template-columns:repeat(3,1fr)!important}
 }
 @media(max-width:767px){
@@ -5290,7 +5290,7 @@
 .teacher-te-select{width:100%;height:38px;border:1px solid #E2E8F0;border-radius:8px;padding:0 10px;font-size:13px;color:#1E293B;font-family:inherit;outline:none;background:#fff}
 .teacher-te-select:focus{border-color:#2563EB}
 
-@media(max-width:1024px){
+@media(max-width:1023px){
   .teacher-tg-avg-grid{grid-template-columns:repeat(4,1fr)!important}
 }
 @media(max-width:767px){
@@ -5370,7 +5370,7 @@
 .academy-admin-reg-card strong{display:block;font-size:15px;font-weight:700;color:#1E293B;margin-bottom:4px}
 .academy-admin-reg-card small{display:block;font-size:12px;color:#64748B}
 
-@media(max-width:1024px){
+@media(max-width:1023px){
   .academy-admin-layout{grid-template-columns:1fr}
   .academy-admin-sidebar{position:fixed;z-index:1000;top:0;right:0;width:280px;transform:translateX(100%);transition:transform .25s ease}
   .academy-admin-sidebar.open{transform:translateX(0)}
@@ -5489,7 +5489,7 @@
 .academy-admin-note-meta button{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px solid #E2E8F0;border-radius:8px;background:#fff;color:#EF4444;cursor:pointer;transition:all .2s ease}
 .academy-admin-note-meta button:hover{border-color:#FCA5A5;background:#FEF2F2}
 
-@media(max-width:1024px){
+@media(max-width:1023px){
   .academy-admin-summary-grid{grid-template-columns:repeat(2,1fr)}
   .academy-admin-cards-grid{grid-template-columns:repeat(2,1fr)}
   .academy-admin-form-grid{grid-template-columns:1fr}
