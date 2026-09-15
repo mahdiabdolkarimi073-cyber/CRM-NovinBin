@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { fetchData, createData, updateData, deleteData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
 import { EmptyState } from '@/components/dashboard/empty-state';
-import { MessageCircle, Send, Search, Paperclip, Video, FileText, X, Info, MoreVertical, Filter, Plus, Smile, Mic, CheckCheck, Users, ArrowRight, XCircle, UserPlus, Trash2, Settings, Crown, UserMinus, Camera } from 'lucide-react';
+import { MessageCircle, Send, Search, Paperclip, Video, FileText, X, Info, MoreVertical, Filter, Plus, Smile, Mic, CheckCheck, Users, XCircle, UserPlus, UserMinus } from 'lucide-react';
 import { relativeTime, formatJalali } from '@/lib/format';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -346,8 +346,6 @@ export default function SocialNetworkPage() {
     return dmMessages.filter((m) => m.content?.toLowerCase().includes(q));
   }, [dmMessages, messageSearch]);
 
-  const currentMessages = tab === 'dm' ? filteredDmMessages : filteredGroupMessages;
-
   const selectUser = (user: Profile) => { setSelectedUser(user); setIsUsersOpen(false); };
   const selectGroup = (group: SocialGroup) => { setSelectedGroup(group); setShowGroupMembers(false); setIsUsersOpen(false); };
 
@@ -401,11 +399,11 @@ export default function SocialNetworkPage() {
   const isGroupOwner = selectedGroup && profile && selectedGroup.ownerId === profile.id;
 
   if (loading) {
-    return <div className="staff-chat-page"><div className="staff-chat-loading"><span /></div></div>;
+    return <div className="staff-chat-page staff-chat-page-full"><div className="staff-chat-loading"><span /></div></div>;
   }
 
   return (
-    <div className="staff-chat-page">
+    <div className="staff-chat-page staff-chat-page-full">
       <header className="staff-chat-page-header">
         <div className="staff-chat-title"><span /><h1>شبکه اجتماعی نوین بین</h1></div>
         <p>چت خصوصی و گروهی با کاربران سیستم</p>
