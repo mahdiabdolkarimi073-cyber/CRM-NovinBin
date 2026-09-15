@@ -179,6 +179,11 @@ const MODEL_MAP: Record<string, any> = {
   graphic_work_files: prisma.graphicWorkFile,
   graphic_work_images: prisma.graphicWorkImage,
   graphic_work_access: prisma.graphicWorkAccess,
+  social_dm_messages: prisma.socialDMMessage,
+  social_groups: prisma.socialGroup,
+  social_group_members: prisma.socialGroupMember,
+  social_group_messages: prisma.socialGroupMessage,
+  social_group_message_reads: prisma.socialGroupMessageRead,
 };
 
 function getAuth(req: NextRequest) {
@@ -289,6 +294,8 @@ const SHARED_MODELS = new Set([
   'task_assignees', 'lead_referrals', 'site_verifications', 'irnic_identities',
   'employment_applications', 'graphic_work_access', 'meeting_images',
   'meeting_referrals',
+  'social_dm_messages', 'social_groups', 'social_group_members',
+  'social_group_messages', 'social_group_message_reads',
 ]);
 
 async function canAccess(auth: { userId: string }, model: string): Promise<boolean> {
@@ -330,6 +337,21 @@ export async function GET(req: NextRequest) {
   }
   if (model === 'staff_chat_messages') {
     where = { ...where, OR: [{ senderId: auth.userId }, { receiverId: auth.userId }] };
+  }
+  if (model === 'social_dm_messages') {
+    where = { ...where, OR: [{ senderId: auth.userId }, { receiverId: auth.userId }] };
+  }
+  if (model === 'social_groups') {
+    where = { ...where, OR: [{ ownerId: auth.userId }, { members: { some: { profileId: auth.userId } } }] };
+  }
+  if (model === 'social_group_members') {
+    where = { ...where, OR: [{ profileId: auth.userId }, { group: { ownerId: auth.userId } }] };
+  }
+  if (model === 'social_group_messages') {
+    where = { ...where, group: { members: { some: { profileId: auth.userId } } } };
+  }
+  if (model === 'social_group_message_reads') {
+    where = { ...where, profileId: auth.userId };
   }
   if (model === 'my_customers') {
     const fullProfile = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });
@@ -402,6 +424,15 @@ export async function POST(req: NextRequest) {
   if (model === 'staff_chat_messages') {
     postData = { ...data, senderId: auth.userId };
   }
+  if (model === 'social_dm_messages') {
+    postData = { ...data, senderId: auth.userId };
+  }
+  if (model === 'social_groups') {
+    postData = { ...data, ownerId: auth.userId };
+  }
+  if (model === 'social_group_messages') {
+    postData = { ...data, senderId: auth.userId };
+  }
   if (model === 'ticket_messages') {
     postData = { ...data, senderId: auth.userId, senderType: 'staff' };
   }
@@ -440,6 +471,32 @@ export async function POST(req: NextRequest) {
             link: '/dashboard/staff-chat',
           },
         });
+      } catch {}
+    }
+    if (model === 'social_dm_messages' && postData.receiverId) {
+      try {
+        const sender = await prisma.profile.findUnique({
+          where: { id: auth.userId }, select: { firstName: true, lastName: true } });
+        const senderName = [sender?.firstName, sender?.lastName].filter(Boolean).join(' ') || 'کاربر';
+        await prisma.notification.create({
+          data: { profileId: postData.receiverId, title: `پیام جدید از ${senderName}`, body: postData.content ? String(postData.content).slice(0, 120) : 'فایل پیوست', type: 'social', priority: 'normal', link: '/dashboard/social' } });
+      } catch {}
+    }
+    if (model === 'social_group_messages' && postData.groupId) {
+      try {
+        const sender = await prisma.profile.findUnique({
+          where: { id: auth.userId }, select: { firstName: true, lastName: true } });
+        const senderName = [sender?.firstName, sender?.lastName].filter(Boolean).join(' ') || 'کاربر';
+        const group = await prisma.socialGroup.findUnique({ where: { id: postData.groupId }, select: { name: true } });
+        const members = await prisma.socialGroupMember.findMany({ where: { groupId: postData.groupId, profileId: { not: auth.userId } }, select: { profileId: true } });
+        if (members.length > 0) {
+          await prisma.notification.createMany({ data: members.map((m) => ({ profileId: m.profileId, title: `پیام جدید در گروه ${group?.name || ''}`, body: `${senderName}: ${postData.content ? String(postData.content).slice(0, 100) : 'فایل پیوست'}`, type: 'social', priority: 'normal', link: '/dashboard/social' })) });
+        }
+      } catch {}
+    }
+    if (model === 'social_groups' && record) {
+      try {
+        await prisma.socialGroupMember.create({ data: { groupId: (record as any).id, profileId: auth.userId, role: 'admin' } });
       } catch {}
     }
 

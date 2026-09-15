@@ -4442,3 +4442,76 @@ model GraphicWorkAccess {
   @@unique([profileId])
   @@map("graphic_work_access")
 }
+
+// ============ SOCIAL NETWORK (شبکه اجتماعی نوین بین) ============
+
+model SocialDMMessage {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  senderId       String   @db.Uuid
+  receiverId     String   @db.Uuid
+  content        String?
+  attachmentUrl  String?
+  attachmentName String?
+  attachmentType String?
+  readAt         DateTime?
+  createdAt      DateTime @default(now())
+
+  @@map("social_dm_messages")
+}
+
+model SocialGroup {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String
+  description String?
+  avatarUrl   String?
+  ownerId     String   @db.Uuid
+  createdAt   DateTime @default(now())
+
+  members     SocialGroupMember[]
+  messages    SocialGroupMessage[]
+
+  @@map("social_groups")
+}
+
+model SocialGroupMember {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId   String   @db.Uuid
+  profileId String   @db.Uuid
+  role      String   @default("member")
+  joinedAt  DateTime @default(now())
+
+  group     SocialGroup      @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  messages  SocialGroupMessage[]
+
+  @@unique([groupId, profileId])
+  @@map("social_group_members")
+}
+
+model SocialGroupMessage {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId        String   @db.Uuid
+  senderId       String   @db.Uuid
+  content        String?
+  attachmentUrl  String?
+  attachmentName String?
+  attachmentType String?
+  createdAt      DateTime @default(now())
+
+  group          SocialGroup          @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  senderMember   SocialGroupMember?  @relation(fields: [senderId, groupId], references: [profileId, groupId], onDelete: SetNull)
+  reads          SocialGroupMessageRead[]
+
+  @@map("social_group_messages")
+}
+
+model SocialGroupMessageRead {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  messageId String   @db.Uuid
+  profileId String   @db.Uuid
+  readAt    DateTime @default(now())
+
+  message   SocialGroupMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, profileId])
+  @@map("social_group_message_reads")
+}

@@ -2724,3 +2724,52 @@ export interface GraphicWorkAccess {
   grantedBy: string;
   createdAt: string;
 }
+
+// ============ SOCIAL NETWORK (شبکه اجتماعی نوین بین) ============
+
+export interface SocialDMMessage {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  content: string | null;
+  attachmentUrl: string | null;
+  attachmentName: string | null;
+  attachmentType: string | null;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export interface SocialGroup {
+  id: string;
+  name: string;
+  description: string | null;
+  avatarUrl: string | null;
+  ownerId: string;
+  createdAt: string;
+}
+
+export interface SocialGroupMember {
+  id: string;
+  groupId: string;
+  profileId: string;
+  role: string;
+  joinedAt: string;
+}
+
+export interface SocialGroupMessage {
+  id: string;
+  groupId: string;
+  senderId: string;
+  content: string | null;
+  attachmentUrl: string | null;
+  attachmentName: string | null;
+  attachmentType: string | null;
+  createdAt: string;
+}
+
+export interface SocialGroupMessageRead {
+  id: string;
+  messageId: string;
+  profileId: string;
+  readAt: string;
+}
