@@ -4453,13 +4453,8 @@ model SocialDMMessage {
   attachmentUrl  String?
   attachmentName String?
   attachmentType String?
-  replyToId      String?  @db.Uuid
-  editedAt       DateTime?
   readAt         DateTime?
   createdAt      DateTime @default(now())
-
-  replyTo        SocialDMMessage?   @relation("SocialDMReply", fields: [replyToId], references: [id], onDelete: SetNull)
-  replies        SocialDMMessage[]  @relation("SocialDMReply")
 
   @@map("social_dm_messages")
 }
@@ -4499,14 +4494,10 @@ model SocialGroupMessage {
   attachmentUrl  String?
   attachmentName String?
   attachmentType String?
-  replyToId      String?  @db.Uuid
-  editedAt       DateTime?
   createdAt      DateTime @default(now())
 
   group          SocialGroup          @relation(fields: [groupId], references: [id], onDelete: Cascade)
   reads          SocialGroupMessageRead[]
-  replyTo        SocialGroupMessage?  @relation("SocialGroupMsgReply", fields: [replyToId], references: [id], onDelete: SetNull)
-  replies        SocialGroupMessage[] @relation("SocialGroupMsgReply")
 
   @@map("social_group_messages")
 }
@@ -4521,4 +4512,37 @@ model SocialGroupMessageRead {
 
   @@unique([messageId, profileId])
   @@map("social_group_message_reads")
+}
+
+model SocialCallSession {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  callerId       String   @db.Uuid
+  receiverId     String   @db.Uuid
+  callType       String   @default("audio")
+  status         String   @default("calling")
+  offerSdp       String?
+  answerSdp      String?
+  startedAt      DateTime?
+  endedAt        DateTime?
+  durationSeconds Int?
+  endReason      String?
+  createdAt      DateTime @default(now())
+
+  signals        SocialCallSignal[]
+
+  @@map("social_call_sessions")
+}
+
+model SocialCallSignal {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  callSessionId  String   @db.Uuid
+  senderId       String   @db.Uuid
+  receiverId     String   @db.Uuid
+  signalType     String
+  signalData     String?
+  createdAt      DateTime @default(now())
+
+  callSession    SocialCallSession @relation(fields: [callSessionId], references: [id], onDelete: Cascade)
+
+  @@map("social_call_signals")
 }

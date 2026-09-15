@@ -184,6 +184,8 @@ const MODEL_MAP: Record<string, any> = {
   social_group_members: prisma.socialGroupMember,
   social_group_messages: prisma.socialGroupMessage,
   social_group_message_reads: prisma.socialGroupMessageRead,
+  social_call_sessions: prisma.socialCallSession,
+  social_call_signals: prisma.socialCallSignal,
 };
 
 function getAuth(req: NextRequest) {
@@ -296,6 +298,7 @@ const SHARED_MODELS = new Set([
   'meeting_referrals',
   'social_dm_messages', 'social_groups', 'social_group_members',
   'social_group_messages', 'social_group_message_reads',
+  'social_call_sessions', 'social_call_signals',
 ]);
 
 async function canAccess(auth: { userId: string }, model: string): Promise<boolean> {

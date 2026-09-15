@@ -3,6 +3,7 @@
 import { GlobalNavbar } from '@/components/dashboard/global-navbar';
 import { DashboardSidebar } from '@/components/dashboard/sidebar';
 import { useAuth } from '@/components/providers/auth-provider';
+import { CallProvider } from '@/components/providers/call-provider';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
@@ -64,17 +65,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen bg-[#F6F8FC]" dir="rtl">
-      <GlobalNavbar sidebarOpen={sidebarOpen} onToggleSidebar={toggleSidebar} />
-      <DashboardSidebar open={sidebarOpen} onToggle={toggleSidebar} />
-      <main
-        className={cn(
-          'mx-auto px-4 pb-10 pt-6 transition-all duration-300 ease-in-out lg:px-6',
-          isDashboardHome ? 'max-w-[1470px]' : 'max-w-[1280px]',
-          sidebarOpen ? 'lg:pr-[280px]' : 'lg:pr-4'
-        )}
-      >
-        {needsGuard && !hasAccess ? <PageGuard href={pathname}>{children}</PageGuard> : children}
-      </main>
+      <CallProvider>
+        <GlobalNavbar sidebarOpen={sidebarOpen} onToggleSidebar={toggleSidebar} />
+        <DashboardSidebar open={sidebarOpen} onToggle={toggleSidebar} />
+        <main
+          className={cn(
+            'mx-auto px-4 pb-10 pt-6 transition-all duration-300 ease-in-out lg:px-6',
+            isDashboardHome ? 'max-w-[1470px]' : 'max-w-[1280px]',
+            sidebarOpen ? 'lg:pr-[280px]' : 'lg:pr-4'
+          )}
+        >
+          {needsGuard && !hasAccess ? <PageGuard href={pathname}>{children}</PageGuard> : children}
+        </main>
+      </CallProvider>
     </div>
   );
 }

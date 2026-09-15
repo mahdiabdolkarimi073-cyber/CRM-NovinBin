@@ -4,10 +4,11 @@ import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { fetchData, createData, updateData, deleteData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
 import { EmptyState } from '@/components/dashboard/empty-state';
-import { MessageCircle, Send, Search, Paperclip, Video, FileText, X, Info, MoreVertical, Filter, Plus, Smile, Mic, CheckCheck, Users, XCircle, UserPlus, UserMinus, Reply, Edit2, Trash2, CornerDownRight } from 'lucide-react';
+import { MessageCircle, Send, Search, Paperclip, Video, FileText, X, Info, MoreVertical, Filter, Plus, Smile, Mic, CheckCheck, Users, XCircle, UserPlus, UserMinus, Phone } from 'lucide-react';
 import { relativeTime, formatJalali } from '@/lib/format';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useCall } from '@/components/providers/call-provider';
 import type { SocialDMMessage, SocialGroup, SocialGroupMember, SocialGroupMessage, Profile } from '@/lib/types';
 
 type Tab = 'dm' | 'groups';
@@ -36,6 +37,7 @@ function isOnline(lastSeenAt: string | null): boolean {
 
 export default function SocialNetworkPage() {
   const { profile } = useAuth();
+  const { startCall } = useCall();
   const [tab, setTab] = useState<Tab>('dm');
 
   // DM state
@@ -70,12 +72,6 @@ export default function SocialNetworkPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // Edit / Reply / Delete state
-  const [editingMessage, setEditingMessage] = useState<{ id: string; content: string } | null>(null);
-  const [replyingTo, setReplyingTo] = useState<{ id: string; content: string; senderName: string } | null>(null);
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const roleLabels: Record<string, string> = { owner: 'مالک', super_admin: 'سوپرادمین', admin: 'مدیر', personnel: 'پرسنل' };
 
@@ -152,6 +148,10 @@ export default function SocialNetworkPage() {
         memberMap[g.id] = members || [];
         const msgs = await fetchData<SocialGroupMessage>('social_group_messages', { where: { groupId: g.id }, orderBy: { createdAt: 'desc' }, take: 1 });
         const lastMsg = msgs?.[0];
+        const allMsgs = await fetchData<SocialGroupMessage>('social_group_messages', { where: { groupId: g.id, senderId: { not: profile.id } }, orderBy: { createdAt: 'asc' } });
+        const unreadCount = (allMsgs || []).filter((m) => {
+          return true;
+        }).length;
         convoList.push({ group: g, memberCount: members?.length || 0, lastMessage: lastMsg, unreadCount: 0 });
       }
       setGroupMembers(memberMap);
@@ -167,6 +167,7 @@ export default function SocialNetworkPage() {
       setGroupMessages(data || []);
       const members = await fetchData<SocialGroupMember>('social_group_members', { where: { groupId } });
       setSelectedGroupMembers(members || []);
+      // Mark messages from others as read
       const otherMsgs = (data || []).filter((m) => m.senderId !== profile.id);
       for (const m of otherMsgs) {
         await createData('social_group_message_reads', { messageId: m.id, profileId: profile.id }).catch(() => {});
@@ -185,14 +186,6 @@ export default function SocialNetworkPage() {
   }, [selectedUser, selectedGroup, tab, loadDmMessages, loadGroupMessages]);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [dmMessages, groupMessages]);
-
-  // Close message menu on outside click
-  useEffect(() => {
-    if (!openMenuId) return;
-    const handler = () => setOpenMenuId(null);
-    const timer = setTimeout(() => document.addEventListener('click', handler), 0);
-    return () => { clearTimeout(timer); document.removeEventListener('click', handler); };
-  }, [openMenuId]);
 
   // Presence heartbeat
   useEffect(() => {
@@ -216,7 +209,7 @@ export default function SocialNetworkPage() {
       try {
         const msg: SocialDMMessage = JSON.parse(e.data);
         if (msg.receiverId === profile.id) {
-          setDmMessages((prev) => prev.some((m) => m.id === msg.id) ? prev.map((m) => m.id === msg.id ? msg : m) : [...prev, msg]);
+          setDmMessages((prev) => prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]);
           if (selectedUser?.id === msg.senderId && tab === 'dm') {
             updateData('social_dm_messages', { id: msg.id }, { readAt: new Date() }).catch(() => {});
           }
@@ -230,38 +223,14 @@ export default function SocialNetworkPage() {
         setDmMessages((prev) => prev.map((m) => m.id === msg.id ? { ...m, readAt: msg.readAt } : m));
       } catch {}
     });
-    es.addEventListener('dm_edit', (e) => {
-      try {
-        const msg: SocialDMMessage = JSON.parse(e.data);
-        setDmMessages((prev) => prev.map((m) => m.id === msg.id ? { ...m, content: msg.content, editedAt: msg.editedAt } : m));
-      } catch {}
-    });
-    es.addEventListener('dm_delete', (e) => {
-      try {
-        const data = JSON.parse(e.data);
-        setDmMessages((prev) => prev.filter((m) => m.id !== data.id));
-      } catch {}
-    });
     es.addEventListener('group', (e) => {
       try {
         const msg: SocialGroupMessage = JSON.parse(e.data);
         if (selectedGroup?.id === msg.groupId && tab === 'groups') {
-          setGroupMessages((prev) => prev.some((m) => m.id === msg.id) ? prev.map((m) => m.id === msg.id ? msg : m) : [...prev, msg]);
+          setGroupMessages((prev) => prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]);
           createData('social_group_message_reads', { messageId: msg.id, profileId: profile.id }).catch(() => {});
         }
         loadGroups();
-      } catch {}
-    });
-    es.addEventListener('group_edit', (e) => {
-      try {
-        const msg: SocialGroupMessage = JSON.parse(e.data);
-        setGroupMessages((prev) => prev.map((m) => m.id === msg.id ? { ...m, content: msg.content, editedAt: msg.editedAt } : m));
-      } catch {}
-    });
-    es.addEventListener('group_delete', (e) => {
-      try {
-        const data = JSON.parse(e.data);
-        setGroupMessages((prev) => prev.filter((m) => m.id !== data.id));
       } catch {}
     });
     es.addEventListener('error', () => {});
@@ -278,12 +247,10 @@ export default function SocialNetworkPage() {
         payload.attachmentName = attachment.name;
         payload.attachmentType = attachment.type;
       }
-      if (replyingTo) payload.replyToId = replyingTo.id;
       await createData('social_dm_messages', payload);
       setText('');
       setAttachment(null);
       setIsEmojiOpen(false);
-      setReplyingTo(null);
       loadDmMessages(selectedUser.id);
       loadDMConversations();
     } catch (e: any) {
@@ -302,12 +269,10 @@ export default function SocialNetworkPage() {
         payload.attachmentName = attachment.name;
         payload.attachmentType = attachment.type;
       }
-      if (replyingTo) payload.replyToId = replyingTo.id;
       await createData('social_group_messages', payload);
       setText('');
       setAttachment(null);
       setIsEmojiOpen(false);
-      setReplyingTo(null);
       loadGroupMessages(selectedGroup.id);
       loadGroups();
     } catch (e: any) {
@@ -317,65 +282,6 @@ export default function SocialNetworkPage() {
   };
 
   const handleSend = tab === 'dm' ? handleSendDM : handleSendGroup;
-
-  // Edit message
-  const handleEditMessage = async () => {
-    if (!editingMessage || !text.trim()) return;
-    setSending(true);
-    try {
-      const model = tab === 'dm' ? 'social_dm_messages' : 'social_group_messages';
-      await updateData(model, { id: editingMessage.id }, { content: text.trim(), editedAt: new Date() });
-      setText('');
-      setEditingMessage(null);
-      setReplyingTo(null);
-      if (tab === 'dm' && selectedUser) loadDmMessages(selectedUser.id);
-      if (tab === 'groups' && selectedGroup) loadGroupMessages(selectedGroup.id);
-      toast.success('پیام ویرایش شد');
-    } catch (e: any) {
-      toast.error(e.message);
-    }
-    setSending(false);
-  };
-
-  // Delete message
-  const handleDeleteMessage = async (messageId: string) => {
-    try {
-      const model = tab === 'dm' ? 'social_dm_messages' : 'social_group_messages';
-      await deleteData(model, { id: messageId });
-      if (tab === 'dm') setDmMessages((prev) => prev.filter((m) => m.id !== messageId));
-      else setGroupMessages((prev) => prev.filter((m) => m.id !== messageId));
-      setConfirmDeleteId(null);
-      toast.success('پیام حذف شد');
-    } catch (e: any) {
-      toast.error(e.message);
-    }
-  };
-
-  // Start editing a message
-  const startEditing = (msg: SocialDMMessage | SocialGroupMessage) => {
-    setEditingMessage({ id: msg.id, content: msg.content || '' });
-    setText(msg.content || '');
-    setReplyingTo(null);
-    setOpenMenuId(null);
-  };
-
-  // Cancel editing
-  const cancelEditing = () => {
-    setEditingMessage(null);
-    setText('');
-  };
-
-  // Start replying to a message
-  const startReplying = (msg: SocialDMMessage | SocialGroupMessage, senderLabel: string) => {
-    setReplyingTo({ id: msg.id, content: (msg.content || 'فایل') , senderName: senderLabel });
-    setEditingMessage(null);
-    setOpenMenuId(null);
-  };
-
-  // Cancel replying
-  const cancelReplying = () => {
-    setReplyingTo(null);
-  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -442,18 +348,8 @@ export default function SocialNetworkPage() {
     return dmMessages.filter((m) => m.content?.toLowerCase().includes(q));
   }, [dmMessages, messageSearch]);
 
-  const selectUser = (user: Profile) => { setSelectedUser(user); setIsUsersOpen(false); setEditingMessage(null); setReplyingTo(null); };
-  const selectGroup = (group: SocialGroup) => { setSelectedGroup(group); setShowGroupMembers(false); setIsUsersOpen(false); setEditingMessage(null); setReplyingTo(null); };
-
-  // Get reply target message
-  const getDmReplyMessage = (replyToId: string | null) => {
-    if (!replyToId) return null;
-    return dmMessages.find((m) => m.id === replyToId);
-  };
-  const getGroupReplyMessage = (replyToId: string | null) => {
-    if (!replyToId) return null;
-    return groupMessages.find((m) => m.id === replyToId);
-  };
+  const selectUser = (user: Profile) => { setSelectedUser(user); setIsUsersOpen(false); };
+  const selectGroup = (group: SocialGroup) => { setSelectedGroup(group); setShowGroupMembers(false); setIsUsersOpen(false); };
 
   const renderUser = (user: Profile, conversation?: DMConversation) => {
     const isActive = selectedUser?.id === user.id;
@@ -501,62 +397,12 @@ export default function SocialNetworkPage() {
     );
   };
 
-  // Render message action menu (reply, edit, delete) for own messages
-  const renderMessageMenu = (msgId: string, isMine: boolean, onEdit: () => void, onReply: () => void, onDelete: () => void) => {
-    if (!isMine) {
-      return (
-        <button className="social-msg-action-btn" onClick={(e) => { e.stopPropagation(); onReply(); }} aria-label="پاسخ">
-          <Reply style={{ width: 16, height: 16 }} />
-        </button>
-      );
-    }
-    return (
-      <div className="social-msg-actions-wrapper" onClick={(e) => e.stopPropagation()}>
-        <button className="social-msg-action-btn" onClick={onReply} aria-label="پاسخ">
-          <Reply style={{ width: 16, height: 16 }} />
-        </button>
-        <button className="social-msg-action-btn" onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === msgId ? null : msgId); }} aria-label="گزینه‌ها">
-          <MoreVertical style={{ width: 16, height: 16 }} />
-        </button>
-        {openMenuId === msgId && (
-          <div className="social-msg-popup-menu" onClick={(e) => e.stopPropagation()}>
-            <button className="social-msg-popup-item" onClick={() => { onEdit(); }}>
-              <Edit2 style={{ width: 15, height: 15 }} /> ویرایش
-            </button>
-            <button className="social-msg-popup-item social-msg-popup-danger" onClick={() => { setOpenMenuId(null); setConfirmDeleteId(msgId); }}>
-              <Trash2 style={{ width: 15, height: 15 }} /> حذف
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // Render reply preview inside a message bubble
-  const renderReplyPreview = (replyMsg: SocialDMMessage | SocialGroupMessage | undefined, senderLabel: string) => {
-    if (!replyMsg) return null;
-    return (
-      <div className="social-reply-preview">
-        <CornerDownRight style={{ width: 14, height: 14, flexShrink: 0 }} />
-        <div className="social-reply-content">
-          <strong>{senderLabel}</strong>
-          <span>{replyMsg.content || (replyMsg.attachmentUrl ? 'فایل' : '')}</span>
-        </div>
-      </div>
-    );
-  };
-
   const getGroupMemberProfile = (profileId: string) => users.find((u) => u.id === profileId);
   const isGroupOwner = selectedGroup && profile && selectedGroup.ownerId === profile.id;
 
   if (loading) {
     return <div className="staff-chat-page staff-chat-page-full"><div className="staff-chat-loading"><span /></div></div>;
   }
-
-  // Composer area: editing takes priority over sending
-  const isEditing = !!editingMessage;
-  const composerAction = isEditing ? handleEditMessage : handleSend;
-  const composerDisabled = sending || (!text.trim() && !attachment && !isEditing);
 
   return (
     <div className="staff-chat-page staff-chat-page-full">
@@ -597,6 +443,8 @@ export default function SocialNetworkPage() {
                 </div>
                 <div className="staff-chat-actions">
                   <button className="staff-chat-icon-button mobile-only" onClick={() => setIsUsersOpen(true)} aria-label="نمایش کاربران"><Users /></button>
+                  <button className="call-action-btn call-action-audio" onClick={() => startCall(selectedUser, 'audio')} aria-label="تماس صوتی" title="تماس صوتی"><Phone /></button>
+                  <button className="call-action-btn call-action-video" onClick={() => startCall(selectedUser, 'video')} aria-label="تماس تصویری" title="تماس تصویری"><Video /></button>
                   <button className="staff-chat-icon-button" onClick={() => setIsMessageSearchOpen((v) => !v)} aria-label="جستجوی پیام"><Search /></button>
                   <button className="staff-chat-icon-button" aria-label="اطلاعات"><Info /></button>
                   <button className="staff-chat-icon-button" aria-label="گزینه‌های بیشتر"><MoreVertical /></button>
@@ -619,39 +467,16 @@ export default function SocialNetworkPage() {
                   <div className="staff-chat-empty"><Search /><p>پیامی با این عبارت یافت نشد</p></div>
                 ) : filteredDmMessages.map((msg) => {
                   const isMine = msg.senderId === profile?.id;
-                  const replyMsg = getDmReplyMessage(msg.replyToId);
-                  return (
-                    <div key={msg.id} className={cn('staff-chat-message-row', isMine ? 'is-mine' : 'is-other')}>
-                      {!isMine && <span className="staff-chat-avatar staff-chat-message-avatar">{getInitials(selectedUser)}</span>}
-                      <div className={cn('staff-chat-bubble', isMine ? 'is-mine' : 'is-other')}>
-                        {replyMsg && renderReplyPreview(replyMsg, replyMsg.senderId === profile?.id ? 'شما' : getUserLabel(selectedUser))}
-                        {msg.content && <p>{msg.content}</p>}
-                        {msg.attachmentUrl && msg.attachmentType === 'image' && <img src={msg.attachmentUrl} alt={msg.attachmentName || ''} />}
-                        {msg.attachmentUrl && msg.attachmentType === 'video' && <video src={msg.attachmentUrl} controls />}
-                        {msg.attachmentUrl && msg.attachmentType === 'file' && <a href={msg.attachmentUrl} download={msg.attachmentName || ''}><FileText />{msg.attachmentName || 'دانلود فایل'}</a>}
-                        <span className="staff-chat-message-meta">
-                          {relativeTime(msg.createdAt)}
-                          {msg.editedAt && <span className="social-edited-label"> ویرایش شده</span>}
-                          {isMine && <CheckCheck />}
-                        </span>
-                        <div className="social-msg-hover-actions">
-                          {renderMessageMenu(
-                            msg.id, isMine,
-                            () => startEditing(msg),
-                            () => startReplying(msg, isMine ? 'شما' : getUserLabel(selectedUser)),
-                            () => handleDeleteMessage(msg.id)
-                          )}
-                        </div>
-                        {confirmDeleteId === msg.id && (
-                          <div className="social-confirm-delete" onClick={(e) => e.stopPropagation()}>
-                            <span>این پیام حذف شود؟</span>
-                            <button className="social-confirm-yes" onClick={() => handleDeleteMessage(msg.id)}>بله، حذف کن</button>
-                            <button className="social-confirm-no" onClick={() => setConfirmDeleteId(null)}>انصراف</button>
-                          </div>
-                        )}
-                      </div>
+                  return <div key={msg.id} className={cn('staff-chat-message-row', isMine ? 'is-mine' : 'is-other')}>
+                    {!isMine && <span className="staff-chat-avatar staff-chat-message-avatar">{getInitials(selectedUser)}</span>}
+                    <div className={cn('staff-chat-bubble', isMine ? 'is-mine' : 'is-other')}>
+                      {msg.content && <p>{msg.content}</p>}
+                      {msg.attachmentUrl && msg.attachmentType === 'image' && <img src={msg.attachmentUrl} alt={msg.attachmentName || ''} />}
+                      {msg.attachmentUrl && msg.attachmentType === 'video' && <video src={msg.attachmentUrl} controls />}
+                      {msg.attachmentUrl && msg.attachmentType === 'file' && <a href={msg.attachmentUrl} download={msg.attachmentName || ''}><FileText />{msg.attachmentName || 'دانلود فایل'}</a>}
+                      <span className="staff-chat-message-meta">{relativeTime(msg.createdAt)} {isMine && <CheckCheck />}</span>
                     </div>
-                  );
+                  </div>;
                 })}
                 <div ref={messagesEndRef} />
               </div>
@@ -730,41 +555,17 @@ export default function SocialNetworkPage() {
                 ) : filteredGroupMessages.map((msg) => {
                   const isMine = msg.senderId === profile?.id;
                   const senderProfile = getGroupMemberProfile(msg.senderId);
-                  const senderLabel = isMine ? 'شما' : (senderProfile ? getUserLabel(senderProfile) : 'کاربر');
-                  const replyMsg = getGroupReplyMessage(msg.replyToId);
-                  const replySender = replyMsg ? (replyMsg.senderId === profile?.id ? 'شما' : (getGroupMemberProfile(replyMsg.senderId) ? getUserLabel(getGroupMemberProfile(replyMsg.senderId)!) : 'کاربر')) : '';
-                  return (
-                    <div key={msg.id} className={cn('staff-chat-message-row', isMine ? 'is-mine' : 'is-other')}>
-                      {!isMine && <span className="staff-chat-avatar staff-chat-message-avatar">{senderProfile ? getInitials(senderProfile) : '؟'}</span>}
-                      <div className={cn('staff-chat-bubble', isMine ? 'is-mine' : 'is-other')}>
-                        {!isMine && senderProfile && <div className="social-msg-sender">{getUserLabel(senderProfile)}</div>}
-                        {replyMsg && renderReplyPreview(replyMsg, replySender)}
-                        {msg.content && <p>{msg.content}</p>}
-                        {msg.attachmentUrl && msg.attachmentType === 'image' && <img src={msg.attachmentUrl} alt={msg.attachmentName || ''} />}
-                        {msg.attachmentUrl && msg.attachmentType === 'video' && <video src={msg.attachmentUrl} controls />}
-                        {msg.attachmentUrl && msg.attachmentType === 'file' && <a href={msg.attachmentUrl} download={msg.attachmentName || ''}><FileText />{msg.attachmentName || 'دانلود فایل'}</a>}
-                        <span className="staff-chat-message-meta">
-                          {relativeTime(msg.createdAt)}
-                          {msg.editedAt && <span className="social-edited-label"> ویرایش شده</span>}
-                        </span>
-                        <div className="social-msg-hover-actions">
-                          {renderMessageMenu(
-                            msg.id, isMine,
-                            () => startEditing(msg),
-                            () => startReplying(msg, senderLabel),
-                            () => handleDeleteMessage(msg.id)
-                          )}
-                        </div>
-                        {confirmDeleteId === msg.id && (
-                          <div className="social-confirm-delete" onClick={(e) => e.stopPropagation()}>
-                            <span>این پیام حذف شود؟</span>
-                            <button className="social-confirm-yes" onClick={() => handleDeleteMessage(msg.id)}>بله، حذف کن</button>
-                            <button className="social-confirm-no" onClick={() => setConfirmDeleteId(null)}>انصراف</button>
-                          </div>
-                        )}
-                      </div>
+                  return <div key={msg.id} className={cn('staff-chat-message-row', isMine ? 'is-mine' : 'is-other')}>
+                    {!isMine && <span className="staff-chat-avatar staff-chat-message-avatar">{senderProfile ? getInitials(senderProfile) : '؟'}</span>}
+                    <div className={cn('staff-chat-bubble', isMine ? 'is-mine' : 'is-other')}>
+                      {!isMine && senderProfile && <div className="social-msg-sender">{getUserLabel(senderProfile)}</div>}
+                      {msg.content && <p>{msg.content}</p>}
+                      {msg.attachmentUrl && msg.attachmentType === 'image' && <img src={msg.attachmentUrl} alt={msg.attachmentName || ''} />}
+                      {msg.attachmentUrl && msg.attachmentType === 'video' && <video src={msg.attachmentUrl} controls />}
+                      {msg.attachmentUrl && msg.attachmentType === 'file' && <a href={msg.attachmentUrl} download={msg.attachmentName || ''}><FileText />{msg.attachmentName || 'دانلود فایل'}</a>}
+                      <span className="staff-chat-message-meta">{relativeTime(msg.createdAt)}</span>
                     </div>
-                  );
+                  </div>;
                 })}
                 <div ref={messagesEndRef} />
               </div>
@@ -782,31 +583,6 @@ export default function SocialNetworkPage() {
 
           {(selectedUser || selectedGroup) && (
             <>
-              {/* Reply / Edit preview bar */}
-              {(replyingTo || editingMessage) && (
-                <div className="social-composer-preview">
-                  {editingMessage ? (
-                    <>
-                      <Edit2 style={{ width: 16, height: 16, flexShrink: 0 }} />
-                      <div className="social-composer-preview-content">
-                        <strong>ویرایش پیام</strong>
-                        <span>{editingMessage.content}</span>
-                      </div>
-                      <button onClick={cancelEditing} aria-label="انصراف"><X style={{ width: 16, height: 16 }} /></button>
-                    </>
-                  ) : replyingTo ? (
-                    <>
-                      <Reply style={{ width: 16, height: 16, flexShrink: 0 }} />
-                      <div className="social-composer-preview-content">
-                        <strong>پاسخ به {replyingTo.senderName}</strong>
-                        <span>{replyingTo.content}</span>
-                      </div>
-                      <button onClick={cancelReplying} aria-label="انصراف"><X style={{ width: 16, height: 16 }} /></button>
-                    </>
-                  ) : null}
-                </div>
-              )}
-
               {attachment && <div className="staff-chat-attachment-preview">
                 {attachment.type === 'image' ? <img src={attachment.url} alt="" /> : <span>{attachment.type === 'video' ? <Video /> : <FileText />}</span>}
                 <strong>{attachment.name}</strong><button onClick={() => setAttachment(null)} aria-label="حذف فایل"><X /></button>
@@ -824,14 +600,8 @@ export default function SocialNetworkPage() {
                 <button className="staff-chat-tool" onClick={() => setIsEmojiOpen((v) => !v)} aria-label="افزودن شکلک"><Smile /></button>
                 <label className="staff-chat-tool" aria-label="افزودن فایل"><input type="file" accept="image/*,video/*" onChange={handleFileSelect} /><Paperclip /></label>
                 <button className="staff-chat-tool" aria-label="ضبط صدا"><Mic /></button>
-                <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); composerAction(); } }} placeholder={isEditing ? 'پیام را ویرایش کنید...' : 'پیام خود را بنویسید...'} />
-                {isEditing ? (
-                  <button className="staff-chat-send" onClick={handleEditMessage} disabled={sending || !text.trim()} aria-label="ذخیره ویرایش">
-                    <CheckCheck />
-                  </button>
-                ) : (
-                  <button className="staff-chat-send" onClick={handleSend} disabled={composerDisabled} aria-label="ارسال پیام"><Send /></button>
-                )}
+                <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder="پیام خود را بنویسید..." />
+                <button className="staff-chat-send" onClick={handleSend} disabled={sending || (!text.trim() && !attachment)} aria-label="ارسال پیام"><Send /></button>
               </div>
             </>
           )}

@@ -49,43 +49,40 @@ export async function GET(req: NextRequest) {
       const interval = setInterval(async () => {
         if (closed) return;
         try {
-          const newDMs = await prisma.socialDMMessage.findMany({
-            where: { receiverId: auth.userId, createdAt: { gt: lastCheck } },
+          const incomingCalls = await prisma.socialCallSession.findMany({
+            where: {
+              receiverId: auth.userId,
+              createdAt: { gt: lastCheck },
+              status: { in: ['calling', 'ringing'] },
+            },
             orderBy: { createdAt: 'asc' },
           });
-          if (newDMs.length > 0) {
-            for (const msg of newDMs) send('dm', serialize(msg));
-          }
+          for (const call of incomingCalls) send('incoming_call', serialize(call));
 
-          const readUpdates = await prisma.socialDMMessage.findMany({
-            where: { senderId: auth.userId, readAt: { gt: lastCheck } },
-            orderBy: { readAt: 'asc' },
+          const callUpdates = await prisma.socialCallSession.findMany({
+            where: {
+              callerId: auth.userId,
+              createdAt: { gt: lastCheck },
+              status: { in: ['accepted', 'rejected', 'missed', 'ended', 'failed'] },
+            },
+            orderBy: { createdAt: 'asc' },
           });
-          if (readUpdates.length > 0) {
-            for (const msg of readUpdates) send('dm_read', serialize(msg));
-          }
+          for (const call of callUpdates) send('call_update', serialize(call));
 
-          const myGroupIds = await prisma.socialGroupMember.findMany({
-            where: { profileId: auth.userId },
-            select: { groupId: true },
+          const signals = await prisma.socialCallSignal.findMany({
+            where: {
+              receiverId: auth.userId,
+              createdAt: { gt: lastCheck },
+            },
+            orderBy: { createdAt: 'asc' },
           });
-          const groupIdList = myGroupIds.map((m) => m.groupId);
-
-          if (groupIdList.length > 0) {
-            const newGroupMessages = await prisma.socialGroupMessage.findMany({
-              where: { groupId: { in: groupIdList }, createdAt: { gt: lastCheck }, senderId: { not: auth.userId } },
-              orderBy: { createdAt: 'asc' },
-            });
-            if (newGroupMessages.length > 0) {
-              for (const msg of newGroupMessages) send('group', serialize(msg));
-            }
-          }
+          for (const sig of signals) send('call_signal', serialize(sig));
 
           lastCheck = new Date();
-        } catch (e) {
+        } catch {
           send('error', { message: 'Poll failed' });
         }
-      }, 2000);
+      }, 1500);
 
       const heartbeat = setInterval(() => {
         if (closed) return;

@@ -844,43 +844,6 @@ export default function MeetingsPage() {
           )}
         </DialogContent>
       </Dialog>
-
-      {/* Refer Dialog */}
-      <Dialog open={referOpen} onOpenChange={setReferOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>ارجاع جلسه</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-slate-500">یک یا چند نفر را برای ارجاع این جلسه انتخاب کنید.</p>
-            {staff.length === 0 ? (
-              <p className="text-sm text-slate-400">کارمندی برای ارجاع موجود نیست.</p>
-            ) : (
-              <div className="flex flex-wrap gap-2 rounded-lg border border-slate-200 bg-white p-3">
-                {staff.map((s) => {
-                  const checked = referTargetIds.includes(s.id);
-                  return (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => toggleReferTarget(s.id)}
-                      className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition ${checked ? 'border-amber-500 bg-amber-50 text-amber-600' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'}`}
-                    >
-                      {checked && <Check className="h-3 w-3" />}
-                      {fullName(s.firstName, s.lastName)}{s.id === profile?.id ? ' (خودم)' : ''}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setReferOpen(false)}>انصراف</Button>
-            <Button onClick={handleRefer} disabled={referring || referTargetIds.length === 0}>
-              {referring ? <Loader2 className="h-4 w-4 animate-spin" /> : <Forward className="h-4 w-4" />}
-              ارجاع ({referTargetIds.length.toLocaleString('fa-IR')})
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

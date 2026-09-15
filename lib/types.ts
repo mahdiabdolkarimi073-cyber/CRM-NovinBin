@@ -2735,8 +2735,6 @@ export interface SocialDMMessage {
   attachmentUrl: string | null;
   attachmentName: string | null;
   attachmentType: string | null;
-  replyToId: string | null;
-  editedAt: string | null;
   readAt: string | null;
   createdAt: string;
 }
@@ -2766,8 +2764,6 @@ export interface SocialGroupMessage {
   attachmentUrl: string | null;
   attachmentName: string | null;
   attachmentType: string | null;
-  replyToId: string | null;
-  editedAt: string | null;
   createdAt: string;
 }
 
@@ -2776,4 +2772,33 @@ export interface SocialGroupMessageRead {
   messageId: string;
   profileId: string;
   readAt: string;
+}
+
+export type CallType = 'audio' | 'video';
+export type CallStatus = 'calling' | 'ringing' | 'accepted' | 'rejected' | 'missed' | 'ended' | 'failed';
+export type CallSignalType = 'offer' | 'answer' | 'ice' | 'end' | 'reject';
+
+export interface SocialCallSession {
+  id: string;
+  callerId: string;
+  receiverId: string;
+  callType: CallType;
+  status: CallStatus;
+  offerSdp: string | null;
+  answerSdp: string | null;
+  startedAt: string | null;
+  endedAt: string | null;
+  durationSeconds: number | null;
+  endReason: string | null;
+  createdAt: string;
+}
+
+export interface SocialCallSignal {
+  id: string;
+  callSessionId: string;
+  senderId: string;
+  receiverId: string;
+  signalType: CallSignalType;
+  signalData: string | null;
+  createdAt: string;
 }
