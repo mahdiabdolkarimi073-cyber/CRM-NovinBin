@@ -147,7 +147,7 @@ export function GlobalNavbar({ sidebarOpen, onToggleSidebar, variant = 'dashboar
             </button>
 
             <Link href={logoHref} className="flex items-center transition-transform hover:scale-105">
-              <Logo size={44} withText textClassName="hidden sm:block [&_div]:text-white [&_.text-muted-foreground]:text-[#6BA89E]" />
+              <Logo size={88} withText textClassName="hidden sm:block [&_div]:text-white [&_.text-muted-foreground]:text-[#6BA89E]" />
             </Link>
           </div>
 

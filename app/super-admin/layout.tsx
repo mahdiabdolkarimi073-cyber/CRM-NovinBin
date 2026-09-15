@@ -44,7 +44,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
-          <Logo size={56} />
+          <Logo size={120} />
           <Loader2 className="h-6 w-6 animate-spin text-accent" />
         </div>
       </div>
@@ -52,7 +52,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
   }
 
   return (
-    <div className="min-h-screen bg-[#F6F8FC]" dir="rtl">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-300" dir="rtl">
       <GlobalNavbar sidebarOpen={sidebarOpen} onToggleSidebar={toggleSidebar} variant="super-admin" />
       <SuperAdminSidebar open={sidebarOpen} onToggle={toggleSidebar} />
       <main

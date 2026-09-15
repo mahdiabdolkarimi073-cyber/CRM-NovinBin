@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/components/providers/auth-provider';
 import {
@@ -10,7 +10,6 @@ import {
   FileSearch,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Logo } from '@/components/dashboard/logo';
 import {
   coreItems, cartableItems, financeItems, inventoryItems, clubItems, adminItems,
   reportsItems, salesItems, serviceItems, isSuperAdminRole, filterByAccess,
@@ -31,7 +30,6 @@ interface SidebarProps {
 
 export function DashboardSidebar({ open, onToggle }: SidebarProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const { profile } = useAuth();
 
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -147,13 +145,6 @@ export function DashboardSidebar({ open, onToggle }: SidebarProps) {
         style={{ width: SIDEBAR_WIDTH, right: 0, top: '64px', height: 'calc(100vh - 64px)', overflowY: 'auto', scrollBehavior: 'smooth' }}
         dir="rtl"
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4">
-          <Link href={isSuperAdmin ? '/super-admin' : '/dashboard'} onClick={closeSidebar}>
-            <Logo size={44} withText textClassName="[&_div]:text-white [&_.text-muted-foreground]:text-emerald-400/70" />
-          </Link>
-        </div>
-
         {/* Navigation */}
         <nav className="sb-nav-scroll flex-1 px-3 py-2">
           {/* Core links */}

@@ -25,8 +25,8 @@ export function Logo({ size = 80, className, withText = true, textClassName }: L
       </div>
       {withText && (
         <div className={textClassName}>
-          <div className="text-sm font-black tracking-tight text-foreground">نوین‌بین</div>
-          <div className="text-[10px] font-semibold text-muted-foreground">مدیریت یکپارچه سازمان</div>
+          <div className="text-lg font-black tracking-tight text-foreground">نوین‌بین</div>
+          <div className="text-xs font-semibold text-muted-foreground">مدیریت یکپارچه سازمان</div>
         </div>
       )}
     </div>

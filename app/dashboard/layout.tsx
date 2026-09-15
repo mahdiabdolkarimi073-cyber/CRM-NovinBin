@@ -51,7 +51,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <Logo size={72} />
+          <Logo size={120} />
           <Loader2 className="h-6 w-6 animate-spin text-accent" />
         </div>
       </div>

@@ -32,7 +32,7 @@ function playBeep(ctx: AudioContext, freq: number, duration: number, volume: num
   osc.stop(ctx.currentTime + duration);
 }
 
-function playIncomingRing(ctx: AudioContext) {
+function playIncomingRingPattern(ctx: AudioContext) {
   playBeep(ctx, 800, 0.4, 0.3);
   setTimeout(() => playBeep(ctx, 800, 0.4, 0.3), 500);
 }
@@ -45,8 +45,11 @@ export function startIncomingRing() {
   stopAllRings();
   const ctx = getCtx();
   if (!ctx) return;
-  playIncomingRing(ctx);
-  ringInterval = setInterval(() => playIncomingRing(ctx), 2000);
+  playIncomingRingPattern(ctx);
+  ringInterval = setInterval(() => {
+    const c = getCtx();
+    if (c) playIncomingRingPattern(c);
+  }, 2000);
 }
 
 export function startOutgoingRing() {
@@ -54,7 +57,10 @@ export function startOutgoingRing() {
   const ctx = getCtx();
   if (!ctx) return;
   playOutgoingBeep(ctx);
-  outgoingInterval = setInterval(() => playOutgoingBeep(ctx), 1500);
+  outgoingInterval = setInterval(() => {
+    const c = getCtx();
+    if (c) playOutgoingBeep(c);
+  }, 1500);
 }
 
 export function stopAllRings() {

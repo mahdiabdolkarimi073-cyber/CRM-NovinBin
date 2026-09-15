@@ -146,12 +146,16 @@ export function CallProvider({ children }: { children: ReactNode }) {
   }, [webrtc.state.error]);
 
   useEffect(() => {
+    if (incomingCall) {
+      startIncomingRing();
+      return;
+    }
     if (webrtc.state.status === 'calling' || webrtc.state.status === 'ringing') {
       startOutgoingRing();
     } else if (webrtc.state.status !== 'accepted' && webrtc.state.status !== 'idle') {
       stopAllRings();
     }
-  }, [webrtc.state.status]);
+  }, [webrtc.state.status, incomingCall]);
 
   useEffect(() => {
     if (!profile) return;
