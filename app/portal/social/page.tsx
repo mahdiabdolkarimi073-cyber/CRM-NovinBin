@@ -10,6 +10,8 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import type { CustomerSocialMessage, Profile, CustomerSocialFolder } from '@/lib/types';
 
+type Tab = 'dm' | 'folders';
+
 const EMOJIS = ['😀','😄','😁','😊','😍','🤩','😎','🤔','😅','😂','🥳','😇','🙂','😉','😌','😋','🤗','🤝','👍','👏','🙏','💪','🔥','✨','🎉','❤️','💯','⭐','✅','🚀','🌹','🎁'];
 const ONLINE_THRESHOLD_MS = 45 * 1000;
 
@@ -26,10 +28,13 @@ interface DMConversation {
 
 export default function PortalSocialPage() {
   const { profile } = useAuth();
+  const [tab, setTab] = useState<Tab>('dm');
+
   const [folders, setFolders] = useState<CustomerSocialFolder[]>([]);
   const [folderStaffMap, setFolderStaffMap] = useState<Record<string, Profile[]>>({});
   const [availableStaff, setAvailableStaff] = useState<Profile[]>([]);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+
   const [dmMessages, setDmMessages] = useState<CustomerSocialMessage[]>([]);
   const [dmConversations, setDmConversations] = useState<DMConversation[]>([]);
   const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
@@ -50,32 +55,28 @@ export default function PortalSocialPage() {
   const getUserLabel = useCallback((u: Profile) => [u.firstName, u.lastName].filter(Boolean).join(' ') || 'کاربر', []);
   const getInitials = useCallback((u: Profile) => ((u.firstName?.[0] || '') + (u.lastName?.[0] || '')).toUpperCase() || '؟', []);
 
-  // Load folders and staff visible to this customer
+  // Load ALL folders and ALL staff — customer sees every folder and every staff member
   const loadFoldersAndStaff = useCallback(async () => {
     if (!profile) return;
     try {
-      // Get folder-customer assignments for this customer
-      const folderCustomers = await fetchData('customer_social_folder_customers', { where: { customerId: profile.id } });
-      const folderIds = (folderCustomers || []).map((fc: any) => fc.folderId);
-      if (folderIds.length === 0) { setFolders([]); setAvailableStaff([]); setLoading(false); return; }
-      const folderData = await fetchData<CustomerSocialFolder>('customer_social_folders', { where: { id: { in: folderIds } } });
+      const folderData = await fetchData<CustomerSocialFolder>('customer_social_folders');
       setFolders(folderData || []);
-      // Get folder members (staff) for those folders
+      if (!folderData || folderData.length === 0) { setAvailableStaff([]); setLoading(false); return; }
       const allMembers: any[] = [];
       const perFolderStaff: Record<string, Profile[]> = {};
-      for (const fid of folderIds) {
-        const members = await fetchData('customer_social_folder_members', { where: { folderId: fid } });
+      for (const f of folderData) {
+        const members = await fetchData('customer_social_folder_members', { where: { folderId: f.id } });
         allMembers.push(...(members || []));
-        const fStaffIds = [...new Set((members || []).map((m) => m.profileId))];
+        const fStaffIds = Array.from(new Set((members || []).map((m: any) => m.profileId)));
         if (fStaffIds.length > 0) {
           const fStaff = await fetchData<Profile>('profiles', { where: { id: { in: fStaffIds }, active: true } });
-          perFolderStaff[fid] = fStaff || [];
+          perFolderStaff[f.id] = fStaff || [];
         } else {
-          perFolderStaff[fid] = [];
+          perFolderStaff[f.id] = [];
         }
       }
       setFolderStaffMap(perFolderStaff);
-      const staffIds = [...new Set(allMembers.map((m) => m.profileId))];
+      const staffIds = Array.from(new Set(allMembers.map((m: any) => m.profileId)));
       if (staffIds.length > 0) {
         const staff = await fetchData<Profile>('profiles', { where: { id: { in: staffIds }, active: true } });
         setAvailableStaff(staff || []);
@@ -91,10 +92,20 @@ export default function PortalSocialPage() {
     if (!profile) return;
     try {
       const allMessages = await fetchData<CustomerSocialMessage>('customer_social_messages', { orderBy: { createdAt: 'desc' } });
+      const otherIds = Array.from(new Set((allMessages || []).flatMap((m) => [m.senderId, m.receiverId]).filter((id) => id !== profile.id)));
+      let extraStaff: Profile[] = [];
+      if (otherIds.length > 0) {
+        const missingIds = otherIds.filter((id) => !availableStaff.some((u) => u.id === id));
+        if (missingIds.length > 0) {
+          const extra = await fetchData<Profile>('profiles', { where: { id: { in: missingIds }, active: true } });
+          extraStaff = extra || [];
+        }
+      }
+      const allStaff = [...availableStaff, ...extraStaff];
       const userMap = new Map<string, DMConversation>();
       for (const msg of allMessages || []) {
         const otherId = msg.senderId === profile.id ? msg.receiverId : msg.senderId;
-        const otherProfile = availableStaff.find((u) => u.id === otherId);
+        const otherProfile = allStaff.find((u) => u.id === otherId);
         if (!otherProfile) continue;
         const existing = userMap.get(otherId);
         const isUnread = msg.receiverId === profile.id && !msg.readAt;
@@ -265,10 +276,20 @@ export default function PortalSocialPage() {
         </a>
       </header>
 
-      {folders.length > 0 && (
+      <div className="social-network-tabs">
+        <button className={cn('social-network-tab', tab === 'dm' && 'is-active')} onClick={() => setTab('dm')}>
+          <MessageCircle style={{ width: 18, height: 18 }} />
+          پیام‌های شخصی
+        </button>
+        <button className={cn('social-network-tab', tab === 'folders' && 'is-active')} onClick={() => setTab('folders')}>
+          <FolderTree style={{ width: 18, height: 18 }} />
+          پوشه‌ها
+        </button>
+      </div>
+
+      {tab === 'dm' && folders.length > 0 && (
         <div className="portal-social-folders">
           <button
-            key="all"
             className={cn('portal-social-folder-chip', !selectedFolderId && 'is-active')}
             onClick={() => setSelectedFolderId(null)}
           >
@@ -290,7 +311,7 @@ export default function PortalSocialPage() {
 
       <div className="social-network-body">
         <section className="staff-chat-panel">
-          {selectedUser && (
+          {tab === 'dm' && selectedUser && (
             <>
               <header className="staff-chat-header">
                 <div className="staff-chat-person">
@@ -312,6 +333,7 @@ export default function PortalSocialPage() {
                   <button className="call-action-btn call-action-video" onClick={() => startCall(selectedUser, 'video')} aria-label="تماس تصویری" title="تماس تصویری"><Video /></button>
                   <button className="staff-chat-icon-button" onClick={() => setIsMessageSearchOpen((v) => !v)} aria-label="جستجوی پیام"><Search /></button>
                   <button className="staff-chat-icon-button" aria-label="اطلاعات"><Info /></button>
+                  <button className="staff-chat-icon-button" aria-label="گزینه‌های بیشتر"><MoreVertical /></button>
                 </div>
               </header>
 
@@ -347,16 +369,65 @@ export default function PortalSocialPage() {
             </>
           )}
 
-          {!selectedUser && (
+          {tab === 'folders' && selectedFolderId && (
+            <>
+              <header className="staff-chat-header">
+                <div className="staff-chat-person">
+                  <span className="staff-chat-avatar-wrap">
+                    <span className="staff-chat-avatar staff-chat-avatar-large" style={{ background: '#FEF3C7', color: '#D97706' }}>
+                      <FolderTree style={{ width: 20, height: 20 }} />
+                    </span>
+                  </span>
+                  <div>
+                    <strong>{folders.find((f) => f.id === selectedFolderId)?.name || ''}</strong>
+                    <span className="staff-chat-status">
+                      {(folderStaffMap[selectedFolderId] || []).length} پرسنل
+                    </span>
+                  </div>
+                </div>
+                <div className="staff-chat-actions">
+                  <button className="staff-chat-icon-button mobile-only" onClick={() => setIsUsersOpen(true)} aria-label="نمایش پوشه‌ها"><FolderTree /></button>
+                </div>
+              </header>
+              <div className="staff-chat-messages" ref={messagesContainerRef} style={{ overflowY: 'auto' }}>
+                <div className="staff-chat-date">{folders.find((f) => f.id === selectedFolderId)?.description || 'پوشه باشگاه مشتریان'}</div>
+                <div style={{ padding: '16px 20px' }}>
+                  <h4 className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-1.5">
+                    <Users style={{ width: 16, height: 16 }} /> پرسنل و مدیران ({(folderStaffMap[selectedFolderId] || []).length})
+                  </h4>
+                  <div className="space-y-2">
+                    {(folderStaffMap[selectedFolderId] || []).length === 0 ? (
+                      <p className="text-xs text-slate-400 text-center py-4">پرسنلی در این پوشه نیست</p>
+                    ) : (folderStaffMap[selectedFolderId] || []).map((m) => {
+                      return (
+                        <div key={m.id} className="flex items-center gap-2.5 p-2.5 rounded-lg border bg-slate-50">
+                          <span className="staff-chat-avatar staff-chat-message-avatar">{getInitials(m)}</span>
+                          <div>
+                            <div className="text-sm font-medium text-slate-900">{getUserLabel(m)}</div>
+                            <div className="text-xs text-slate-400">{roleLabels[m.role] || m.role}</div>
+                          </div>
+                          <button className="social-member-remove mr-auto" onClick={() => { selectUser(m); setTab('dm'); }} title="پیام خصوصی" style={{ color: '#2563EB' }}>
+                            <MessageCircle style={{ width: 16, height: 16 }} />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {((tab === 'dm' && !selectedUser) || (tab === 'folders' && !selectedFolderId)) && (
             <div className="staff-chat-empty-panel">
               <button className="mobile-user-trigger" onClick={() => setIsUsersOpen(true)}>
-                <Users /> انتخاب کاربر
+                <Users /> {tab === 'dm' ? 'انتخاب کاربر' : 'انتخاب پوشه'}
               </button>
-              <EmptyState icon={<MessageCircle />} title="یک کاربر را انتخاب کنید" description="از لیست پرسنل و مدیران، گفتگو را انتخاب کنید" />
+              <EmptyState icon={<MessageCircle />} title={tab === 'dm' ? 'یک کاربر را انتخاب کنید' : 'یک پوشه را انتخاب کنید'} description={tab === 'dm' ? 'از لیست پرسنل و مدیران، گفتگو را انتخاب کنید' : 'از لیست پوشه‌ها، جزئیات را مشاهده کنید'} />
             </div>
           )}
 
-          {selectedUser && (
+          {tab === 'dm' && selectedUser && (
             <>
               {attachment && <div className="staff-chat-attachment-preview">
                 {attachment.type === 'image' ? <img src={attachment.url} alt="" /> : <span>{attachment.type === 'video' ? <Video /> : <FileText />}</span>}
@@ -374,6 +445,7 @@ export default function PortalSocialPage() {
               <div className="staff-chat-composer">
                 <button className="staff-chat-tool" onClick={() => setIsEmojiOpen((v) => !v)} aria-label="افزودن شکلک"><Smile /></button>
                 <label className="staff-chat-tool" aria-label="افزودن فایل"><input type="file" accept="image/*,video/*" onChange={handleFileSelect} /><Paperclip /></label>
+                <button className="staff-chat-tool" aria-label="ضبط صدا"><Mic /></button>
                 <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder="پیام خود را بنویسید..." />
                 <button className="staff-chat-send" onClick={handleSend} disabled={sending || (!text.trim() && !attachment)} aria-label="ارسال پیام"><Send /></button>
               </div>
@@ -383,20 +455,52 @@ export default function PortalSocialPage() {
 
         <aside className={cn('social-network-users', isUsersOpen && 'is-open')}>
           <div className="staff-chat-users-toolbar">
-            <div className="staff-chat-search"><Search /><input placeholder="جستجوی پرسنل..." value={search} onChange={(e) => setSearch(e.target.value)} /></div>
+            <div className="staff-chat-search"><Search /><input placeholder={tab === 'dm' ? 'جستجوی پرسنل...' : 'جستجوی پوشه...'} value={search} onChange={(e) => setSearch(e.target.value)} /></div>
           </div>
           <div className="staff-chat-users-list">
-            {availableStaff.length === 0 && dmConversations.length === 0 ? (
-              <div className="staff-chat-no-users">
-                <FolderTree className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                <p>هنوز پرسنلی به شما اختصاص داده نشده</p>
-              </div>
-            ) : (
+            {tab === 'dm' && (
               <>
-                {recentConvoUsers.length > 0 && <h3>گفتگوهای اخیر</h3>}
-                {recentConvoUsers.filter((u) => getUserLabel(u).toLowerCase().includes(search.toLowerCase())).map((u) => renderUser(u, dmConversations.find((c) => c.profile.id === u.id)))}
-                {otherStaff.length > 0 && recentConvoUsers.length > 0 && <h3>سایر پرسنل</h3>}
-                {otherStaff.map((u) => renderUser(u))}
+                {availableStaff.length === 0 && dmConversations.length === 0 ? (
+                  <div className="staff-chat-no-users">
+                    <FolderTree className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                    <p>هنوز پوشه یا پرسنلی ایجاد نشده</p>
+                  </div>
+                ) : (
+                  <>
+                    {recentConvoUsers.length > 0 && <h3>گفتگوهای اخیر</h3>}
+                    {recentConvoUsers.filter((u) => getUserLabel(u).toLowerCase().includes(search.toLowerCase())).map((u) => renderUser(u, dmConversations.find((c) => c.profile.id === u.id)))}
+                    {otherStaff.length > 0 && recentConvoUsers.length > 0 && <h3>سایر پرسنل</h3>}
+                    {otherStaff.map((u) => renderUser(u))}
+                  </>
+                )}
+              </>
+            )}
+            {tab === 'folders' && (
+              <>
+                {folders.length === 0 ? <div className="staff-chat-no-users">پوشه‌ای یافت نشد</div> : <>
+                  <h3>پوشه‌های باشگاه مشتریان</h3>
+                  {folders.filter((f) => f.name.toLowerCase().includes(search.toLowerCase())).map((f) => {
+                    const isActive = selectedFolderId === f.id;
+                    const memberCount = (folderStaffMap[f.id] || []).length;
+                    return (
+                      <button key={f.id} onClick={() => { setSelectedFolderId(f.id); setIsUsersOpen(false); }} className={cn('staff-chat-user', isActive && 'is-active')}>
+                        <span className="staff-chat-avatar-wrap">
+                          <span className="staff-chat-avatar" style={{ background: '#FEF3C7', color: '#D97706' }}>
+                            <FolderTree style={{ width: 18, height: 18 }} />
+                          </span>
+                        </span>
+                        <span className="staff-chat-user-copy">
+                          <span className="staff-chat-user-topline">
+                            <strong>{f.name}</strong>
+                          </span>
+                          <span className="staff-chat-user-bottomline">
+                            <small>{memberCount} پرسنل</small>
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </>}
               </>
             )}
           </div>

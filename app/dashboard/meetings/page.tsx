@@ -756,6 +756,10 @@ export default function MeetingsPage() {
                   <Eye className="h-3.5 w-3.5" />
                   جزئیات کامل
                 </Link>
+                <Link href={`/dashboard/meetings/${viewMeeting.id}/edit`} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50">
+                  <FileText className="h-3.5 w-3.5" />
+                  ویرایش
+                </Link>
                 {canExtendMeeting(viewMeeting) && new Date(viewMeeting.date) >= new Date() && (
                   <Button type="button" variant="outline" size="sm" onClick={() => { setViewDialogOpen(false); openExtend(viewMeeting); }}>
                     <TimerReset className="h-4 w-4" /> تمدید
