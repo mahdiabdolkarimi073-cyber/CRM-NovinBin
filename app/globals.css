@@ -1392,7 +1392,9 @@
 
 /* ===== Portal Social Folders ===== */
 .portal-social-folders { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 4px 12px; }
-.portal-social-folder-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; background: rgba(255,122,0,.1); color: #FF7A00; font-size: 12px; font-weight: 600; border: 1px solid rgba(255,122,0,.2); }
+.portal-social-folder-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; background: rgba(255,122,0,.1); color: #FF7A00; font-size: 12px; font-weight: 600; border: 1px solid rgba(255,122,0,.2); cursor: pointer; transition: all .15s ease; }
+.portal-social-folder-chip:hover { background: rgba(255,122,0,.18); border-color: rgba(255,122,0,.35); }
+.portal-social-folder-chip.is-active { background: #FF7A00; color: #fff; border-color: #FF7A00; }
 .portal-social-folder-chip svg { width: 14px; height: 14px; }
 
 /* ===== WebRTC Call Overlay ===== */

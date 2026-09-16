@@ -27,7 +27,9 @@ interface DMConversation {
 export default function PortalSocialPage() {
   const { profile } = useAuth();
   const [folders, setFolders] = useState<CustomerSocialFolder[]>([]);
+  const [folderStaffMap, setFolderStaffMap] = useState<Record<string, Profile[]>>({});
   const [availableStaff, setAvailableStaff] = useState<Profile[]>([]);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [dmMessages, setDmMessages] = useState<CustomerSocialMessage[]>([]);
   const [dmConversations, setDmConversations] = useState<DMConversation[]>([]);
   const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
@@ -60,10 +62,19 @@ export default function PortalSocialPage() {
       setFolders(folderData || []);
       // Get folder members (staff) for those folders
       const allMembers: any[] = [];
+      const perFolderStaff: Record<string, Profile[]> = {};
       for (const fid of folderIds) {
         const members = await fetchData('customer_social_folder_members', { where: { folderId: fid } });
         allMembers.push(...(members || []));
+        const fStaffIds = [...new Set((members || []).map((m) => m.profileId))];
+        if (fStaffIds.length > 0) {
+          const fStaff = await fetchData<Profile>('profiles', { where: { id: { in: fStaffIds }, active: true } });
+          perFolderStaff[fid] = fStaff || [];
+        } else {
+          perFolderStaff[fid] = [];
+        }
       }
+      setFolderStaffMap(perFolderStaff);
       const staffIds = [...new Set(allMembers.map((m) => m.profileId))];
       if (staffIds.length > 0) {
         const staff = await fetchData<Profile>('profiles', { where: { id: { in: staffIds }, active: true } });
@@ -198,7 +209,7 @@ export default function PortalSocialPage() {
     reader.readAsDataURL(file);
   };
 
-  const filteredStaff = availableStaff.filter((u) => getUserLabel(u).toLowerCase().includes(search.toLowerCase()));
+  const filteredStaff = (selectedFolderId ? (folderStaffMap[selectedFolderId] || []) : availableStaff).filter((u) => getUserLabel(u).toLowerCase().includes(search.toLowerCase()));
   const dmConversationUsers = new Set(dmConversations.map((c) => c.profile.id));
   const recentConvoUsers = dmConversations.map((c) => c.profile);
   const otherStaff = filteredStaff.filter((u) => !dmConversationUsers.has(u.id));
@@ -256,11 +267,23 @@ export default function PortalSocialPage() {
 
       {folders.length > 0 && (
         <div className="portal-social-folders">
+          <button
+            key="all"
+            className={cn('portal-social-folder-chip', !selectedFolderId && 'is-active')}
+            onClick={() => setSelectedFolderId(null)}
+          >
+            <Users className="w-3.5 h-3.5" />
+            همه
+          </button>
           {folders.map((f) => (
-            <div key={f.id} className="portal-social-folder-chip">
+            <button
+              key={f.id}
+              className={cn('portal-social-folder-chip', selectedFolderId === f.id && 'is-active')}
+              onClick={() => setSelectedFolderId(selectedFolderId === f.id ? null : f.id)}
+            >
               <FolderTree className="w-3.5 h-3.5" />
               {f.name}
-            </div>
+            </button>
           ))}
         </div>
       )}

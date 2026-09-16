@@ -4,11 +4,11 @@ import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { fetchData, createData, updateData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
 import { EmptyState } from '@/components/dashboard/empty-state';
-import { MessageCircle, Send, Search, Paperclip, Video, FileText, X, Info, Smile, Mic, CheckCheck, Users, XCircle, Phone, ArrowLeft, User } from 'lucide-react';
+import { MessageCircle, Send, Search, Paperclip, Video, FileText, X, Info, Smile, Mic, CheckCheck, Users, XCircle, Phone, ArrowLeft, User, FolderTree } from 'lucide-react';
 import { relativeTime, formatJalali } from '@/lib/format';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import type { CustomerSocialMessage, Profile } from '@/lib/types';
+import type { CustomerSocialMessage, Profile, CustomerSocialFolder } from '@/lib/types';
 
 const EMOJIS = ['😀','😄','😁','😊','😍','🤩','😎','🤔','😅','😂','🥳','😇','🙂','😉','😌','😋','🤗','🤝','👍','👏','🙏','💪','🔥','✨','🎉','❤️','💯','⭐','✅','🚀','🌹','🎁'];
 const ONLINE_THRESHOLD_MS = 45 * 1000;
@@ -27,6 +27,9 @@ interface DMConversation {
 export default function CustomerSocialPage() {
   const { profile } = useAuth();
   const [customerProfiles, setCustomerProfiles] = useState<Profile[]>([]);
+  const [folders, setFolders] = useState<CustomerSocialFolder[]>([]);
+  const [folderCustomerMap, setFolderCustomerMap] = useState<Record<string, Profile[]>>({});
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [dmMessages, setDmMessages] = useState<CustomerSocialMessage[]>([]);
   const [dmConversations, setDmConversations] = useState<DMConversation[]>([]);
   const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
@@ -54,11 +57,25 @@ export default function CustomerSocialPage() {
       const folderMembers = await fetchData('customer_social_folder_members', { where: { profileId: profile.id } });
       const folderIds = (folderMembers || []).map((fm: any) => fm.folderId);
       let customerIds: string[] = [];
+      const perFolderCustomers: Record<string, Profile[]> = {};
       if (folderIds.length > 0) {
         for (const fid of folderIds) {
           const fc = await fetchData('customer_social_folder_customers', { where: { folderId: fid } });
-          customerIds.push(...(fc || []).map((c: any) => c.customerId));
+          const fCustomerIds = (fc || []).map((c: any) => c.customerId);
+          customerIds.push(...fCustomerIds);
+          if (fCustomerIds.length > 0) {
+            const fCustomers = await fetchData<Profile>('profiles', { where: { id: { in: fCustomerIds }, userType: 'customer' } });
+            perFolderCustomers[fid] = fCustomers || [];
+          } else {
+            perFolderCustomers[fid] = [];
+          }
         }
+        setFolderCustomerMap(perFolderCustomers);
+        const folderData = await fetchData<CustomerSocialFolder>('customer_social_folders', { where: { id: { in: folderIds } } });
+        setFolders(folderData || []);
+      } else {
+        setFolderCustomerMap({});
+        setFolders([]);
       }
       // Also get customers from existing DM conversations
       const allMessages = await fetchData<CustomerSocialMessage>('customer_social_messages', { orderBy: { createdAt: 'desc' } });
@@ -195,7 +212,7 @@ export default function CustomerSocialPage() {
     reader.readAsDataURL(file);
   };
 
-  const filteredCustomers = customerProfiles.filter((u) => getUserLabel(u).toLowerCase().includes(search.toLowerCase()));
+  const filteredCustomers = (selectedFolderId ? (folderCustomerMap[selectedFolderId] || []) : customerProfiles).filter((u) => getUserLabel(u).toLowerCase().includes(search.toLowerCase()));
   const dmConversationUsers = new Set(dmConversations.map((c) => c.profile.id));
   const recentConvoUsers = dmConversations.map((c) => c.profile);
   const otherCustomers = filteredCustomers.filter((u) => !dmConversationUsers.has(u.id));
@@ -250,6 +267,29 @@ export default function CustomerSocialPage() {
           بازگشت به CRM
         </a>
       </header>
+
+      {folders.length > 0 && (
+        <div className="portal-social-folders">
+          <button
+            key="all"
+            className={cn('portal-social-folder-chip', !selectedFolderId && 'is-active')}
+            onClick={() => setSelectedFolderId(null)}
+          >
+            <Users className="w-3.5 h-3.5" />
+            همه
+          </button>
+          {folders.map((f) => (
+            <button
+              key={f.id}
+              className={cn('portal-social-folder-chip', selectedFolderId === f.id && 'is-active')}
+              onClick={() => setSelectedFolderId(selectedFolderId === f.id ? null : f.id)}
+            >
+              <FolderTree className="w-3.5 h-3.5" />
+              {f.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="social-network-body">
         <section className="staff-chat-panel">

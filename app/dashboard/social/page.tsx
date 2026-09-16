@@ -5,14 +5,14 @@ import Link from 'next/link';
 import { fetchData, createData, updateData, deleteData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
 import { EmptyState } from '@/components/dashboard/empty-state';
-import { MessageCircle, Send, Search, Paperclip, Video, FileText, X, Info, MoreVertical, Filter, Plus, Smile, Mic, CheckCheck, Users, XCircle, UserPlus, UserMinus, Phone, ArrowLeft } from 'lucide-react';
+import { MessageCircle, Send, Search, Paperclip, Video, FileText, X, Info, MoreVertical, Filter, Plus, Smile, Mic, CheckCheck, Users, XCircle, UserPlus, UserMinus, Phone, ArrowLeft, FolderTree } from 'lucide-react';
 import { relativeTime, formatJalali } from '@/lib/format';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useCall } from '@/components/providers/call-provider';
-import type { SocialDMMessage, SocialGroup, SocialGroupMember, SocialGroupMessage, Profile } from '@/lib/types';
+import type { SocialDMMessage, SocialGroup, SocialGroupMember, SocialGroupMessage, Profile, CustomerSocialFolder } from '@/lib/types';
 
-type Tab = 'dm' | 'groups';
+type Tab = 'dm' | 'groups' | 'folders';
 
 interface DMConversation {
   profile: Profile;
@@ -59,6 +59,14 @@ export default function SocialNetworkPage() {
   const [showAddMember, setShowAddMember] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupDesc, setNewGroupDesc] = useState('');
+
+  // Folders state
+  const [folders, setFolders] = useState<CustomerSocialFolder[]>([]);
+  const [folderMembers, setFolderMembers] = useState<Record<string, any[]>>({});
+  const [folderCustomers, setFolderCustomers] = useState<Record<string, any[]>>({});
+  const [selectedFolder, setSelectedFolder] = useState<CustomerSocialFolder | null>(null);
+
+  const isSuperAdmin = profile?.role === 'super_admin';
 
   // Shared state
   const [loading, setLoading] = useState(true);
@@ -181,6 +189,26 @@ export default function SocialNetworkPage() {
   useEffect(() => { loadUsers(); }, [loadUsers]);
   useEffect(() => { if (users.length > 0) loadDMConversations(); }, [loadDMConversations]);
   useEffect(() => { loadGroups(); }, [loadGroups]);
+
+  // Load folders
+  const loadFolders = useCallback(async () => {
+    try {
+      const data = await fetchData<CustomerSocialFolder>('customer_social_folders', { orderBy: { createdAt: 'desc' } });
+      setFolders(data || []);
+      const memberMap: Record<string, any[]> = {};
+      const customerMap: Record<string, any[]> = {};
+      for (const f of data || []) {
+        const members = await fetchData('customer_social_folder_members', { where: { folderId: f.id } });
+        memberMap[f.id] = members || [];
+        const customers = await fetchData('customer_social_folder_customers', { where: { folderId: f.id } });
+        customerMap[f.id] = customers || [];
+      }
+      setFolderMembers(memberMap);
+      setFolderCustomers(customerMap);
+    } catch {}
+  }, []);
+
+  useEffect(() => { loadFolders(); }, [loadFolders]);
   useEffect(() => {
     if (tab === 'dm' && selectedUser) loadDmMessages(selectedUser.id);
     if (tab === 'groups' && selectedGroup) loadGroupMessages(selectedGroup.id);
@@ -430,6 +458,10 @@ export default function SocialNetworkPage() {
           <Users style={{ width: 18, height: 18 }} />
           گروه‌ها
         </button>
+        <button className={cn('social-network-tab', tab === 'folders' && 'is-active')} onClick={() => setTab('folders')}>
+          <FolderTree style={{ width: 18, height: 18 }} />
+          پوشه‌ها
+        </button>
       </div>
 
       <div className="social-network-body">
@@ -581,16 +613,87 @@ export default function SocialNetworkPage() {
             </>
           )}
 
-          {((tab === 'dm' && !selectedUser) || (tab === 'groups' && !selectedGroup)) && (
+          {tab === 'folders' && selectedFolder && (
+            <>
+              <header className="staff-chat-header">
+                <div className="staff-chat-person">
+                  <span className="staff-chat-avatar-wrap">
+                    <span className="staff-chat-avatar staff-chat-avatar-large" style={{ background: '#FEF3C7', color: '#D97706' }}>
+                      <FolderTree style={{ width: 20, height: 20 }} />
+                    </span>
+                  </span>
+                  <div>
+                    <strong>{selectedFolder.name}</strong>
+                    <span className="staff-chat-status">
+                      {(folderMembers[selectedFolder.id] || []).length} پرسنل · {(folderCustomers[selectedFolder.id] || []).length} مشتری
+                    </span>
+                  </div>
+                </div>
+                <div className="staff-chat-actions">
+                  <button className="staff-chat-icon-button mobile-only" onClick={() => setIsUsersOpen(true)} aria-label="نمایش پوشه‌ها"><FolderTree /></button>
+                  <a href="/super-admin/customer-folders" className="staff-chat-icon-button" aria-label="مدیریت پوشه" title="مدیریت پوشه‌ها"><Info /></a>
+                </div>
+              </header>
+              <div className="staff-chat-messages" ref={messagesContainerRef} style={{ overflowY: 'auto' }}>
+                <div className="staff-chat-date">{selectedFolder.description || 'پوشه باشگاه مشتریان'}</div>
+                <div style={{ padding: '16px 20px' }}>
+                  <h4 className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-1.5">
+                    <Users style={{ width: 16, height: 16 }} /> پرسنل و مدیران ({(folderMembers[selectedFolder.id] || []).length})
+                  </h4>
+                  <div className="space-y-2">
+                    {(folderMembers[selectedFolder.id] || []).length === 0 ? (
+                      <p className="text-xs text-slate-400 text-center py-4">پرسنلی در این پوشه نیست</p>
+                    ) : (folderMembers[selectedFolder.id] || []).map((m) => {
+                      const mp = users.find((u) => u.id === m.profileId);
+                      return (
+                        <div key={m.id} className="flex items-center gap-2.5 p-2.5 rounded-lg border bg-slate-50">
+                          <span className="staff-chat-avatar staff-chat-message-avatar">{mp ? getInitials(mp) : '؟'}</span>
+                          <div>
+                            <div className="text-sm font-medium text-slate-900">{mp ? getUserLabel(mp) : 'کاربر حذف شده'}</div>
+                            <div className="text-xs text-slate-400">{mp ? roleLabels[mp.role] || mp.role : ''}</div>
+                          </div>
+                          <button className="social-member-remove mr-auto" onClick={() => selectUser(mp!)} disabled={!mp} title="پیام خصوصی" style={{ color: '#2563EB' }}>
+                            <MessageCircle style={{ width: 16, height: 16 }} />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div style={{ padding: '0 20px 16px' }}>
+                  <h4 className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-1.5">
+                    <Users style={{ width: 16, height: 16 }} /> مشتریان ({(folderCustomers[selectedFolder.id] || []).length})
+                  </h4>
+                  <div className="space-y-2">
+                    {(folderCustomers[selectedFolder.id] || []).length === 0 ? (
+                      <p className="text-xs text-slate-400 text-center py-4">مشتری‌ای در این پوشه نیست</p>
+                    ) : (folderCustomers[selectedFolder.id] || []).map((c) => {
+                      const cp = users.find((u) => u.id === c.customerId);
+                      return (
+                        <div key={c.id} className="flex items-center gap-2.5 p-2.5 rounded-lg border bg-slate-50">
+                          <span className="staff-chat-avatar staff-chat-message-avatar" style={{ background: '#DCFCE7', color: '#16A34A' }}>{cp ? getInitials(cp) : '؟'}</span>
+                          <div>
+                            <div className="text-sm font-medium text-slate-900">{cp ? getUserLabel(cp) : 'مشتری حذف شده'}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {((tab === 'dm' && !selectedUser) || (tab === 'groups' && !selectedGroup) || (tab === 'folders' && !selectedFolder)) && (
             <div className="staff-chat-empty-panel">
               <button className="mobile-user-trigger" onClick={() => setIsUsersOpen(true)}>
-                <Users /> {tab === 'dm' ? 'انتخاب کاربر' : 'انتخاب گروه'}
+                <Users /> {tab === 'dm' ? 'انتخاب کاربر' : tab === 'groups' ? 'انتخاب گروه' : 'انتخاب پوشه'}
               </button>
-              <EmptyState icon={<MessageCircle />} title={tab === 'dm' ? 'یک کاربر را انتخاب کنید' : 'یک گروه را انتخاب کنید'} description={tab === 'dm' ? 'از لیست کاربران، گفتگو را انتخاب کنید' : 'از لیست گروه‌ها، گفتگو را انتخاب کنید'} />
+              <EmptyState icon={<MessageCircle />} title={tab === 'dm' ? 'یک کاربر را انتخاب کنید' : tab === 'groups' ? 'یک گروه را انتخاب کنید' : 'یک پوشه را انتخاب کنید'} description={tab === 'dm' ? 'از لیست کاربران، گفتگو را انتخاب کنید' : tab === 'groups' ? 'از لیست گروه‌ها، گفتگو را انتخاب کنید' : 'از لیست پوشه‌ها، جزئیات را مشاهده کنید'} />
             </div>
           )}
 
-          {(selectedUser || selectedGroup) && (
+          {((selectedUser || selectedGroup) || (tab === 'folders' && selectedFolder && false)) && (
             <>
               {attachment && <div className="staff-chat-attachment-preview">
                 {attachment.type === 'image' ? <img src={attachment.url} alt="" /> : <span>{attachment.type === 'video' ? <Video /> : <FileText />}</span>}
@@ -622,8 +725,14 @@ export default function SocialNetworkPage() {
             <button className="staff-chat-toolbar-button" aria-label="فیلتر"><Filter /></button>
             {tab === 'dm' ? (
               <button className="staff-chat-add-button" aria-label="گفتگو جدید"><Plus /></button>
+            ) : tab === 'groups' ? (
+              isSuperAdmin ? (
+                <button className="staff-chat-add-button" onClick={() => setShowCreateGroup(true)} aria-label="گروه جدید"><Plus /></button>
+              ) : null
             ) : (
-              <button className="staff-chat-add-button" onClick={() => setShowCreateGroup(true)} aria-label="گروه جدید"><Plus /></button>
+              isSuperAdmin ? (
+                <a href="/super-admin/customer-folders" className="staff-chat-add-button" aria-label="پوشه جدید"><Plus /></a>
+              ) : null
             )}
           </div>
           <div className="staff-chat-users-list">
@@ -645,9 +754,39 @@ export default function SocialNetworkPage() {
                 </>}
               </>
             )}
+            {tab === 'folders' && (
+              <>
+                {folders.length === 0 ? <div className="staff-chat-no-users">پوشه‌ای یافت نشد</div> : <>
+                  <h3>پوشه‌های باشگاه مشتریان</h3>
+                  {folders.filter((f) => f.name.toLowerCase().includes(search.toLowerCase())).map((f) => {
+                    const isActive = selectedFolder?.id === f.id;
+                    const memberCount = (folderMembers[f.id] || []).length;
+                    const customerCount = (folderCustomers[f.id] || []).length;
+                    return (
+                      <button key={f.id} onClick={() => { setSelectedFolder(f); setShowGroupMembers(false); setIsUsersOpen(false); }} className={cn('staff-chat-user', isActive && 'is-active')}>
+                        <span className="staff-chat-avatar-wrap">
+                          <span className="staff-chat-avatar" style={{ background: '#FEF3C7', color: '#D97706' }}>
+                            <FolderTree style={{ width: 18, height: 18 }} />
+                          </span>
+                        </span>
+                        <span className="staff-chat-user-copy">
+                          <span className="staff-chat-user-topline">
+                            <strong>{f.name}</strong>
+                          </span>
+                          <span className="staff-chat-user-bottomline">
+                            <small>{memberCount} پرسنل · {customerCount} مشتری</small>
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </>}
+              </>
+            )}
           </div>
           {tab === 'dm' && <button className="staff-chat-all-users"><Users /> مشاهده همه کاربران</button>}
-          {tab === 'groups' && <button className="staff-chat-all-users" onClick={() => setShowCreateGroup(true)}><Plus /> ساخت گروه جدید</button>}
+          {tab === 'groups' && isSuperAdmin && <button className="staff-chat-all-users" onClick={() => setShowCreateGroup(true)}><Plus /> ساخت گروه جدید</button>}
+          {tab === 'folders' && isSuperAdmin && <a href="/super-admin/customer-folders" className="staff-chat-all-users"><Plus /> مدیریت پوشه‌ها</a>}
         </aside>
         {isUsersOpen && <button className="staff-chat-overlay" onClick={() => setIsUsersOpen(false)} aria-label="بستن فهرست" />}
       </div>
