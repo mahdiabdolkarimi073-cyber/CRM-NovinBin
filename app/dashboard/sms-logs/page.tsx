@@ -12,7 +12,8 @@ import type { SmsLog } from '@/lib/types';
 
 const typeLabels: Record<string, string> = {
   manual: 'دستی',
-  expiry_reminder: 'یادآوری انقضا',
+  expiry_reminder: 'یادآوری تمدید هاست/دامنه',
+  meeting_reminder: 'یادآوری جلسه',
 };
 
 export default function SmsLogsPage() {
@@ -20,6 +21,7 @@ export default function SmsLogsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
 
   const load = useCallback(async () => {
     try {
@@ -41,7 +43,8 @@ export default function SmsLogsPage() {
       item.mobile.includes(search) ||
       item.message.includes(search);
     const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesType = typeFilter === 'all' || item.type === typeFilter;
+    return matchesSearch && matchesStatus && matchesType;
   });
 
   const handleDelete = async (id: string) => {
@@ -100,6 +103,32 @@ export default function SmsLogsPage() {
               className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${statusFilter === 'failed' ? 'bg-red-500 text-white' : 'bg-white border border-[#E2E8F0] text-slate-600 hover:border-[#94A3B8]'}`}
             >
               ناموفق
+            </button>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => setTypeFilter('all')}
+              className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${typeFilter === 'all' ? 'bg-slate-700 text-white' : 'bg-white border border-[#E2E8F0] text-slate-600 hover:border-[#94A3B8]'}`}
+            >
+              همه نوع
+            </button>
+            <button
+              onClick={() => setTypeFilter('meeting_reminder')}
+              className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${typeFilter === 'meeting_reminder' ? 'bg-slate-700 text-white' : 'bg-white border border-[#E2E8F0] text-slate-600 hover:border-[#94A3B8]'}`}
+            >
+              جلسات
+            </button>
+            <button
+              onClick={() => setTypeFilter('expiry_reminder')}
+              className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${typeFilter === 'expiry_reminder' ? 'bg-slate-700 text-white' : 'bg-white border border-[#E2E8F0] text-slate-600 hover:border-[#94A3B8]'}`}
+            >
+              تمدید هاست/دامنه
+            </button>
+            <button
+              onClick={() => setTypeFilter('manual')}
+              className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${typeFilter === 'manual' ? 'bg-slate-700 text-white' : 'bg-white border border-[#E2E8F0] text-slate-600 hover:border-[#94A3B8]'}`}
+            >
+              دستی
             </button>
           </div>
         </div>

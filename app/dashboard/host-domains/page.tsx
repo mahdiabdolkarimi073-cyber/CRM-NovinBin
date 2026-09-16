@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import {
   Plus, Trash2, Loader2, Search, Server, Globe, Clock,
   CheckCircle2, XCircle, Send, AlertTriangle, Phone,
+  RefreshCw, CalendarX, Mail,
 } from 'lucide-react';
 import type { HostDomain } from '@/lib/types';
 
@@ -27,6 +28,8 @@ function getExpiryStatus(expiry: string): { label: string; color: string; bg: st
   return { label: `${days.toLocaleString('fa-IR')} روز تا انقضا`, color: '#22C55E', bg: '#DCFCE7', icon: CheckCircle2 };
 }
 
+type TabKey = 'all' | 'expiring' | 'expired';
+
 export default function HostDomainsPage() {
   const { profile } = useAuth();
   const [items, setItems] = useState<HostDomain[]>([]);
@@ -34,6 +37,7 @@ export default function HostDomainsPage() {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [sendingSms, setSendingSms] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabKey>('all');
 
   const load = useCallback(async () => {
     try {
@@ -50,7 +54,19 @@ export default function HostDomainsPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  const filtered = items.filter((item) => {
+  const expiringSoon = items.filter((item) => {
+    const days = daysUntilExpiry(item.expiryDate);
+    return days >= 0 && days <= 7;
+  });
+  const expiredItems = items.filter((item) => daysUntilExpiry(item.expiryDate) < 0);
+
+  const tabFiltered = items.filter((item) => {
+    if (activeTab === 'expiring') return daysUntilExpiry(item.expiryDate) >= 0 && daysUntilExpiry(item.expiryDate) <= 7;
+    if (activeTab === 'expired') return daysUntilExpiry(item.expiryDate) < 0;
+    return true;
+  });
+
+  const filtered = tabFiltered.filter((item) => {
     const q = search.toLowerCase();
     const matchesSearch = !search ||
       item.customerNumber.includes(search) ||
@@ -95,7 +111,34 @@ export default function HostDomainsPage() {
     }
   };
 
+  const handleRenew = async (id: string, currentExpiry: string) => {
+    const newExpiry = prompt('تاریخ انقضای جدید را به میلادی وارد کنید (YYYY-MM-DD):');
+    if (!newExpiry) return;
+    const parsed = new Date(newExpiry);
+    if (isNaN(parsed.getTime())) {
+      toast.error('تاریخ نامعتبر است');
+      return;
+    }
+    try {
+      await updateData('host_domains', { id }, {
+        expiryDate: parsed.toISOString(),
+        smsSent: false,
+        smsSentAt: null,
+      });
+      setItems((prev) => prev.map((x) => x.id === id ? { ...x, expiryDate: parsed.toISOString(), smsSent: false, smsSentAt: null } : x));
+      toast.success('هاست/دامنه تمدید شد');
+    } catch (error: any) {
+      toast.error('تمدید ناموفق: ' + error.message);
+    }
+  };
+
   const getHostTypeLabel = (key: string) => HOST_TYPES.find((t) => t.key === key)?.label || key;
+
+  const tabs: { key: TabKey; label: string; count: number; icon: any; color: string }[] = [
+    { key: 'all', label: 'همه', count: items.length, icon: Server, color: '#2563EB' },
+    { key: 'expiring', label: 'در حال انقضا', count: expiringSoon.length, icon: AlertTriangle, color: '#F59E0B' },
+    { key: 'expired', label: 'منقضی شده', count: expiredItems.length, icon: CalendarX, color: '#EF4444' },
+  ];
 
   return (
     <div className="create-task-page" dir="rtl">
@@ -104,7 +147,7 @@ export default function HostDomainsPage() {
           <div>
             <div className="create-task-title">
               <span className="title-accent-bar" />
-              <h1>ثبت هاست و دامنه</h1>
+              <h1>هاست و دامنه</h1>
             </div>
             <div className="create-task-breadcrumb">
               داشبورد <b>←</b> هاست و دامنه
@@ -115,6 +158,31 @@ export default function HostDomainsPage() {
             ثبت هاست/دامنه جدید
           </Link>
         </header>
+
+        {/* Renewal Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+          {tabs.map((tab) => {
+            const TabIcon = tab.icon;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`rounded-xl border p-4 text-right transition-all ${activeTab === tab.key ? 'border-2 bg-white shadow-sm' : 'border-[#E2E8F0] bg-white hover:shadow-sm'}`}
+                style={activeTab === tab.key ? { borderColor: tab.color } : {}}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-slate-500 mb-1">{tab.label}</p>
+                    <p className="text-2xl font-bold text-slate-800">{tab.count.toLocaleString('fa-IR')}</p>
+                  </div>
+                  <div className="rounded-lg p-2.5" style={{ backgroundColor: tab.color + '15' }}>
+                    <TabIcon className="h-5 w-5" style={{ color: tab.color }} />
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
 
         {/* Filters */}
         <div className="flex flex-wrap gap-3 mb-4 items-center">
@@ -133,7 +201,7 @@ export default function HostDomainsPage() {
               onClick={() => setTypeFilter('all')}
               className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${typeFilter === 'all' ? 'bg-[#2563EB] text-white' : 'bg-white border border-[#E2E8F0] text-slate-600 hover:border-[#94A3B8]'}`}
             >
-              همه
+              همه نوع
             </button>
             {HOST_TYPES.map((t) => (
               <button
@@ -155,7 +223,9 @@ export default function HostDomainsPage() {
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <Server className="h-12 w-12 text-slate-300 mb-3" />
-            <p className="text-slate-500 mb-1">هیچ هاست/دامنه‌ای ثبت نشده است</p>
+            <p className="text-slate-500 mb-1">
+              {activeTab === 'expiring' ? 'هیچ هاست/دامنه‌ای در حال انقضا نیست' : activeTab === 'expired' ? 'هیچ هاست/دامنه‌ای منقضی نشده است' : 'هیچ هاست/دامنه‌ای ثبت نشده است'}
+            </p>
             <p className="text-sm text-slate-400">برای ثبت جدید روی دکمه بالا کلیک کنید</p>
           </div>
         ) : (
@@ -164,6 +234,7 @@ export default function HostDomainsPage() {
               const expStatus = getExpiryStatus(item.expiryDate);
               const ExpIcon = expStatus.icon;
               const isExpired = daysUntilExpiry(item.expiryDate) < 0;
+              const isExpiringSoon = !isExpired && daysUntilExpiry(item.expiryDate) <= 7;
               return (
                 <div key={item.id} className="rounded-xl border border-[#E2E8F0] bg-white p-4 transition-all hover:shadow-md">
                   <div className="flex items-start justify-between gap-4">
@@ -186,6 +257,11 @@ export default function HostDomainsPage() {
                             پیامک ارسال شد
                           </span>
                         )}
+                        {item.smsSent && item.smsSentAt && (
+                          <span className="text-[10px] text-slate-400">
+                            {formatJalaliDateTime(item.smsSentAt)}
+                          </span>
+                        )}
                       </div>
                       <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-400">
                         <span>مشتری: {item.customerNumber}</span>
@@ -205,22 +281,41 @@ export default function HostDomainsPage() {
                       )}
                     </div>
                     <div className="flex flex-col items-end gap-2 shrink-0">
-                      {!item.smsSent && !isExpired && (
+                      <div className="flex items-center gap-2">
+                        {(!item.smsSent || isExpired) && !isExpired && (
+                          <button
+                            onClick={() => handleSendSms(item.id)}
+                            disabled={sendingSms === item.id}
+                            className="inline-flex items-center gap-1 rounded-lg bg-[#2563EB] px-3 py-1.5 text-xs font-medium text-white transition-all hover:bg-[#1d4ED8] disabled:opacity-50"
+                          >
+                            {sendingSms === item.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                            ارسال پیامک تمدید
+                          </button>
+                        )}
+                        {isExpiringSoon && item.smsSent && (
+                          <button
+                            onClick={() => handleSendSms(item.id)}
+                            disabled={sendingSms === item.id}
+                            className="inline-flex items-center gap-1 rounded-lg border border-[#2563EB] px-3 py-1.5 text-xs font-medium text-[#2563EB] transition-all hover:bg-[#2563EB]/5 disabled:opacity-50"
+                          >
+                            {sendingSms === item.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                            ارسال مجدد
+                          </button>
+                        )}
                         <button
-                          onClick={() => handleSendSms(item.id)}
-                          disabled={sendingSms === item.id}
-                          className="inline-flex items-center gap-1 rounded-lg bg-[#2563EB] px-3 py-1.5 text-xs font-medium text-white transition-all hover:bg-[#1d4ED8] disabled:opacity-50"
+                          onClick={() => handleRenew(item.id, item.expiryDate)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-emerald-300 px-3 py-1.5 text-xs font-medium text-emerald-600 transition-all hover:bg-emerald-50"
                         >
-                          {sendingSms === item.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                          ارسال پیامک تمدید
+                          <RefreshCw className="h-3.5 w-3.5" />
+                          تمدید
                         </button>
-                      )}
-                      <button
-                        onClick={() => handleDelete(item.id)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-[#E2E8F0] px-3 py-1.5 text-xs font-medium text-red-500 transition-all hover:border-red-300 hover:bg-red-50"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                        <button
+                          onClick={() => handleDelete(item.id)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-[#E2E8F0] px-3 py-1.5 text-xs font-medium text-red-500 transition-all hover:border-red-300 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
