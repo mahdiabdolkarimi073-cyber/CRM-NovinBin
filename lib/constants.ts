@@ -111,6 +111,9 @@ export const LEAD_SERVICE_TYPES = [
   'سئو',
   'تولید محتوا',
   'CRM',
+  'برنامه نویسی',
+  'برنامه نویسی اپلیکیشن',
+  'کارت ویزیت',
 ];
 
 export const VERIFICATION_CATEGORIES = [

@@ -66,6 +66,7 @@ export default function NewLeadPage() {
   });
   const [additionalPhones, setAdditionalPhones] = useState<string[]>([]);
   const [selectedServices, setSelectedServices] = useState<Set<string>>(new Set());
+  const [otherService, setOtherService] = useState('');
 
   useEffect(() => {
     setTimeout(() => nameInputRef.current?.focus(), 100);
@@ -315,6 +316,57 @@ export default function NewLeadPage() {
                   <p className="lead-service-selected-count">
                     {selectedServices.size.toLocaleString('fa-IR')} مورد انتخاب شده
                   </p>
+                )}
+              </div>
+
+              {/* Other service - full width */}
+              <div className="lead-field-group lead-field-full">
+                <Label className="lead-field-label">سایر خدمات</Label>
+                <p className="lead-service-hint">اگر خدمت مورد نظر در لیست بالا نیست، اینجا بنویسید تا به عنوان یک نوع خدمت ذخیره شود</p>
+                <div className="lead-other-service-row">
+                  <input
+                    type="text"
+                    value={otherService}
+                    onChange={(e) => setOtherService(e.target.value)}
+                    placeholder="نوع خدمت دیگر را وارد کنید..."
+                    className="lead-input"
+                    dir="rtl"
+                  />
+                  <button
+                    type="button"
+                    className="lead-add-service-btn"
+                    onClick={() => {
+                      const val = otherService.trim();
+                      if (!val) return;
+                      const updated = new Set(selectedServices);
+                      updated.add(val);
+                      setSelectedServices(updated);
+                      setOtherService('');
+                      toast.success(`«${val}» به خدمات انتخاب‌شده اضافه شد`);
+                    }}
+                  >
+                    <Plus className="h-4 w-4" />
+                    افزودن
+                  </button>
+                </div>
+                {selectedServices.size > 0 && (
+                  <div className="lead-other-service-tags">
+                    {Array.from(selectedServices).filter((s) => !LEAD_SERVICE_TYPES.includes(s)).map((s) => (
+                      <span key={s} className="lead-other-service-tag">
+                        {s}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = new Set(selectedServices);
+                            updated.delete(s);
+                            setSelectedServices(updated);
+                          }}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
                 )}
               </div>
 

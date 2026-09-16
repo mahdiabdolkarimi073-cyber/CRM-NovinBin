@@ -3620,6 +3620,14 @@
 .lead-service-checkbox-label { font-size: 13px; font-weight: 500; color: #475569; }
 .lead-service-checkbox-checked .lead-service-checkbox-label { color: #2563EB; font-weight: 600; }
 .lead-service-selected-count { margin-top: 8px; font-size: 12px; color: #2563EB; font-weight: 600; }
+.lead-other-service-row { display: flex; align-items: center; gap: 8px; }
+.lead-other-service-row .lead-input { flex: 1; }
+.lead-add-service-btn { display: inline-flex; align-items: center; gap: 6px; height: 52px; padding: 0 16px; flex: 0 0 auto; border: 1px solid #2563EB; border-radius: 10px; background: #EFF6FF; color: #2563EB; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.18s ease; }
+.lead-add-service-btn:hover { background: #DBEAFE; border-color: #1D4ED8; }
+.lead-other-service-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.lead-other-service-tag { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid #BFDBFE; border-radius: 999px; background: #EFF6FF; color: #1E40AF; font-size: 12px; font-weight: 500; }
+.lead-other-service-tag button { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border: none; border-radius: 50%; background: #DBEAFE; color: #2563EB; cursor: pointer; transition: all 0.15s ease; }
+.lead-other-service-tag button:hover { background: #93C5FD; color: #1E3A8A; }
 .lead-form-actions { display: flex; align-items: center; justify-content: flex-start; gap: 14px; }
 .lead-submit-btn, .lead-cancel-btn { display: inline-flex; align-items: center; justify-content: center; gap: 9px; height: 52px; border-radius: 10px; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer; transition: background .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease; }
 .lead-submit-btn { width: 180px; border: 1px solid #102B67; background: #102B67; color: #FFF; }
