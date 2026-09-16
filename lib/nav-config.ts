@@ -28,6 +28,7 @@ export interface NavGroup {
 export const coreItems: NavItem[] = [
   { href: '/dashboard', label: 'داشبورد', icon: LayoutDashboard },
   { href: '/dashboard/leads', label: 'سرنخ‌های فروش', icon: TrendingUp },
+  { href: '/dashboard/leads/archive', label: 'آرشیو سرنخ‌ها', icon: Archive },
   { href: '/dashboard/demos', label: 'دموها', icon: Clock },
   { href: '/dashboard/contracts', label: 'قراردادها', icon: FileSignature },
   { href: '/dashboard/hr', label: 'منابع انسانی', icon: UserCog },
@@ -173,6 +174,7 @@ export const UNIVERSAL_PAGES = new Set([
   '/dashboard/notifications',
   '/dashboard/ai-assistant',
   '/dashboard/lead-referrals',
+  '/dashboard/leads/archive',
 ]);
 
 export function hasPageAccess(profile: Profile | null, href: string): boolean {

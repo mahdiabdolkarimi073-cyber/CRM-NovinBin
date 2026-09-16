@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { createData } from '@/lib/data-client';
+import { fetchData, updateData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
 import { Label } from '@/components/ui/label';
 import {
@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { LEAD_SOURCES, LEAD_SERVICE_TYPES } from '@/lib/constants';
+import type { Lead } from '@/lib/types';
 
 const guideCards = [
   {
@@ -49,9 +50,12 @@ const guideCards = [
 
 const MAX_PHONES = 10;
 
-export default function NewLeadPage() {
+export default function EditLeadPage() {
   const { profile } = useAuth();
   const router = useRouter();
+  const params = useParams();
+  const leadId = params.id as string;
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -68,8 +72,37 @@ export default function NewLeadPage() {
   const [selectedServices, setSelectedServices] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    setTimeout(() => nameInputRef.current?.focus(), 100);
-  }, []);
+    if (!leadId) return;
+    (async () => {
+      try {
+        const leads = await fetchData<Lead>('leads', { where: { id: leadId } });
+        if (!leads || leads.length === 0) {
+          toast.error('سرنخ یافت نشد');
+          router.push('/dashboard/leads');
+          return;
+        }
+        const lead = leads[0];
+        setForm({
+          name: lead.name || '',
+          company: lead.company || '',
+          phone: lead.phone || '',
+          city: (lead as any).city || '',
+          industry: (lead as any).industry || '',
+          source: lead.source || '',
+          notes: lead.notes || '',
+        });
+        const extra = (lead as any).additionalPhones;
+        setAdditionalPhones(Array.isArray(extra) ? extra : []);
+        const services = (lead as any).serviceTypes;
+        setSelectedServices(new Set(Array.isArray(services) ? services : []));
+        setTimeout(() => nameInputRef.current?.focus(), 100);
+      } catch (error: any) {
+        toast.error('بارگذاری سرنخ ناموفق: ' + error.message);
+        router.push('/dashboard/leads');
+      }
+      setLoading(false);
+    })();
+  }, [leadId, router]);
 
   const validate = useCallback(() => {
     const e: Record<string, string> = {};
@@ -125,29 +158,33 @@ export default function NewLeadPage() {
     const validAdditionalPhones = additionalPhones.filter((p) => p.trim());
 
     try {
-      await createData('leads', {
+      await updateData('leads', { id: leadId }, {
         name: form.name.trim(),
         company: form.company.trim() || null,
         phone: form.phone.trim() || null,
-        additionalPhones: validAdditionalPhones.length > 0 ? validAdditionalPhones : [],
-        email: null,
+        additionalPhones: validAdditionalPhones,
         city: form.city.trim() || null,
         industry: form.industry.trim() || null,
         serviceTypes: Array.from(selectedServices),
         source: form.source || null,
         notes: combinedNotes || null,
-        status: 'new',
-        isArchived: false,
-        createdBy: profile.id,
       });
-      toast.success('سرنخ با موفقیت ثبت شد');
+      toast.success('سرنخ با موفقیت ویرایش شد');
       router.push('/dashboard/leads');
     } catch (error: any) {
-      toast.error('ایجاد سرنخ ناموفق: ' + error.message);
+      toast.error('ویرایش سرنخ ناموفق: ' + error.message);
     } finally {
       setSubmitting(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-[#2563EB]" />
+      </div>
+    );
+  }
 
   return (
     <div className="new-lead-page" dir="rtl">
@@ -157,10 +194,10 @@ export default function NewLeadPage() {
           <div>
             <div className="new-lead-title-row">
               <span className="new-lead-title-accent" />
-              <h1>ایجاد سرنخ جدید</h1>
+              <h1>ویرایش سرنخ</h1>
             </div>
             <div className="new-lead-breadcrumb">
-              داشبورد <b>←</b> سرنخ‌های فروش <b>←</b> ایجاد سرنخ جدید
+              داشبورد <b>←</b> سرنخ‌های فروش <b>←</b> ویرایش سرنخ
             </div>
           </div>
           <Link href="/dashboard/leads" className="new-lead-back-button">
@@ -175,7 +212,7 @@ export default function NewLeadPage() {
           <form className="lead-form-card" onSubmit={handleSubmit}>
             <div className="lead-form-header">
               <h2>اطلاعات سرنخ</h2>
-              <p>لطفاً اطلاعات مربوط به سرنخ جدید را وارد کنید.</p>
+              <p>لطفاً اطلاعات مربوط به سرنخ را ویرایش کنید.</p>
             </div>
             <div className="lead-form-divider" />
 
@@ -368,7 +405,7 @@ export default function NewLeadPage() {
                 ) : (
                   <Save className="h-4 w-4" />
                 )}
-                {submitting ? 'در حال ثبت...' : 'ثبت سرنخ'}
+                {submitting ? 'در حال ذخیره...' : 'ذخیره تغییرات'}
               </button>
             </div>
           </form>
@@ -406,7 +443,7 @@ export default function NewLeadPage() {
                 <h3>اطلاعات مفید</h3>
               </div>
               <p>
-                پس از ثبت سرنخ می‌توانید جزئیات آن را ویرایش و مراحل فروش را پیگیری کنید.
+                پس از ویرایش سرنخ می‌توانید مراحل فروش را پیگیری کنید.
               </p>
             </div>
           </aside>

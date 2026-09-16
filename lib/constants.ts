@@ -103,6 +103,16 @@ export const LEAD_SOURCES = [
   'سایر',
 ];
 
+export const LEAD_SERVICE_TYPES = [
+  'طراحی سایت',
+  'طراحی لوگو',
+  'طراحی کاتالوگ',
+  'طراحی کاتالوگ دیجیتال',
+  'سئو',
+  'تولید محتوا',
+  'CRM',
+];
+
 export const VERIFICATION_CATEGORIES = [
   { key: 'general', label: 'عمومی' },
   { key: 'identity', label: 'احراز هویت' },

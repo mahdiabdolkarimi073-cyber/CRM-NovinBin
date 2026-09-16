@@ -17,7 +17,7 @@ import {
   TrendingUp, Plus, Phone, Mail, Search, Eye, Pencil, Trash2,
   BarChart3, Filter, Zap, FileBarChart, FileSpreadsheet, ChevronLeft, ChevronRight,
   UserCheck, Clock, AlertTriangle, Bell, X, Calendar, Video, Loader2,
-  Users, Save, Send, ClipboardList,
+  Users, Save, Send, ClipboardList, Archive, ArchiveRestore,
 } from 'lucide-react';
 import { relativeTime, formatJalaliDateTime, toLocalDateString } from '@/lib/format';
 import { LEAD_STATUSES, LEAD_SOURCES, fullName } from '@/lib/constants';
@@ -89,7 +89,7 @@ export default function LeadsPage() {
     if (!profile) return;
     setLoading(true);
     try {
-      const where: any = {};
+      const where: any = { isArchived: false };
       if (filterStatus !== 'all') where.status = filterStatus;
       if (filterSource !== 'all') where.source = filterSource;
       if (search) {
@@ -228,6 +228,15 @@ export default function LeadsPage() {
       setEditDialogOpen(false); setEditingLead(null); loadLeads();
     } catch (error: any) { toast.error('ویرایش ناموفق: ' + error.message); }
     setSaving(false);
+  };
+
+  const handleArchive = async (lead: Lead) => {
+    if (!confirm(`آیا سرنخ «${lead.name}» آرشیو شود؟ سرنخ‌های آرشیو شده پس از ۳۰ روز به‌طور خودکار حذف می‌شوند.`)) return;
+    try {
+      await updateData('leads', { id: lead.id }, { isArchived: true, archivedAt: new Date().toISOString() });
+      toast.success('سرنخ آرشیو شد');
+      loadLeads();
+    } catch (error: any) { toast.error('آرشیو ناموفق: ' + error.message); }
   };
 
   const handleDelete = async (lead: Lead) => {
@@ -423,10 +432,16 @@ export default function LeadsPage() {
           </div>
           <p>مدیریت سرنخ‌ها و دنبال‌کردن مشتریان</p>
         </div>
-        <Link href="/dashboard/leads/new" className="leads-new-button">
-          <Plus className="h-4 w-4" />
-          سرنخ جدید
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/dashboard/leads/archive" className="leads-archive-button">
+            <Archive className="h-4 w-4" />
+            آرشیو سرنخ‌ها
+          </Link>
+          <Link href="/dashboard/leads/new" className="leads-new-button">
+            <Plus className="h-4 w-4" />
+            سرنخ جدید
+          </Link>
+        </div>
       </header>
 
       {/* Alarm Banner */}
@@ -612,8 +627,11 @@ export default function LeadsPage() {
                         <button className="lead-action-btn lead-action-view" onClick={() => openView(lead)} title="مشاهده">
                           <Eye className="h-4 w-4" />
                         </button>
-                        <button className="lead-action-btn lead-action-edit" onClick={() => openEdit(lead)} title="ویرایش">
+                        <Link href={`/dashboard/leads/${lead.id}/edit`} className="lead-action-btn lead-action-edit" title="ویرایش">
                           <Pencil className="h-4 w-4" />
+                        </Link>
+                        <button className="lead-action-btn lead-action-archive" onClick={() => handleArchive(lead)} title="آرشیو">
+                          <Archive className="h-4 w-4" />
                         </button>
                         <button className="lead-action-btn lead-action-referral" onClick={() => openReferral(lead)} title="ارجاع">
                           <Users className="h-4 w-4" />

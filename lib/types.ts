@@ -75,9 +75,15 @@ export interface Lead {
   name: string;
   company: string | null;
   phone: string | null;
+  additionalPhones: string[] | null;
   email: string | null;
+  city: string | null;
+  industry: string | null;
+  serviceTypes: string[] | null;
   status: LeadStatus;
   score: number;
+  isArchived: boolean;
+  archivedAt: string | null;
   assignedTo: string | null;
   customerId: string | null;
   notes: string | null;

@@ -291,10 +291,16 @@ model Lead {
   name            String
   company         String?
   phone           String?
+  additionalPhones Json     @default("[]")
   email           String?
+  city            String?
+  industry        String?
+  serviceTypes    Json     @default("[]")
   source          String?
   score           Int       @default(0)
   status          String    @default("new")
+  isArchived      Boolean   @default(false)
+  archivedAt      DateTime?
   assignedTo      String?   @db.Uuid
   customerId      String?   @db.Uuid
   notes           String?
