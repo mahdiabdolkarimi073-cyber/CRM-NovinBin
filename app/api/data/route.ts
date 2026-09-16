@@ -186,6 +186,12 @@ const MODEL_MAP: Record<string, any> = {
   social_group_message_reads: prisma.socialGroupMessageRead,
   social_call_sessions: prisma.socialCallSession,
   social_call_signals: prisma.socialCallSignal,
+  customer_social_folders: prisma.customerSocialFolder,
+  customer_social_folder_members: prisma.customerSocialFolderMember,
+  customer_social_folder_customers: prisma.customerSocialFolderCustomer,
+  customer_social_messages: prisma.customerSocialMessage,
+  customer_social_call_sessions: prisma.customerSocialCallSession,
+  customer_social_call_signals: prisma.customerSocialCallSignal,
 };
 
 function getAuth(req: NextRequest) {
@@ -288,6 +294,12 @@ const MODEL_PAGE: Record<string, string> = {
   graphic_work_access: '/super-admin/graphic-works-access',
   meeting_images: '/dashboard/meetings',
   meeting_referrals: '/dashboard/meetings',
+  customer_social_folders: '/super-admin/customer-folders',
+  customer_social_folder_members: '/super-admin/customer-folders',
+  customer_social_folder_customers: '/super-admin/customer-folders',
+  customer_social_messages: '/dashboard/customer-social',
+  customer_social_call_sessions: '/dashboard/customer-social',
+  customer_social_call_signals: '/dashboard/customer-social',
 };
 
 const SHARED_MODELS = new Set([
@@ -299,6 +311,9 @@ const SHARED_MODELS = new Set([
   'social_dm_messages', 'social_groups', 'social_group_members',
   'social_group_messages', 'social_group_message_reads',
   'social_call_sessions', 'social_call_signals',
+  'customer_social_folders', 'customer_social_folder_members',
+  'customer_social_folder_customers', 'customer_social_messages',
+  'customer_social_call_sessions', 'customer_social_call_signals',
 ]);
 
 async function canAccess(auth: { userId: string }, model: string): Promise<boolean> {
@@ -355,6 +370,12 @@ export async function GET(req: NextRequest) {
   }
   if (model === 'social_group_message_reads') {
     where = { ...where, profileId: auth.userId };
+  }
+  if (model === 'customer_social_messages') {
+    where = { ...where, OR: [{ senderId: auth.userId }, { receiverId: auth.userId }] };
+  }
+  if (model === 'customer_social_call_sessions' || model === 'customer_social_call_signals') {
+    where = { ...where, OR: [{ callerId: auth.userId }, { receiverId: auth.userId }, { senderId: auth.userId }, { receiverId: auth.userId }] };
   }
   if (model === 'my_customers') {
     const fullProfile = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });
@@ -436,6 +457,9 @@ export async function POST(req: NextRequest) {
   if (model === 'social_group_messages') {
     postData = { ...data, senderId: auth.userId };
   }
+  if (model === 'customer_social_messages') {
+    postData = { ...data, senderId: auth.userId };
+  }
   if (model === 'ticket_messages') {
     postData = { ...data, senderId: auth.userId, senderType: 'staff' };
   }
@@ -495,6 +519,17 @@ export async function POST(req: NextRequest) {
         if (members.length > 0) {
           await prisma.notification.createMany({ data: members.map((m) => ({ profileId: m.profileId, title: `پیام جدید در گروه ${group?.name || ''}`, body: `${senderName}: ${postData.content ? String(postData.content).slice(0, 100) : 'فایل پیوست'}`, type: 'social', priority: 'normal', link: '/dashboard/social' })) });
         }
+      } catch {}
+    }
+    if (model === 'customer_social_messages' && postData.receiverId) {
+      try {
+        const sender = await prisma.profile.findUnique({
+          where: { id: auth.userId }, select: { firstName: true, lastName: true, userType: true } });
+        const senderName = [sender?.firstName, sender?.lastName].filter(Boolean).join(' ') || 'کاربر';
+        const link = sender?.userType === 'customer' ? '/dashboard/customer-social' : '/portal/social';
+        await prisma.notification.create({
+          data: { profileId: postData.receiverId, title: `پیام جدید از ${senderName}`, body: postData.content ? String(postData.content).slice(0, 120) : 'فایل پیوست', type: 'social', priority: 'normal', link }
+        });
       } catch {}
     }
     if (model === 'social_groups' && record) {

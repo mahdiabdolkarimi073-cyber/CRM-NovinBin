@@ -8,7 +8,7 @@ import {
   UserCheck, ClipboardList, Network, Contact, Megaphone, Wallet,
   FileCheck, Banknote, CreditCard, ArrowRightLeft, Sparkles,
   ClipboardCheck, FileSearch, ArrowUpFromLine, Undo2, Percent, Server, Fingerprint, BriefcaseBusiness,
-  Palette, Archive,
+  Palette, Archive, FolderTree, Headset,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { Profile } from '@/lib/types';
@@ -35,6 +35,7 @@ export const coreItems: NavItem[] = [
   { href: '/dashboard/notes', label: 'یادداشت‌ها', icon: StickyNote },
   { href: '/dashboard/staff-chat', label: 'چت پرسنل', icon: MessageCircle },
   { href: '/dashboard/social', label: 'شبکه اجتماعی', icon: MessagesSquare },
+  { href: '/dashboard/customer-social', label: 'چت مشتریان', icon: Headset },
   { href: '/dashboard/notifications', label: 'اعلان‌ها', icon: Bell },
   { href: '/dashboard/ai-assistant', label: 'دستیار', icon: Sparkles },
   { href: '/dashboard/settings', label: 'تنظیمات', icon: Settings },
@@ -169,6 +170,7 @@ export const UNIVERSAL_PAGES = new Set([
   '/dashboard/notes',
   '/dashboard/staff-chat',
   '/dashboard/social',
+  '/dashboard/customer-social',
   '/dashboard/my-customers',
   '/dashboard/settings',
   '/dashboard/notifications',

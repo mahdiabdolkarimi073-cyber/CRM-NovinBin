@@ -4552,3 +4552,91 @@ model SocialCallSignal {
 
   @@map("social_call_signals")
 }
+
+// ============ CUSTOMER SOCIAL NETWORK (باشگاه مشتریان) ============
+
+model CustomerSocialFolder {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String
+  description String?
+  createdBy   String   @db.Uuid
+  createdAt   DateTime @default(now())
+
+  members    CustomerSocialFolderMember[]
+  customers  CustomerSocialFolderCustomer[]
+
+  @@map("customer_social_folders")
+}
+
+model CustomerSocialFolderMember {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  folderId   String   @db.Uuid
+  profileId  String   @db.Uuid
+  assignedBy String   @db.Uuid
+  createdAt  DateTime @default(now())
+
+  folder     CustomerSocialFolder @relation(fields: [folderId], references: [id], onDelete: Cascade)
+
+  @@unique([folderId, profileId])
+  @@map("customer_social_folder_members")
+}
+
+model CustomerSocialFolderCustomer {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  folderId   String   @db.Uuid
+  customerId String   @db.Uuid
+  assignedBy String   @db.Uuid
+  createdAt  DateTime @default(now())
+
+  folder     CustomerSocialFolder @relation(fields: [folderId], references: [id], onDelete: Cascade)
+
+  @@unique([folderId, customerId])
+  @@map("customer_social_folder_customers")
+}
+
+model CustomerSocialMessage {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  senderId       String   @db.Uuid
+  receiverId     String   @db.Uuid
+  content        String?
+  attachmentUrl  String?
+  attachmentName String?
+  attachmentType String?
+  readAt         DateTime?
+  createdAt      DateTime @default(now())
+
+  @@map("customer_social_messages")
+}
+
+model CustomerSocialCallSession {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  callerId        String   @db.Uuid
+  receiverId      String   @db.Uuid
+  callType        String   @default("audio")
+  status          String   @default("calling")
+  offerSdp        String?
+  answerSdp       String?
+  startedAt       DateTime?
+  endedAt         DateTime?
+  durationSeconds Int?
+  endReason       String?
+  createdAt       DateTime @default(now())
+
+  signals         CustomerSocialCallSignal[]
+
+  @@map("customer_social_call_sessions")
+}
+
+model CustomerSocialCallSignal {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  callSessionId String   @db.Uuid
+  senderId      String   @db.Uuid
+  receiverId    String   @db.Uuid
+  signalType    String
+  signalData    String
+  createdAt     DateTime @default(now())
+
+  callSession   CustomerSocialCallSession @relation(fields: [callSessionId], references: [id], onDelete: Cascade)
+
+  @@map("customer_social_call_signals")
+}

@@ -2808,3 +2808,66 @@ export interface SocialCallSignal {
   signalData: string | null;
   createdAt: string;
 }
+
+// ============ CUSTOMER SOCIAL NETWORK (باشگاه مشتریان) ============
+
+export interface CustomerSocialFolder {
+  id: string;
+  name: string;
+  description: string | null;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface CustomerSocialFolderMember {
+  id: string;
+  folderId: string;
+  profileId: string;
+  assignedBy: string;
+  createdAt: string;
+}
+
+export interface CustomerSocialFolderCustomer {
+  id: string;
+  folderId: string;
+  customerId: string;
+  assignedBy: string;
+  createdAt: string;
+}
+
+export interface CustomerSocialMessage {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  content: string | null;
+  attachmentUrl: string | null;
+  attachmentName: string | null;
+  attachmentType: string | null;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export interface CustomerSocialCallSession {
+  id: string;
+  callerId: string;
+  receiverId: string;
+  callType: CallType;
+  status: CallStatus;
+  offerSdp: string | null;
+  answerSdp: string | null;
+  startedAt: string | null;
+  endedAt: string | null;
+  durationSeconds: number | null;
+  endReason: string | null;
+  createdAt: string;
+}
+
+export interface CustomerSocialCallSignal {
+  id: string;
+  callSessionId: string;
+  senderId: string;
+  receiverId: string;
+  signalType: CallSignalType;
+  signalData: string;
+  createdAt: string;
+}

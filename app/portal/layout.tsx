@@ -36,6 +36,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     { href: '/portal/invoices', label: 'فاکتورهای من' },
     { href: '/portal/work-reports', label: 'گزارش کار من' },
     { href: '/portal/tickets', label: 'تیکت‌های من' },
+    { href: '/portal/social', label: 'شبکه اجتماعی' },
     { href: '/portal/loyalty', label: 'باشگاه مشتریان' },
   ];
 
