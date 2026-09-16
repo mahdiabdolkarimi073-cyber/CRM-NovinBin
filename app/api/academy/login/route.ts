@@ -5,14 +5,51 @@ import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
 
+const CRM_ADMIN_ROLES = ['super_admin', 'admin'];
+
 export async function POST(req: NextRequest) {
   try {
     const { identifier, password } = await req.json();
     if (!identifier || !password) return NextResponse.json({ error: 'نام کاربری و رمز عبور الزامی است' }, { status: 400 });
 
-    const account = await (prisma as any).academyUser.findFirst({
-      where: { OR: [{ username: String(identifier).trim().toLowerCase() }, { email: String(identifier).trim().toLowerCase() }] },
+    const normalized = String(identifier).trim().toLowerCase();
+
+    let account = await (prisma as any).academyUser.findFirst({
+      where: { OR: [{ username: normalized }, { email: normalized }] },
     });
+
+    // If no AcademyUser found, try CRM User with admin role
+    if (!account) {
+      const crmUser = await prisma.user.findUnique({
+        where: { email: normalized },
+        include: { profile: true },
+      });
+      if (crmUser?.profile && crmUser.profile.active && CRM_ADMIN_ROLES.includes(crmUser.profile.role) && bcrypt.compareSync(String(password), crmUser.passwordHash)) {
+        // Find or create a matching AcademyUser with AdminAcademy role
+        account = await (prisma as any).academyUser.findFirst({ where: { email: crmUser.email } });
+        if (!account) {
+          const baseUsername = (crmUser.profile.firstName || crmUser.email).replace(/\s+/g, '').toLowerCase();
+          let username = baseUsername;
+          let suffix = 1;
+          while (await (prisma as any).academyUser.findUnique({ where: { username } })) {
+            username = `${baseUsername}${suffix++}`;
+          }
+          account = await (prisma as any).academyUser.create({
+            data: {
+              username,
+              email: crmUser.email,
+              passwordHash: crmUser.passwordHash,
+              role: 'AdminAcademy',
+              firstName: crmUser.profile.firstName || '',
+              lastName: crmUser.profile.lastName || '',
+              phone: crmUser.profile.phone || null,
+              active: true,
+            },
+          });
+        }
+      }
+    }
+
     if (!account || !account.active || !bcrypt.compareSync(String(password), account.passwordHash)) {
       return NextResponse.json({ error: 'نام کاربری یا رمز عبور اشتباه است' }, { status: 401 });
     }
