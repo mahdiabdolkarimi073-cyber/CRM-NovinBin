@@ -3,9 +3,12 @@
 import { useEffect, useState, useRef } from 'react';
 import { Phone, PhoneOff, Video, Mic, MicOff, VideoOff, PhoneCall, X } from 'lucide-react';
 import type { SocialCallSession, Profile } from '@/lib/types';
+import type { useWebRTC } from '@/hooks/use-webrtc';
+
+type WebRTCReturn = ReturnType<typeof useWebRTC>;
 
 interface CallOverlayProps {
-  webrtc: ReturnType<typeof import('@/hooks/use-webrtc')['useWebRTC']>;
+  webrtc: WebRTCReturn;
   incomingCall: SocialCallSession | null;
   callerProfile: Profile | null;
   onAccept: () => void;
