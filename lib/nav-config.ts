@@ -179,11 +179,26 @@ export const UNIVERSAL_PAGES = new Set([
   '/dashboard/leads/archive',
 ]);
 
+// Only these universal pages grant access to their sub-paths.
+// /dashboard is excluded so it doesn't open up every /dashboard/* page.
+const UNIVERSAL_PREFIXES = new Set([
+  '/dashboard/notes',
+  '/dashboard/staff-chat',
+  '/dashboard/social',
+  '/dashboard/customer-social',
+  '/dashboard/my-customers',
+  '/dashboard/settings',
+  '/dashboard/notifications',
+  '/dashboard/ai-assistant',
+  '/dashboard/lead-referrals',
+  '/dashboard/leads/archive',
+]);
+
 export function hasPageAccess(profile: Profile | null, href: string): boolean {
   if (!profile) return false;
   if (isSuperAdminRole(profile.role)) return true;
   if (UNIVERSAL_PAGES.has(href)) return true;
-  for (const page of UNIVERSAL_PAGES) {
+  for (const page of UNIVERSAL_PREFIXES) {
     if (href.startsWith(page + '/')) return true;
   }
   const pages = profile.assignedPages || [];

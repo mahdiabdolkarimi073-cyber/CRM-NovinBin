@@ -321,7 +321,7 @@ async function canAccess(auth: { userId: string }, model: string): Promise<boole
   if (!page) return true;
   const profile = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { userType: true, role: true, active: true, assignedPages: true, customerId: true } });
   if (!profile?.active) return false;
-  if (profile.role === 'owner' || profile.role === 'super_admin' || profile.role === 'admin') return true;
+  if (profile.role === 'owner' || profile.role === 'super_admin') return true;
   if (model === 'customer_chat_messages' && profile.userType === 'customer' && profile.customerId) return true;
   if (SHARED_MODELS.has(model)) return true;
   const pages = profile.assignedPages;
