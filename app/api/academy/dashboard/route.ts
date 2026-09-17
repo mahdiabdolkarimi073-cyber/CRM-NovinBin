@@ -7,10 +7,22 @@ const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
 export async function GET(req: NextRequest) {
   try {
     const token = req.cookies.get('academy_token')?.value;
-    if (!token) return NextResponse.json({ error: 'نشست نامعتبر' }, { status: 401 });
-    const payload = jwt.verify(token, JWT_SECRET) as { academyUserId: string };
+    if (!token) {
+      console.log('[academy-dashboard] NO TOKEN');
+      return NextResponse.json({ error: 'نشست نامعتبر' }, { status: 401 });
+    }
+    let payload: { academyUserId: string };
+    try {
+      payload = jwt.verify(token, JWT_SECRET) as { academyUserId: string };
+    } catch (verifyErr) {
+      console.error('[academy-dashboard] JWT VERIFY FAILED', verifyErr.message);
+      return NextResponse.json({ error: 'نشست نامعتبر' }, { status: 401 });
+    }
     const account = await (prisma as any).academyUser.findUnique({ where: { id: payload.academyUserId } });
-    if (!account || !account.active) return NextResponse.json({ error: 'حساب غیرفعال است' }, { status: 403 });
+    if (!account || !account.active) {
+      console.log('[academy-dashboard] ACCOUNT NOT FOUND OR INACTIVE', { id: payload.academyUserId });
+      return NextResponse.json({ error: 'حساب غیرفعال است' }, { status: 403 });
+    }
 
     if (account.role === 'AdminAcademy') {
       return NextResponse.json({
@@ -158,7 +170,8 @@ export async function GET(req: NextRequest) {
         createdAt: n.createdAt,
       })),
     });
-  } catch {
+  } catch (err) {
+    console.error('[academy-dashboard] UNHANDLED ERROR', err);
     return NextResponse.json({ error: 'خطا در دریافت اطلاعات داشبورد' }, { status: 500 });
   }
 }

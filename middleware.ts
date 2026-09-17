@@ -29,7 +29,9 @@ function getRole(token: string | undefined): string | null {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
-    const payload = JSON.parse(atob(parts[1]));
+    const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = b64 + '=='.slice(0, (4 - (b64.length % 4)) % 4);
+    const payload = JSON.parse(atob(padded));
     return payload.role || null;
   } catch {
     return null;
@@ -46,6 +48,7 @@ export function middleware(req: NextRequest) {
   }
 
   if (!role) {
+    console.log('[middleware] NO ROLE → redirect to login', { pathname, hasToken: !!token });
     return NextResponse.redirect(new URL('/academy/login', req.url));
   }
 
@@ -54,17 +57,21 @@ export function middleware(req: NextRequest) {
   const isStudentPage = STUDENT_PAGES.some((p) => pathname.startsWith(p));
 
   if (isAdminPage && role !== 'AdminAcademy') {
+    console.log('[middleware] ADMIN PAGE WRONG ROLE → dashboard', { pathname, role });
     return NextResponse.redirect(new URL('/academy/dashboard', req.url));
   }
 
   if (isTeacherPage && role !== 'teacher' && role !== 'AdminAcademy') {
+    console.log('[middleware] TEACHER PAGE WRONG ROLE → dashboard', { pathname, role });
     return NextResponse.redirect(new URL('/academy/dashboard', req.url));
   }
 
   if (isStudentPage && role === 'AdminAcademy') {
+    console.log('[middleware] STUDENT PAGE WITH ADMIN ROLE → admin-dashboard', { pathname, role });
     return NextResponse.redirect(new URL('/academy/admin-dashboard', req.url));
   }
 
+  console.log('[middleware] PASS', { pathname, role });
   return NextResponse.next();
 }
 

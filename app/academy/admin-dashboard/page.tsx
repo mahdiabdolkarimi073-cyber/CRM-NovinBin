@@ -77,6 +77,7 @@ export default function AcademyAdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [todayClasses, setTodayClasses] = useState<TodayClass[]>([]);
   const [atRiskStudents, setAtRiskStudents] = useState<AtRiskStudent[]>([]);
   const [recentLeads, setRecentLeads] = useState<RecentLead[]>([]);
@@ -86,7 +87,11 @@ export default function AcademyAdminDashboardPage() {
     let cancelled = false;
     fetch('/api/academy/admin-dashboard', { headers: { 'Cache-Control': 'no-store' } })
       .then(async (res) => {
-        if (!res.ok) throw new Error('نشست نامعتبر');
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          console.error('[admin-dashboard-page] fetch failed', { status: res.status, error: errBody.error });
+          throw new Error(errBody.error || `HTTP ${res.status}`);
+        }
         const data = await res.json();
         if (cancelled) return;
         setUser(data.user);
@@ -96,8 +101,11 @@ export default function AcademyAdminDashboardPage() {
         setRecentLeads(data.recentLeads || []);
         setRecentRegistrations(data.recentRegistrations || []);
       })
-      .catch(() => {
-        if (!cancelled) router.replace('/academy/login');
+      .catch((err) => {
+        console.error('[admin-dashboard-page] catch', err);
+        if (!cancelled) {
+          setFetchError(err instanceof Error ? err.message : 'خطای ناشناخته');
+        }
       })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
@@ -110,6 +118,13 @@ export default function AcademyAdminDashboardPage() {
 
   if (loading) {
     return <div className="academy-admin-loading"><Loader2 className="animate-spin" /></div>;
+  }
+  if (fetchError) {
+    return <div className="academy-admin-loading" dir="rtl">
+      <p style={{ color: '#EF4444', fontWeight: 600, marginBottom: 8 }}>خطا در بارگذاری داشبورد</p>
+      <p style={{ color: '#64748B', fontSize: 14 }}>{fetchError}</p>
+      <button onClick={() => router.replace('/academy/login')} style={{ marginTop: 16, padding: '8px 24px', borderRadius: 8, border: '1px solid #CBD5E1', background: '#F8FAFC', cursor: 'pointer' }}>بازگشت به ورود</button>
+    </div>;
   }
   if (!user || !stats) {
     return <div className="academy-admin-loading"><p>خطا در بارگذاری داشبورد</p></div>;

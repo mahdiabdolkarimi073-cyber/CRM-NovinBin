@@ -19,10 +19,11 @@ export default function AcademyLoginPage() {
       const response = await fetch('/api/academy/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ identifier, password, remember }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'ورود ناموفق بود');
+      console.log('[academy-login] login response', { role: data.user?.role, hasUser: !!data.user });
       toast.success('خوش آمدید');
       const role = data.user?.role;
       const dest = role === 'AdminAcademy' ? '/academy/admin-dashboard' : '/academy/dashboard';
-      setTimeout(() => { window.location.href = dest; }, 300);
+      setTimeout(() => { window.location.href = dest; }, 800);
     } catch (error) { toast.error(error instanceof Error ? error.message : 'ورود ناموفق بود'); }
     finally { setLoading(false); }
   }

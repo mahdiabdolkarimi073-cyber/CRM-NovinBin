@@ -20,10 +20,16 @@ export async function POST(req: NextRequest) {
 
     // If no AcademyUser found, try CRM User with admin role
     if (!account) {
+      console.log('[academy-login] No AcademyUser found, trying CRM user:', normalized);
       const crmUser = await prisma.user.findUnique({
         where: { email: normalized },
         include: { profile: true },
       });
+      if (crmUser?.profile) {
+        console.log('[academy-login] CRM user found', { email: crmUser.email, role: crmUser.profile.role, active: crmUser.profile.active, passwordMatch: bcrypt.compareSync(String(password), crmUser.passwordHash) });
+      } else {
+        console.log('[academy-login] CRM user not found or no profile');
+      }
       if (crmUser?.profile && crmUser.profile.active && CRM_ADMIN_ROLES.includes(crmUser.profile.role) && bcrypt.compareSync(String(password), crmUser.passwordHash)) {
         // Find or create a matching AcademyUser with AdminAcademy role
         account = await (prisma as any).academyUser.findFirst({ where: { email: crmUser.email } });
@@ -59,14 +65,23 @@ export async function POST(req: NextRequest) {
     }
 
     if (!account || !account.active || !bcrypt.compareSync(String(password), account.passwordHash)) {
+      console.log('[academy-login] AUTH FAIL', { found: !!account, active: account?.active, identifier: normalized });
       return NextResponse.json({ error: 'نام کاربری یا رمز عبور اشتباه است' }, { status: 401 });
     }
 
     const token = jwt.sign({ academyUserId: account.id, role: account.role, username: account.username }, JWT_SECRET, { expiresIn: '7d' });
     const response = NextResponse.json({ user: { id: account.id, username: account.username, role: account.role, firstName: account.firstName, lastName: account.lastName } });
-    response.cookies.set('academy_token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 60 * 60 * 24 * 7, path: '/' });
+    response.cookies.set('academy_token', token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/',
+    });
+    console.log('[academy-login] SUCCESS', { userId: account.id, role: account.role, username: account.username, tokenPreview: token.slice(0, 20) + '...' });
     return response;
-  } catch {
+  } catch (err) {
+    console.error('[academy-login] ERROR', err);
     return NextResponse.json({ error: 'خطای سرور در ورود' }, { status: 500 });
   }
 }

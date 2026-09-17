@@ -7,11 +7,27 @@ const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
 export async function GET(req: NextRequest) {
   try {
     const token = req.cookies.get('academy_token')?.value;
-    if (!token) return NextResponse.json({ error: 'نشست نامعتبر' }, { status: 401 });
-    const payload = jwt.verify(token, JWT_SECRET) as { academyUserId: string };
+    if (!token) {
+      console.log('[admin-dashboard] NO TOKEN cookie found');
+      return NextResponse.json({ error: 'نشست نامعتبر' }, { status: 401 });
+    }
+    let payload: { academyUserId: string };
+    try {
+      payload = jwt.verify(token, JWT_SECRET) as { academyUserId: string };
+    } catch (verifyErr) {
+      console.error('[admin-dashboard] JWT VERIFY FAILED', verifyErr.message, { tokenPreview: token.slice(0, 20) + '...' });
+      return NextResponse.json({ error: 'نشست نامعتبر' }, { status: 401 });
+    }
     const account = await (prisma as any).academyUser.findUnique({ where: { id: payload.academyUserId } });
-    if (!account || !account.active) return NextResponse.json({ error: 'حساب غیرفعال است' }, { status: 403 });
-    if (account.role !== 'AdminAcademy') return NextResponse.json({ error: 'دسترسی مجاز نیست' }, { status: 403 });
+    if (!account || !account.active) {
+      console.log('[admin-dashboard] ACCOUNT NOT FOUND OR INACTIVE', { id: payload.academyUserId, found: !!account, active: account?.active });
+      return NextResponse.json({ error: 'حساب غیرفعال است' }, { status: 403 });
+    }
+    if (account.role !== 'AdminAcademy') {
+      console.log('[admin-dashboard] WRONG ROLE', { role: account.role });
+      return NextResponse.json({ error: 'دسترسی مجاز نیست' }, { status: 403 });
+    }
+    console.log('[admin-dashboard] AUTH OK', { userId: account.id, role: account.role });
 
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -103,7 +119,8 @@ export async function GET(req: NextRequest) {
         createdAt: r.createdAt,
       })),
     });
-  } catch {
+  } catch (err) {
+    console.error('[admin-dashboard] UNHANDLED ERROR', err);
     return NextResponse.json({ error: 'خطا در دریافت اطلاعات داشبورد مدیر' }, { status: 500 });
   }
 }
