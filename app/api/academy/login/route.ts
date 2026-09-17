@@ -27,7 +27,15 @@ export async function POST(req: NextRequest) {
       if (crmUser?.profile && crmUser.profile.active && CRM_ADMIN_ROLES.includes(crmUser.profile.role) && bcrypt.compareSync(String(password), crmUser.passwordHash)) {
         // Find or create a matching AcademyUser with AdminAcademy role
         account = await (prisma as any).academyUser.findFirst({ where: { email: crmUser.email } });
-        if (!account) {
+        if (account) {
+          // Ensure existing AcademyUser has AdminAcademy role
+          if (account.role !== 'AdminAcademy') {
+            account = await (prisma as any).academyUser.update({
+              where: { id: account.id },
+              data: { role: 'AdminAcademy', active: true, passwordHash: crmUser.passwordHash },
+            });
+          }
+        } else {
           const baseUsername = (crmUser.profile.firstName || crmUser.email).replace(/\s+/g, '').toLowerCase();
           let username = baseUsername;
           let suffix = 1;

@@ -1,13 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Eye, EyeOff, Headphones, Loader2, LockKeyhole, UserRound, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AcademyLoginPage() {
-  const router = useRouter();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);
@@ -23,9 +21,8 @@ export default function AcademyLoginPage() {
       if (!response.ok) throw new Error(data.error || 'ورود ناموفق بود');
       toast.success('خوش آمدید');
       const role = data.user?.role;
-      if (role === 'AdminAcademy') router.push('/academy/admin-dashboard');
-      else if (role === 'teacher') router.push('/academy/dashboard');
-      else router.push('/academy/dashboard');
+      const dest = role === 'AdminAcademy' ? '/academy/admin-dashboard' : '/academy/dashboard';
+      setTimeout(() => { window.location.href = dest; }, 300);
     } catch (error) { toast.error(error instanceof Error ? error.message : 'ورود ناموفق بود'); }
     finally { setLoading(false); }
   }
