@@ -24,13 +24,13 @@ export function TreasuryTab({ bankAccounts, cashFunds, transfers, loading, onCre
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2.5">
-        <span className="h-[30px] w-[5px] rounded-[4px] bg-[#F97316]" />
-        <h2 className="text-[20px] font-bold text-[#0F172A]">خزانه‌داری</h2>
+      <div className="flex items-center gap-2 mobile:gap-2.5">
+        <span className="h-[26px] w-[4px] rounded-[4px] bg-[#F97316] mobile:h-[30px] mobile:w-[5px]" />
+        <h2 className="text-[18px] font-bold text-[#0F172A] mobile:text-[20px]">خزانه‌داری</h2>
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-3 mobile:gap-4 tablet:grid-cols-3">
         <Card className="rounded-[14px] border-[#E7ECF3] shadow-[0_3px_14px_rgba(20,40,80,.05)]"><CardContent className="p-4 flex items-center justify-between">
           <div><div className="text-xs text-[#98A2B3]">مجموع حساب‌های بانکی</div><div className="text-xl font-bold text-sky-600">{formatToman(totalBank)} ت</div></div>
           <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center"><Landmark className="w-5 h-5" /></div>
@@ -48,13 +48,13 @@ export function TreasuryTab({ bankAccounts, cashFunds, transfers, loading, onCre
       {/* Actions */}
       <div className="flex flex-wrap gap-2">
         <Link href="/dashboard/accounting/treasury/bank/new">
-          <Button size="sm" variant="outline" className="h-[42px] rounded-[10px] border-[#DCE3EE] bg-white text-sm font-semibold text-[#344054] shadow-sm hover:bg-[#FAFBFF]"><Plus className="w-4 h-4" /> حساب بانکی جدید</Button>
+          <Button size="sm" variant="outline" className="h-9 rounded-[10px] border-[#DCE3EE] bg-white text-xs mobile:text-sm mobile:h-[42px] font-semibold text-[#344054] shadow-sm hover:bg-[#FAFBFF]"><Plus className="w-4 h-4" /> حساب بانکی جدید</Button>
         </Link>
         <Link href="/dashboard/accounting/treasury/cash/new">
-          <Button size="sm" variant="outline" className="h-[42px] rounded-[10px] border-[#DCE3EE] bg-white text-sm font-semibold text-[#344054] shadow-sm hover:bg-[#FAFBFF]"><Plus className="w-4 h-4" /> صندوق نقدی جدید</Button>
+          <Button size="sm" variant="outline" className="h-9 rounded-[10px] border-[#DCE3EE] bg-white text-xs mobile:text-sm mobile:h-[42px] font-semibold text-[#344054] shadow-sm hover:bg-[#FAFBFF]"><Plus className="w-4 h-4" /> صندوق نقدی جدید</Button>
         </Link>
         <Link href="/dashboard/accounting/treasury/transfer/new">
-          <Button size="sm" className="h-[42px] rounded-[10px] bg-[#3155E7] px-[18px] text-sm font-semibold text-white shadow-sm hover:bg-[#2445C7]"><ArrowRightLeft className="w-4 h-4" /> انتقال وجه</Button>
+          <Button size="sm" className="h-9 rounded-[10px] bg-[#3155E7] px-3 mobile:px-[18px] text-xs mobile:text-sm mobile:h-[42px] font-semibold text-white shadow-sm hover:bg-[#2445C7]"><ArrowRightLeft className="w-4 h-4" /> انتقال وجه</Button>
         </Link>
       </div>
 
@@ -66,10 +66,10 @@ export function TreasuryTab({ bankAccounts, cashFunds, transfers, loading, onCre
         ) : bankAccounts.length === 0 ? (
           <Card><CardContent className="p-6 text-center text-sm text-[#98A2B3]">حساب بانکی ثبت نشده</CardContent></Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 tablet:grid-cols-2 gap-3">
             {bankAccounts.map((ba) => (
-              <Card key={ba.id} className="rounded-[14px] border-[#E7ECF3] shadow-[0_3px_14px_rgba(20,40,80,.05)]"><CardContent className="p-4">
-                <div className="flex items-center justify-between">
+              <Card key={ba.id} className="rounded-[14px] border-[#E7ECF3] shadow-[0_3px_14px_rgba(20,40,80,.05)]"><CardContent className="p-3 mobile:p-4">
+                <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center"><Landmark className="w-5 h-5" /></div>
                     <div>
@@ -94,10 +94,10 @@ export function TreasuryTab({ bankAccounts, cashFunds, transfers, loading, onCre
         {cashFunds.length === 0 ? (
           <Card><CardContent className="p-6 text-center text-sm text-[#98A2B3]">صندوقی ثبت نشده</CardContent></Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 tablet:grid-cols-2 gap-3">
             {cashFunds.map((cf) => (
-              <Card key={cf.id} className="rounded-[14px] border-[#E7ECF3] shadow-[0_3px_14px_rgba(20,40,80,.05)]"><CardContent className="p-4">
-                <div className="flex items-center justify-between">
+              <Card key={cf.id} className="rounded-[14px] border-[#E7ECF3] shadow-[0_3px_14px_rgba(20,40,80,.05)]"><CardContent className="p-3 mobile:p-4">
+                <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center"><Banknote className="w-5 h-5" /></div>
                     <div>
@@ -130,7 +130,7 @@ export function TreasuryTab({ bankAccounts, cashFunds, transfers, loading, onCre
                   const fromName = ft.fromType === 'bank' ? bankAccounts.find((b) => b.id === ft.fromId)?.name : cashFunds.find((c) => c.id === ft.fromId)?.name;
                   const toName = ft.toType === 'bank' ? bankAccounts.find((b) => b.id === ft.toId)?.name : cashFunds.find((c) => c.id === ft.toId)?.name;
                   return (
-                    <div key={ft.id} className="flex items-center justify-between p-3 hover:bg-[#F8FAFD] transition-colors">
+                    <div key={ft.id} className="flex items-center justify-between p-2 mobile:p-3 hover:bg-[#F8FAFD] transition-colors gap-2">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center"><ArrowRightLeft className="w-4 h-4" /></div>
                         <div>

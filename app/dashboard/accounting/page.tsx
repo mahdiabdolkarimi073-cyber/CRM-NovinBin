@@ -261,20 +261,20 @@ export default function AccountingPage() {
       <div className="mb-6">
         <div className="flex items-center gap-2.5">
           <div className="h-[30px] w-[5px] rounded-[4px] bg-[#F97316]" />
-          <h1 className="text-[24px] font-bold leading-tight text-[#0F172A] sm:text-[32px]">حسابداری و امور مالی</h1>
+          <h1 className="text-[22px] font-bold leading-tight text-[#0F172A] mobile:text-[24px] tablet:text-[28px] desktop:text-[32px]">حسابداری و امور مالی</h1>
         </div>
         <p className="mt-2 text-[14px] text-[#64748B]">سیستم کامل حسابداری سازمانی — دفتر کل، خزانه‌داری، چک‌ها، سال مالی و گزارش‌ها</p>
       </div>
 
       <Tabs defaultValue="accounts">
-        <TabsList className="flex-wrap">
-          <TabsTrigger value="accounts"><BookOpen className="w-4 h-4 ml-1" />چارت حساب‌ها</TabsTrigger>
-          <TabsTrigger value="entries"><FileText className="w-4 h-4 ml-1" />اسناد حسابداری</TabsTrigger>
-          <TabsTrigger value="treasury"><Wallet className="w-4 h-4 ml-1" />خزانه‌داری</TabsTrigger>
-          <TabsTrigger value="cheques"><FileCheck className="w-4 h-4 ml-1" />چک‌ها</TabsTrigger>
-          <TabsTrigger value="fiscal"><Calendar className="w-4 h-4 ml-1" />سال مالی</TabsTrigger>
-          <TabsTrigger value="costcenters"><Building2 className="w-4 h-4 ml-1" />مراکز هزینه</TabsTrigger>
-          <TabsTrigger value="reports"><BarChart3 className="w-4 h-4 ml-1" />گزارش‌ها</TabsTrigger>
+        <TabsList className="flex-wrap h-auto gap-1 p-1 mobile:gap-2">
+          <TabsTrigger value="accounts" className="text-xs mobile:text-sm"><BookOpen className="w-3.5 h-3.5 mobile:w-4 mobile:h-4 ml-1" />چارت حساب‌ها</TabsTrigger>
+          <TabsTrigger value="entries" className="text-xs mobile:text-sm"><FileText className="w-3.5 h-3.5 mobile:w-4 mobile:h-4 ml-1" />اسناد</TabsTrigger>
+          <TabsTrigger value="treasury" className="text-xs mobile:text-sm"><Wallet className="w-3.5 h-3.5 mobile:w-4 mobile:h-4 ml-1" />خزانه‌داری</TabsTrigger>
+          <TabsTrigger value="cheques" className="text-xs mobile:text-sm"><FileCheck className="w-3.5 h-3.5 mobile:w-4 mobile:h-4 ml-1" />چک‌ها</TabsTrigger>
+          <TabsTrigger value="fiscal" className="text-xs mobile:text-sm"><Calendar className="w-3.5 h-3.5 mobile:w-4 mobile:h-4 ml-1" />سال مالی</TabsTrigger>
+          <TabsTrigger value="costcenters" className="text-xs mobile:text-sm"><Building2 className="w-3.5 h-3.5 mobile:w-4 mobile:h-4 ml-1" />مراکز هزینه</TabsTrigger>
+          <TabsTrigger value="reports" className="text-xs mobile:text-sm"><BarChart3 className="w-3.5 h-3.5 mobile:w-4 mobile:h-4 ml-1" />گزارش‌ها</TabsTrigger>
         </TabsList>
 
         <TabsContent value="accounts">

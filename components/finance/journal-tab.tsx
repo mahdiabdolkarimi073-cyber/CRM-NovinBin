@@ -37,13 +37,13 @@ export function JournalTab({ entries, accounts, costCenters, loading, onCreate, 
 
   return (
     <div>
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <span className="h-[30px] w-[5px] rounded-[4px] bg-[#F97316]" />
-          <h2 className="text-[20px] font-bold text-[#0F172A]">اسناد حسابداری</h2>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2 mobile:gap-3 tablet:mb-5">
+        <div className="flex items-center gap-2 mobile:gap-2.5">
+          <span className="h-[26px] w-[4px] rounded-[4px] bg-[#F97316] mobile:h-[30px] mobile:w-[5px]" />
+          <h2 className="text-[18px] font-bold text-[#0F172A] mobile:text-[20px]">اسناد حسابداری</h2>
         </div>
         <Link href="/dashboard/accounting/journal/new">
-          <Button className="h-[42px] rounded-[10px] bg-[#3155E7] px-[18px] text-sm font-semibold text-white shadow-sm hover:bg-[#2445C7]">
+          <Button className="h-9 rounded-[10px] bg-[#3155E7] px-3 text-xs font-semibold text-white shadow-sm hover:bg-[#2445C7] mobile:h-[42px] mobile:px-[18px] mobile:text-sm">
             <Plus className="h-4 w-4" /> سند جدید
           </Button>
         </Link>
@@ -61,12 +61,12 @@ export function JournalTab({ entries, accounts, costCenters, loading, onCreate, 
             const isReversal = je.referenceType === 'reversal';
             return (
               <Card key={je.id} className={`rounded-[14px] border-[#E7ECF3] shadow-[0_3px_14px_rgba(20,40,80,.05)] ${isReversed ? 'opacity-60' : ''}`}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center"><FileText className="w-4 h-4" /></div>
-                      <div>
-                        <div className="font-medium text-[#1D2939] flex items-center gap-2">
+                <CardContent className="p-3 mobile:p-4">
+                  <div className="flex items-start justify-between mb-3 gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 mobile:gap-3">
+                      <div className="w-8 h-8 mobile:w-9 mobile:h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center flex-shrink-0"><FileText className="w-4 h-4" /></div>
+                      <div className="min-w-0">
+                        <div className="font-medium text-[#1D2939] flex items-center gap-1 mobile:gap-2 flex-wrap text-sm mobile:text-base">
                           سند {je.number}
                           {isReversed && <Badge variant="destructive" className="text-xs">برگشت‌خورده</Badge>}
                           {isReversal && <Badge variant="secondary" className="text-xs">سند برگشتی</Badge>}
@@ -77,9 +77,9 @@ export function JournalTab({ entries, accounts, costCenters, loading, onCreate, 
                         <div className="text-xs text-[#98A2B3]">{formatJalali(je.date)} - {je.description || 'بدون توضیحات'}</div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 mobile:gap-3">
                       <div className="text-left">
-                        <div className="text-sm font-bold text-[#1D2939]">{formatToman(total)} ت</div>
+                        <div className="text-xs mobile:text-sm font-bold text-[#1D2939]">{formatToman(total)} ت</div>
                         <Badge variant={je.status === 'posted' ? 'default' : 'secondary'} className="text-xs">{je.status === 'posted' ? 'ثبت شده' : je.status === 'reversed' ? 'برگشت‌خورده' : 'پیش‌نویس'}</Badge>
                       </div>
                       {je.status === 'posted' && !isReversal && (
@@ -89,15 +89,15 @@ export function JournalTab({ entries, accounts, costCenters, loading, onCreate, 
                       )}
                     </div>
                   </div>
-                  <div className="divide-y divide-[#F1F5F9] border border-[#E7ECF3] rounded-lg">
+                  <div className="divide-y divide-[#F1F5F9] border border-[#E7ECF3] rounded-lg overflow-x-auto">
                     {je.journalLines?.map((l: any) => {
                       const acc = accounts.find((a) => a.id === l.accountId);
                       return (
-                        <div key={l.id} className="flex items-center justify-between p-2 text-sm">
-                          <span className="text-[#667085]">{acc ? `${acc.code} - ${acc.name}` : '—'}</span>
-                          <div className="flex items-center gap-4">
-                            <span className="w-28 text-left font-medium text-sky-600">{Number(l.debit) > 0 ? formatToman(Number(l.debit)) : '—'}</span>
-                            <span className="w-28 text-left font-medium text-red-600">{Number(l.credit) > 0 ? formatToman(Number(l.credit)) : '—'}</span>
+                        <div key={l.id} className="flex items-center justify-between p-2 text-xs mobile:text-sm gap-2">
+                          <span className="text-[#667085] truncate">{acc ? `${acc.code} - ${acc.name}` : '—'}</span>
+                          <div className="flex items-center gap-2 mobile:gap-4 flex-shrink-0">
+                            <span className="w-20 mobile:w-28 text-left font-medium text-sky-600">{Number(l.debit) > 0 ? formatToman(Number(l.debit)) : '—'}</span>
+                            <span className="w-20 mobile:w-28 text-left font-medium text-red-600">{Number(l.credit) > 0 ? formatToman(Number(l.credit)) : '—'}</span>
                           </div>
                         </div>
                       );

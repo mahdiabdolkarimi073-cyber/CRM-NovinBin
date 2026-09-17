@@ -182,7 +182,7 @@ export default function CustomersPage() {
       />
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
+      <div className="flex flex-col gap-2 mobile:flex-row mobile:gap-3 mb-4">
         <div className="relative flex-1">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input
@@ -193,7 +193,7 @@ export default function CustomersPage() {
           />
         </div>
         <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-full sm:w-40">
+          <SelectTrigger className="w-full mobile:w-40">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -226,7 +226,7 @@ export default function CustomersPage() {
           />
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-3 mobile:gap-4 tablet:grid-cols-2 desktop:grid-cols-3">
           {customers.map((c) => {
             const level = getLevelInfo(c.level);
             const name = c.type === 'company' ? c.companyName : fullName(c.firstName, c.lastName);

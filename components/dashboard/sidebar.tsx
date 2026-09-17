@@ -131,7 +131,7 @@ export function DashboardSidebar({ open, onToggle }: SidebarProps) {
       {/* Overlay for small screens when sidebar is open */}
       {open && (
         <div
-          className="fixed inset-0 z-30 bg-slate-900/30 backdrop-blur-[2px] lg:hidden"
+          className="fixed inset-0 z-30 bg-slate-900/30 backdrop-blur-[2px] laptop:hidden"
           onClick={closeSidebar}
         />
       )}
@@ -140,7 +140,10 @@ export function DashboardSidebar({ open, onToggle }: SidebarProps) {
       <aside
         className={cn(
           'fixed z-40 flex flex-col bg-sidebar text-sidebar-foreground border-l border-border transition-transform duration-300 ease-in-out scroll-smooth',
-          open ? 'translate-x-0' : 'translate-x-full'
+          'w-[260px] tablet:w-[272px]',
+          open ? 'translate-x-0' : 'translate-x-full',
+          'laptop:translate-x-0 desktop:translate-x-0',
+          !open && 'laptop:translate-x-full desktop:translate-x-full'
         )}
         style={{ width: SIDEBAR_WIDTH, right: 0, top: '64px', height: 'calc(100vh - 64px)', overflowY: 'auto', scrollBehavior: 'smooth' }}
         dir="rtl"

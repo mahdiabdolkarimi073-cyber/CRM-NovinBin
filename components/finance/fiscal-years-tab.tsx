@@ -24,13 +24,13 @@ export function FiscalYearsTab({ fiscalYears, loading, onCreate, onClose, onReop
 
   return (
     <div>
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <span className="h-[30px] w-[5px] rounded-[4px] bg-[#F97316]" />
-          <h2 className="text-[20px] font-bold text-[#0F172A]">سال مالی</h2>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2 mobile:gap-3 tablet:mb-5">
+        <div className="flex items-center gap-2 mobile:gap-2.5">
+          <span className="h-[26px] w-[4px] rounded-[4px] bg-[#F97316] mobile:h-[30px] mobile:w-[5px]" />
+          <h2 className="text-[18px] font-bold text-[#0F172A] mobile:text-[20px]">سال مالی</h2>
         </div>
         <Link href="/dashboard/accounting/fiscal-years/new">
-          <Button className="h-[42px] rounded-[10px] bg-[#3155E7] px-[18px] text-sm font-semibold text-white shadow-sm hover:bg-[#2445C7]">
+          <Button className="h-9 rounded-[10px] bg-[#3155E7] px-3 text-xs font-semibold text-white shadow-sm hover:bg-[#2445C7] mobile:h-[42px] mobile:px-[18px] mobile:text-sm">
             <Plus className="h-4 w-4" /> سال مالی جدید
           </Button>
         </Link>
@@ -44,8 +44,8 @@ export function FiscalYearsTab({ fiscalYears, loading, onCreate, onClose, onReop
         <div className="space-y-3">
           {fiscalYears.map((fy) => (
             <Card key={fy.id} className="rounded-[14px] border-[#E7ECF3] shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
+              <CardContent className="p-3 mobile:p-4">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${fy.status === 'open' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
                       <Calendar className="w-5 h-5" />
@@ -78,7 +78,7 @@ export function FiscalYearsTab({ fiscalYears, loading, onCreate, onClose, onReop
 
                 {expandedFY === fy.id && fy.fiscalPeriods && (
                   <div className="mt-3 border-t border-[#F1F5F9] pt-3">
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-1 gap-2 tablet:grid-cols-2 laptop:grid-cols-3">
                       {fy.fiscalPeriods.sort((a, b) => a.periodNumber - b.periodNumber).map((p) => (
                         <div key={p.id} className="flex items-center justify-between p-2 rounded-lg bg-[#F8FAFD]">
                           <div className="flex items-center gap-2">

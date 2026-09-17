@@ -122,19 +122,19 @@ export default function DailyWorkReportsPage() {
   return (
     <div className="w-full" dir="rtl">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-3 tablet:flex-row tablet:items-start tablet:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <div className="h-[25px] w-[5px] rounded-[4px] bg-[#FF8A00]" />
-            <h1 className="text-[28px] font-bold leading-tight text-[#101C35]">
+            <div className="h-6 mobile:h-[25px] w-[4px] mobile:w-[5px] rounded-[4px] bg-[#FF8A00]" />
+            <h1 className="text-xl mobile:text-2xl tablet:text-[28px] font-bold leading-tight text-[#101C35]">
               {isSuperAdmin ? 'گزارشات کار روزانه (نمای کل)' : 'گزارش کار روزانه'}
             </h1>
           </div>
-          <p className="mt-[7px] text-[13px] text-[#71809A]">
+          <p className="mt-1 mobile:mt-[7px] text-xs mobile:text-[13px] text-[#71809A]">
             {isSuperAdmin ? 'مشاهده تمام گزارش‌های روزانه ارسال‌شده توسط کاربران' : 'ثبت گزارش کارهای انجام‌شده در هر روز'}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {isSuperAdmin ? (
             <div className="flex items-center gap-2 rounded-[10px] border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-700">
               <ShieldCheck className="h-4 w-4" />
@@ -143,7 +143,7 @@ export default function DailyWorkReportsPage() {
           ) : (
             <Link href="/dashboard/work-reports/daily/new">
               <Button
-                className="h-[44px] w-[100px] rounded-[10px] bg-[#10265F] text-[13px] font-bold text-white shadow-sm transition-all hover:-translate-y-px hover:bg-[#1a3a7a]"
+                className="h-9 mobile:h-[44px] w-full mobile:w-[100px] rounded-[10px] bg-[#10265F] text-xs mobile:text-[13px] font-bold text-white shadow-sm transition-all hover:-translate-y-px hover:bg-[#1a3a7a]"
               >
                 <Plus className="h-4 w-4" />
                 گزارش جدید
@@ -154,19 +154,19 @@ export default function DailyWorkReportsPage() {
       </div>
 
       {/* Date bar */}
-      <div className="mt-[35px] flex h-[40px] w-full items-center gap-2 rounded-[10px] border border-[#D7EBFA] bg-[#EFF9FF] px-4 text-[13px] text-[#0875C9]">
+      <div className="mt-4 mobile:mt-[35px] flex h-auto mobile:h-[40px] w-full items-center gap-2 rounded-[10px] border border-[#D7EBFA] bg-[#EFF9FF] px-3 mobile:px-4 py-2 mobile:py-0 text-xs mobile:text-[13px] text-[#0875C9]">
         <Calendar className="h-4 w-4" />
         <span>امروز: {formatJalali(new Date())}</span>
       </div>
 
       {/* Search */}
-      <div className="relative mt-[14px] w-full max-w-[330px]">
+      <div className="relative mt-3 mobile:mt-[14px] w-full max-w-[330px]">
         <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#94A3B8]" />
         <Input
           placeholder="جستجوی عنوان گزارش..."
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          className="h-[38px] rounded-[10px] border-[#D2DCEB] bg-white pr-10 text-[13px] focus:border-[#8EB6E5] focus:shadow-[0_0_0_3px_rgba(142,182,229,0.15)]"
+          className="h-9 mobile:h-[38px] rounded-[10px] border-[#D2DCEB] bg-white pr-10 text-xs mobile:text-[13px] focus:border-[#8EB6E5] focus:shadow-[0_0_0_3px_rgba(142,182,229,0.15)]"
         />
       </div>
 
@@ -176,7 +176,7 @@ export default function DailyWorkReportsPage() {
           <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-[#0875C9] border-t-transparent" />
         </div>
       ) : paged.length === 0 ? (
-        <div className="mt-[15px] rounded-[14px] border border-[#D9E2EF] bg-white p-8">
+        <div className="mt-3 mobile:mt-[15px] rounded-[14px] border border-[#D9E2EF] bg-white p-4 mobile:p-8">
           <EmptyState
             icon={<FileText className="h-8 w-8" />}
             title={isSuperAdmin ? 'هنوز گزارشی ارسال نشده' : 'گزارشی ثبت نشده'}
@@ -193,7 +193,7 @@ export default function DailyWorkReportsPage() {
       ) : (
         <>
           {/* Desktop table */}
-          <div className="mt-[15px] hidden overflow-hidden rounded-[14px] border border-[#D9E2EF] bg-white shadow-[0_4px_15px_rgba(20,40,80,0.06)] md:block">
+          <div className="mt-3 mobile:mt-[15px] hidden overflow-hidden rounded-[14px] border border-[#D9E2EF] bg-white shadow-[0_4px_15px_rgba(20,40,80,0.06)] tablet:block">
             <Table>
               <TableHeader>
                 <TableRow className="h-[48px] border-b border-[#EEF2F6] bg-[#F8FAFC] hover:bg-[#F8FAFC]">
@@ -259,9 +259,9 @@ export default function DailyWorkReportsPage() {
           </div>
 
           {/* Mobile card list */}
-          <div className="mt-[15px] space-y-[10px] md:hidden">
+          <div className="mt-3 mobile:mt-[15px] space-y-[10px] tablet:hidden">
             {paged.map((report) => (
-              <div key={report.id} className="rounded-[12px] border border-[#D9E2EF] bg-white p-4 shadow-[0_4px_15px_rgba(20,40,80,0.06)]">
+              <div key={report.id} className="rounded-[12px] border border-[#D9E2EF] bg-white p-3 mobile:p-4 shadow-[0_4px_15px_rgba(20,40,80,0.06)]">
                 {isSuperAdmin && (
                   <div className="mb-2 flex items-center gap-2">
                     <Avatar className="h-8 w-8">
@@ -299,7 +299,7 @@ export default function DailyWorkReportsPage() {
           </div>
 
           {/* Pagination */}
-          <div className="mt-4 flex flex-col items-center justify-between gap-4 rounded-[14px] border border-[#D9E2EF] bg-white px-5 py-4 sm:flex-row">
+          <div className="mt-4 flex flex-col items-center justify-between gap-3 tablet:flex-row tablet:gap-4 rounded-[14px] border border-[#D9E2EF] bg-white px-3 mobile:px-5 py-3 mobile:py-4">
             <div className="text-[13px] text-[#71809A]">
               نمایش {startIdx} تا {endIdx} از {filtered.length} گزارش
             </div>
@@ -322,7 +322,7 @@ export default function DailyWorkReportsPage() {
                 <button
                   onClick={() => setPage(Math.max(1, currentPage - 1))}
                   disabled={currentPage === 1}
-                  className="flex h-[42px] w-[42px] items-center justify-center rounded-[10px] bg-[#F7F9FC] text-[#263752] transition-all hover:bg-[#EEF2F6] disabled:opacity-40"
+                  className="flex h-9 mobile:h-[42px] w-9 mobile:w-[42px] items-center justify-center rounded-[10px] bg-[#F7F9FC] text-[#263752] transition-all hover:bg-[#EEF2F6] disabled:opacity-40"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </button>
@@ -330,7 +330,7 @@ export default function DailyWorkReportsPage() {
                   <button
                     key={p}
                     onClick={() => setPage(p)}
-                    className={`flex h-[42px] w-[42px] items-center justify-center rounded-[10px] text-[14px] font-medium transition-all ${
+                    className={`flex h-9 mobile:h-[42px] w-9 mobile:w-[42px] items-center justify-center rounded-[10px] text-xs mobile:text-[14px] font-medium transition-all ${
                       p === currentPage
                         ? 'bg-[#10265F] text-white'
                         : 'bg-[#F7F9FC] text-[#263752] hover:bg-[#EEF2F6]'
@@ -342,7 +342,7 @@ export default function DailyWorkReportsPage() {
                 <button
                   onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
                   disabled={currentPage === totalPages}
-                  className="flex h-[42px] w-[42px] items-center justify-center rounded-[10px] bg-[#F7F9FC] text-[#263752] transition-all hover:bg-[#EEF2F6] disabled:opacity-40"
+                  className="flex h-9 mobile:h-[42px] w-9 mobile:w-[42px] items-center justify-center rounded-[10px] bg-[#F7F9FC] text-[#263752] transition-all hover:bg-[#EEF2F6] disabled:opacity-40"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>

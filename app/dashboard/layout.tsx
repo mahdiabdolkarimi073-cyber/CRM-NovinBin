@@ -70,9 +70,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <DashboardSidebar open={sidebarOpen} onToggle={toggleSidebar} />
         <main
           className={cn(
-            'mx-auto px-4 pb-10 pt-6 transition-all duration-300 ease-in-out lg:px-6',
-            isDashboardHome ? 'max-w-[1470px]' : 'max-w-[1280px]',
-            sidebarOpen ? 'lg:pr-[280px]' : 'lg:pr-4'
+            'mx-auto transition-all duration-300 ease-in-out',
+            'px-3 pb-8 pt-4 mobile:px-4 tablet:px-5 laptop:px-6 desktop:px-8',
+            isDashboardHome ? 'max-w-full desktop:max-w-[1470px]' : 'max-w-full desktop:max-w-[1280px]',
+            sidebarOpen
+              ? 'laptop:pr-[280px] desktop:pr-[280px]'
+              : 'laptop:pr-6 desktop:pr-8'
           )}
         >
           {needsGuard && !hasAccess ? <PageGuard href={pathname}>{children}</PageGuard> : children}

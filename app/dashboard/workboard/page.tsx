@@ -172,26 +172,26 @@ export default function WorkboardPage() {
       />
 
       {/* Board selector tabs */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-3 tablet:flex-row tablet:items-center tablet:justify-between">
         <Tabs value={activeBoard} onValueChange={(v) => { setActiveBoard(v); setSearch(''); setPriorityFilter('all'); }}>
           <TabsList className="flex h-auto flex-wrap gap-1 bg-muted/60 p-1.5">
             {boards.map((b) => (
               <TabsTrigger
                 key={b.key}
                 value={b.key}
-                className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold data-[state=active]:bg-card data-[state=active]:shadow-sm"
+                className="flex items-center gap-1 rounded-lg px-2 mobile:px-3 py-1.5 mobile:py-2 text-[10px] mobile:text-xs font-bold data-[state=active]:bg-card data-[state=active]:shadow-sm"
               >
-                <b.icon className="h-3.5 w-3.5" />
+                <b.icon className="h-3 w-3 mobile:h-3.5 mobile:w-3.5" />
                 {b.label}
               </TabsTrigger>
             ))}
           </TabsList>
         </Tabs>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {board.key === 'tasks' && (
             <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-              <SelectTrigger className="w-[140px]"><SelectValue placeholder="اولویت" /></SelectTrigger>
+              <SelectTrigger className="w-full tablet:w-[140px]"><SelectValue placeholder="اولویت" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">همه اولویت‌ها</SelectItem>
                 {TASK_PRIORITIES.map((p) => (
@@ -200,7 +200,7 @@ export default function WorkboardPage() {
               </SelectContent>
             </Select>
           )}
-          <div className="flex h-10 items-center gap-2 rounded-xl border-2 border-border bg-muted/40 px-3.5 transition-all focus-within:border-accent focus-within:bg-card">
+          <div className="flex h-9 tablet:h-10 items-center gap-2 rounded-xl border-2 border-border bg-muted/40 px-3 transition-all focus-within:border-accent focus-within:bg-card flex-1">
             <Search className="h-4 w-4 text-muted-foreground" />
             <input
               type="text"
@@ -222,16 +222,16 @@ export default function WorkboardPage() {
       </div>
 
       {/* Kanban columns */}
-      <div className="flex gap-4 overflow-x-auto pb-4">
+      <div className="flex gap-3 tablet:gap-4 overflow-x-auto pb-4">
         {board.statuses.map((col) => {
           const items = columns[col.key] || [];
           return (
             <div
               key={col.key}
-              className="flex w-[280px] shrink-0 flex-col rounded-2xl border border-border bg-muted/30"
+              className="flex w-[240px] mobile:w-[280px] shrink-0 flex-col rounded-2xl border border-border bg-muted/30"
             >
               {/* Column header */}
-              <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <div className="flex items-center justify-between border-b border-border px-3 mobile:px-4 py-2.5 mobile:py-3">
                 <div className="flex items-center gap-2">
                   <span
                     className="h-2.5 w-2.5 rounded-full"
@@ -248,7 +248,7 @@ export default function WorkboardPage() {
               </div>
 
               {/* Column body */}
-              <div className="flex-1 space-y-2.5 overflow-y-auto p-3" style={{ maxHeight: 'calc(100vh - 340px)' }}>
+              <div className="flex-1 space-y-2.5 overflow-y-auto p-2.5 mobile:p-3" style={{ maxHeight: 'calc(100vh - 340px)' }}>
                 {loading && items.length === 0 && (
                   <div className="flex items-center justify-center py-8">
                     <div className="h-5 w-5 animate-spin rounded-full border-2 border-accent border-t-transparent" />

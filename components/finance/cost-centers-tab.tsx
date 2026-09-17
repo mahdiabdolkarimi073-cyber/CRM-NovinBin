@@ -28,13 +28,13 @@ export function CostCentersTab({ costCenters, loading, onCreate, onDelete }: Cos
 
   return (
     <div>
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <span className="h-[30px] w-[5px] rounded-[4px] bg-[#F97316]" />
-          <h2 className="text-[20px] font-bold text-[#0F172A]">مراکز هزینه</h2>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2 mobile:gap-3 tablet:mb-5">
+        <div className="flex items-center gap-2 mobile:gap-2.5">
+          <span className="h-[26px] w-[4px] rounded-[4px] bg-[#F97316] mobile:h-[30px] mobile:w-[5px]" />
+          <h2 className="text-[18px] font-bold text-[#0F172A] mobile:text-[20px]">مراکز هزینه</h2>
         </div>
         <Link href="/dashboard/accounting/cost-centers/new">
-          <Button className="h-[42px] rounded-[10px] bg-[#3155E7] px-[18px] text-sm font-semibold text-white shadow-sm hover:bg-[#2445C7]">
+          <Button className="h-9 rounded-[10px] bg-[#3155E7] px-3 text-xs font-semibold text-white shadow-sm hover:bg-[#2445C7] mobile:h-[42px] mobile:px-[18px] mobile:text-sm">
             <Plus className="h-4 w-4" /> مرکز هزینه جدید
           </Button>
         </Link>
@@ -47,11 +47,12 @@ export function CostCentersTab({ costCenters, loading, onCreate, onDelete }: Cos
       ) : (
         <Card className="overflow-hidden rounded-[14px] border-[#E7ECF3] shadow-[0_3px_14px_rgba(20,40,80,.05)]">
           <CardContent className="p-0">
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[400px]">
               <thead><tr className="border-b bg-[#F8FAFD] text-[#667085] text-xs">
-                <th className="text-right p-3 font-medium">کد</th>
-                <th className="text-right p-3 font-medium">نام</th>
-                <th className="text-center p-3 font-medium">عملیات</th>
+                <th className="text-right p-2 mobile:p-3 font-medium">کد</th>
+                <th className="text-right p-2 mobile:p-3 font-medium">نام</th>
+                <th className="text-center p-2 mobile:p-3 font-medium">عملیات</th>
               </tr></thead>
               <tbody className="divide-y divide-[#F1F5F9]">
                 {flatList.map(({ cc, level }) => (
@@ -68,6 +69,7 @@ export function CostCentersTab({ costCenters, loading, onCreate, onDelete }: Cos
                 ))}
               </tbody>
             </table>
+            </div>
           </CardContent>
         </Card>
       )}

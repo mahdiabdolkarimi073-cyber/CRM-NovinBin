@@ -194,13 +194,13 @@ export default function UsersPage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 tablet:flex-row tablet:items-center tablet:justify-between">
         <div>
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-1 rounded-full bg-[#FF7A00]" />
-            <h1 className="text-[32px] font-bold leading-tight text-[#111827]">مدیریت کاربران</h1>
+          <div className="flex items-center gap-2 mobile:gap-3">
+            <div className="h-7 mobile:h-8 w-1 rounded-full bg-[#FF7A00]" />
+            <h1 className="text-2xl mobile:text-[32px] font-bold leading-tight text-[#111827]">مدیریت کاربران</h1>
           </div>
-          <div className="mt-2 flex items-center gap-1.5 text-[13px] text-[#64748B] pr-4">
+          <div className="mt-1 mobile:mt-2 flex items-center gap-1.5 text-xs mobile:text-[13px] text-[#64748B] pr-3 mobile:pr-4">
             <span>داشبورد</span>
             <span className="text-[#CBD5E1]">/</span>
             <span>مدیریت کاربران</span>
@@ -208,7 +208,7 @@ export default function UsersPage() {
         </div>
         <Link
           href="/dashboard/users/create"
-          className="flex h-11 items-center gap-2 rounded-[10px] bg-[#111827] px-5 text-sm font-medium text-white transition-colors hover:bg-[#1f2937]"
+          className="flex h-10 mobile:h-11 items-center gap-2 rounded-[10px] bg-[#111827] px-4 mobile:px-5 text-xs mobile:text-sm font-medium text-white transition-colors hover:bg-[#1f2937] self-start tablet:self-auto"
         >
           <Plus className="h-4 w-4" />
           {isSuperAdmin ? 'کاربر جدید' : 'پرسنل جدید'}
@@ -216,21 +216,21 @@ export default function UsersPage() {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 mobile:gap-4 desktop:grid-cols-4">
         {stats.map((s) => (
           <div
             key={s.label}
-            className="flex h-[105px] items-center justify-between rounded-2xl border border-[#E5E7EB] bg-white px-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
+            className="flex h-auto mobile:h-[105px] items-center justify-between rounded-xl mobile:rounded-2xl border border-[#E5E7EB] bg-white px-3 mobile:px-5 py-3 mobile:py-0 shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
           >
             <div>
-              <div className="text-[26px] font-bold text-[#111827]">{s.value}</div>
-              <div className="mt-1 text-xs text-[#64748B]">{s.label}</div>
-              <div className="mt-1.5 inline-flex items-center rounded-full bg-green-50 px-1.5 py-0.5 text-[10px] font-medium text-green-600">
+              <div className="text-xl mobile:text-[26px] font-bold text-[#111827]">{s.value}</div>
+              <div className="mt-0.5 mobile:mt-1 text-xs text-[#64748B]">{s.label}</div>
+              <div className="mt-1 mobile:mt-1.5 inline-flex items-center rounded-full bg-green-50 px-1.5 py-0.5 text-[10px] font-medium text-green-600">
                 {s.growth}
               </div>
             </div>
-            <div className={`flex h-11 w-11 items-center justify-center rounded-full ${s.color}`}>
-              <s.icon className="h-5 w-5" />
+            <div className={`flex h-9 w-9 mobile:h-11 mobile:w-11 items-center justify-center rounded-full ${s.color}`}>
+              <s.icon className="h-4 w-4 mobile:h-5 mobile:w-5" />
             </div>
           </div>
         ))}
@@ -247,9 +247,9 @@ export default function UsersPage() {
           />
         </Card>
       ) : (
-        <div className="rounded-[20px] border border-[#E5E7EB] bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+        <div className="rounded-[14px] mobile:rounded-[20px] border border-[#E5E7EB] bg-white p-3 mobile:p-5 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
           {/* Toolbar: Search + Filters + View Toggle */}
-          <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="mb-4 flex flex-col gap-3 tablet:flex-row tablet:items-center tablet:justify-between">
             {/* Search */}
             <div className="relative">
               <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]" />
@@ -258,14 +258,14 @@ export default function UsersPage() {
                 placeholder="جستجو بر اساس نام، ایمیل یا تلفن..."
                 value={tableSearch}
                 onChange={(e) => setTableSearch(e.target.value)}
-                className="h-[42px] w-full rounded-[10px] border border-[#DCE3F0] bg-white pr-10 pl-4 text-sm text-[#111827] outline-none transition-colors focus:border-[#FF7A00] lg:w-[300px]"
+                className="h-9 tablet:h-[42px] w-full rounded-[10px] border border-[#DCE3F0] bg-white pr-10 pl-4 text-sm text-[#111827] outline-none transition-colors focus:border-[#FF7A00] tablet:w-[300px]"
               />
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
               {/* Status Filter */}
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="h-[42px] w-[130px] rounded-[10px] border-[#DCE3F0] text-sm">
+                <SelectTrigger className="h-9 tablet:h-[42px] w-full tablet:w-[130px] rounded-[10px] border-[#DCE3F0] text-sm">
                   <SelectValue placeholder="وضعیت" />
                 </SelectTrigger>
                 <SelectContent>
@@ -277,7 +277,7 @@ export default function UsersPage() {
 
               {/* Role Filter */}
               <Select value={roleFilter} onValueChange={setRoleFilter}>
-                <SelectTrigger className="h-[42px] w-[130px] rounded-[10px] border-[#DCE3F0] text-sm">
+                <SelectTrigger className="h-9 tablet:h-[42px] w-full tablet:w-[130px] rounded-[10px] border-[#DCE3F0] text-sm">
                   <SelectValue placeholder="نقش" />
                 </SelectTrigger>
                 <SelectContent>
@@ -383,7 +383,7 @@ export default function UsersPage() {
               </table>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2 desktop:grid-cols-3">
               {pagedUsers.map((u) => {
                 const canEdit = isSuperAdmin || (u.role === 'personnel' && managerMap[u.id] === profile?.id);
                 return (
@@ -430,7 +430,7 @@ export default function UsersPage() {
 
           {/* Pagination */}
           {filteredUsers.length > 0 && (
-            <div className="mt-5 flex flex-col items-center justify-between gap-3 border-t border-[#EEF2F7] pt-4 sm:flex-row">
+            <div className="mt-4 mobile:mt-5 flex flex-col items-center justify-between gap-3 border-t border-[#EEF2F7] pt-4 tablet:flex-row">
               <div className="text-xs text-[#64748B]">
                 نمایش {startIdx} تا {endIdx} از {filteredUsers.length} کاربر
               </div>

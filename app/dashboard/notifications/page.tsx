@@ -136,11 +136,11 @@ export default function NotificationsPage() {
       )}
 
       {isSuperAdmin && (
-        <div className="mb-4 flex h-[42px] items-center rounded-[10px] border border-[#DCE3EE] bg-white p-1 shadow-sm w-fit">
-          <button onClick={() => setView('mine')} className={`flex h-full items-center rounded-[8px] px-4 text-sm font-semibold transition-colors ${view === 'mine' ? 'bg-[#EFF4FF] text-[#2563EB]' : 'text-[#667085] hover:text-[#344054]'}`}>
+        <div className="mb-4 flex h-9 tablet:h-[42px] items-center rounded-[10px] border border-[#DCE3EE] bg-white p-1 shadow-sm w-fit">
+          <button onClick={() => setView('mine')} className={`flex h-full items-center rounded-[8px] px-3 tablet:px-4 text-xs tablet:text-sm font-semibold transition-colors ${view === 'mine' ? 'bg-[#EFF4FF] text-[#2563EB]' : 'text-[#667085] hover:text-[#344054]'}`}>
             <Bell className="ml-1.5 h-4 w-4" /> اعلان‌های من
           </button>
-          <button onClick={() => setView('all')} className={`flex h-full items-center rounded-[8px] px-4 text-sm font-semibold transition-colors ${view === 'all' ? 'bg-[#EFF4FF] text-[#2563EB]' : 'text-[#667085] hover:text-[#344054]'}`}>
+          <button onClick={() => setView('all')} className={`flex h-full items-center rounded-[8px] px-3 tablet:px-4 text-xs tablet:text-sm font-semibold transition-colors ${view === 'all' ? 'bg-[#EFF4FF] text-[#2563EB]' : 'text-[#667085] hover:text-[#344054]'}`}>
             <Users className="ml-1.5 h-4 w-4" /> همه اعلان‌ها {isSuperAdmin && <Badge variant="secondary" className="mr-1.5 text-xs">{allNotifications.length.toLocaleString('fa-IR')}</Badge>}
           </button>
         </div>
@@ -167,20 +167,20 @@ export default function NotificationsPage() {
                 return (
                   <div
                     key={n.id}
-                    className={`flex items-start gap-3 p-4 hover:bg-slate-50 transition-smooth cursor-pointer ${!n.read ? 'bg-sky-50/40' : ''}`}
+                    className={`flex items-start gap-2 mobile:gap-3 p-3 mobile:p-4 hover:bg-slate-50 transition-smooth cursor-pointer ${!n.read ? 'bg-sky-50/40' : ''}`}
                     onClick={() => !n.read && markRead(n.id)}
                   >
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${colorClass}`}>
-                      <Icon className="w-5 h-5" />
+                    <div className={`w-8 h-8 mobile:w-10 mobile:h-10 rounded-xl flex items-center justify-center shrink-0 ${colorClass}`}>
+                      <Icon className="w-4 h-4 mobile:w-5 mobile:h-5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-slate-900">{isCopy ? n.title.replace('[سوپرادمین] ', '') : n.title}</span>
+                      <div className="flex items-center gap-1.5 mobile:gap-2 flex-wrap">
+                        <span className="font-medium text-sm mobile:text-base text-slate-900">{isCopy ? n.title.replace('[سوپرادمین] ', '') : n.title}</span>
                         <Badge variant="outline" className="text-[10px] font-normal text-slate-400">{typeLabel}</Badge>
                         {!n.read && <span className="w-2 h-2 rounded-full bg-sky-500" />}
                         {n.priority === 'urgent' && <Badge variant="destructive" className="text-xs">فوری</Badge>}
                       </div>
-                      {n.body && <p className="text-sm text-slate-500 mt-1 leading-6">{n.body}</p>}
+                      {n.body && <p className="text-xs mobile:text-sm text-slate-500 mt-1 leading-5 mobile:leading-6">{n.body}</p>}
                       <div className="text-xs text-slate-400 mt-1 flex items-center gap-2">
                         <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {ownerName}</span>
                         <span>•</span>
@@ -210,20 +210,20 @@ export default function NotificationsPage() {
                     return (
                       <div
                         key={n.id}
-                        className={`flex items-start gap-3 p-4 hover:bg-slate-50 transition-smooth cursor-pointer ${!n.read ? 'bg-sky-50/40' : ''}`}
+                        className={`flex items-start gap-2 mobile:gap-3 p-3 mobile:p-4 hover:bg-slate-50 transition-smooth cursor-pointer ${!n.read ? 'bg-sky-50/40' : ''}`}
                         onClick={() => !n.read && markRead(n.id)}
                       >
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${colorClass}`}>
-                          <Icon className="w-5 h-5" />
+                        <div className={`w-8 h-8 mobile:w-10 mobile:h-10 rounded-xl flex items-center justify-center shrink-0 ${colorClass}`}>
+                          <Icon className="w-4 h-4 mobile:w-5 mobile:h-5" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-medium text-slate-900">{n.title}</span>
+                          <div className="flex items-center gap-1.5 mobile:gap-2 flex-wrap">
+                            <span className="font-medium text-sm mobile:text-base text-slate-900">{n.title}</span>
                             <Badge variant="outline" className="text-[10px] font-normal text-slate-400">{typeLabel}</Badge>
                             {!n.read && <span className="w-2 h-2 rounded-full bg-sky-500" />}
                             {n.priority === 'urgent' && <Badge variant="destructive" className="text-xs">فوری</Badge>}
                           </div>
-                          {n.body && <p className="text-sm text-slate-500 mt-1 leading-6">{n.body}</p>}
+                          {n.body && <p className="text-xs mobile:text-sm text-slate-500 mt-1 leading-5 mobile:leading-6">{n.body}</p>}
                           <div className="text-xs text-slate-400 mt-1">{relativeTime(n.createdAt)}</div>
                         </div>
                       </div>

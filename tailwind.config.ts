@@ -9,6 +9,13 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      screens: {
+        'mobile': '480px',
+        'tablet': '768px',
+        'laptop': '1024px',
+        'desktop': '1280px',
+        'widescreen': '1536px',
+      },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'gradient-conic':

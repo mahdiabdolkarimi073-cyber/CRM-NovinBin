@@ -374,24 +374,24 @@ export default function MeetingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl p-4 md:p-6" dir="rtl">
+    <div className="mx-auto max-w-7xl p-3 mobile:p-4 tablet:p-6" dir="rtl">
       {/* Header */}
-      <header className="mb-6 flex items-center justify-between">
+      <header className="mb-4 flex flex-col gap-3 tablet:flex-row tablet:items-center tablet:justify-between tablet:mb-6">
         <div>
           <div className="flex items-center gap-2">
             <span className="h-7 w-1.5 rounded-full bg-sky-500" />
-            <h1 className="text-2xl font-bold text-slate-900">جلسات</h1>
+            <h1 className="text-xl font-bold text-slate-900 mobile:text-2xl">جلسات</h1>
           </div>
           <p className="mt-1 text-sm text-slate-500">مدیریت و تخصیص جلسات به پرسنل</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {isSuperAdmin && (
-            <Link href="/dashboard/meetings/archive" className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50">
+            <Link href="/dashboard/meetings/archive" className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs mobile:text-sm font-medium text-slate-600 transition hover:bg-slate-50">
               <Archive className="h-4 w-4" />
               آرشیو
             </Link>
           )}
-          <Link href="/dashboard/meetings/new" className="inline-flex items-center gap-1.5 rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-sky-600">
+          <Link href="/dashboard/meetings/new" className="inline-flex items-center gap-1.5 rounded-lg bg-sky-500 px-3 mobile:px-4 py-2 text-xs mobile:text-sm font-medium text-white shadow-sm transition hover:bg-sky-600">
             <Plus className="h-4 w-4" />
             جلسه جدید
           </Link>
@@ -399,7 +399,7 @@ export default function MeetingsPage() {
       </header>
 
       {/* Status summary cards */}
-      <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-5">
+      <div className="mb-4 grid grid-cols-2 gap-2 mobile:gap-3 tablet:grid-cols-3 tablet:gap-3 desktop:grid-cols-5 tablet:mb-5">
         {statusCounts.map((s) => (
           <div
             key={s.key}
@@ -418,8 +418,8 @@ export default function MeetingsPage() {
       </div>
 
       {/* Filters bar */}
-      <div className="mb-5 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-3">
-        <div className="relative flex-1 min-w-[200px]">
+      <div className="mb-4 tablet:mb-5 flex flex-col gap-2 tablet:flex-wrap tablet:items-center tablet:gap-2 rounded-xl border border-slate-200 bg-white p-2 tablet:p-3">
+        <div className="relative flex-1 min-w-0 tablet:min-w-[200px]">
           <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <Input
             value={search}
@@ -429,7 +429,7 @@ export default function MeetingsPage() {
           />
         </div>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-full tablet:w-[160px]">
             <Filter className="ml-1 h-4 w-4 text-slate-400" />
             <SelectValue placeholder="وضعیت" />
           </SelectTrigger>
@@ -441,7 +441,7 @@ export default function MeetingsPage() {
           </SelectContent>
         </Select>
         <Select value={filterAssignee} onValueChange={setFilterAssignee}>
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-full tablet:w-[160px]">
             <UserRound className="ml-1 h-4 w-4 text-slate-400" />
             <SelectValue placeholder="مسئول" />
           </SelectTrigger>
@@ -452,7 +452,7 @@ export default function MeetingsPage() {
             ))}
           </SelectContent>
         </Select>
-        <div className="flex rounded-lg border border-slate-200">
+        <div className="flex rounded-lg border border-slate-200 self-start tablet:self-auto">
           <button
             className={`flex items-center gap-1 px-3 py-2 text-sm transition ${viewMode === 'board' ? 'bg-sky-50 text-sky-600' : 'text-slate-500 hover:bg-slate-50'}`}
             onClick={() => setViewMode('board')}
@@ -486,7 +486,7 @@ export default function MeetingsPage() {
                 <CalendarDays className="h-4 w-4 text-sky-500" />
                 جلسات پیشرو ({upcoming.length.toLocaleString('fa-IR')})
               </h2>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2 desktop:grid-cols-3">
                 {upcoming.map((m) => (
                   <MeetingCard
                     key={m.id}
@@ -511,7 +511,7 @@ export default function MeetingsPage() {
                 <Clock className="h-4 w-4 text-slate-400" />
                 جلسات گذشته ({past.length.toLocaleString('fa-IR')})
               </h2>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2 desktop:grid-cols-3">
                 {past.map((m) => (
                   <MeetingCard
                     key={m.id}
@@ -532,14 +532,15 @@ export default function MeetingsPage() {
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[600px]">
             <thead className="border-b border-slate-200 bg-slate-50">
               <tr>
-                <th className="p-3 text-right font-medium text-slate-500">عنوان</th>
-                <th className="p-3 text-right font-medium text-slate-500">تاریخ</th>
-                <th className="p-3 text-right font-medium text-slate-500">مسئول</th>
-                <th className="p-3 text-right font-medium text-slate-500">وضعیت</th>
-                <th className="p-3 text-right font-medium text-slate-500">عملیات</th>
+                <th className="p-2 mobile:p-3 text-right font-medium text-slate-500">عنوان</th>
+                <th className="p-2 mobile:p-3 text-right font-medium text-slate-500">تاریخ</th>
+                <th className="p-2 mobile:p-3 text-right font-medium text-slate-500">مسئول</th>
+                <th className="p-2 mobile:p-3 text-right font-medium text-slate-500">وضعیت</th>
+                <th className="p-2 mobile:p-3 text-right font-medium text-slate-500">عملیات</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -580,6 +581,7 @@ export default function MeetingsPage() {
               })}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 

@@ -28,17 +28,17 @@ export function ReportsTab({ accounts, summary, treasurySummary, trialBalance }:
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2 flex-wrap">
-        <Button size="sm" variant={reportType === 'summary' ? 'default' : 'outline'} onClick={() => setReportType('summary')}>خلاصه مالی</Button>
-        <Button size="sm" variant={reportType === 'balance' ? 'default' : 'outline'} onClick={() => setReportType('balance')}>ترازنامه</Button>
-        <Button size="sm" variant={reportType === 'pl' ? 'default' : 'outline'} onClick={() => setReportType('pl')}>صورت سود و زیان</Button>
-        <Button size="sm" variant={reportType === 'trial' ? 'default' : 'outline'} onClick={() => setReportType('trial')}>میزان آزمایشی</Button>
-        <Button size="sm" variant={reportType === 'treasury' ? 'default' : 'outline'} onClick={() => setReportType('treasury')}>خزانه‌داری</Button>
+      <div className="flex gap-1.5 mobile:gap-2 flex-wrap">
+        <Button size="sm" className="text-xs mobile:text-sm" variant={reportType === 'summary' ? 'default' : 'outline'} onClick={() => setReportType('summary')}>خلاصه مالی</Button>
+        <Button size="sm" className="text-xs mobile:text-sm" variant={reportType === 'balance' ? 'default' : 'outline'} onClick={() => setReportType('balance')}>ترازنامه</Button>
+        <Button size="sm" className="text-xs mobile:text-sm" variant={reportType === 'pl' ? 'default' : 'outline'} onClick={() => setReportType('pl')}>سود و زیان</Button>
+        <Button size="sm" className="text-xs mobile:text-sm" variant={reportType === 'trial' ? 'default' : 'outline'} onClick={() => setReportType('trial')}>میزان آزمایشی</Button>
+        <Button size="sm" className="text-xs mobile:text-sm" variant={reportType === 'treasury' ? 'default' : 'outline'} onClick={() => setReportType('treasury')}>خزانه‌داری</Button>
       </div>
 
       {/* Summary report */}
       {reportType === 'summary' && summary && (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 gap-3 mobile:gap-4 tablet:grid-cols-3">
           <Card><CardContent className="p-4 flex items-center justify-between">
             <div><div className="text-xs text-slate-400">کل دارایی‌ها</div><div className="text-xl font-bold text-sky-600">{formatToman(summary.totalAssets)} ت</div></div>
             <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center"><Wallet className="w-5 h-5" /></div>
@@ -68,11 +68,12 @@ export function ReportsTab({ accounts, summary, treasurySummary, trialBalance }:
 
       {/* Balance sheet */}
       {reportType === 'balance' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 tablet:grid-cols-2 gap-4">
           <Card>
             <CardHeader><CardTitle className="text-sm">دارایی‌ها</CardTitle></CardHeader>
             <CardContent className="p-0">
-              <table className="w-full text-sm">
+              <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[300px]">
                 <tbody className="divide-y divide-slate-100">
                   {accounts.filter((a) => a.type === 'asset').map((a) => (
                     <tr key={a.id} className="hover:bg-slate-50"><td className="p-3 text-slate-600">{a.code} - {a.name}</td><td className="p-3 text-left font-medium text-sky-600">{formatToman(Number(a.balance))}</td></tr>
@@ -80,12 +81,14 @@ export function ReportsTab({ accounts, summary, treasurySummary, trialBalance }:
                   <tr className="bg-slate-50 font-bold"><td className="p-3">مجموع دارایی‌ها</td><td className="p-3 text-left text-sky-700">{formatToman(summary?.totalAssets || 0)}</td></tr>
                 </tbody>
               </table>
+              </div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader><CardTitle className="text-sm">بدهی‌ها و حقوق صاحبان سهام</CardTitle></CardHeader>
             <CardContent className="p-0">
-              <table className="w-full text-sm">
+              <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[300px]">
                 <tbody className="divide-y divide-slate-100">
                   {accounts.filter((a) => a.type === 'liability').map((a) => (
                     <tr key={a.id} className="hover:bg-slate-50"><td className="p-3 text-slate-600">{a.code} - {a.name}</td><td className="p-3 text-left font-medium text-red-600">{formatToman(Number(a.balance))}</td></tr>
@@ -96,6 +99,7 @@ export function ReportsTab({ accounts, summary, treasurySummary, trialBalance }:
                   <tr className="bg-slate-50 font-bold"><td className="p-3">مجموع</td><td className="p-3 text-left text-red-700">{formatToman((summary?.totalLiabilities || 0) + (summary?.equity || 0))}</td></tr>
                 </tbody>
               </table>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -105,7 +109,8 @@ export function ReportsTab({ accounts, summary, treasurySummary, trialBalance }:
       {reportType === 'pl' && (
         <Card>
           <CardContent className="p-0">
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[400px]">
               <thead><tr className="border-b bg-slate-50 text-slate-500 text-xs"><th className="text-right p-3">حساب</th><th className="text-right p-3">نوع</th><th className="text-left p-3">مبلغ</th></tr></thead>
               <tbody className="divide-y divide-slate-100">
                 {accounts.filter((a) => a.type === 'revenue').map((a) => (
@@ -117,6 +122,7 @@ export function ReportsTab({ accounts, summary, treasurySummary, trialBalance }:
                 <tr className="bg-slate-50 font-bold"><td className="p-3" colSpan={2}>سود خالص</td><td className={`p-3 text-left ${(summary?.netIncome || 0) >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>{formatToman(summary?.netIncome || 0)}</td></tr>
               </tbody>
             </table>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -125,7 +131,8 @@ export function ReportsTab({ accounts, summary, treasurySummary, trialBalance }:
       {reportType === 'trial' && (
         <Card>
           <CardContent className="p-0">
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[500px]">
               <thead><tr className="border-b bg-slate-50 text-slate-500 text-xs"><th className="text-right p-3">کد</th><th className="text-right p-3">حساب</th><th className="text-left p-3">بدهکار</th><th className="text-left p-3">بستانکار</th></tr></thead>
               <tbody className="divide-y divide-slate-100">
                 {trialBalance.map((t, idx) => (
@@ -143,13 +150,14 @@ export function ReportsTab({ accounts, summary, treasurySummary, trialBalance }:
                 </tr>
               </tbody>
             </table>
+            </div>
           </CardContent>
         </Card>
       )}
 
       {/* Treasury report */}
       {reportType === 'treasury' && treasurySummary && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 tablet:grid-cols-2 gap-4">
           <Card><CardContent className="p-4 flex items-center justify-between">
             <div><div className="text-xs text-slate-400">مجموع نقدی</div><div className="text-xl font-bold text-emerald-600">{formatToman(treasurySummary.cashBalance)} ت</div></div>
             <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center"><Wallet className="w-5 h-5" /></div>
