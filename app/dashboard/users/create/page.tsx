@@ -5,54 +5,13 @@ import { useRouter } from 'next/navigation';
 import { ArrowRight, ImagePlus, LockKeyhole, Mail, Phone, UserRound, Upload } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createData, fetchData } from '@/lib/data-client';
+import { availablePages } from '@/lib/nav-config';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-
-const availablePages = [
-  { path: '/dashboard/customers', label: 'مشتریان' },
-  { path: '/dashboard/leads', label: 'سرنخ‌ها' },
-  { path: '/dashboard/pipeline', label: 'قیف فروش' },
-  { path: '/dashboard/products', label: 'محصولات' },
-  { path: '/dashboard/orders', label: 'سفارشات' },
-  { path: '/dashboard/invoices', label: 'فاکتورها' },
-  { path: '/dashboard/tasks', label: 'وظایف' },
-  { path: '/dashboard/meetings', label: 'جلسات' },
-  { path: '/dashboard/tickets', label: 'تیکت‌ها' },
-  { path: '/dashboard/accounting', label: 'حسابداری' },
-  { path: '/dashboard/inventory', label: 'انبار' },
-  { path: '/dashboard/hr', label: 'منابع انسانی' },
-  { path: '/dashboard/pre-invoices', label: 'پیش‌فاکتورها' },
-  { path: '/dashboard/returns', label: 'مرجوعی‌ها' },
-  { path: '/dashboard/payments', label: 'پرداخت‌ها' },
-  { path: '/dashboard/receipts', label: 'رسیدها' },
-  { path: '/dashboard/contracts', label: 'قراردادها' },
-  { path: '/dashboard/calls', label: 'تماس‌ها' },
-  { path: '/dashboard/demos', label: 'دموها' },
-  { path: '/dashboard/customers-chat', label: 'چت مشتریان' },
-  { path: '/dashboard/work-reports/daily', label: 'گزارش روزانه' },
-  { path: '/dashboard/work-reports/monthly', label: 'گزارش ماهانه' },
-  { path: '/dashboard/finance-academy', label: 'آکادمی مالی' },
-  { path: '/dashboard/financial-reports', label: 'گزارش‌های مالی' },
-  { path: '/dashboard/customer-interactions', label: 'ارتباطات مشتری' },
-  { path: '/dashboard/customer-segments', label: 'بخش‌بندی مشتری' },
-  { path: '/dashboard/loyalty-rewards', label: 'جوایز باشگاه' },
-  { path: '/dashboard/demo-activities', label: 'فعالیت دمو' },
-  { path: '/dashboard/stock-transfers', label: 'انتقال انبار' },
-  { path: '/dashboard/purchase', label: 'خرید' },
-  { path: '/dashboard/approvals', label: 'تأییدها' },
-  { path: '/dashboard/documents', label: 'اسناد' },
-  { path: '/dashboard/knowledge', label: 'پایگاه دانش' },
-  { path: '/dashboard/performance', label: 'عملکرد' },
-  { path: '/dashboard/workboard', label: 'تخته کار' },
-  { path: '/dashboard/organization', label: 'سازمان' },
-  { path: '/dashboard/registration-approval', label: 'تأیید ثبت‌نام' },
-  { path: '/dashboard/customer-assignment', label: 'تخصیص مشتری' },
-  { path: '/dashboard/users', label: 'مدیریت کاربران' },
-];
 
 type Admin = { id: string; firstName: string | null; lastName: string | null; role: string };
 type FormState = {

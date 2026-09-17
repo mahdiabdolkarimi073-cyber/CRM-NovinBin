@@ -21,8 +21,8 @@ export async function POST(req: NextRequest) {
 
   try {
     const now = new Date();
-    const windowStart = new Date(now.getTime() + 1.5 * 60 * 60 * 1000);
-    const windowEnd = new Date(now.getTime() + 3 * 60 * 60 * 1000);
+    const windowStart = now;
+    const windowEnd = new Date(now.getTime() + 2 * 60 * 60 * 1000);
 
     const upcomingMeetings = await prisma.meeting.findMany({
       where: {

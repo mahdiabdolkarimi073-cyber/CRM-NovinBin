@@ -173,6 +173,12 @@ export default function NewMeetingPage() {
       });
 
       await Promise.all(notifPromises);
+
+      const msUntilMeeting = meetingDateTime.getTime() - Date.now();
+      if (msUntilMeeting <= 2 * 60 * 60 * 1000) {
+        fetch('/api/meetings/check-sms', { method: 'POST' }).catch(() => {});
+      }
+
       toast.success('جلسه ایجاد شد');
       router.push('/dashboard/meetings');
     } catch (error: any) {

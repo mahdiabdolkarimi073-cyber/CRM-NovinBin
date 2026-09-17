@@ -45,6 +45,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [sidebarOpen]);
 
+  // Global meeting SMS reminder check — runs on every dashboard page
+  useEffect(() => {
+    if (!profile) return;
+    fetch('/api/meetings/check-sms', { method: 'POST' }).catch(() => {});
+    const interval = setInterval(() => {
+      fetch('/api/meetings/check-sms', { method: 'POST' }).catch(() => {});
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, [profile]);
+
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
   if (loading || !profile) {
