@@ -237,6 +237,7 @@ export default function CreateUserPage() {
                     <>
                       <SelectItem value="admin">مدیر</SelectItem>
                       <SelectItem value="super_admin">سوپر ادمین</SelectItem>
+                      <SelectItem value="academy_admin">ادمین آموزشگاه</SelectItem>
                     </>
                   )}
                   <SelectItem value="personnel">پرسنل</SelectItem>

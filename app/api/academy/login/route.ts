@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
 
-const CRM_ADMIN_ROLES = ['super_admin', 'admin'];
+const CRM_ADMIN_ROLES = ['super_admin', 'admin', 'academy_admin'];
 
 export async function POST(req: NextRequest) {
   try {

@@ -62,6 +62,62 @@ export async function POST(req: NextRequest) {
       await prisma.profile.update({ where: { id: userId }, data: profileUpdate });
     }
 
+    // Sync AcademyUser when role is academy_admin
+    const finalRole = role !== undefined ? role : target.role;
+    if (finalRole === 'academy_admin') {
+      try {
+        const normalizedEmail = userUpdate.email || (await prisma.user.findUnique({ where: { id: userId }, select: { email: true } }))?.email || '';
+        const existingAcademy = await (prisma as any).academyUser.findFirst({ where: { email: normalizedEmail } });
+        const academyPasswordHash = userUpdate.passwordHash || existingAcademy?.passwordHash || target.passwordHash || '';
+        if (existingAcademy) {
+          await (prisma as any).academyUser.update({
+            where: { id: existingAcademy.id },
+            data: {
+              role: 'AdminAcademy',
+              active: active !== undefined ? active : existingAcademy.active,
+              firstName: firstName || existingAcademy.firstName,
+              lastName: lastName || existingAcademy.lastName,
+              phone: phone !== undefined ? (phone || null) : existingAcademy.phone,
+              ...(userUpdate.passwordHash ? { passwordHash: userUpdate.passwordHash } : {}),
+            },
+          });
+        } else {
+          const baseUsername = (firstName || normalizedEmail).replace(/\s+/g, '').toLowerCase();
+          let academyUsername = baseUsername;
+          let suffix = 1;
+          while (await (prisma as any).academyUser.findUnique({ where: { username: academyUsername } })) {
+            academyUsername = `${baseUsername}${suffix++}`;
+          }
+          await (prisma as any).academyUser.create({
+            data: {
+              username: academyUsername,
+              email: normalizedEmail,
+              passwordHash: academyPasswordHash,
+              role: 'AdminAcademy',
+              firstName: firstName || '',
+              lastName: lastName || '',
+              phone: phone || null,
+              active: active !== undefined ? active : true,
+            },
+          });
+        }
+      } catch {}
+    } else if (role !== undefined && target.role === 'academy_admin' && role !== 'academy_admin') {
+      // If role changed away from academy_admin, deactivate the AcademyUser
+      try {
+        const targetEmail = (await prisma.user.findUnique({ where: { id: userId }, select: { email: true } }))?.email || '';
+        if (targetEmail) {
+          const existingAcademy = await (prisma as any).academyUser.findFirst({ where: { email: targetEmail } });
+          if (existingAcademy) {
+            await (prisma as any).academyUser.update({
+              where: { id: existingAcademy.id },
+              data: { active: false },
+            });
+          }
+        }
+      } catch {}
+    }
+
     // Notify the edited user
     try {
       const changes: string[] = [];

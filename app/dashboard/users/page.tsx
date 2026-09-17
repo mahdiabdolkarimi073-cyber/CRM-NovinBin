@@ -30,6 +30,7 @@ const roleLabels: Record<string, string> = {
   super_admin: 'سوپر ادمین',
   admin: 'مدیر',
   personnel: 'پرسنل',
+  academy_admin: 'ادمین آموزشگاه',
 };
 
 const roleBadgeClasses: Record<string, string> = {
@@ -37,6 +38,7 @@ const roleBadgeClasses: Record<string, string> = {
   super_admin: 'bg-amber-100 text-amber-700',
   admin: 'bg-sky-100 text-sky-700',
   personnel: 'bg-slate-100 text-slate-600',
+  academy_admin: 'bg-emerald-100 text-emerald-700',
 };
 
 type Profile = {
@@ -285,6 +287,7 @@ export default function UsersPage() {
                   <SelectItem value="super_admin">سوپر ادمین</SelectItem>
                   <SelectItem value="admin">مدیر</SelectItem>
                   <SelectItem value="personnel">پرسنل</SelectItem>
+                  <SelectItem value="academy_admin">ادمین آموزشگاه</SelectItem>
                 </SelectContent>
               </Select>
 

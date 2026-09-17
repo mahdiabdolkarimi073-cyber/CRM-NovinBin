@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     }
 
     const normalizedEmail = String(email).toLowerCase();
-    const requestedStaffRole = role === 'admin' || role === 'super_admin' || role === 'owner';
+    const requestedStaffRole = role === 'admin' || role === 'super_admin' || role === 'owner' || role === 'academy_admin';
     if (requestedStaffRole) {
       const token = req.cookies.get('token')?.value;
       if (!token) return NextResponse.json({ error: 'دسترسی غیرمجاز' }, { status: 403 });
@@ -59,6 +59,30 @@ export async function POST(req: NextRequest) {
       },
       include: { profile: true },
     });
+
+    // If role is academy_admin, also create a matching AcademyUser with AdminAcademy role
+    if (role === 'academy_admin') {
+      try {
+        const baseUsername = (firstName || email).replace(/\s+/g, '').toLowerCase();
+        let academyUsername = baseUsername;
+        let suffix = 1;
+        while (await (prisma as any).academyUser.findUnique({ where: { username: academyUsername } })) {
+          academyUsername = `${baseUsername}${suffix++}`;
+        }
+        await (prisma as any).academyUser.create({
+          data: {
+            username: academyUsername,
+            email: normalizedEmail,
+            passwordHash,
+            role: 'AdminAcademy',
+            firstName: firstName || '',
+            lastName: lastName || '',
+            phone: phone || null,
+            active: true,
+          },
+        });
+      } catch {}
+    }
 
     return NextResponse.json({
       user: { id: user.id, email: user.email },
