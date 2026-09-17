@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -32,7 +31,6 @@ export default function AcademyLoginPage() {
   }
 
   return <main className="academy-auth-page" dir="rtl">
-    <section className="academy-auth-art"><Image src="/images/ChatGPT_Image_Aug_30,_2026,_02_39_21_PM.png" alt="دنیای الگوریتم" fill priority sizes="(max-width: 900px) 100vw, 50vw" /></section>
     <section className="academy-auth-panel">
       <div className="academy-login-card">
         <div className="academy-brand-mark">دنیای <span>الگوریتم</span></div>
