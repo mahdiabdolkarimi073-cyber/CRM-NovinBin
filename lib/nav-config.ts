@@ -58,6 +58,7 @@ export const cartableItems: NavItem[] = [
   { href: '/dashboard/doc-issuance-workboard', label: 'کارتابل صدور سند', icon: FileCheck },
   { href: '/dashboard/meetings', label: 'جلسات', icon: Calendar },
   { href: '/dashboard/meetings/archive', label: 'آرشیو جلسات', icon: Archive },
+  { href: '/dashboard/meeting-sms', label: 'پنل پیامک جلسات', icon: Send },
   { href: '/dashboard/calls', label: 'مکالمات', icon: Phone },
   { href: '/dashboard/graphic-works', label: 'کارهای گرافیک', icon: Palette },
 ];
@@ -220,6 +221,7 @@ export const availablePages = [
   { path: '/dashboard/tasks', label: 'وظایف' },
   { path: '/dashboard/meetings', label: 'جلسات' },
   { path: '/dashboard/meetings/archive', label: 'آرشیو جلسات' },
+  { path: '/dashboard/meeting-sms', label: 'پنل پیامک جلسات' },
   { path: '/dashboard/tickets', label: 'تیکت‌ها' },
   { path: '/dashboard/accounting', label: 'حسابداری' },
   { path: '/dashboard/chart-of-accounts', label: 'حسابواره' },
