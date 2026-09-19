@@ -1,12 +1,29 @@
-import { schedule } from '@netlify/functions';
-import { PrismaClient } from '@prisma/client';
-import { sendMeetingReminderSms, sendExpiryReminder, normalizeMobile } from '../../lib/sms';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
+import { sendMeetingReminderSms, sendExpiryReminder, normalizeMobile } from '@/lib/sms';
 
 const REMINDER_WINDOW_MS = 2 * 60 * 60 * 1000;
+const POLL_INTERVAL_MS = 5 * 60 * 1000;
 
-async function processMeetingSms() {
+let schedulerStarted = false;
+
+export function startSmsScheduler() {
+  if (schedulerStarted) return;
+  schedulerStarted = true;
+
+  console.log('[SMS Scheduler] زمان‌بند پیامک سرور فعال شد (هر ۵ دقیقه)');
+
+  processSmsReminders().catch((err) =>
+    console.error('[SMS Scheduler] خطا در اجرای اولیه:', err)
+  );
+
+  setInterval(() => {
+    processSmsReminders().catch((err) =>
+      console.error('[SMS Scheduler] خطا در اجرای دوره‌ای:', err)
+    );
+  }, POLL_INTERVAL_MS);
+}
+
+export async function processSmsReminders() {
   const now = new Date();
   const windowStart = new Date(now.getTime() - REMINDER_WINDOW_MS);
   const windowEnd = new Date(now.getTime() + REMINDER_WINDOW_MS);
@@ -31,7 +48,7 @@ async function processMeetingSms() {
     },
   });
 
-  const results: any[] = [];
+  console.log('[SMS Scheduler] جلسات نیازمند پیامک:', upcomingMeetings.length);
 
   for (const meeting of upcomingMeetings) {
     let staffSent = false;
@@ -79,20 +96,8 @@ async function processMeetingSms() {
         data: { smsSent: true, smsSentAt: new Date() },
       });
     }
-
-    results.push({
-      id: meeting.id,
-      title: meeting.title,
-      staffSent,
-      customerSent,
-    });
   }
 
-  return results;
-}
-
-async function processExpirySms() {
-  const now = new Date();
   const oneWeekLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
   const dueHosts = await prisma.hostDomain.findMany({
     where: {
@@ -111,31 +116,5 @@ async function processExpirySms() {
     }
   }
 
-  return dueHosts.length;
+  return { meetings: upcomingMeetings.length, hosts: dueHosts.length };
 }
-
-const handler = async () => {
-  try {
-    const meetingResults = await processMeetingSms();
-    const expiryCount = await processExpirySms();
-    return {
-      statusCode: 200,
-      body: JSON.stringify({
-        success: true,
-        meetingsProcessed: meetingResults.length,
-        expiryProcessed: expiryCount,
-        results: meetingResults,
-      }),
-    };
-  } catch (error: any) {
-    console.error('[SCHEDULED SMS] خطا:', error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: error.message }),
-    };
-  } finally {
-    await prisma.$disconnect();
-  }
-};
-
-export const handler = schedule('@hourly', handler);

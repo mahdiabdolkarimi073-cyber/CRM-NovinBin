@@ -129,7 +129,6 @@ export default function MeetingsPage() {
 
   useEffect(() => {
     load();
-    fetch('/api/meetings/check-sms', { method: 'POST' }).catch(() => {});
   }, [load]);
 
   const filtered = useMemo(() => {
