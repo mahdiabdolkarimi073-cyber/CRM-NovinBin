@@ -41,13 +41,11 @@ export default function SocialNetworkPage() {
   const { startCall } = useCall();
   const [tab, setTab] = useState<Tab>('dm');
 
-  // DM state
   const [users, setUsers] = useState<Profile[]>([]);
   const [dmMessages, setDmMessages] = useState<SocialDMMessage[]>([]);
   const [dmConversations, setDmConversations] = useState<DMConversation[]>([]);
   const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
 
-  // Group state
   const [groups, setGroups] = useState<SocialGroup[]>([]);
   const [groupMembers, setGroupMembers] = useState<Record<string, SocialGroupMember[]>>({});
   const [groupMessages, setGroupMessages] = useState<SocialGroupMessage[]>([]);
@@ -60,7 +58,6 @@ export default function SocialNetworkPage() {
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupDesc, setNewGroupDesc] = useState('');
 
-  // Folders state
   const [folders, setFolders] = useState<CustomerSocialFolder[]>([]);
   const [folderMembers, setFolderMembers] = useState<Record<string, any[]>>({});
   const [folderCustomers, setFolderCustomers] = useState<Record<string, any[]>>({});
@@ -68,7 +65,6 @@ export default function SocialNetworkPage() {
 
   const isSuperAdmin = profile?.role === 'super_admin';
 
-  // Shared state
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [messageSearch, setMessageSearch] = useState('');
@@ -84,10 +80,15 @@ export default function SocialNetworkPage() {
 
   const roleLabels: Record<string, string> = { owner: 'مالک', super_admin: 'سوپرادمین', admin: 'مدیر', personnel: 'پرسنل' };
 
-  const getUserLabel = useCallback((u: Profile) => [u.firstName, u.lastName].filter(Boolean).join(' ') || 'کاربر', []);
-  const getInitials = useCallback((u: Profile) => ((u.firstName?.[0] || '') + (u.lastName?.[0] || '')).toUpperCase() || '؟', []);
+  const getUserLabel = useCallback((u: Profile) => {
+    if (u.fullName) return u.fullName;
+    return [u.firstName, u.lastName].filter(Boolean).join(' ') || 'کاربر';
+  }, []);
+  const getInitials = useCallback((u: Profile) => {
+    if (u.fullName) return u.fullName.slice(0, 2);
+    return ((u.firstName?.[0] || '') + (u.lastName?.[0] || '')).toUpperCase() || '؟';
+  }, []);
 
-  // Load all users
   const loadUsers = useCallback(async () => {
     if (!profile) return;
     try {
@@ -99,7 +100,6 @@ export default function SocialNetworkPage() {
     setLoading(false);
   }, [profile]);
 
-  // Load DM conversations
   const loadDMConversations = useCallback(async () => {
     if (!profile) return;
     try {
@@ -126,7 +126,6 @@ export default function SocialNetworkPage() {
     } catch {}
   }, [profile, users]);
 
-  // Load DM messages for a specific user
   const loadDmMessages = useCallback(async (otherUserId: string) => {
     if (!profile) return;
     try {
@@ -143,7 +142,6 @@ export default function SocialNetworkPage() {
     }
   }, [profile]);
 
-  // Load groups
   const loadGroups = useCallback(async () => {
     if (!profile) return;
     try {
@@ -156,19 +154,13 @@ export default function SocialNetworkPage() {
         const members = await fetchData<SocialGroupMember>('social_group_members', { where: { groupId: g.id } });
         memberMap[g.id] = members || [];
         const msgs = await fetchData<SocialGroupMessage>('social_group_messages', { where: { groupId: g.id }, orderBy: { createdAt: 'desc' }, take: 1 });
-        const lastMsg = msgs?.[0];
-        const allMsgs = await fetchData<SocialGroupMessage>('social_group_messages', { where: { groupId: g.id, senderId: { not: profile.id } }, orderBy: { createdAt: 'asc' } });
-        const unreadCount = (allMsgs || []).filter((m) => {
-          return true;
-        }).length;
-        convoList.push({ group: g, memberCount: members?.length || 0, lastMessage: lastMsg, unreadCount: 0 });
+        convoList.push({ group: g, memberCount: members?.length || 0, lastMessage: msgs?.[0], unreadCount: 0 });
       }
       setGroupMembers(memberMap);
       setGroupConversations(convoList);
     } catch {}
   }, [profile]);
 
-  // Load group messages
   const loadGroupMessages = useCallback(async (groupId: string) => {
     if (!profile) return;
     try {
@@ -176,7 +168,6 @@ export default function SocialNetworkPage() {
       setGroupMessages(data || []);
       const members = await fetchData<SocialGroupMember>('social_group_members', { where: { groupId } });
       setSelectedGroupMembers(members || []);
-      // Mark messages from others as read
       const otherMsgs = (data || []).filter((m) => m.senderId !== profile.id);
       for (const m of otherMsgs) {
         await createData('social_group_message_reads', { messageId: m.id, profileId: profile.id }).catch(() => {});
@@ -186,11 +177,6 @@ export default function SocialNetworkPage() {
     }
   }, [profile]);
 
-  useEffect(() => { loadUsers(); }, [loadUsers]);
-  useEffect(() => { if (users.length > 0) loadDMConversations(); }, [loadDMConversations]);
-  useEffect(() => { loadGroups(); }, [loadGroups]);
-
-  // Load folders
   const loadFolders = useCallback(async () => {
     try {
       const data = await fetchData<CustomerSocialFolder>('customer_social_folders', { orderBy: { createdAt: 'desc' } });
@@ -208,15 +194,16 @@ export default function SocialNetworkPage() {
     } catch {}
   }, []);
 
+  useEffect(() => { loadUsers(); }, [loadUsers]);
+  useEffect(() => { if (users.length > 0) loadDMConversations(); }, [loadDMConversations]);
+  useEffect(() => { loadGroups(); }, [loadGroups]);
   useEffect(() => { loadFolders(); }, [loadFolders]);
   useEffect(() => {
     if (tab === 'dm' && selectedUser) loadDmMessages(selectedUser.id);
     if (tab === 'groups' && selectedGroup) loadGroupMessages(selectedGroup.id);
   }, [selectedUser, selectedGroup, tab, loadDmMessages, loadGroupMessages]);
-
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [dmMessages, groupMessages]);
 
-  // Presence heartbeat
   useEffect(() => {
     if (!profile) return;
     const beat = () => fetch('/api/chat/presence', { method: 'POST' }).catch(() => {});
@@ -230,7 +217,6 @@ export default function SocialNetworkPage() {
     };
   }, [profile]);
 
-  // SSE for real-time updates
   useEffect(() => {
     if (!profile) return;
     const es = new EventSource('/api/social/stream');
@@ -271,20 +257,12 @@ export default function SocialNetworkPage() {
     setSending(true);
     try {
       const payload: Record<string, any> = { receiverId: selectedUser.id, content: text.trim() || null };
-      if (attachment) {
-        payload.attachmentUrl = attachment.url;
-        payload.attachmentName = attachment.name;
-        payload.attachmentType = attachment.type;
-      }
+      if (attachment) { payload.attachmentUrl = attachment.url; payload.attachmentName = attachment.name; payload.attachmentType = attachment.type; }
       await createData('social_dm_messages', payload);
-      setText('');
-      setAttachment(null);
-      setIsEmojiOpen(false);
+      setText(''); setAttachment(null); setIsEmojiOpen(false);
       loadDmMessages(selectedUser.id);
       loadDMConversations();
-    } catch (e: any) {
-      toast.error(e.message);
-    }
+    } catch (e: any) { toast.error(e.message); }
     setSending(false);
   };
 
@@ -293,20 +271,12 @@ export default function SocialNetworkPage() {
     setSending(true);
     try {
       const payload: Record<string, any> = { groupId: selectedGroup.id, content: text.trim() || null };
-      if (attachment) {
-        payload.attachmentUrl = attachment.url;
-        payload.attachmentName = attachment.name;
-        payload.attachmentType = attachment.type;
-      }
+      if (attachment) { payload.attachmentUrl = attachment.url; payload.attachmentName = attachment.name; payload.attachmentType = attachment.type; }
       await createData('social_group_messages', payload);
-      setText('');
-      setAttachment(null);
-      setIsEmojiOpen(false);
+      setText(''); setAttachment(null); setIsEmojiOpen(false);
       loadGroupMessages(selectedGroup.id);
       loadGroups();
-    } catch (e: any) {
-      toast.error(e.message);
-    }
+    } catch (e: any) { toast.error(e.message); }
     setSending(false);
   };
 
@@ -328,14 +298,10 @@ export default function SocialNetworkPage() {
     if (!profile || !newGroupName.trim()) { toast.error('نام گروه را وارد کنید'); return; }
     try {
       await createData('social_groups', { name: newGroupName.trim(), description: newGroupDesc.trim() || null });
-      setNewGroupName('');
-      setNewGroupDesc('');
-      setShowCreateGroup(false);
+      setNewGroupName(''); setNewGroupDesc(''); setShowCreateGroup(false);
       toast.success('گروه ایجاد شد');
       loadGroups();
-    } catch (e: any) {
-      toast.error(e.message);
-    }
+    } catch (e: any) { toast.error(e.message); }
   };
 
   const handleAddMember = async (groupId: string, profileId: string) => {
@@ -344,9 +310,7 @@ export default function SocialNetworkPage() {
       toast.success('عضو اضافه شد');
       loadGroups();
       if (selectedGroup?.id === groupId) loadGroupMessages(groupId);
-    } catch (e: any) {
-      toast.error(e.message);
-    }
+    } catch (e: any) { toast.error(e.message); }
   };
 
   const handleRemoveMember = async (memberId: string) => {
@@ -355,9 +319,7 @@ export default function SocialNetworkPage() {
       toast.success('عضو حذف شد');
       if (selectedGroup) loadGroupMessages(selectedGroup.id);
       loadGroups();
-    } catch (e: any) {
-      toast.error(e.message);
-    }
+    } catch (e: any) { toast.error(e.message); }
   };
 
   const filteredUsers = users.filter((u) => getUserLabel(u).toLowerCase().includes(search.toLowerCase()));
@@ -367,14 +329,12 @@ export default function SocialNetworkPage() {
 
   const filteredGroupMessages = useMemo(() => {
     if (!messageSearch.trim()) return groupMessages;
-    const q = messageSearch.toLowerCase();
-    return groupMessages.filter((m) => m.content?.toLowerCase().includes(q));
+    return groupMessages.filter((m) => m.content?.toLowerCase().includes(messageSearch.toLowerCase()));
   }, [groupMessages, messageSearch]);
 
   const filteredDmMessages = useMemo(() => {
     if (!messageSearch.trim()) return dmMessages;
-    const q = messageSearch.toLowerCase();
-    return dmMessages.filter((m) => m.content?.toLowerCase().includes(q));
+    return dmMessages.filter((m) => m.content?.toLowerCase().includes(messageSearch.toLowerCase()));
   }, [dmMessages, messageSearch]);
 
   const selectUser = (user: Profile) => { setSelectedUser(user); setIsUsersOpen(false); };
@@ -408,7 +368,7 @@ export default function SocialNetworkPage() {
     return (
       <button key={convo.group.id} onClick={() => selectGroup(convo.group)} className={cn('staff-chat-user', isActive && 'is-active')}>
         <span className="staff-chat-avatar-wrap">
-          <span className="staff-chat-avatar" style={{ background: '#FEF3C7', color: '#D97706' }}>
+          <span className="staff-chat-avatar" style={{ background: 'linear-gradient(135deg, #F59E0B, #FBBF24)', color: '#fff' }}>
             <Users style={{ width: 18, height: 18 }} />
           </span>
         </span>
@@ -419,7 +379,6 @@ export default function SocialNetworkPage() {
           </span>
           <span className="staff-chat-user-bottomline">
             <small>{convo.lastMessage?.content || (convo.lastMessage?.attachmentUrl ? 'فایل' : `${convo.memberCount} عضو`)}</small>
-            {convo.unreadCount ? <b>{convo.unreadCount.toLocaleString('fa-IR')}</b> : null}
           </span>
         </span>
       </button>
@@ -430,7 +389,7 @@ export default function SocialNetworkPage() {
   const isGroupOwner = selectedGroup && profile && selectedGroup.ownerId === profile.id;
 
   if (loading) {
-    return <div className="staff-chat-page staff-chat-page-full"><div className="staff-chat-loading"><span /></div></div>;
+    return <div className="social-network-page"><div className="staff-chat-loading" style={{ background: '#F8F9FC' }}><span style={{ borderColor: '#2563EB #E2E8F0 #E2E8F0' }} /></div></div>;
   }
 
   return (
@@ -439,7 +398,7 @@ export default function SocialNetworkPage() {
         <div className="social-network-header-info">
           <span className="social-network-title-accent" />
           <div>
-            <h1>شبکه اجتماعی نوین بین</h1>
+            <h1>شبکه اجتماعی نوین‌بین</h1>
             <p>چت خصوصی و گروهی با کاربران سیستم</p>
           </div>
         </div>
@@ -451,15 +410,15 @@ export default function SocialNetworkPage() {
 
       <div className="social-network-tabs">
         <button className={cn('social-network-tab', tab === 'dm' && 'is-active')} onClick={() => setTab('dm')}>
-          <MessageCircle style={{ width: 18, height: 18 }} />
+          <MessageCircle style={{ width: 17, height: 17 }} />
           پیام‌های شخصی
         </button>
         <button className={cn('social-network-tab', tab === 'groups' && 'is-active')} onClick={() => setTab('groups')}>
-          <Users style={{ width: 18, height: 18 }} />
+          <Users style={{ width: 17, height: 17 }} />
           گروه‌ها
         </button>
         <button className={cn('social-network-tab', tab === 'folders' && 'is-active')} onClick={() => setTab('folders')}>
-          <FolderTree style={{ width: 18, height: 18 }} />
+          <FolderTree style={{ width: 17, height: 17 }} />
           پوشه‌ها
         </button>
       </div>
@@ -529,7 +488,7 @@ export default function SocialNetworkPage() {
               <header className="staff-chat-header">
                 <div className="staff-chat-person">
                   <span className="staff-chat-avatar-wrap">
-                    <span className="staff-chat-avatar staff-chat-avatar-large" style={{ background: '#FEF3C7', color: '#D97706' }}>
+                    <span className="staff-chat-avatar staff-chat-avatar-large" style={{ background: 'linear-gradient(135deg, #F59E0B, #FBBF24)', color: '#fff' }}>
                       <Users style={{ width: 20, height: 20 }} />
                     </span>
                   </span>
@@ -537,7 +496,7 @@ export default function SocialNetworkPage() {
                     <strong>{selectedGroup.name}</strong>
                     <span className="staff-chat-status">
                       {selectedGroupMembers.length} عضو
-                      {isGroupOwner && <span style={{ marginRight: 6, color: '#D97706' }}>• مدیر گروه</span>}
+                      {isGroupOwner && <span style={{ marginRight: 6, color: '#F59E0B' }}>• مدیر گروه</span>}
                     </span>
                   </div>
                 </div>
@@ -618,7 +577,7 @@ export default function SocialNetworkPage() {
               <header className="staff-chat-header">
                 <div className="staff-chat-person">
                   <span className="staff-chat-avatar-wrap">
-                    <span className="staff-chat-avatar staff-chat-avatar-large" style={{ background: '#FEF3C7', color: '#D97706' }}>
+                    <span className="staff-chat-avatar staff-chat-avatar-large" style={{ background: 'linear-gradient(135deg, #F59E0B, #FBBF24)', color: '#fff' }}>
                       <FolderTree style={{ width: 20, height: 20 }} />
                     </span>
                   </span>
@@ -646,7 +605,7 @@ export default function SocialNetworkPage() {
                     ) : (folderMembers[selectedFolder.id] || []).map((m) => {
                       const mp = users.find((u) => u.id === m.profileId);
                       return (
-                        <div key={m.id} className="flex items-center gap-2.5 p-2.5 rounded-lg border bg-slate-50">
+                        <div key={m.id} className="flex items-center gap-2.5 p-2.5 rounded-lg border bg-white border-slate-200">
                           <span className="staff-chat-avatar staff-chat-message-avatar">{mp ? getInitials(mp) : '؟'}</span>
                           <div>
                             <div className="text-sm font-medium text-slate-900">{mp ? getUserLabel(mp) : 'کاربر حذف شده'}</div>
@@ -670,8 +629,8 @@ export default function SocialNetworkPage() {
                     ) : (folderCustomers[selectedFolder.id] || []).map((c) => {
                       const cp = users.find((u) => u.id === c.customerId);
                       return (
-                        <div key={c.id} className="flex items-center gap-2.5 p-2.5 rounded-lg border bg-slate-50">
-                          <span className="staff-chat-avatar staff-chat-message-avatar" style={{ background: '#DCFCE7', color: '#16A34A' }}>{cp ? getInitials(cp) : '؟'}</span>
+                        <div key={c.id} className="flex items-center gap-2.5 p-2.5 rounded-lg border bg-white border-slate-200">
+                          <span className="staff-chat-avatar staff-chat-message-avatar" style={{ background: 'linear-gradient(135deg, #22C55E, #4ADE80)', color: '#fff' }}>{cp ? getInitials(cp) : '؟'}</span>
                           <div>
                             <div className="text-sm font-medium text-slate-900">{cp ? getUserLabel(cp) : 'مشتری حذف شده'}</div>
                           </div>
@@ -710,7 +669,7 @@ export default function SocialNetworkPage() {
 
               <div className="staff-chat-composer">
                 <button className="staff-chat-tool" onClick={() => setIsEmojiOpen((v) => !v)} aria-label="افزودن شکلک"><Smile /></button>
-                <label className="staff-chat-tool" aria-label="افزودن فایل"><input type="file" accept="image/*,video/*" onChange={handleFileSelect} /><Paperclip /></label>
+                <label className="staff-chat-tool" aria-label="افزودن فایل"><input type="file" accept="image/*,video/*" onChange={handleFileSelect} style={{ display: 'none' }} /><Paperclip /></label>
                 <button className="staff-chat-tool" aria-label="ضبط صدا"><Mic /></button>
                 <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder="پیام خود را بنویسید..." />
                 <button className="staff-chat-send" onClick={handleSend} disabled={sending || (!text.trim() && !attachment)} aria-label="ارسال پیام"><Send /></button>
@@ -765,17 +724,13 @@ export default function SocialNetworkPage() {
                     return (
                       <button key={f.id} onClick={() => { setSelectedFolder(f); setShowGroupMembers(false); setIsUsersOpen(false); }} className={cn('staff-chat-user', isActive && 'is-active')}>
                         <span className="staff-chat-avatar-wrap">
-                          <span className="staff-chat-avatar" style={{ background: '#FEF3C7', color: '#D97706' }}>
+                          <span className="staff-chat-avatar" style={{ background: 'linear-gradient(135deg, #F59E0B, #FBBF24)', color: '#fff' }}>
                             <FolderTree style={{ width: 18, height: 18 }} />
                           </span>
                         </span>
                         <span className="staff-chat-user-copy">
-                          <span className="staff-chat-user-topline">
-                            <strong>{f.name}</strong>
-                          </span>
-                          <span className="staff-chat-user-bottomline">
-                            <small>{memberCount} پرسنل · {customerCount} مشتری</small>
-                          </span>
+                          <span className="staff-chat-user-topline"><strong>{f.name}</strong></span>
+                          <span className="staff-chat-user-bottomline"><small>{memberCount} پرسنل · {customerCount} مشتری</small></span>
                         </span>
                       </button>
                     );
@@ -791,7 +746,6 @@ export default function SocialNetworkPage() {
         {isUsersOpen && <button className="staff-chat-overlay" onClick={() => setIsUsersOpen(false)} aria-label="بستن فهرست" />}
       </div>
 
-      {/* Create Group Modal */}
       {showCreateGroup && (
         <div className="social-modal-overlay" onClick={() => setShowCreateGroup(false)}>
           <div className="social-modal" onClick={(e) => e.stopPropagation()}>
@@ -817,7 +771,6 @@ export default function SocialNetworkPage() {
         </div>
       )}
 
-      {/* Add Member Modal */}
       {showAddMember && selectedGroup && (
         <div className="social-modal-overlay" onClick={() => setShowAddMember(false)}>
           <div className="social-modal" onClick={(e) => e.stopPropagation()}>
@@ -827,10 +780,7 @@ export default function SocialNetworkPage() {
             </div>
             <div className="social-modal-body">
               <div className="social-add-member-list">
-                {users.filter((u) => {
-                  const existing = selectedGroupMembers.find((m) => m.profileId === u.id);
-                  return !existing;
-                }).map((u) => (
+                {users.filter((u) => !selectedGroupMembers.find((m) => m.profileId === u.id)).map((u) => (
                   <div key={u.id} className="social-add-member-item">
                     <span className="staff-chat-avatar-wrap">
                       <span className="staff-chat-avatar staff-chat-message-avatar">{getInitials(u)}</span>

@@ -14,8 +14,12 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!loading && !profile) {
-      router.replace('/login/customer');
+    if (!loading) {
+      if (!profile) {
+        router.replace('/login/customer');
+      } else if (profile.userType !== 'customer') {
+        router.replace('/dashboard');
+      }
     }
   }, [profile, loading, router]);
 
