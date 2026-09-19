@@ -1,27 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
 import { prisma } from '@/lib/prisma';
 import { sendMeetingReminderSms, sendExpiryReminder, normalizeMobile } from '@/lib/sms';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
 
 // 2 hours in milliseconds
 const REMINDER_WINDOW_MS = 2 * 60 * 60 * 1000;
 
-function getAuth(req: NextRequest) {
-  const token = req.cookies.get('token')?.value;
-  if (!token) return null;
-  try {
-    return jwt.verify(token, JWT_SECRET) as { userId: string; email: string; role: string };
-  } catch {
-    return null;
-  }
-}
-
 export async function POST(req: NextRequest) {
-  const auth = getAuth(req);
-  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
   try {
     const now = new Date();
 
