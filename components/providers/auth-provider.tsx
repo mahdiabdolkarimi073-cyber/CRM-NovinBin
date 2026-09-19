@@ -5,7 +5,8 @@ import type { Profile } from '@/lib/types';
 
 interface AuthUser {
   id: string;
-  email: string;
+  email: string | null;
+  phone: string | null;
   profile: Profile;
 }
 
@@ -16,6 +17,7 @@ interface AuthContextValue {
   isStaff: boolean;
   isCustomer: boolean;
   signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string; profile?: Profile }>;
+  signInWithPhone: (phone: string, password: string) => Promise<{ success: boolean; error?: string; profile?: Profile }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -27,6 +29,7 @@ const AuthContext = createContext<AuthContextValue>({
   isStaff: false,
   isCustomer: false,
   signIn: async () => ({ success: false }),
+  signInWithPhone: async () => ({ success: false }),
   signOut: async () => {},
   refreshProfile: async () => {},
 });
@@ -91,6 +94,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const signInWithPhone = useCallback(async (phone: string, password: string) => {
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) return { success: false, error: data.error || 'ورود ناموفق' };
+      setUser(data.user);
+      return { success: true, profile: data.user.profile };
+    } catch {
+      return { success: false, error: 'خطای ارتباط با سرور' };
+    }
+  }, []);
+
   const signOut = useCallback(async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
@@ -116,7 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, profile, loading, isStaff, isCustomer, signIn, signOut, refreshProfile }}
+      value={{ user, profile, loading, isStaff, isCustomer, signIn, signInWithPhone, signOut, refreshProfile }}
     >
       {children}
     </AuthContext.Provider>

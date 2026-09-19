@@ -5,19 +5,36 @@ import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
 
+// POST /api/auth/login
+// Body: { email?, phone?, password }
+// Supports login by email OR phone. At least one identifier is required.
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, password } = body;
+    const { email, phone, password } = body;
 
-    if (!email || !password) {
-      return NextResponse.json({ error: 'ایمیل و رمز عبور الزامی است' }, { status: 400 });
+    if (!password) {
+      return NextResponse.json({ error: 'رمز عبور الزامی است' }, { status: 400 });
+    }
+    if (!email && !phone) {
+      return NextResponse.json({ error: 'ایمیل یا شماره موبایل الزامی است' }, { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
-      include: { profile: true },
-    });
+    let user = null as any;
+
+    if (email) {
+      user = await prisma.user.findUnique({
+        where: { email: email.toLowerCase() },
+        include: { profile: true },
+      });
+    }
+
+    if (!user && phone) {
+      user = await prisma.user.findFirst({
+        where: { phone: phone.trim() },
+        include: { profile: true },
+      });
+    }
 
     if (!user || !user.profile) {
       return NextResponse.json({ error: 'کاربر یافت نشد' }, { status: 404 });
@@ -55,12 +72,16 @@ export async function POST(req: NextRequest) {
         select: { id: true },
       });
       if (superAdmins.length > 0) {
-        const fullName = `${user.profile.firstName || ''} ${user.profile.lastName || ''}`.trim() || user.email;
+        const displayName = user.profile.customerType === 'company'
+          ? user.profile.companyName || ''
+          : user.profile.fullName || `${user.profile.firstName || ''} ${user.profile.lastName || ''}`.trim();
+        const fullName = displayName || user.email || user.phone || 'کاربر';
+        const identifier = user.email || user.phone || '';
         await prisma.notification.createMany({
           data: superAdmins.map((sa) => ({
             profileId: sa.id,
             title: `[سوپرادمین] ورود جدید: ${fullName}`,
-            body: `کاربر ${fullName} (${user.email}) وارد سیستم شد - ${new Date().toLocaleDateString('fa-IR')} ${new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}`,
+            body: `کاربر ${fullName} (${identifier}) وارد سیستم شد - ${new Date().toLocaleDateString('fa-IR')} ${new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}`,
             type: 'login',
             priority: 'normal',
           })),
@@ -72,6 +93,7 @@ export async function POST(req: NextRequest) {
       user: {
         id: user.id,
         email: user.email,
+        phone: user.phone,
         profile: user.profile,
       },
     });

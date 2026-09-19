@@ -24,8 +24,11 @@ export interface Profile {
   id: string;
   userType: UserTier;
   role: StaffRole;
+  customerType: 'individual' | 'company' | null;
   firstName: string | null;
   lastName: string | null;
+  fullName: string | null;
+  companyName: string | null;
   phone: string | null;
   avatarUrl: string | null;
   position: string | null;

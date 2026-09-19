@@ -4,32 +4,40 @@ import bcrypt from 'bcryptjs';
 
 // POST /api/auth/register-customer
 // Public route — no auth required.
-// Body: { email, password, firstName, lastName, companyName?, phone?, birthDate?, address?, postalCode? }
+// Body: { phone, password, fullName?, companyName?, customerType?, email?, birthDate?, address?, postalCode? }
 // Creates a registration_request with status 'pending' so an admin can review it.
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, password, firstName, lastName, companyName, phone, birthDate, address, postalCode } = body;
+    const { email, phone, password, firstName, lastName, fullName, companyName, customerType, birthDate, address, postalCode } = body;
 
-    if (!email || !password || (!firstName && !companyName)) {
-      return NextResponse.json({ error: 'ایمیل، رمز عبور و نام الزامی است' }, { status: 400 });
+    if (!phone || !password) {
+      return NextResponse.json({ error: 'شماره موبایل و رمز عبور الزامی است' }, { status: 400 });
     }
 
     if (String(password).length < 6) {
       return NextResponse.json({ error: 'رمز عبور باید حداقل ۶ کاراکتر باشد' }, { status: 400 });
     }
 
-    const normalizedEmail = String(email).toLowerCase();
+    if (customerType === 'company' && !companyName) {
+      return NextResponse.json({ error: 'نام شرکت برای مشتری حقوقی الزامی است' }, { status: 400 });
+    }
+    if (customerType !== 'company' && !fullName && !firstName) {
+      return NextResponse.json({ error: 'نام و نام خانوادگی الزامی است' }, { status: 400 });
+    }
 
-    // Check for existing user
-    const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+    const normalizedPhone = String(phone).trim();
+    const normalizedEmail = email ? String(email).toLowerCase() : null;
+
+    // Check for existing user by phone
+    const existing = await prisma.user.findFirst({ where: { phone: normalizedPhone } });
     if (existing) {
-      return NextResponse.json({ error: 'کاربری با این ایمیل قبلاً ثبت شده است' }, { status: 409 });
+      return NextResponse.json({ error: 'کاربری با این شماره موبایل قبلاً ثبت شده است' }, { status: 409 });
     }
 
     // Check for existing pending request
     const existingReq = await prisma.registrationRequest.findFirst({
-      where: { email: normalizedEmail, status: 'pending' },
+      where: { phone: normalizedPhone, status: 'pending' },
     });
     if (existingReq) {
       return NextResponse.json({ error: 'درخواست ثبت‌نام شما در انتظار بررسی است' }, { status: 409 });
@@ -44,14 +52,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'سازمانی برای ثبت‌نام یافت نشد' }, { status: 500 });
     }
 
+    // Split fullName into firstName/lastName for backward compatibility
+    let parsedFirstName = firstName || null;
+    let parsedLastName = lastName || null;
+    if (!parsedFirstName && !parsedLastName && fullName) {
+      const parts = String(fullName).trim().split(/\s+/);
+      parsedFirstName = parts[0] || null;
+      parsedLastName = parts.slice(1).join(' ') || null;
+    }
+
     await prisma.registrationRequest.create({
       data: {
-        email: normalizedEmail,
+        email: normalizedEmail || '',
         passwordHash,
-        firstName: firstName || null,
-        lastName: lastName || null,
+        firstName: parsedFirstName,
+        lastName: parsedLastName,
         companyName: companyName || null,
-        phone: phone || null,
+        phone: normalizedPhone,
         birthDate: birthDate ? new Date(birthDate) : null,
         address: address || null,
         postalCode: postalCode || null,

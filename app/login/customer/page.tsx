@@ -8,23 +8,23 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, LogIn, User, ArrowLeft } from 'lucide-react';
+import { Loader2, LogIn, User, ArrowLeft, Phone } from 'lucide-react';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Logo } from '@/components/dashboard/logo';
 import { toast } from 'sonner';
 
 export default function CustomerLoginPage() {
   const router = useRouter();
-  const { signIn } = useAuth();
-  const [email, setEmail] = useState('');
+  const { signInWithPhone } = useAuth();
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) { toast.error('ایمیل و رمز عبور را وارد کنید'); return; }
+    if (!phone || !password) { toast.error('شماره موبایل و رمز عبور را وارد کنید'); return; }
     setLoading(true);
-    const result = await signIn(email, password);
+    const result = await signInWithPhone(phone, password);
     setLoading(false);
     if (!result.success) { toast.error(result.error || 'ورود ناموفق'); return; }
     toast.success('خوش آمدید');
@@ -54,8 +54,11 @@ export default function CustomerLoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label className="text-sm font-bold text-slate-700">ایمیل</Label>
-              <Input type="email" dir="ltr" placeholder="email@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="h-12 rounded-xl border-slate-200 bg-slate-50/50 text-left text-base focus:border-slate-950 focus:bg-white focus:ring-slate-950/10" required />
+              <Label className="text-sm font-bold text-slate-700">شماره موبایل</Label>
+              <div className="relative">
+                <Phone className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                <Input dir="ltr" placeholder="09123456789" value={phone} onChange={(e) => setPhone(e.target.value)} className="h-12 rounded-xl border-slate-200 bg-slate-50/50 pr-10 text-left text-base focus:border-slate-950 focus:bg-white focus:ring-slate-950/10" required />
+              </div>
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-bold text-slate-700">رمز عبور</Label>

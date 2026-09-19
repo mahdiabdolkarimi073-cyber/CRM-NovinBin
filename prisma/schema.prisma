@@ -15,7 +15,8 @@ datasource db {
 
 model User {
   id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email        String    @unique
+  email        String?   @unique
+  phone        String?   @unique
   passwordHash String
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @default(now())
@@ -217,8 +218,11 @@ model Profile {
   orgId        String?  @db.Uuid
   userType     String   @default("staff") // staff | customer
   role         String   @default("personnel") // owner | super_admin | admin | personnel
+  customerType String?  // individual | company
   firstName    String?
   lastName     String?
+  fullName     String?
+  companyName  String?
   phone        String?
   avatarUrl    String?
   position     String?

@@ -6,18 +6,27 @@ import jwt from 'jsonwebtoken';
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
 
 // POST /api/auth/register
-// Body: { email, password, firstName, lastName, role?, userType?, customerId? }
-// Creates a User (with bcrypt-hashed password) + Profile and returns the created profile.
+// Body: { email?, phone?, password, firstName?, lastName?, fullName?, companyName?, customerType?, role?, userType?, customerId?, assignedPages? }
+// At least one of email or phone is required. Creates a User + Profile and returns the created profile.
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, password, firstName, lastName, role, userType, customerId, assignedPages, phone } = body;
+    const { email, phone, password, firstName, lastName, fullName, companyName, customerType, role, userType, customerId, assignedPages } = body;
 
-    if (!email || !password) {
-      return NextResponse.json({ error: 'ایمیل و رمز عبور الزامی است' }, { status: 400 });
+    if (!password) {
+      return NextResponse.json({ error: 'رمز عبور الزامی است' }, { status: 400 });
+    }
+    if (!email && !phone) {
+      return NextResponse.json({ error: 'ایمیل یا شماره موبایل الزامی است' }, { status: 400 });
     }
 
-    const normalizedEmail = String(email).toLowerCase();
+    if (String(password).length < 6) {
+      return NextResponse.json({ error: 'رمز عبور باید حداقل ۶ کاراکتر باشد' }, { status: 400 });
+    }
+
+    const normalizedEmail = email ? String(email).toLowerCase() : null;
+    const normalizedPhone = phone ? String(phone).trim() : null;
+
     const requestedStaffRole = role === 'admin' || role === 'super_admin' || role === 'owner' || role === 'academy_admin';
     if (requestedStaffRole) {
       const token = req.cookies.get('token')?.value;
@@ -31,28 +40,49 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Check for existing user
-    const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
-    if (existing) {
-      return NextResponse.json({ error: 'کاربری با این ایمیل قبلاً ثبت شده است' }, { status: 409 });
+    // Check for existing user by email or phone
+    if (normalizedEmail) {
+      const existingByEmail = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+      if (existingByEmail) {
+        return NextResponse.json({ error: 'کاربری با این ایمیل قبلاً ثبت شده است' }, { status: 409 });
+      }
+    }
+    if (normalizedPhone) {
+      const existingByPhone = await prisma.user.findFirst({ where: { phone: normalizedPhone } });
+      if (existingByPhone) {
+        return NextResponse.json({ error: 'کاربری با این شماره موبایل قبلاً ثبت شده است' }, { status: 409 });
+      }
     }
 
     const passwordHash = bcrypt.hashSync(String(password), 10);
+
+    // Split fullName into firstName/lastName for backward compatibility
+    let parsedFirstName = firstName || null;
+    let parsedLastName = lastName || null;
+    if (!parsedFirstName && !parsedLastName && fullName) {
+      const parts = String(fullName).trim().split(/\s+/);
+      parsedFirstName = parts[0] || null;
+      parsedLastName = parts.slice(1).join(' ') || null;
+    }
 
     // Create User + Profile in a transaction
     const user = await prisma.user.create({
       data: {
         email: normalizedEmail,
+        phone: normalizedPhone,
         passwordHash,
         profile: {
           create: {
             userType: userType || 'customer',
             role: role || 'personnel',
-            firstName: firstName || null,
-            lastName: lastName || null,
+            customerType: customerType || null,
+            firstName: parsedFirstName,
+            lastName: parsedLastName,
+            fullName: fullName || null,
+            companyName: companyName || null,
             customerId: customerId || null,
             assignedPages: Array.isArray(assignedPages) ? assignedPages : [],
-            phone: phone || null,
+            phone: normalizedPhone,
             active: true,
           },
         },
@@ -63,7 +93,7 @@ export async function POST(req: NextRequest) {
     // If role is academy_admin, also create a matching AcademyUser with AdminAcademy role
     if (role === 'academy_admin') {
       try {
-        const baseUsername = (firstName || email).replace(/\s+/g, '').toLowerCase();
+        const baseUsername = (parsedFirstName || normalizedEmail || normalizedPhone || 'user').replace(/\s+/g, '').toLowerCase();
         let academyUsername = baseUsername;
         let suffix = 1;
         while (await (prisma as any).academyUser.findUnique({ where: { username: academyUsername } })) {
@@ -72,12 +102,12 @@ export async function POST(req: NextRequest) {
         await (prisma as any).academyUser.create({
           data: {
             username: academyUsername,
-            email: normalizedEmail,
+            email: normalizedEmail || '',
             passwordHash,
             role: 'AdminAcademy',
-            firstName: firstName || '',
-            lastName: lastName || '',
-            phone: phone || null,
+            firstName: parsedFirstName || '',
+            lastName: parsedLastName || '',
+            phone: normalizedPhone || null,
             active: true,
           },
         });
@@ -85,7 +115,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({
-      user: { id: user.id, email: user.email },
+      user: { id: user.id, email: user.email, phone: user.phone },
       profile: user.profile,
     });
   } catch (error: any) {

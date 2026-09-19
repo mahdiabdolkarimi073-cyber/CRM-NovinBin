@@ -2,6 +2,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import { AuthProvider } from '@/components/providers/auth-provider';
+import { SmsReminderPoller } from '@/components/providers/sms-reminder-poller';
 import { Toaster } from '@/components/ui/sonner';
 
 export const metadata: Metadata = {
@@ -25,6 +26,7 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
           <AuthProvider>
             {children}
+            <SmsReminderPoller />
             <Toaster position="top-center" dir="rtl" duration={1500} toastOptions={{ duration: 1500 }} />
           </AuthProvider>
         </ThemeProvider>
