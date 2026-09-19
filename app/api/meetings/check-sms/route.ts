@@ -5,6 +5,9 @@ import { sendMeetingReminderSms, sendExpiryReminder, normalizeMobile } from '@/l
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
 
+// 2 hours in milliseconds
+const REMINDER_WINDOW_MS = 2 * 60 * 60 * 1000;
+
 function getAuth(req: NextRequest) {
   const token = req.cookies.get('token')?.value;
   if (!token) return null;
@@ -21,8 +24,44 @@ export async function POST(req: NextRequest) {
 
   try {
     const now = new Date();
-    const windowStart = now;
-    const windowEnd = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+
+    // --- Diagnostic: find ALL unsent meetings with phone numbers ---
+    const allUnsentMeetings = await prisma.meeting.findMany({
+      where: {
+        smsSent: false,
+        OR: [
+          { staffPhone: { not: null } },
+          { customerPhone: { not: null } },
+        ],
+      },
+      select: {
+        id: true,
+        title: true,
+        date: true,
+        staffPhone: true,
+        customerPhone: true,
+        smsSent: true,
+      },
+      orderBy: { date: 'asc' },
+      take: 20,
+    });
+
+    console.log('[MEETING SMS] === شروع بررسی ===');
+    console.log('[MEETING SMS] زمان فعلی سرور (UTC):', now.toISOString());
+    console.log('[MEETING SMS] کل جلسات ارسال‌نشده با شماره تلفن:', allUnsentMeetings.length);
+    for (const m of allUnsentMeetings) {
+      const diffMs = new Date(m.date).getTime() - now.getTime();
+      const diffHours = (diffMs / (1000 * 60 * 60)).toFixed(1);
+      console.log(`[MEETING SMS]   - جلسه "${m.title}" | تاریخ: ${new Date(m.date).toISOString()} | اختلاف: ${diffHours} ساعت | پرسنل: ${m.staffPhone || '—'} | مشتری: ${m.customerPhone || '—'}`);
+    }
+
+    // --- Meeting reminder SMS ---
+    // Window: meeting date is between [now - 2h, now + 2h]
+    // - Forward: meeting is within the next 2 hours → send reminder
+    // - Backward: meeting was up to 2 hours ago but SMS wasn't sent → send it now (catch-up)
+    // This ensures SMS is sent even if the dashboard wasn't checked at the exact 2-hour mark.
+    const windowStart = new Date(now.getTime() - REMINDER_WINDOW_MS);
+    const windowEnd = new Date(now.getTime() + REMINDER_WINDOW_MS);
 
     const upcomingMeetings = await prisma.meeting.findMany({
       where: {
@@ -45,7 +84,11 @@ export async function POST(req: NextRequest) {
     });
 
     const results: any[] = [];
-    console.log('[MEETING SMS] جلسات نزدیک به زمان (۲ ساعت):', upcomingMeetings.length);
+    console.log('[MEETING SMS] پنجره جستجو:', {
+      from: windowStart.toISOString(),
+      to: windowEnd.toISOString(),
+      پیدا_شد: upcomingMeetings.length,
+    });
 
     for (const meeting of upcomingMeetings) {
       let staffSent = false;
