@@ -96,10 +96,24 @@ export default function CustomerSocialPage() {
     if (!profile) return;
     try {
       const allMessages = await fetchData<CustomerSocialMessage>('customer_social_messages', { orderBy: { createdAt: 'desc' } });
+      const otherIds = Array.from(new Set((allMessages || []).flatMap((m) => [m.senderId, m.receiverId]).filter((id) => id !== profile.id)));
+      let extraCustomers: Profile[] = [];
+      const missingIds = otherIds.filter((id) => !customerProfiles.some((u) => u.id === id));
+      if (missingIds.length > 0) {
+        const extra = await fetchData<Profile>('profiles', { where: { id: { in: missingIds }, userType: 'customer' } });
+        extraCustomers = extra || [];
+        if (extraCustomers.length > 0) {
+          setCustomerProfiles((prev) => {
+            const existing = new Set(prev.map((p) => p.id));
+            return [...prev, ...extraCustomers.filter((e) => !existing.has(e.id))];
+          });
+        }
+      }
+      const allCustomers = [...customerProfiles, ...extraCustomers];
       const userMap = new Map<string, DMConversation>();
       for (const msg of allMessages || []) {
         const otherId = msg.senderId === profile.id ? msg.receiverId : msg.senderId;
-        const otherProfile = customerProfiles.find((u) => u.id === otherId);
+        const otherProfile = allCustomers.find((u) => u.id === otherId);
         if (!otherProfile) continue;
         const existing = userMap.get(otherId);
         const isUnread = msg.receiverId === profile.id && !msg.readAt;

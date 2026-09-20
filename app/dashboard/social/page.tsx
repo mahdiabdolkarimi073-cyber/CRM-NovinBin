@@ -10,7 +10,7 @@ import { relativeTime, formatJalali } from '@/lib/format';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useCall } from '@/components/providers/call-provider';
-import type { SocialDMMessage, SocialGroup, SocialGroupMember, SocialGroupMessage, Profile, CustomerSocialFolder } from '@/lib/types';
+import type { SocialDMMessage, SocialGroup, SocialGroupMember, SocialGroupMessage, Profile, CustomerSocialFolder, Customer } from '@/lib/types';
 
 type Tab = 'dm' | 'groups' | 'folders';
 
@@ -62,6 +62,7 @@ export default function SocialNetworkPage() {
   const [folderMembers, setFolderMembers] = useState<Record<string, any[]>>({});
   const [folderCustomers, setFolderCustomers] = useState<Record<string, any[]>>({});
   const [selectedFolder, setSelectedFolder] = useState<CustomerSocialFolder | null>(null);
+  const [customers, setCustomers] = useState<Customer[]>([]);
 
   const isSuperAdmin = profile?.role === 'super_admin';
 
@@ -88,6 +89,20 @@ export default function SocialNetworkPage() {
     if (u.fullName) return u.fullName.slice(0, 2);
     return ((u.firstName?.[0] || '') + (u.lastName?.[0] || '')).toUpperCase() || '؟';
   }, []);
+  const customerMap = useMemo(() => new Map(customers.map((c) => [c.id, c])), [customers]);
+  const getCustomerName = useCallback((customerId: string): string => {
+    const c = customerMap.get(customerId);
+    if (!c) return 'مشتری';
+    if (c.type === 'company') return c.companyName || 'شرکت';
+    return [c.firstName, c.lastName].filter(Boolean).join(' ') || 'مشتری';
+  }, [customerMap]);
+  const getCustomerInitials = useCallback((customerId: string): string => {
+    const c = customerMap.get(customerId);
+    if (!c) return '؟';
+    const name = c.type === 'company' ? c.companyName : [c.firstName, c.lastName].filter(Boolean).join(' ');
+    if (!name) return '؟';
+    return name.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('') || '؟';
+  }, [customerMap]);
 
   const loadUsers = useCallback(async () => {
     if (!profile) return;
@@ -179,15 +194,19 @@ export default function SocialNetworkPage() {
 
   const loadFolders = useCallback(async () => {
     try {
-      const data = await fetchData<CustomerSocialFolder>('customer_social_folders', { orderBy: { createdAt: 'desc' } });
-      setFolders(data || []);
+      const [folderData, customerData] = await Promise.all([
+        fetchData<CustomerSocialFolder>('customer_social_folders', { orderBy: { createdAt: 'desc' } }),
+        fetchData<Customer>('customers', { where: {} }),
+      ]);
+      setFolders(folderData || []);
+      setCustomers(customerData || []);
       const memberMap: Record<string, any[]> = {};
       const customerMap: Record<string, any[]> = {};
-      for (const f of data || []) {
+      for (const f of folderData || []) {
         const members = await fetchData('customer_social_folder_members', { where: { folderId: f.id } });
         memberMap[f.id] = members || [];
-        const customers = await fetchData('customer_social_folder_customers', { where: { folderId: f.id } });
-        customerMap[f.id] = customers || [];
+        const folderCusts = await fetchData('customer_social_folder_customers', { where: { folderId: f.id } });
+        customerMap[f.id] = folderCusts || [];
       }
       setFolderMembers(memberMap);
       setFolderCustomers(customerMap);
@@ -627,12 +646,12 @@ export default function SocialNetworkPage() {
                     {(folderCustomers[selectedFolder.id] || []).length === 0 ? (
                       <p className="text-xs text-slate-400 text-center py-4">مشتری‌ای در این پوشه نیست</p>
                     ) : (folderCustomers[selectedFolder.id] || []).map((c) => {
-                      const cp = users.find((u) => u.id === c.customerId);
                       return (
                         <div key={c.id} className="flex items-center gap-2.5 p-2.5 rounded-lg border bg-white border-slate-200">
-                          <span className="staff-chat-avatar staff-chat-message-avatar" style={{ background: 'linear-gradient(135deg, #22C55E, #4ADE80)', color: '#fff' }}>{cp ? getInitials(cp) : '؟'}</span>
+                          <span className="staff-chat-avatar staff-chat-message-avatar" style={{ background: 'linear-gradient(135deg, #22C55E, #4ADE80)', color: '#fff' }}>{getCustomerInitials(c.customerId)}</span>
                           <div>
-                            <div className="text-sm font-medium text-slate-900">{cp ? getUserLabel(cp) : 'مشتری حذف شده'}</div>
+                            <div className="text-sm font-medium text-slate-900">{getCustomerName(c.customerId)}</div>
+                            <div className="text-xs text-slate-400">مشتری</div>
                           </div>
                         </div>
                       );
