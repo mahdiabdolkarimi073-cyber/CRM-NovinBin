@@ -10,13 +10,13 @@ import { relativeTime, formatJalali } from '@/lib/format';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useCall } from '@/components/providers/call-provider';
-import type { SocialDMMessage, SocialGroup, SocialGroupMember, SocialGroupMessage, Profile, CustomerSocialFolder, Customer } from '@/lib/types';
+import type { SocialDMMessage, SocialGroup, SocialGroupMember, SocialGroupMessage, Profile, CustomerSocialFolder, Customer, CustomerSocialMessage } from '@/lib/types';
 
 type Tab = 'dm' | 'groups' | 'folders';
 
 interface DMConversation {
   profile: Profile;
-  lastMessage?: SocialDMMessage;
+  lastMessage?: SocialDMMessage | CustomerSocialMessage;
   unreadCount: number;
 }
 
@@ -42,7 +42,8 @@ export default function SocialNetworkPage() {
   const [tab, setTab] = useState<Tab>('dm');
 
   const [users, setUsers] = useState<Profile[]>([]);
-  const [dmMessages, setDmMessages] = useState<SocialDMMessage[]>([]);
+  const [customerUsers, setCustomerUsers] = useState<Profile[]>([]);
+  const [dmMessages, setDmMessages] = useState<(SocialDMMessage | CustomerSocialMessage)[]>([]);
   const [dmConversations, setDmConversations] = useState<DMConversation[]>([]);
   const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
 
@@ -82,10 +83,12 @@ export default function SocialNetworkPage() {
   const roleLabels: Record<string, string> = { owner: 'مالک', super_admin: 'سوپرادمین', admin: 'مدیر', personnel: 'پرسنل' };
 
   const getUserLabel = useCallback((u: Profile) => {
+    if (u.userType === 'customer' && u.customerType === 'company' && u.companyName) return u.companyName;
     if (u.fullName) return u.fullName;
-    return [u.firstName, u.lastName].filter(Boolean).join(' ') || 'کاربر';
+    return [u.firstName, u.lastName].filter(Boolean).join(' ') || (u.companyName || 'کاربر');
   }, []);
   const getInitials = useCallback((u: Profile) => {
+    if (u.userType === 'customer' && u.customerType === 'company' && u.companyName) return u.companyName.slice(0, 2);
     if (u.fullName) return u.fullName.slice(0, 2);
     return ((u.firstName?.[0] || '') + (u.lastName?.[0] || '')).toUpperCase() || '؟';
   }, []);
@@ -108,7 +111,18 @@ export default function SocialNetworkPage() {
     if (!profile) return;
     try {
       const data = await fetchData<Profile>('profiles', { where: { id: { not: profile.id } } });
-      setUsers(data || []);
+      const staffUsers = (data || []).filter((u) => u.userType !== 'customer');
+      setUsers(staffUsers);
+
+      // Also fetch customer profiles that have exchanged messages with this staff
+      const customerMsgs = await fetchData<CustomerSocialMessage>('customer_social_messages', { orderBy: { createdAt: 'desc' } });
+      const customerIds = Array.from(new Set((customerMsgs || []).flatMap((m) => [m.senderId, m.receiverId]).filter((id) => id !== profile.id)));
+      let customerProfiles: Profile[] = [];
+      if (customerIds.length > 0) {
+        const extra = await fetchData<Profile>('profiles', { where: { id: { in: customerIds }, userType: 'customer' } });
+        customerProfiles = extra || [];
+      }
+      setCustomerUsers(customerProfiles);
     } catch (e: any) {
       toast.error(e.message);
     }
@@ -118,11 +132,14 @@ export default function SocialNetworkPage() {
   const loadDMConversations = useCallback(async () => {
     if (!profile) return;
     try {
-      const allMessages = await fetchData<SocialDMMessage>('social_dm_messages', { orderBy: { createdAt: 'desc' } });
+      const allStaffMsgs = await fetchData<SocialDMMessage>('social_dm_messages', { orderBy: { createdAt: 'desc' } });
+      const allCustomerMsgs = await fetchData<CustomerSocialMessage>('customer_social_messages', { orderBy: { createdAt: 'desc' } });
+      const allMessages = [...(allStaffMsgs || []), ...(allCustomerMsgs || [])];
+      const allUsers = [...users, ...customerUsers];
       const userMap = new Map<string, DMConversation>();
-      for (const msg of allMessages || []) {
+      for (const msg of allMessages) {
         const otherId = msg.senderId === profile.id ? msg.receiverId : msg.senderId;
-        const otherProfile = users.find((u) => u.id === otherId);
+        const otherProfile = allUsers.find((u) => u.id === otherId);
         if (!otherProfile) continue;
         const existing = userMap.get(otherId);
         const isUnread = msg.receiverId === profile.id && !msg.readAt;
@@ -139,23 +156,36 @@ export default function SocialNetworkPage() {
         return bTime - aTime;
       }));
     } catch {}
-  }, [profile, users]);
+  }, [profile, users, customerUsers]);
 
   const loadDmMessages = useCallback(async (otherUserId: string) => {
     if (!profile) return;
     try {
-      const data = await fetchData<SocialDMMessage>('social_dm_messages', { orderBy: { createdAt: 'asc' } });
-      const filtered = (data || []).filter((m) =>
-        (m.senderId === profile.id && m.receiverId === otherUserId) ||
-        (m.senderId === otherUserId && m.receiverId === profile.id)
-      );
-      setDmMessages(filtered);
-      const unread = filtered.filter((m) => m.receiverId === profile.id && !m.readAt);
-      for (const m of unread) await updateData('social_dm_messages', { id: m.id }, { readAt: new Date() });
+      // Check if the selected user is a customer — use customer_social_messages table
+      const isCustomer = customerUsers.some((u) => u.id === otherUserId);
+      if (isCustomer) {
+        const data = await fetchData<CustomerSocialMessage>('customer_social_messages', { orderBy: { createdAt: 'asc' } });
+        const filtered = (data || []).filter((m) =>
+          (m.senderId === profile.id && m.receiverId === otherUserId) ||
+          (m.senderId === otherUserId && m.receiverId === profile.id)
+        );
+        setDmMessages(filtered);
+        const unread = filtered.filter((m) => m.receiverId === profile.id && !m.readAt);
+        for (const m of unread) await updateData('customer_social_messages', { id: m.id }, { readAt: new Date() });
+      } else {
+        const data = await fetchData<SocialDMMessage>('social_dm_messages', { orderBy: { createdAt: 'asc' } });
+        const filtered = (data || []).filter((m) =>
+          (m.senderId === profile.id && m.receiverId === otherUserId) ||
+          (m.senderId === otherUserId && m.receiverId === profile.id)
+        );
+        setDmMessages(filtered);
+        const unread = filtered.filter((m) => m.receiverId === profile.id && !m.readAt);
+        for (const m of unread) await updateData('social_dm_messages', { id: m.id }, { readAt: new Date() });
+      }
     } catch (e: any) {
       toast.error(e.message);
     }
-  }, [profile]);
+  }, [profile, customerUsers]);
 
   const loadGroups = useCallback(async () => {
     if (!profile) return;
@@ -214,7 +244,7 @@ export default function SocialNetworkPage() {
   }, []);
 
   useEffect(() => { loadUsers(); }, [loadUsers]);
-  useEffect(() => { if (users.length > 0) loadDMConversations(); }, [loadDMConversations]);
+  useEffect(() => { if (users.length > 0 || customerUsers.length > 0) loadDMConversations(); }, [loadDMConversations]);
   useEffect(() => { loadGroups(); }, [loadGroups]);
   useEffect(() => { loadFolders(); }, [loadFolders]);
   useEffect(() => {
@@ -236,6 +266,15 @@ export default function SocialNetworkPage() {
     };
   }, [profile]);
 
+  const selectedUserRef = useRef<Profile | null>(null);
+  const selectedGroupRef = useRef<SocialGroup | null>(null);
+  const tabRef = useRef<Tab>('dm');
+  const customerUsersRef = useRef<Profile[]>([]);
+  useEffect(() => { selectedUserRef.current = selectedUser; }, [selectedUser]);
+  useEffect(() => { selectedGroupRef.current = selectedGroup; }, [selectedGroup]);
+  useEffect(() => { tabRef.current = tab; }, [tab]);
+  useEffect(() => { customerUsersRef.current = customerUsers; }, [customerUsers]);
+
   useEffect(() => {
     if (!profile) return;
     const es = new EventSource('/api/social/stream');
@@ -244,7 +283,7 @@ export default function SocialNetworkPage() {
         const msg: SocialDMMessage = JSON.parse(e.data);
         if (msg.receiverId === profile.id) {
           setDmMessages((prev) => prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]);
-          if (selectedUser?.id === msg.senderId && tab === 'dm') {
+          if (selectedUserRef.current?.id === msg.senderId && tabRef.current === 'dm') {
             updateData('social_dm_messages', { id: msg.id }, { readAt: new Date() }).catch(() => {});
           }
         }
@@ -260,7 +299,7 @@ export default function SocialNetworkPage() {
     es.addEventListener('group', (e) => {
       try {
         const msg: SocialGroupMessage = JSON.parse(e.data);
-        if (selectedGroup?.id === msg.groupId && tab === 'groups') {
+        if (selectedGroupRef.current?.id === msg.groupId && tabRef.current === 'groups') {
           setGroupMessages((prev) => prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]);
           createData('social_group_message_reads', { messageId: msg.id, profileId: profile.id }).catch(() => {});
         }
@@ -268,8 +307,30 @@ export default function SocialNetworkPage() {
       } catch {}
     });
     es.addEventListener('error', () => {});
-    return () => es.close();
-  }, [profile, selectedUser, selectedGroup, tab, loadDMConversations, loadGroups]);
+
+    // Also listen to customer-social stream for customer messages
+    const csEs = new EventSource('/api/customer-social/stream');
+    csEs.addEventListener('dm', (e) => {
+      try {
+        const msg: CustomerSocialMessage = JSON.parse(e.data);
+        if (msg.receiverId === profile.id) {
+          setDmMessages((prev) => prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]);
+          if (selectedUserRef.current?.id === msg.senderId && tabRef.current === 'dm') {
+            updateData('customer_social_messages', { id: msg.id }, { readAt: new Date() }).catch(() => {});
+          }
+        }
+        loadDMConversations();
+      } catch {}
+    });
+    csEs.addEventListener('dm_read', (e) => {
+      try {
+        const msg: CustomerSocialMessage = JSON.parse(e.data);
+        setDmMessages((prev) => prev.map((m) => m.id === msg.id ? { ...m, readAt: msg.readAt } : m));
+      } catch {}
+    });
+    csEs.addEventListener('error', () => {});
+    return () => { es.close(); csEs.close(); };
+  }, [profile, loadDMConversations, loadGroups]);
 
   const handleSendDM = async () => {
     if (!profile || !selectedUser || (!text.trim() && !attachment)) return;
@@ -277,7 +338,8 @@ export default function SocialNetworkPage() {
     try {
       const payload: Record<string, any> = { receiverId: selectedUser.id, content: text.trim() || null };
       if (attachment) { payload.attachmentUrl = attachment.url; payload.attachmentName = attachment.name; payload.attachmentType = attachment.type; }
-      await createData('social_dm_messages', payload);
+      const isCustomer = customerUsers.some((u) => u.id === selectedUser.id);
+      await createData(isCustomer ? 'customer_social_messages' : 'social_dm_messages', payload);
       setText(''); setAttachment(null); setIsEmojiOpen(false);
       loadDmMessages(selectedUser.id);
       loadDMConversations();
@@ -341,7 +403,8 @@ export default function SocialNetworkPage() {
     } catch (e: any) { toast.error(e.message); }
   };
 
-  const filteredUsers = users.filter((u) => getUserLabel(u).toLowerCase().includes(search.toLowerCase()));
+  const allListUsers = [...users, ...customerUsers];
+  const filteredUsers = allListUsers.filter((u) => getUserLabel(u).toLowerCase().includes(search.toLowerCase()));
   const dmConversationUsers = new Set(dmConversations.map((c) => c.profile.id));
   const recentConvoUsers = dmConversations.map((c) => c.profile);
   const otherUsers = filteredUsers.filter((u) => !dmConversationUsers.has(u.id));
@@ -374,7 +437,7 @@ export default function SocialNetworkPage() {
             {conversation?.lastMessage && <time>{relativeTime(conversation.lastMessage.createdAt)}</time>}
           </span>
           <span className="staff-chat-user-bottomline">
-            <small>{conversation?.lastMessage?.content || (conversation?.lastMessage?.attachmentUrl ? 'فایل' : online ? 'آنلاین' : user.lastSeenAt ? `آخرین بازدید ${relativeTime(user.lastSeenAt)}` : roleLabels[user.role] || user.role)}</small>
+            <small>{conversation?.lastMessage?.content || (conversation?.lastMessage?.attachmentUrl ? 'فایل' : online ? 'آنلاین' : user.lastSeenAt ? `آخرین بازدید ${relativeTime(user.lastSeenAt)}` : user.userType === 'customer' ? 'مشتری' : roleLabels[user.role] || user.role)}</small>
             {conversation?.unreadCount ? <b>{conversation.unreadCount.toLocaleString('fa-IR')}</b> : null}
           </span>
         </span>
@@ -456,7 +519,7 @@ export default function SocialNetworkPage() {
                     <strong>{getUserLabel(selectedUser)}</strong>
                     <span className="staff-chat-status">
                       <i className={cn(isOnline(selectedUser.lastSeenAt) ? 'is-online' : 'is-offline')} />
-                      {isOnline(selectedUser.lastSeenAt) ? 'آنلاین' : selectedUser.lastSeenAt ? `آخرین بازدید ${relativeTime(selectedUser.lastSeenAt)}` : roleLabels[selectedUser.role] || selectedUser.role}
+                      {isOnline(selectedUser.lastSeenAt) ? 'آنلاین' : selectedUser.lastSeenAt ? `آخرین بازدید ${relativeTime(selectedUser.lastSeenAt)}` : selectedUser.userType === 'customer' ? 'مشتری' : roleLabels[selectedUser.role] || selectedUser.role}
                     </span>
                   </div>
                 </div>

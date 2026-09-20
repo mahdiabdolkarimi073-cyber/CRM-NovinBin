@@ -52,8 +52,16 @@ export default function PortalSocialPage() {
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const roleLabels: Record<string, string> = { owner: 'مالک', super_admin: 'سوپرادمین', admin: 'مدیر', personnel: 'پرسنل' };
-  const getUserLabel = useCallback((u: Profile) => [u.firstName, u.lastName].filter(Boolean).join(' ') || 'کاربر', []);
-  const getInitials = useCallback((u: Profile) => ((u.firstName?.[0] || '') + (u.lastName?.[0] || '')).toUpperCase() || '؟', []);
+  const getUserLabel = useCallback((u: Profile) => {
+    if (u.userType === 'customer' && u.customerType === 'company' && u.companyName) return u.companyName;
+    if (u.fullName) return u.fullName;
+    return [u.firstName, u.lastName].filter(Boolean).join(' ') || (u.companyName || 'کاربر');
+  }, []);
+  const getInitials = useCallback((u: Profile) => {
+    if (u.userType === 'customer' && u.customerType === 'company' && u.companyName) return u.companyName.slice(0, 2);
+    if (u.fullName) return u.fullName.slice(0, 2);
+    return ((u.firstName?.[0] || '') + (u.lastName?.[0] || '')).toUpperCase() || '؟';
+  }, []);
 
   // Load ALL folders and ALL staff — customer sees every folder and every staff member
   const loadFoldersAndStaff = useCallback(async () => {
@@ -156,6 +164,9 @@ export default function PortalSocialPage() {
   }, [profile]);
 
   // SSE for real-time messages
+  const selectedUserRef = useRef<Profile | null>(null);
+  useEffect(() => { selectedUserRef.current = selectedUser; }, [selectedUser]);
+
   useEffect(() => {
     if (!profile) return;
     const es = new EventSource('/api/customer-social/stream');
@@ -164,7 +175,7 @@ export default function PortalSocialPage() {
         const msg: CustomerSocialMessage = JSON.parse(e.data);
         if (msg.receiverId === profile.id) {
           setDmMessages((prev) => prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]);
-          if (selectedUser?.id === msg.senderId) {
+          if (selectedUserRef.current?.id === msg.senderId) {
             updateData('customer_social_messages', { id: msg.id }, { readAt: new Date() }).catch(() => {});
           }
         }
@@ -179,7 +190,7 @@ export default function PortalSocialPage() {
     });
     es.addEventListener('error', () => {});
     return () => es.close();
-  }, [profile, selectedUser, loadDMConversations]);
+  }, [profile, loadDMConversations]);
 
   // Customer call initiation (simplified - uses customer-call APIs)
   const startCall = async (remoteUser: Profile, callType: 'audio' | 'video') => {

@@ -117,6 +117,9 @@ export default function StaffChatPage() {
     };
   }, [profile]);
 
+  const selectedUserRef = useRef<Profile | null>(null);
+  useEffect(() => { selectedUserRef.current = selectedUser; }, [selectedUser]);
+
   useEffect(() => {
     if (!profile) return;
     const es = new EventSource('/api/chat/stream');
@@ -125,7 +128,7 @@ export default function StaffChatPage() {
         const msg: StaffChatMessage = JSON.parse(e.data);
         if (msg.receiverId === profile.id) {
           setMessages((prev) => prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]);
-          if (selectedUser?.id === msg.senderId) {
+          if (selectedUserRef.current?.id === msg.senderId) {
             updateData('staff_chat_messages', { id: msg.id }, { readAt: new Date() }).catch(() => {});
           }
         }
@@ -140,7 +143,7 @@ export default function StaffChatPage() {
     });
     es.addEventListener('error', () => {});
     return () => es.close();
-  }, [profile, selectedUser, loadConversations]);
+  }, [profile, loadConversations]);
 
   const handleSend = async () => {
     if (!profile || !selectedUser || (!text.trim() && !attachment)) return;
@@ -176,8 +179,16 @@ export default function StaffChatPage() {
     reader.readAsDataURL(file);
   };
 
-  const getUserLabel = (u: Profile) => [u.firstName, u.lastName].filter(Boolean).join(' ') || 'کاربر';
-  const getInitials = (u: Profile) => ((u.firstName?.[0] || '') + (u.lastName?.[0] || '')).toUpperCase() || '؟';
+  const getUserLabel = (u: Profile) => {
+    if (u.userType === 'customer' && u.customerType === 'company' && u.companyName) return u.companyName;
+    if (u.fullName) return u.fullName;
+    return [u.firstName, u.lastName].filter(Boolean).join(' ') || (u.companyName || 'کاربر');
+  };
+  const getInitials = (u: Profile) => {
+    if (u.userType === 'customer' && u.customerType === 'company' && u.companyName) return u.companyName.slice(0, 2);
+    if (u.fullName) return u.fullName.slice(0, 2);
+    return ((u.firstName?.[0] || '') + (u.lastName?.[0] || '')).toUpperCase() || '؟';
+  };
   const roleLabels: Record<string, string> = { owner: 'مالک', super_admin: 'سوپرادمین', admin: 'مدیر', personnel: 'پرسنل' };
   const filteredUsers = users.filter((u) => getUserLabel(u).toLowerCase().includes(search.toLowerCase()));
   const conversationUsers = new Set(conversations.map((c) => c.profile.id));
