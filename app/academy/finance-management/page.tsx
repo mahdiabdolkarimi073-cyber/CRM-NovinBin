@@ -23,11 +23,13 @@ const tabs: { key: TabKey; label: string; icon: any }[] = [
 
 const navItems = [
   { label: 'داشبورد', icon: BookOpen, href: '/academy/admin-dashboard' },
-  { label: 'دانش‌آموزان', icon: Users, href: '/academy/students' },
+  { label: 'مدیریت دانش‌آموزان', icon: Users, href: '/academy/admin-students' },
   { label: 'مدرس‌ها', icon: Users, href: '/academy/teachers' },
   { label: 'آموزش', icon: ClipboardList, href: '/academy/education' },
   { label: 'مالی', icon: Wallet, href: '/academy/finance-management', active: true },
-  { label: 'تنظیمات', icon: Settings, href: '/academy/classes' },
+  { label: 'ثبت‌نام‌ها', icon: ClipboardList, href: '/academy/admin-registration' },
+  { label: 'کلاس‌ها', icon: CalendarDays, href: '/academy/education' },
+  { label: 'تنظیمات', icon: Settings, href: '/academy/admin-settings' },
 ];
 
 function formatJalali(date: string | null) {

@@ -1806,6 +1806,17 @@ model AcademyUser {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  enrollments       AcademyCourseEnrollment[] @relation("EnrollmentStudent")
+  installments      AcademyInstallment[]      @relation("InstallmentStudent")
+  invoices          AcademyInvoice[]          @relation("InvoiceStudent")
+  receipts          AcademyReceipt[]          @relation("ReceiptStudent")
+  discounts         AcademyDiscount[]         @relation("DiscountStudent")
+  payments          AcademyPayment[]          @relation("PaymentStudent")
+  teacherShares     AcademyTeacherShare[]     @relation("ShareTeacher")
+  teacherSettlements AcademyTeacherSettlement[] @relation("SettlementTeacher")
+  weeklySchedules   AcademyWeeklySchedule[]   @relation("ScheduleTeacher")
+  notes             AcademyStudentNote[]      @relation("NoteAuthor")
+
   @@map("academy_users")
 }
 
@@ -1821,6 +1832,16 @@ model AcademyCourse {
   endDate     DateTime?
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
+
+  enrollments       AcademyCourseEnrollment[]
+  installments      AcademyInstallment[]
+  invoices         AcademyInvoice[]
+  discounts        AcademyDiscount[]
+  syllabi          AcademySyllabus[]
+  weeklySchedules  AcademyWeeklySchedule[]
+  teacherShares    AcademyTeacherShare[]
+  studentGrades    AcademyStudentGrade[]
+  teacherEvaluations AcademyTeacherEvaluation[]
 
   @@map("academy_courses")
 }
@@ -1838,6 +1859,9 @@ model AcademyCourseEnrollment {
   paid          BigInt   @default(0)
   status        String   @default("active")
   createdAt     DateTime @default(now())
+
+  student        AcademyUser   @relation("EnrollmentStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  course         AcademyCourse  @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, courseId])
   @@index([studentId])
@@ -1937,6 +1961,8 @@ model AcademyStudentGrade {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now())
 
+  course        AcademyCourse @relation(fields: [courseId], references: [id], onDelete: SetNull)
+
   @@index([studentId, courseId])
   @@index([courseId])
   @@map("academy_student_grades")
@@ -1956,6 +1982,8 @@ model AcademyTeacherEvaluation {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @default(now())
 
+  course        AcademyCourse @relation(fields: [courseId], references: [id], onDelete: SetNull)
+
   @@index([studentId, courseId])
   @@index([courseId])
   @@map("academy_teacher_evaluations")
@@ -1973,6 +2001,9 @@ model AcademyInstallment {
   installmentNo Int      @default(1)
   createdAt     DateTime @default(now())
 
+  student        AcademyUser   @relation("InstallmentStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  course         AcademyCourse @relation(fields: [courseId], references: [id], onDelete: SetNull)
+
   @@index([studentId, status])
   @@map("academy_installments")
 }
@@ -1986,6 +2017,10 @@ model AcademyInvoice {
   issueDate   DateTime @default(now())
   createdAt   DateTime @default(now())
 
+  student        AcademyUser   @relation("InvoiceStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  course         AcademyCourse @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  receipts       AcademyReceipt[]
+
   @@index([studentId])
   @@map("academy_invoices")
 }
@@ -1998,6 +2033,9 @@ model AcademyReceipt {
   trackingCode    String?
   receivedDate    DateTime @default(now())
   createdAt       DateTime @default(now())
+
+  student        AcademyUser   @relation("ReceiptStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  invoice        AcademyInvoice @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
 
   @@index([studentId])
   @@map("academy_receipts")
@@ -2053,6 +2091,8 @@ model AcademyStudentNote {
   authorId    String   @db.Uuid
   body        String
   createdAt   DateTime @default(now())
+
+  author        AcademyUser @relation("NoteAuthor", fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([studentId, createdAt])
   @@map("academy_student_notes")
@@ -2122,6 +2162,8 @@ model AcademyTeacherSettlement {
   settledAt   DateTime?
   createdAt   DateTime @default(now())
 
+  teacher       AcademyUser @relation("SettlementTeacher", fields: [teacherId], references: [id], onDelete: Cascade)
+
   @@index([teacherId])
   @@map("academy_teacher_settlements")
 }
@@ -2157,6 +2199,8 @@ model AcademySyllabus {
   order       Int      @default(0)
   createdAt   DateTime @default(now())
 
+  course       AcademyCourse @relation(fields: [courseId], references: [id], onDelete: SetNull)
+
   @@index([courseId])
   @@map("academy_syllabi")
 }
@@ -2167,6 +2211,8 @@ model AcademyRoom {
   capacity    Int      @default(0)
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
+
+  weeklySchedules  AcademyWeeklySchedule[]
 
   @@map("academy_rooms")
 }
@@ -2182,6 +2228,10 @@ model AcademyWeeklySchedule {
   capacity    Int      @default(0)
   enrolled    Int      @default(0)
   createdAt   DateTime @default(now())
+
+  course       AcademyCourse @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  teacher      AcademyUser   @relation("ScheduleTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
+  room         AcademyRoom   @relation(fields: [roomId], references: [id], onDelete: SetNull)
 
   @@index([courseId])
   @@index([teacherId])
@@ -2199,6 +2249,9 @@ model AcademyDiscount {
   amount      BigInt   @default(0)
   createdAt   DateTime @default(now())
 
+  student       AcademyUser   @relation("DiscountStudent", fields: [studentId], references: [id], onDelete: SetNull)
+  course        AcademyCourse @relation(fields: [courseId], references: [id], onDelete: SetNull)
+
   @@index([studentId])
   @@map("academy_discounts")
 }
@@ -2213,6 +2266,8 @@ model AcademyPayment {
   paidAt      DateTime @default(now())
   createdAt   DateTime @default(now())
 
+  student       AcademyUser @relation("PaymentStudent", fields: [studentId], references: [id], onDelete: Cascade)
+
   @@index([studentId])
   @@map("academy_payments")
 }
@@ -2225,6 +2280,9 @@ model AcademyTeacherShare {
   amount      BigInt   @default(0)
   status      String   @default("pending")
   createdAt   DateTime @default(now())
+
+  teacher       AcademyUser   @relation("ShareTeacher", fields: [teacherId], references: [id], onDelete: Cascade)
+  course        AcademyCourse @relation(fields: [courseId], references: [id], onDelete: SetNull)
 
   @@index([teacherId])
   @@map("academy_teacher_shares")
