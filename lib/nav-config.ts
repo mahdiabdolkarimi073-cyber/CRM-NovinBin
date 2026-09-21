@@ -8,7 +8,7 @@ import {
   UserCheck, ClipboardList, Network, Contact, Megaphone, Wallet,
   FileCheck, Banknote, CreditCard, ArrowRightLeft, Sparkles,
   ClipboardCheck, FileSearch, ArrowUpFromLine, Undo2, Percent, Server, Fingerprint, BriefcaseBusiness,
-  Palette, Archive, FolderTree, Headset, Mailbox,
+  Palette, Archive, FolderTree, Headset, Mailbox, Smartphone,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { Profile } from '@/lib/types';
@@ -123,6 +123,7 @@ export const clubItems: NavItem[] = [
   { href: '/dashboard/customer-segments', label: 'بخش‌بندی مشتریان', icon: BadgePercent },
   { href: '/dashboard/loyalty', label: 'امتیاز و وفاداری', icon: Award },
   { href: '/dashboard/loyalty-rewards', label: 'جوایز باشگاه', icon: Award },
+  { href: '/dashboard/customer-devices', label: 'دستگاه‌های فعال', icon: Smartphone },
   { href: '/dashboard/customer-interactions', label: 'تعاملات مشتری', icon: MessagesSquare },
 ];
 
@@ -263,6 +264,7 @@ export const availablePages = [
   { path: '/dashboard/customer-segments', label: 'بخش‌بندی مشتریان' },
   { path: '/dashboard/loyalty', label: 'امتیاز و وفاداری' },
   { path: '/dashboard/loyalty-rewards', label: 'جوایز باشگاه' },
+  { path: '/dashboard/customer-devices', label: 'دستگاه‌های فعال' },
   { path: '/dashboard/my-customers', label: 'مشتریان من' },
   { path: '/dashboard/purchase', label: 'خرید و تأمین' },
   { path: '/dashboard/approvals', label: 'تأییدها' },

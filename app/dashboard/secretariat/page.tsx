@@ -20,7 +20,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
-  FileText, FilePlus2, Send, Inbox, Outbox, Archive, PenTool,
+  FileText, FilePlus2, Send, Inbox, Archive, PenTool,
   Clock, AlertCircle, ChevronLeft, Eye, Check, X, Undo2,
   History, Mail, Lock, Flame, FileCheck, Search,
 } from 'lucide-react';
@@ -441,7 +441,7 @@ export default function SecretariatPage() {
 
   const tabs = [
     { key: 'inbox', label: 'ورودی', icon: Inbox, count: inboxLetters.length },
-    { key: 'outbox', label: 'خروجی', icon: Outbox, count: outboxLetters.length },
+    { key: 'outbox', label: 'خروجی', icon: Send, count: outboxLetters.length },
     { key: 'drafts', label: 'پیش‌نویس‌ها', icon: FileText, count: draftLetters.length },
     { key: 'pending-sign', label: 'در انتظار امضا', icon: PenTool, count: pendingSignLetters.length },
     { key: 'urgent', label: 'فوری', icon: Flame, count: urgentLetters.length },
@@ -449,22 +449,73 @@ export default function SecretariatPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="secretariat-page space-y-4 mobile:space-y-5 tablet:space-y-6">
       <PageHeader
         title="دبیرخانه"
         description="مدیریت نامه‌های وارده، صادره و داخلی - گردش، امضا و ثبت نامه"
       />
 
-      <div className="flex flex-col gap-3 tablet:flex-row tablet:items-center tablet:justify-between">
+      {/* Mobile layout: stacked, compact tabs */}
+      <div className="flex flex-col gap-3 mobile:hidden">
+        <Button onClick={() => setShowCreate(true)} className="gap-2 rounded-xl w-full" size="sm">
+          <FilePlus2 className="h-4 w-4" />
+          نامه جدید
+        </Button>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="flex h-auto w-full flex-wrap gap-1 bg-muted/60 p-1.5">
+            {tabs.map((t) => (
+              <TabsTrigger
+                key={t.key}
+                value={t.key}
+                className="flex flex-1 items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-[10px] font-bold data-[state=active]:bg-card data-[state=active]:shadow-sm"
+              >
+                <t.icon className="h-3 w-3" />
+                {t.label}
+                {t.count > 0 && (
+                  <span className="ml-0.5 rounded-md bg-accent/15 px-1 py-0.5 text-[8px] font-bold text-accent">
+                    {t.count.toLocaleString('fa-IR')}
+                  </span>
+                )}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+        <div className="flex h-9 items-center gap-2 rounded-xl border-2 border-border bg-muted/40 px-3 transition-all focus-within:border-accent focus-within:bg-card">
+          <Search className="h-4 w-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="جستجو در نامه‌ها..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full bg-transparent text-xs font-medium outline-none placeholder:text-muted-foreground/60"
+          />
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {tabs.map((t) => (
+            <Card key={t.key} className="border-border bg-card">
+              <CardContent className="flex flex-col items-center gap-1 p-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10">
+                  <t.icon className="h-4 w-4 text-accent" />
+                </div>
+                <p className="text-[10px] text-muted-foreground text-center">{t.label}</p>
+                <p className="text-sm font-bold text-foreground">{t.count.toLocaleString('fa-IR')}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* Tablet/Desktop layout: horizontal tabs, full cards */}
+      <div className="hidden mobile:flex mobile:flex-col tablet:flex-row tablet:items-center tablet:justify-between gap-3">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="flex h-auto flex-wrap gap-1 bg-muted/60 p-1.5">
             {tabs.map((t) => (
               <TabsTrigger
                 key={t.key}
                 value={t.key}
-                className="flex items-center gap-1.5 rounded-lg px-2 mobile:px-3 py-1.5 mobile:py-2 text-[10px] mobile:text-xs font-bold data-[state=active]:bg-card data-[state=active]:shadow-sm"
+                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-bold data-[state=active]:bg-card data-[state=active]:shadow-sm"
               >
-                <t.icon className="h-3 w-3 mobile:h-3.5 mobile:w-3.5" />
+                <t.icon className="h-3.5 w-3.5" />
                 {t.label}
                 {t.count > 0 && (
                   <span className="ml-1 rounded-md bg-accent/15 px-1.5 py-0.5 text-[9px] font-bold text-accent">
@@ -481,7 +532,7 @@ export default function SecretariatPage() {
             <FilePlus2 className="h-4 w-4" />
             نامه جدید
           </Button>
-          <div className="flex h-9 tablet:h-10 items-center gap-2 rounded-xl border-2 border-border bg-muted/40 px-3 transition-all focus-within:border-accent focus-within:bg-card flex-1">
+          <div className="flex h-10 items-center gap-2 rounded-xl border-2 border-border bg-muted/40 px-3 transition-all focus-within:border-accent focus-within:bg-card flex-1">
             <Search className="h-4 w-4 text-muted-foreground" />
             <input
               type="text"
@@ -494,16 +545,17 @@ export default function SecretariatPage() {
         </div>
       </div>
 
-      <div className="grid gap-3 mobile:grid-cols-2 tablet:grid-cols-3 lg:grid-cols-4">
+      {/* Tablet/Desktop stat cards */}
+      <div className="hidden mobile:grid mobile:grid-cols-3 tablet:grid-cols-3 lg:grid-cols-6 gap-2 mobile:gap-3">
         {tabs.map((t) => (
           <Card key={t.key} className="border-border bg-card transition-all hover:border-accent/30 hover:shadow-md">
-            <CardContent className="flex items-center gap-3 p-3.5">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10">
-                <t.icon className="h-5 w-5 text-accent" />
+            <CardContent className="flex items-center gap-2.5 p-3 mobile:p-3.5">
+              <div className="flex h-9 w-9 mobile:h-10 mobile:w-10 items-center justify-center rounded-xl bg-accent/10">
+                <t.icon className="h-4 w-4 mobile:h-5 mobile:w-5 text-accent" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">{t.label}</p>
-                <p className="text-lg font-bold text-foreground">{t.count.toLocaleString('fa-IR')}</p>
+                <p className="text-[11px] mobile:text-xs text-muted-foreground">{t.label}</p>
+                <p className="text-base mobile:text-lg font-bold text-foreground">{t.count.toLocaleString('fa-IR')}</p>
               </div>
             </CardContent>
           </Card>
@@ -611,35 +663,35 @@ function LetterCard({
 
   return (
     <Card className="border-border bg-card transition-all hover:border-accent/30 hover:shadow-md">
-      <CardContent className="p-4">
-        <div className="flex flex-col gap-3 tablet:flex-row tablet:items-start tablet:justify-between">
-          <div className="flex flex-1 flex-col gap-2" onClick={onDetail} role="button" tabIndex={0}>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold" style={{ backgroundColor: si.color + '15', color: si.color }}>
+      <CardContent className="p-3 mobile:p-4">
+        <div className="flex flex-col gap-2 mobile:gap-3 tablet:flex-row tablet:items-start tablet:justify-between">
+          <div className="flex flex-1 flex-col gap-1.5 mobile:gap-2" onClick={onDetail} role="button" tabIndex={0}>
+            <div className="flex flex-wrap items-center gap-1.5 mobile:gap-2">
+              <span className="inline-flex items-center gap-1 rounded-md px-1.5 mobile:px-2 py-0.5 text-[10px] mobile:text-[11px] font-bold" style={{ backgroundColor: si.color + '15', color: si.color }}>
                 {si.label}
               </span>
-              <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold" style={{ backgroundColor: ti.color + '15', color: ti.color }}>
+              <span className="inline-flex items-center gap-1 rounded-md px-1.5 mobile:px-2 py-0.5 text-[10px] mobile:text-[11px] font-bold" style={{ backgroundColor: ti.color + '15', color: ti.color }}>
                 {ti.label}
               </span>
-              <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold" style={{ backgroundColor: ui.color + '15', color: ui.color }}>
+              <span className="inline-flex items-center gap-1 rounded-md px-1.5 mobile:px-2 py-0.5 text-[9px] mobile:text-[10px] font-bold" style={{ backgroundColor: ui.color + '15', color: ui.color }}>
                 <Flame className="h-2.5 w-2.5" />
                 {ui.label}
               </span>
               {letter.confidentiality !== 'normal' && (
-                <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold" style={{ backgroundColor: ci.color + '15', color: ci.color }}>
+                <span className="inline-flex items-center gap-1 rounded-md px-1.5 mobile:px-2 py-0.5 text-[9px] mobile:text-[10px] font-bold" style={{ backgroundColor: ci.color + '15', color: ci.color }}>
                   <Lock className="h-2.5 w-2.5" />
                   {ci.label}
                 </span>
               )}
               {isSigned && (
-                <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-600">
+                <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-1.5 mobile:px-2 py-0.5 text-[9px] mobile:text-[10px] font-bold text-emerald-600">
                   <FileCheck className="h-2.5 w-2.5" />
                   امضا شده
                 </span>
               )}
             </div>
-            <p className="text-sm font-bold text-foreground">{letter.subject}</p>
-            <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
+            <p className="text-xs mobile:text-sm font-bold text-foreground">{letter.subject}</p>
+            <div className="flex flex-wrap items-center gap-2 mobile:gap-3 text-[10px] mobile:text-[11px] text-muted-foreground">
               {letter.letterNumber && <span>شماره: {letter.letterNumber}</span>}
               {letter.senderName && <span>فرستنده: {letter.senderName}</span>}
               {letter.receiverName && <span>گیرنده: {letter.receiverName}</span>}
@@ -650,7 +702,7 @@ function LetterCard({
               </span>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1 mobile:gap-1.5">
             <Button variant="ghost" size="sm" onClick={onDetail} className="gap-1 text-xs">
               <Eye className="h-3.5 w-3.5" />
               مشاهده

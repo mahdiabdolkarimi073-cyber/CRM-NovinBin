@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { fetchData, createData, deleteData } from '@/lib/data-client';
+import { fetchData, createData, updateData, deleteData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { FolderTree, Plus, Trash2, UserPlus, UserMinus, Users, X } from 'lucide-react';
+import { FolderTree, Plus, Trash2, UserPlus, UserMinus, Users, X, Pencil, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Profile, CustomerSocialFolder } from '@/lib/types';
 
@@ -29,6 +29,15 @@ export default function CustomerFoldersPage() {
   const [folderCustomers, setFolderCustomers] = useState<any[]>([]);
   const [showAddStaff, setShowAddStaff] = useState(false);
   const [showAddCustomer, setShowAddCustomer] = useState(false);
+
+  // Edit folder dialog
+  const [editDialog, setEditDialog] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  // Delete folder dialog
+  const [deleteFolder, setDeleteFolder] = useState<CustomerSocialFolder | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -70,11 +79,36 @@ export default function CustomerFoldersPage() {
     } catch (e: any) { toast.error(e.message); }
   };
 
-  const handleDeleteFolder = async (id: string) => {
+  const openEdit = (folder: CustomerSocialFolder) => {
+    setEditName(folder.name);
+    setEditDesc(folder.description || '');
+    setEditDialog(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!selectedFolder || !editName.trim()) { toast.error('نام پوشه را وارد کنید'); return; }
+    setSavingEdit(true);
     try {
-      await deleteData('customer_social_folders', { id });
+      await updateData('customer_social_folders', { id: selectedFolder.id }, {
+        name: editName.trim(),
+        description: editDesc.trim() || null,
+      });
+      toast.success('پوشه به‌روزرسانی شد');
+      setEditDialog(false);
+      load();
+      if (selectedFolder) {
+        loadFolderDetails({ ...selectedFolder, name: editName.trim(), description: editDesc.trim() || null });
+      }
+    } catch (e: any) { toast.error(e.message); }
+    setSavingEdit(false);
+  };
+
+  const handleDeleteFolder = async (folder: CustomerSocialFolder) => {
+    try {
+      await deleteData('customer_social_folders', { id: folder.id });
       toast.success('پوشه حذف شد');
-      if (selectedFolder?.id === id) setSelectedFolder(null);
+      if (selectedFolder?.id === folder.id) setSelectedFolder(null);
+      setDeleteFolder(null);
       load();
     } catch (e: any) { toast.error(e.message); }
   };
@@ -113,8 +147,18 @@ export default function CustomerFoldersPage() {
     } catch (e: any) { toast.error(e.message); }
   };
 
-  const getUserLabel = (p: Profile | undefined) => p ? [p.firstName, p.lastName].filter(Boolean).join(' ') || 'کاربر' : 'نامشخص';
-  const getInitials = (p: Profile | undefined) => p ? ((p.firstName?.[0] || '') + (p.lastName?.[0] || '')).toUpperCase() || '؟' : '؟';
+  const getUserLabel = (p: Profile | undefined) => {
+    if (!p) return 'کاربر';
+    if (p.customerType === 'company' && p.companyName) return p.companyName;
+    if (p.fullName) return p.fullName;
+    return [p.firstName, p.lastName].filter(Boolean).join(' ') || 'کاربر';
+  };
+  const getInitials = (p: Profile | undefined) => {
+    if (!p) return '؟';
+    if (p.customerType === 'company' && p.companyName) return p.companyName[0] || 'ش';
+    if (p.fullName) return p.fullName[0] || '؟';
+    return ((p.firstName?.[0] || '') + (p.lastName?.[0] || '')).toUpperCase() || '؟';
+  };
   const roleLabels: Record<string, string> = { owner: 'مالک', super_admin: 'سوپرادمین', admin: 'مدیر', personnel: 'پرسنل' };
 
   const memberProfile = (profileId: string) => staffProfiles.find((p) => p.id === profileId);
@@ -144,20 +188,25 @@ export default function CustomerFoldersPage() {
             </CardContent></Card>
           ) : folders.map((folder) => (
             <Card key={folder.id} className={`cursor-pointer transition-smooth hover:shadow-md ${selectedFolder?.id === folder.id ? 'ring-2 ring-amber-500' : ''}`}>
-              <CardContent className="p-4" onClick={() => loadFolderDetails(folder)}>
+              <CardContent className="p-3 mobile:p-4" onClick={() => loadFolderDetails(folder)}>
                 <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                      <FolderTree className="w-5 h-5" />
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 mobile:w-10 mobile:h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                      <FolderTree className="w-4 h-4 mobile:w-5 mobile:h-5" />
                     </div>
-                    <div>
-                      <div className="text-sm font-bold text-slate-900">{folder.name}</div>
-                      {folder.description && <div className="text-xs text-slate-400 mt-0.5">{folder.description}</div>}
+                    <div className="min-w-0">
+                      <div className="text-xs mobile:text-sm font-bold text-slate-900 truncate">{folder.name}</div>
+                      {folder.description && <div className="text-[10px] mobile:text-xs text-slate-400 mt-0.5 truncate">{folder.description}</div>}
                     </div>
                   </div>
-                  <button onClick={(e) => { e.stopPropagation(); handleDeleteFolder(folder.id); }} className="text-slate-300 hover:text-red-500 transition-colors">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button onClick={(e) => { e.stopPropagation(); openEdit(folder); }} className="text-slate-300 hover:text-amber-500 transition-colors p-1" title="ویرایش">
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); setDeleteFolder(folder); }} className="text-slate-300 hover:text-red-500 transition-colors p-1" title="حذف">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -168,8 +217,8 @@ export default function CustomerFoldersPage() {
           {selectedFolder ? (
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">{selectedFolder.name}</CardTitle>
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <CardTitle className="text-sm mobile:text-base">{selectedFolder.name}</CardTitle>
                   <div className="flex gap-2">
                     <Button size="sm" variant="outline" onClick={() => setShowAddStaff(true)} className="gap-1.5">
                       <UserPlus className="w-3.5 h-3.5" /> افزودن پرسنل
@@ -177,12 +226,15 @@ export default function CustomerFoldersPage() {
                     <Button size="sm" variant="outline" onClick={() => setShowAddCustomer(true)} className="gap-1.5">
                       <UserPlus className="w-3.5 h-3.5" /> افزودن مشتری
                     </Button>
+                    <Button size="sm" variant="ghost" onClick={() => openEdit(selectedFolder)} className="gap-1.5">
+                      <Pencil className="w-3.5 h-3.5" /> ویرایش
+                    </Button>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
-                  <h4 className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-1.5">
+                  <h4 className="text-xs mobile:text-sm font-bold text-slate-700 mb-2 flex items-center gap-1.5">
                     <Users className="w-4 h-4" /> پرسنل و مدیران ({folderMembers.length})
                   </h4>
                   <div className="space-y-2">
@@ -195,8 +247,8 @@ export default function CustomerFoldersPage() {
                           <div className="flex items-center gap-2.5">
                             <div className="w-8 h-8 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center text-xs font-bold">{getInitials(mp)}</div>
                             <div>
-                              <div className="text-sm font-medium text-slate-900">{getUserLabel(mp)}</div>
-                              <div className="text-xs text-slate-400">{mp ? roleLabels[mp.role] || mp.role : ''}</div>
+                              <div className="text-xs mobile:text-sm font-medium text-slate-900">{getUserLabel(mp)}</div>
+                              <div className="text-[10px] mobile:text-xs text-slate-400">{mp ? roleLabels[mp.role] || mp.role : ''}</div>
                             </div>
                           </div>
                           <button onClick={() => handleRemoveStaff(m.id)} className="text-slate-300 hover:text-red-500 transition-colors">
@@ -208,7 +260,7 @@ export default function CustomerFoldersPage() {
                   </div>
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-1.5">
+                  <h4 className="text-xs mobile:text-sm font-bold text-slate-700 mb-2 flex items-center gap-1.5">
                     <Users className="w-4 h-4" /> مشتریان ({folderCustomers.length})
                   </h4>
                   <div className="space-y-2">
@@ -221,7 +273,7 @@ export default function CustomerFoldersPage() {
                           <div className="flex items-center gap-2.5">
                             <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold">{getInitials(cp)}</div>
                             <div>
-                              <div className="text-sm font-medium text-slate-900">{getUserLabel(cp)}</div>
+                              <div className="text-xs mobile:text-sm font-medium text-slate-900">{getUserLabel(cp)}</div>
                             </div>
                           </div>
                           <button onClick={() => handleRemoveCustomer(c.id)} className="text-slate-300 hover:text-red-500 transition-colors">
@@ -262,6 +314,53 @@ export default function CustomerFoldersPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreate(false)}>انصراف</Button>
             <Button onClick={handleCreate}>ایجاد پوشه</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Folder Dialog */}
+      <Dialog open={editDialog} onOpenChange={setEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="w-5 h-5 text-amber-600" />
+              ویرایش پوشه
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label>نام پوشه *</Label>
+              <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="نام پوشه..." />
+            </div>
+            <div>
+              <Label>توضیحات</Label>
+              <Textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)} placeholder="توضیحات (اختیاری)..." rows={3} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialog(false)}>انصراف</Button>
+            <Button onClick={handleSaveEdit} disabled={savingEdit}>
+              {savingEdit ? <Loader2 className="w-4 h-4 animate-spin" /> : <Pencil className="w-4 h-4" />}
+              ذخیره تغییرات
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Folder Confirm Dialog */}
+      <Dialog open={!!deleteFolder} onOpenChange={(o) => !o && setDeleteFolder(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>حذف پوشه</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-slate-600 py-2">
+            آیا از حذف پوشه «{deleteFolder?.name || ''}» مطمئن هستید؟ تمام پرسنل و مشتریان این پوشه حذف خواهند شد.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteFolder(null)}>انصراف</Button>
+            <Button variant="destructive" onClick={() => deleteFolder && handleDeleteFolder(deleteFolder)}>
+              <Trash2 className="w-4 h-4" /> حذف پوشه
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
