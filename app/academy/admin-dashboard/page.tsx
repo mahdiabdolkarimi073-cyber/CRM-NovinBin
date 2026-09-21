@@ -68,7 +68,7 @@ const adminNavItems = [
   { label: 'آموزش', icon: ClipboardList, href: '/academy/education', active: false },
   { label: 'مالی', icon: Wallet, href: '/academy/finance-management', active: false },
   { label: 'ثبت‌نام‌ها', icon: ClipboardList, href: '/academy/admin-registration', active: false },
-  { label: 'کلاس‌ها', icon: CalendarDays, href: '/academy/education', active: false },
+  { label: 'کلاس‌ها', icon: CalendarDays, href: '/academy/admin-classes', active: false },
   { label: 'تنظیمات', icon: Settings, href: '/academy/admin-settings', active: false },
 ];
 

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const ADMIN_PAGES = [
   '/academy/admin-dashboard',
+  '/academy/admin-students',
+  '/academy/admin-registration',
+  '/academy/admin-settings',
   '/academy/students',
   '/academy/teachers',
   '/academy/education',
@@ -52,9 +55,10 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL('/academy/login', req.url));
   }
 
-  const isAdminPage = ADMIN_PAGES.some((p) => pathname.startsWith(p));
-  const isTeacherPage = TEACHER_PAGES.some((p) => pathname.startsWith(p));
-  const isStudentPage = STUDENT_PAGES.some((p) => pathname.startsWith(p));
+  const matchesPage = (p: string) => pathname === p || pathname.startsWith(p + '/');
+  const isAdminPage = ADMIN_PAGES.some(matchesPage);
+  const isTeacherPage = TEACHER_PAGES.some(matchesPage);
+  const isStudentPage = STUDENT_PAGES.some(matchesPage);
 
   if (isAdminPage && role !== 'AdminAcademy') {
     console.log('[middleware] ADMIN PAGE WRONG ROLE → dashboard', { pathname, role });
@@ -66,7 +70,7 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL('/academy/dashboard', req.url));
   }
 
-  if (isStudentPage && role === 'AdminAcademy') {
+  if (isStudentPage && !isAdminPage && role === 'AdminAcademy') {
     console.log('[middleware] STUDENT PAGE WITH ADMIN ROLE → admin-dashboard', { pathname, role });
     return NextResponse.redirect(new URL('/academy/admin-dashboard', req.url));
   }

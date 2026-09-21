@@ -14,7 +14,7 @@ const navItems = [
   { label: 'آموزش', icon: ClipboardList, href: '/academy/education' },
   { label: 'مالی', icon: Wallet, href: '/academy/finance-management' },
   { label: 'ثبت‌نام‌ها', icon: ClipboardList, href: '/academy/admin-registration', active: true },
-  { label: 'کلاس‌ها', icon: CalendarDays, href: '/academy/education' },
+  { label: 'کلاس‌ها', icon: CalendarDays, href: '/academy/admin-classes' },
   { label: 'تنظیمات', icon: Settings, href: '/academy/admin-settings' },
 ];
 
