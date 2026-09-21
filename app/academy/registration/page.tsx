@@ -8,17 +8,8 @@ import {
   CalendarDays,
   CheckCircle,
   GraduationCap,
-  MessageSquare,
-  Folder,
   Wallet,
-  User,
-  Settings,
-  LifeBuoy,
-  Menu,
-  Search,
-  Bell,
   Loader2,
-  LogOut,
   ArrowLeft,
   Clock,
   MapPin,
@@ -33,6 +24,7 @@ import {
   X,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { StudentShell } from '@/components/academy/student-shell';
 
 type UserInfo = { id: string; firstName: string; lastName: string; avatarUrl?: string | null };
 type ClassOption = {
@@ -67,20 +59,6 @@ type RequestItem = {
 };
 type CurrentCourse = { id: string; title: string; level: string | null; code: string | null; endDate: string | null };
 
-const navItems = [
-  { label: 'کلاس‌های من', icon: BookOpen, href: '/academy/classes' },
-  { label: 'تکالیف', icon: ClipboardList, href: '/academy/classes' },
-  { label: 'برنامه هفتگی', icon: CalendarDays, href: '/academy/classes' },
-  { label: 'حضور و غیاب', icon: CheckCircle, href: '/academy/attendance' },
-  { label: 'نمرات و پیشرفت', icon: GraduationCap, href: '/academy/education-record' },
-  { label: 'پیام‌ها', icon: MessageSquare, href: '/academy/classes' },
-  { label: 'فایل‌ها', icon: Folder, href: '/academy/classes' },
-  { label: 'پرداخت‌ها', icon: Wallet, href: '/academy/finance' },
-  { label: 'ثبت‌نام / تمدید', icon: UserPlus, href: '/academy/registration', active: true },
-  { label: 'پروفایل من', icon: User, href: '/academy/classes' },
-  { label: 'تنظیمات', icon: Settings, href: '/academy/classes' },
-];
-
 function jalaliDate(iso: string | null) {
   if (!iso) return '—';
   try { return new Intl.DateTimeFormat('fa-IR', { dateStyle: 'medium' }).format(new Date(iso)); }
@@ -104,7 +82,6 @@ export default function RegistrationPage() {
   const [currentCourse, setCurrentCourse] = useState<CurrentCourse | null>(null);
   const [classes, setClasses] = useState<ClassOption[]>([]);
   const [requests, setRequests] = useState<RequestItem[]>([]);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'available' | 'requests'>('available');
   const [selectedClass, setSelectedClass] = useState<ClassOption | null>(null);
   const [actionType, setActionType] = useState<string>('enrollment');
@@ -202,8 +179,8 @@ export default function RegistrationPage() {
     }
   }
 
-  if (loading) return <div className="reg-loading"><Loader2 className="animate-spin" /></div>;
-  if (!user) return <div className="reg-loading"><p>خطا در بارگذاری صفحه</p></div>;
+  if (loading) return <div className="student-shell-loading"><Loader2 className="animate-spin" /></div>;
+  if (!user) return <div className="student-shell-loading"><p>خطا در بارگذاری صفحه</p></div>;
 
   const pendingRequests = requests.filter((r) => r.status === 'pending');
   const historyRequests = requests.filter((r) => r.status !== 'pending');
@@ -217,284 +194,296 @@ export default function RegistrationPage() {
     { value: 'waitlist', label: 'لیست انتظار', icon: ListOrdered },
   ];
 
+  const statCards = [
+    { label: 'دوره فعلی', value: currentCourse?.title || '—', icon: GraduationCap, color: '#2563EB', bg: '#EFF6FF' },
+    { label: 'کلاس‌های disponible', value: faNum(renewalClasses.length), icon: BookOpen, color: '#10B981', bg: '#ECFDF5' },
+    { label: 'درخواست‌های در انتظار', value: faNum(pendingRequests.length), icon: ClipboardList, color: '#F59E0B', bg: '#FEF3C7' },
+    { label: 'کل درخواست‌ها', value: faNum(requests.length), icon: Wallet, color: '#8B5CF6', bg: '#F5F3FF' },
+  ];
+
   return (
-    <div className="reg-layout" dir="rtl">
-      {sidebarOpen && <div className="reg-overlay" onClick={() => setSidebarOpen(false)} />}
-
-      <aside className={`reg-sidebar ${sidebarOpen ? 'open' : ''}`}>
-        <div className="reg-sidebar-inner">
-          <div className="reg-brand">
-            <div className="reg-avatar">{user.firstName.slice(0, 1)}</div>
-            <div>
-              <strong>{user.firstName} {user.lastName}</strong>
-              <small>دانش‌آموز</small>
-            </div>
-          </div>
-          <nav className="reg-nav">
-            {navItems.map((item) => (
-              <button key={item.label} type="button" className={item.active ? 'active' : ''} onClick={() => { router.push(item.href); setSidebarOpen(false); }}>
-                <item.icon /><span>{item.label}</span>
-              </button>
-            ))}
-          </nav>
-          <div className="reg-support">
-            <strong>نیاز به کمک دارید؟</strong>
-            <p>با پشتیبانی در ارتباط باشید</p>
-            <button type="button"><LifeBuoy /> پشتیبانی</button>
-          </div>
-          <button type="button" className="reg-logout" onClick={logout}><LogOut /> <span>خروج</span></button>
+    <StudentShell
+      user={user}
+      activePath="/academy/registration"
+      pageTitle="ثبت‌نام و تمدید"
+      pageSubtitle="درخواست ثبت‌نام، تمدید، جابه‌جایی کلاس و لیست انتظار"
+      onLogout={logout}
+    >
+      <section className="student-page-hero">
+        <div>
+          <h2>ثبت‌نام و تمدید دوره</h2>
+          <p>درخواست‌های شما پس از ثبت، توسط مدیر بررسی و تأیید می‌شوند</p>
         </div>
-      </aside>
+        <div className="student-page-hero-badge">
+          <strong>{currentCourse?.title || '—'}</strong>
+          <span>دوره فعلی</span>
+        </div>
+      </section>
 
-      <div className="reg-main">
-        <header className="reg-header">
-          <div className="reg-header-right">
-            <button type="button" className="reg-burger" onClick={() => setSidebarOpen(true)} aria-label="منو"><Menu /></button>
+      <section className="student-page-stats">
+        {statCards.map((s, i) => (
+          <div key={i} className="student-page-stat-card">
+            <span className="student-page-stat-icon" style={{ background: s.bg, color: s.color }}><s.icon /></span>
+            <div className="student-page-stat-body">
+              <span className="student-page-stat-label">{s.label}</span>
+              <strong className="student-page-stat-value" style={{ fontSize: s.value.length > 10 ? 14 : 22 }}>{s.value}</strong>
+            </div>
+          </div>
+        ))}
+      </section>
+
+      {currentCourse && (
+        <section className="student-page-panel" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, borderRadius: 10, background: '#EFF6FF', color: '#2563EB', flexShrink: 0 }}>
+              <GraduationCap style={{ width: 20, height: 20 }} />
+            </span>
             <div>
-              <h1>ثبت‌نام و تمدید</h1>
-              <p>درخواست ثبت‌نام، تمدید، جابه‌جایی کلاس و لیست انتظار</p>
+              <strong style={{ fontSize: 15, fontWeight: 700, color: '#1E293B', display: 'block' }}>{currentCourse.title}</strong>
+              <span style={{ fontSize: 12, color: '#64748B' }}>کد: {currentCourse.code || '—'} | پایان: {jalaliDate(currentCourse.endDate)}</span>
             </div>
           </div>
-          <div className="reg-header-left">
-            <button type="button" aria-label="جستجو"><Search /></button>
-            <button type="button" aria-label="اعلان‌ها" className="reg-bell"><Bell /><span /></button>
-            <div className="reg-header-avatar">{user.firstName.slice(0, 1)}</div>
-          </div>
-        </header>
+          <button type="button" className="student-page-btn primary" onClick={() => { setActionType('renewal'); setActiveTab('available'); }}>
+            <RefreshCw style={{ width: 15, height: 15 }} /> درخواست تمدید
+          </button>
+        </section>
+      )}
 
-        <div className="reg-scroll">
-          <section className="reg-hero">
-            <div className="reg-hero-right">
-              <h2>ثبت‌نام و تمدید دوره</h2>
-              <p>درخواست‌های شما پس از ثبت، توسط مدیر بررسی و تأیید می‌شوند</p>
-            </div>
-            <div className="reg-hero-left">
-              <span className="reg-hero-label">دوره فعلی</span>
-              <strong className="reg-hero-value">{currentCourse?.title || '—'}</strong>
-              <span className="reg-hero-sub">{currentCourse?.level || ''}</span>
-            </div>
-          </section>
+      <section className="student-page-panel">
+        <div className="student-page-panel-heading">
+          <div><h3>نوع درخواست</h3><p>نوع درخواست خود را انتخاب کنید</p></div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {actionOptions.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              className={`student-page-btn ${actionType === opt.value ? 'primary' : 'secondary'}`}
+              onClick={() => setActionType(opt.value)}
+            >
+              <opt.icon style={{ width: 15, height: 15 }} /> {opt.label}
+            </button>
+          ))}
+        </div>
+      </section>
 
-          {currentCourse && (
-            <section className="reg-current-banner">
-              <div className="reg-current-info">
-                <GraduationCap />
-                <div>
-                  <strong>{currentCourse.title}</strong>
-                  <span>کد: {currentCourse.code || '—'} | پایان: {jalaliDate(currentCourse.endDate)}</span>
-                </div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 24, borderBottom: '2px solid #F1F5F9' }}>
+        <button
+          type="button"
+          className="student-page-btn primary"
+          style={{ borderRadius: '8px 8px 0 0', borderBottom: '2px solid #2563EB', background: activeTab === 'available' ? '#2563EB' : '#fff', color: activeTab === 'available' ? '#fff' : '#475569', borderColor: activeTab === 'available' ? '#2563EB' : '#E2E8F0' }}
+          onClick={() => setActiveTab('available')}
+        >
+          <BookOpen style={{ width: 15, height: 15 }} /> کلاس‌های دارای ظرفیت
+        </button>
+        <button
+          type="button"
+          className="student-page-btn secondary"
+          style={{ borderRadius: '8px 8px 0 0', borderBottom: '2px solid #2563EB', background: activeTab === 'requests' ? '#2563EB' : '#fff', color: activeTab === 'requests' ? '#fff' : '#475569', borderColor: activeTab === 'requests' ? '#2563EB' : '#E2E8F0' }}
+          onClick={() => setActiveTab('requests')}
+        >
+          <ClipboardList style={{ width: 15, height: 15 }} /> درخواست‌های من
+          {pendingRequests.length > 0 && <span style={{ background: '#EF4444', color: '#fff', fontSize: 11, fontWeight: 700, borderRadius: 10, padding: '2px 6px', marginRight: 4 }}>{faNum(pendingRequests.length)}</span>}
+        </button>
+      </div>
+
+      {activeTab === 'available' && (
+        <>
+          {renewalClasses.length > 0 && (
+            <section className="student-page-panel">
+              <div className="student-page-panel-heading">
+                <div><h3>کلاس‌های دارای ظرفیت</h3></div>
               </div>
-              <button type="button" className="reg-renew-btn" onClick={() => { setActionType('renewal'); setActiveTab('available'); }}>
-                <RefreshCw /> درخواست تمدید
-              </button>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(340px,1fr))', gap: 16 }}>
+                {renewalClasses.map((cls) => (
+                  <article
+                    key={cls.id}
+                    onClick={() => setSelectedClass(cls)}
+                    style={{
+                      background: selectedClass?.id === cls.id ? '#EFF6FF' : '#F8FAFC',
+                      border: `2px solid ${selectedClass?.id === cls.id ? '#2563EB' : '#E2E8F0'}`,
+                      borderRadius: 12, padding: 18, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 10, transition: 'all .2s ease',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <h3 style={{ fontSize: 16, fontWeight: 700, color: '#1E293B', margin: 0 }}>{cls.title}</h3>
+                        {cls.code && <span style={{ fontSize: 12, color: '#94A3B8' }}>{cls.code}</span>}
+                      </div>
+                      {cls.level && <span className="student-page-badge present">{cls.level}</span>}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {cls.teacherName && <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#64748B' }}><Users style={{ width: 15, height: 15 }} /> <span>{cls.teacherName}</span></div>}
+                      {cls.weekday && <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#64748B' }}><Clock style={{ width: 15, height: 15 }} /> <span>{cls.weekday} {cls.startsAt ? `| ${cls.startsAt}` : ''}</span></div>}
+                      {cls.room && <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#64748B' }}><MapPin style={{ width: 15, height: 15 }} /> <span>{cls.room}</span></div>}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8, borderTop: '1px solid #E2E8F0' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#10B981' }}>
+                        <Users style={{ width: 14, height: 14 }} /> <span>{faNum(cls.availableSeats)} صندلی آزاد</span>
+                      </div>
+                      <strong style={{ fontSize: 15, fontWeight: 700, color: '#1E293B' }}>{faNum(cls.fee)} تومان</strong>
+                    </div>
+                  </article>
+                ))}
+              </div>
             </section>
           )}
 
-          <div className="reg-tabs">
-            <button type="button" className={activeTab === 'available' ? 'active' : ''} onClick={() => setActiveTab('available')}>
-              <BookOpen /> کلاس‌های دارای ظرفیت
-            </button>
-            <button type="button" className={activeTab === 'requests' ? 'active' : ''} onClick={() => setActiveTab('requests')}>
-              <ClipboardList /> درخواست‌های من
-              {pendingRequests.length > 0 && <span className="reg-tab-badge">{faNum(pendingRequests.length)}</span>}
-            </button>
-          </div>
-
-          {activeTab === 'available' && (
-            <>
-              <section className="reg-action-bar">
-                <div className="reg-action-label">نوع درخواست:</div>
-                <div className="reg-action-options">
-                  {actionOptions.map((opt) => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      className={`reg-action-chip ${actionType === opt.value ? 'active' : ''}`}
-                      onClick={() => setActionType(opt.value)}
-                    >
-                      <opt.icon /> {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </section>
-
-              {renewalClasses.length > 0 && (
-                <section className="reg-classes-section">
-                  <h3 className="reg-section-title">کلاس‌های دارای ظرفیت</h3>
-                  <div className="reg-classes-grid">
-                    {renewalClasses.map((cls) => (
-                      <article
-                        key={cls.id}
-                        className={`reg-class-card ${selectedClass?.id === cls.id ? 'selected' : ''}`}
-                        onClick={() => setSelectedClass(cls)}
-                      >
-                        <div className="reg-class-top">
-                          <h4>{cls.title}</h4>
-                          {cls.code && <span className="reg-class-code">{cls.code}</span>}
-                        </div>
-                        {cls.level && <span className="reg-class-level">{cls.level}</span>}
-                        <div className="reg-class-meta">
-                          {cls.teacherName && <div className="reg-meta-row"><User /> <span>{cls.teacherName}</span></div>}
-                          {cls.weekday && <div className="reg-meta-row"><Clock /> <span>{cls.weekday} {cls.startsAt ? `| ${cls.startsAt}` : ''}</span></div>}
-                          {cls.room && <div className="reg-meta-row"><MapPin /> <span>{cls.room}</span></div>}
-                        </div>
-                        <div className="reg-class-footer">
-                          <div className="reg-seats">
-                            <Users /> <span>{faNum(cls.availableSeats)} صندلی آزاد</span>
-                          </div>
-                          <strong className="reg-fee">{faNum(cls.fee)} تومان</strong>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {fullClasses.length > 0 && (
-                <section className="reg-classes-section">
-                  <h3 className="reg-section-title">کلاس‌های تکمیل‌ظرفیت <span className="reg-section-hint">(قابل ثبت در لیست انتظار)</span></h3>
-                  <div className="reg-classes-grid">
-                    {fullClasses.map((cls) => (
-                      <article
-                        key={cls.id}
-                        className={`reg-class-card full ${selectedClass?.id === cls.id ? 'selected' : ''}`}
-                        onClick={() => { setSelectedClass(cls); setActionType('waitlist'); }}
-                      >
-                        <div className="reg-class-top">
-                          <h4>{cls.title}</h4>
-                          {cls.code && <span className="reg-class-code">{cls.code}</span>}
-                        </div>
-                        {cls.level && <span className="reg-class-level">{cls.level}</span>}
-                        <div className="reg-class-meta">
-                          {cls.teacherName && <div className="reg-meta-row"><User /> <span>{cls.teacherName}</span></div>}
-                          {cls.weekday && <div className="reg-meta-row"><Clock /> <span>{cls.weekday} {cls.startsAt ? `| ${cls.startsAt}` : ''}</span></div>}
-                          {cls.room && <div className="reg-meta-row"><MapPin /> <span>{cls.room}</span></div>}
-                        </div>
-                        <div className="reg-class-footer">
-                          <div className="reg-seats full"><Users /> <span>ظرفیت تکمیل</span></div>
-                          <strong className="reg-fee">{faNum(cls.fee)} تومان</strong>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {classes.length === 0 && (
-                <div className="reg-empty"><BookOpen /><p>در حال حاضر کلاسی برای ثبت‌نام موجود نیست.</p></div>
-              )}
-
-              {selectedClass && (
-                <div className="reg-submit-bar">
-                  <div className="reg-submit-info">
-                    <strong>{TYPE_LABEL[actionType]} - {selectedClass.title}</strong>
-                    <span>مبلغ: {faNum(selectedClass.fee)} تومان</span>
-                  </div>
-                  <input
-                    className="reg-note-input"
-                    placeholder="توضیحات (اختیاری)"
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                  />
-                  <div className="reg-submit-actions">
-                    <button type="button" className="reg-cancel-btn" onClick={() => setSelectedClass(null)}>انصراف</button>
-                    <button type="button" className="reg-submit-btn" disabled={submitting} onClick={submitRequest}>
-                      {submitting ? <Loader2 className="animate-spin" /> : <CheckCircle />}
-                      ثبت درخواست
-                    </button>
-                  </div>
-                </div>
-              )}
-            </>
+          {fullClasses.length > 0 && (
+            <section className="student-page-panel">
+              <div className="student-page-panel-heading">
+                <div><h3>کلاس‌های تکمیل‌ظرفیت</h3><p>قابل ثبت در لیست انتظار</p></div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(340px,1fr))', gap: 16 }}>
+                {fullClasses.map((cls) => (
+                  <article
+                    key={cls.id}
+                    onClick={() => { setSelectedClass(cls); setActionType('waitlist'); }}
+                    style={{
+                      background: selectedClass?.id === cls.id ? '#FEF2F2' : '#F8FAFC',
+                      border: `2px solid ${selectedClass?.id === cls.id ? '#EF4444' : '#E2E8F0'}`,
+                      borderRadius: 12, padding: 18, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 10, opacity: 0.85, transition: 'all .2s ease',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <h3 style={{ fontSize: 16, fontWeight: 700, color: '#1E293B', margin: 0 }}>{cls.title}</h3>
+                        {cls.code && <span style={{ fontSize: 12, color: '#94A3B8' }}>{cls.code}</span>}
+                      </div>
+                      {cls.level && <span className="student-page-badge absent">{cls.level}</span>}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {cls.teacherName && <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#64748B' }}><Users style={{ width: 15, height: 15 }} /> <span>{cls.teacherName}</span></div>}
+                      {cls.weekday && <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#64748B' }}><Clock style={{ width: 15, height: 15 }} /> <span>{cls.weekday} {cls.startsAt ? `| ${cls.startsAt}` : ''}</span></div>}
+                      {cls.room && <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#64748B' }}><MapPin style={{ width: 15, height: 15 }} /> <span>{cls.room}</span></div>}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8, borderTop: '1px solid #E2E8F0' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#EF4444' }}>
+                        <Users style={{ width: 14, height: 14 }} /> <span>ظرفیت تکمیل</span>
+                      </div>
+                      <strong style={{ fontSize: 15, fontWeight: 700, color: '#1E293B' }}>{faNum(cls.fee)} تومان</strong>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
           )}
 
-          {activeTab === 'requests' && (
-            <>
-              {pendingRequests.length > 0 && (
-                <section className="reg-requests-section">
-                  <h3 className="reg-section-title">درخواست‌های در انتظار</h3>
-                  <div className="reg-requests-list">
-                    {pendingRequests.map((req) => {
-                      const TypeIcon = TYPE_ICON[req.type] || ClipboardList;
+          {classes.length === 0 && (
+            <div className="student-page-empty"><BookOpen /><p>در حال حاضر کلاسی برای ثبت‌نام موجود نیست.</p></div>
+          )}
+
+          {selectedClass && (
+            <section className="student-page-panel" style={{ position: 'sticky', bottom: 0, zIndex: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                <div>
+                  <strong style={{ fontSize: 14, fontWeight: 700, color: '#1E293B' }}>{TYPE_LABEL[actionType]} - {selectedClass.title}</strong>
+                  <span style={{ fontSize: 13, color: '#64748B', display: 'block', marginTop: 2 }}>مبلغ: {faNum(selectedClass.fee)} تومان</span>
+                </div>
+                <input
+                  className="student-page-btn secondary"
+                  style={{ flex: 1, minWidth: 200, height: 36, padding: '0 12px' }}
+                  placeholder="توضیحات (اختیاری)"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button type="button" className="student-page-btn secondary" onClick={() => setSelectedClass(null)}>انصراف</button>
+                  <button type="button" className="student-page-btn primary" disabled={submitting} onClick={submitRequest}>
+                    {submitting ? <Loader2 className="animate-spin" style={{ width: 15, height: 15 }} /> : <CheckCircle style={{ width: 15, height: 15 }} />}
+                    ثبت درخواست
+                  </button>
+                </div>
+              </div>
+            </section>
+          )}
+        </>
+      )}
+
+      {activeTab === 'requests' && (
+        <>
+          {pendingRequests.length > 0 && (
+            <section className="student-page-panel">
+              <div className="student-page-panel-heading">
+                <div><h3>درخواست‌های در انتظار</h3></div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {pendingRequests.map((req) => {
+                  const TypeIcon = TYPE_ICON[req.type] || ClipboardList;
+                  const StatusIcon = STATUS_ICON[req.status] || Clock;
+                  return (
+                    <div key={req.id} style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 10, padding: 16 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <TypeIcon style={{ width: 18, height: 18, color: '#2563EB' }} />
+                          <strong style={{ fontSize: 14, fontWeight: 700, color: '#1E293B' }}>{TYPE_LABEL[req.type] || req.type}</strong>
+                        </div>
+                        <span className={`student-page-badge ${STATUS_CLASS[req.status] || ''}`}>
+                          <StatusIcon style={{ width: 14, height: 14 }} /> {STATUS_LABEL[req.status] || req.status}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', gap: 16, fontSize: 12, color: '#64748B', marginBottom: 8, flexWrap: 'wrap' }}>
+                        <span>تاریخ: {jalaliDate(req.createdAt)}</span>
+                        <span>مبلغ: {faNum(req.amount)} تومان</span>
+                        <span>پرداخت: {PAY_LABEL[req.paymentStatus] || req.paymentStatus}</span>
+                        {req.trackingCode && <span>کد پیگیری: {req.trackingCode}</span>}
+                      </div>
+                      {req.note && <p style={{ fontSize: 13, color: '#475569', margin: '4px 0 8px' }}>{req.note}</p>}
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        {req.amount > 0 && req.paymentStatus !== 'paid' && req.status === 'pending' && (
+                          <button type="button" className="student-page-btn primary" disabled={actionLoading === `pay-${req.id}`} onClick={() => payRequest(req.id)}>
+                            {actionLoading === `pay-${req.id}` ? <Loader2 className="animate-spin" style={{ width: 15, height: 15 }} /> : <CreditCard style={{ width: 15, height: 15 }} />} پرداخت آنلاین
+                          </button>
+                        )}
+                        <button type="button" className="student-page-btn danger" disabled={actionLoading === `cancel-${req.id}`} onClick={() => cancelRequest(req.id)}>
+                          <XCircle style={{ width: 15, height: 15 }} /> لغو درخواست
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {historyRequests.length > 0 && (
+            <section className="student-page-panel">
+              <div className="student-page-panel-heading">
+                <div><h3>سابقه درخواست‌ها</h3></div>
+              </div>
+              <div className="student-page-table-wrap">
+                <table className="student-page-table">
+                  <thead>
+                    <tr><th>نوع</th><th>تاریخ</th><th>مبلغ</th><th>پرداخت</th><th>وضعیت</th></tr>
+                  </thead>
+                  <tbody>
+                    {historyRequests.map((req) => {
                       const StatusIcon = STATUS_ICON[req.status] || Clock;
                       return (
-                        <article key={req.id} className="reg-request-card">
-                          <div className="reg-request-top">
-                            <div className="reg-request-type">
-                              <TypeIcon /> <strong>{TYPE_LABEL[req.type] || req.type}</strong>
-                            </div>
-                            <span className={`reg-status-badge ${STATUS_CLASS[req.status] || ''}`}>
-                              <StatusIcon /> {STATUS_LABEL[req.status] || req.status}
+                        <tr key={req.id}>
+                          <td>{TYPE_LABEL[req.type] || req.type}</td>
+                          <td>{jalaliDate(req.createdAt)}</td>
+                          <td style={{ fontWeight: 600 }}>{faNum(req.amount)} تومان</td>
+                          <td>{PAY_LABEL[req.paymentStatus] || req.paymentStatus}</td>
+                          <td>
+                            <span className={`student-page-badge ${STATUS_CLASS[req.status] || ''}`}>
+                              <StatusIcon style={{ width: 14, height: 14 }} /> {STATUS_LABEL[req.status] || req.status}
                             </span>
-                          </div>
-                          <div className="reg-request-meta">
-                            <span>تاریخ: {jalaliDate(req.createdAt)}</span>
-                            <span>مبلغ: {faNum(req.amount)} تومان</span>
-                            <span>پرداخت: {PAY_LABEL[req.paymentStatus] || req.paymentStatus}</span>
-                            {req.trackingCode && <span>کد پیگیری: {req.trackingCode}</span>}
-                          </div>
-                          {req.note && <p className="reg-request-note">{req.note}</p>}
-                          <div className="reg-request-actions">
-                            {req.amount > 0 && req.paymentStatus !== 'paid' && req.status === 'pending' && (
-                              <button type="button" className="reg-pay-btn" disabled={actionLoading === `pay-${req.id}`} onClick={() => payRequest(req.id)}>
-                                {actionLoading === `pay-${req.id}` ? <Loader2 className="animate-spin" /> : <CreditCard />} پرداخت آنلاین
-                              </button>
-                            )}
-                            <button type="button" className="reg-cancel-req-btn" disabled={actionLoading === `cancel-${req.id}`} onClick={() => cancelRequest(req.id)}>
-                              <XCircle /> لغو درخواست
-                            </button>
-                          </div>
-                        </article>
+                          </td>
+                        </tr>
                       );
                     })}
-                  </div>
-                </section>
-              )}
-
-              {historyRequests.length > 0 && (
-                <section className="reg-requests-section">
-                  <h3 className="reg-section-title">سابقه درخواست‌ها</h3>
-                  <div className="reg-table-wrap">
-                    <table className="reg-history-table">
-                      <thead>
-                        <tr>
-                          <th>نوع</th>
-                          <th>تاریخ</th>
-                          <th>مبلغ</th>
-                          <th>پرداخت</th>
-                          <th>وضعیت</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {historyRequests.map((req) => {
-                          const StatusIcon = STATUS_ICON[req.status] || Clock;
-                          return (
-                            <tr key={req.id}>
-                              <td>{TYPE_LABEL[req.type] || req.type}</td>
-                              <td>{jalaliDate(req.createdAt)}</td>
-                              <td>{faNum(req.amount)} تومان</td>
-                              <td>{PAY_LABEL[req.paymentStatus] || req.paymentStatus}</td>
-                              <td>
-                                <span className={`reg-status-badge ${STATUS_CLASS[req.status] || ''}`}>
-                                  <StatusIcon /> {STATUS_LABEL[req.status] || req.status}
-                                </span>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </section>
-              )}
-
-              {requests.length === 0 && (
-                <div className="reg-empty"><ClipboardList /><p>هنوز درخواستی ثبت نکرده‌اید.</p></div>
-              )}
-            </>
+                  </tbody>
+                </table>
+              </div>
+            </section>
           )}
-        </div>
-      </div>
-    </div>
+
+          {requests.length === 0 && (
+            <div className="student-page-empty"><ClipboardList /><p>هنوز درخواستی ثبت نکرده‌اید.</p></div>
+          )}
+        </>
+      )}
+    </StudentShell>
   );
 }

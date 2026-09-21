@@ -32,6 +32,7 @@ import {
   TrendingUp,
   MessageSquare,
 } from 'lucide-react';
+import { StudentShell } from '@/components/academy/student-shell';
 
 type Stats = {
   activeCourses: number;
@@ -118,10 +119,10 @@ export default function AcademyDashboardPage() {
   }
 
   if (loading) {
-    return <div className="academy-dashboard-loading"><Loader2 className="animate-spin" /></div>;
+    return <div className="student-shell-loading"><Loader2 className="animate-spin" /></div>;
   }
   if (error || !user || !stats) {
-    return <div className="academy-dashboard-loading"><p>خطا در بارگذاری داشبورد</p></div>;
+    return <div className="student-shell-loading"><p>خطا در بارگذاری داشبورد</p></div>;
   }
 
   if (dashboardType === 'teacher' && teacherStats) {
@@ -130,21 +131,6 @@ export default function AcademyDashboardPage() {
 
   return <StudentDashboard user={user} stats={stats} courses={courses} upcoming={upcoming} assignments={assignments} notices={notices} logout={logout} />;
 }
-
-const studentNavItems = [
-  { label: 'داشبورد', icon: Home, href: '/academy/dashboard', active: true },
-  { label: 'دوره‌های من', icon: BookOpen, href: '/academy/classes', active: false },
-  { label: 'کلاس‌های من', icon: ClipboardCheck, href: '/academy/classes', active: false },
-  { label: 'حضور و غیاب', icon: CheckCircle2, href: '/academy/attendance', active: false },
-  { label: 'تمرین و پیشرفت', icon: BarChart3, href: '/academy/education-record', active: false },
-  { label: 'مالی', icon: Wallet, href: '/academy/finance', active: false },
-  { label: 'پیام‌ها', icon: Bell, href: '/academy/classes', active: false },
-  { label: 'تکالیف', icon: ClipboardList, href: '/academy/classes', active: false },
-  { label: 'فایل‌ها و منابع', icon: Folder, href: '/academy/classes', active: false },
-  { label: 'پروفایل من', icon: UserRound, href: '/academy/classes', active: false },
-  { label: 'پشتیبانی', icon: Headphones, href: '/academy/classes', active: false },
-  { label: 'تنظیمات', icon: Settings, href: '/academy/classes', active: false },
-];
 
 function StudentDashboard({
   user, stats, courses, upcoming, assignments, notices, logout,
@@ -157,77 +143,168 @@ function StudentDashboard({
   notices: Notice[];
   logout: () => void;
 }) {
-  const router = useRouter();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const progress = Math.max(0, Math.min(100, stats.avgProgress));
   const firstCourse = courses[0];
   const firstAssignment = assignments[0];
 
+  const statCards = [
+    { label: 'وضعیت حساب', value: stats.unpaidBalance > 0 ? stats.unpaidBalance.toLocaleString('fa-IR') : 'تسویه', sub: stats.unpaidBalance > 0 ? 'تومان' : 'حساب شما', icon: Wallet, color: '#2563EB', bg: '#EFF6FF', link: '/academy/finance', linkLabel: 'مشاهده جزئیات مالی' },
+    { label: 'تکالیف انجام‌نشده', value: stats.pendingAssignments.toLocaleString('fa-IR'), sub: 'تکلیف', icon: ClipboardList, color: '#F59E0B', bg: '#FEF3C7', link: '/academy/classes', linkLabel: 'مشاهده تکالیف' },
+    { label: 'کلاس بعدی', value: upcoming[0] ? upcoming[0].title : 'کلاسی ندارید', sub: upcoming[0] ? formatJalali(upcoming[0].startsAt) : '—', icon: CalendarDays, color: '#10B981', bg: '#ECFDF5', link: '/academy/classes', linkLabel: 'مشاهده برنامه' },
+    { label: 'میانگین پیشرفت', value: `${progress.toLocaleString('fa-IR')}٪`, sub: 'نسبت به ماه قبل', icon: TrendingUp, color: '#8B5CF6', bg: '#F5F3FF', link: '/academy/education-record', linkLabel: 'گزارش پیشرفت' },
+  ];
+
   return (
-    <div className="student-dashboard" dir="rtl">
-      {sidebarOpen && <div className="student-dashboard-overlay" onClick={() => setSidebarOpen(false)} />}
-      <aside className={`student-dashboard-sidebar ${sidebarOpen ? 'open' : ''}`}>
-        <div className="student-sidebar-inner">
-          <div className="student-brand">
-            <div className="student-brand-mark"><GraduationCap /></div>
-            <div><strong>دنیای الگوریتم</strong><small>آموزش برای ساختن آینده</small></div>
-          </div>
-          <nav className="student-sidebar-nav">
-            {studentNavItems.map((item) => (
-              <button key={item.label} type="button" className={item.active ? 'active' : ''} onClick={() => { router.push(item.href); setSidebarOpen(false); }}>
-                <item.icon /><span>{item.label}</span>
-                {item.label === 'پیام‌ها' && notices.length > 0 && <b>{notices.length.toLocaleString('fa-IR')}</b>}
-              </button>
-            ))}
-          </nav>
-          <div className="student-support-card">
-            <Headphones />
-            <strong>نیاز به کمک دارید؟</strong>
-            <p>با پشتیبانی در ارتباط باشید</p>
-            <button type="button">تماس با پشتیبانی</button>
-          </div>
+    <StudentShell
+      user={user}
+      activePath="/academy/dashboard"
+      pageTitle="داشبورد"
+      pageSubtitle="خلاصه وضعیت آموزشی و مالی شما"
+      noticeCount={notices.length}
+      onLogout={logout}
+    >
+      <section className="student-page-hero">
+        <div>
+          <h2>سلام {user.firstName} {user.lastName}</h2>
+          <p>به پنل آموزشگاه خوش آمدید</p>
         </div>
-      </aside>
+        <div className="student-page-hero-badge">
+          <strong>{stats.activeCourses.toLocaleString('fa-IR')}</strong>
+          <span>دوره فعال</span>
+        </div>
+      </section>
 
-      <main className="student-dashboard-main">
-        <header className="student-dashboard-header">
-          <button type="button" className="student-menu-button" onClick={() => setSidebarOpen(true)} aria-label="منو"><Menu /></button>
-          <div className="student-header-actions">
-            <button type="button" aria-label="اعلان‌ها"><Bell /><span>{notices.length > 0 ? notices.length : ''}</span></button>
-            <button type="button" aria-label="پیام‌ها"><MessageSquare /></button>
-            <div className="student-profile">
-              <div className="student-profile-avatar">{user.firstName.slice(0, 1)}</div>
-              <div><strong>سلام {user.firstName} {user.lastName}</strong><small>به پنل آموزشگاه خوش آمدید</small></div>
+      <section className="student-page-stats">
+        {statCards.map((s, i) => (
+          <div key={i} className="student-page-stat-card">
+            <span className="student-page-stat-icon" style={{ background: s.bg, color: s.color }}><s.icon /></span>
+            <div className="student-page-stat-body">
+              <span className="student-page-stat-label">{s.label}</span>
+              <strong className="student-page-stat-value" style={{ fontSize: s.value.length > 10 ? 16 : 22 }}>{s.value}</strong>
+              <span style={{ fontSize: 12, color: '#94A3B8' }}>{s.sub}</span>
+              <Link href={s.link} style={{ fontSize: 12, color: '#2563EB', textDecoration: 'none', fontWeight: 500, marginTop: 4 }}>{s.linkLabel}</Link>
             </div>
-            <button type="button" className="student-logout" onClick={logout} aria-label="خروج"><LogOut /></button>
           </div>
-        </header>
+        ))}
+      </section>
 
-        <div className="student-dashboard-scroll">
-          <section className="student-hero">
-            <Image src="/images/ChatGPT_Image_Aug_30,_2026,_02_54_20_PM.png" alt="مسیر یادگیری" fill priority sizes="(max-width: 900px) 100vw, calc(100vw - 280px)" />
-          </section>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+        <section className="student-page-panel" style={{ marginBottom: 0 }}>
+          <div className="student-page-panel-heading">
+            <div><h3>جلسات آتی</h3><p>کلاس‌ها و برنامه پیش‌روی شما</p></div>
+            <Link href="/academy/classes" style={{ fontSize: 13, color: '#2563EB', textDecoration: 'none', fontWeight: 500 }}>مشاهده همه</Link>
+          </div>
+          {upcoming.length === 0 ? (
+            <div className="student-page-empty"><CalendarDays /><p>جلسه‌ای برای نمایش وجود ندارد.</p></div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {upcoming.slice(0, 4).map((item) => (
+                <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid #F1F5F9' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, borderRadius: 8, background: '#EFF6FF', color: '#2563EB', flexShrink: 0 }}>
+                    <Code2 style={{ width: 18, height: 18 }} />
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <strong style={{ fontSize: 14, fontWeight: 600, color: '#1E293B', display: 'block' }}>{item.title}</strong>
+                    <small style={{ fontSize: 12, color: '#64748B' }}>{item.teacherName || 'مدرس مشخص نشده'} · {formatJalali(item.startsAt)}</small>
+                  </div>
+                  <time style={{ fontSize: 13, fontWeight: 600, color: '#2563EB', whiteSpace: 'nowrap' }}>
+                    {new Date(item.startsAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}
+                  </time>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
 
-          <section className="student-stat-grid">
-            <article className="student-stat-card"><div className="student-stat-label">وضعیت حساب</div><div className="student-stat-value"><strong>{stats.unpaidBalance > 0 ? stats.unpaidBalance.toLocaleString('fa-IR') : 'تسویه'}</strong><small>{stats.unpaidBalance > 0 ? 'تومان' : 'حساب شما'}</small></div><Wallet /><Link href="/academy/finance">مشاهده جزئیات مالی</Link></article>
-            <article className="student-stat-card"><div className="student-stat-label">تکالیف انجام‌نشده</div><div className="student-stat-value"><strong>{stats.pendingAssignments.toLocaleString('fa-IR')}</strong><small>تکلیف</small></div><ClipboardList /><Link href="/academy/classes">مشاهده تکالیف</Link></article>
-            <article className="student-stat-card"><div className="student-stat-label">کلاس رو</div><div className="student-stat-value"><strong>{upcoming[0] ? upcoming[0].title : 'کلاسی ندارید'}</strong><small>{upcoming[0] ? formatJalali(upcoming[0].startsAt) : '—'}</small></div><CalendarDays /><Link href="/academy/classes">مشاهده برنامه کلاس‌ها</Link></article>
-            <article className="student-stat-card student-progress-card"><div className="student-stat-label">میانگین پیشرفت</div><div className="student-progress-value"><strong>{progress.toLocaleString('fa-IR')}٪</strong><div className="student-mini-chart"><i /><i /><i /><i /><i /><i /><i /></div></div><span className="student-progress-note">نسبت به ماه قبل</span></article>
-          </section>
+        <section className="student-page-panel" style={{ marginBottom: 0 }}>
+          <div className="student-page-panel-heading">
+            <div><h3>دوره‌های من</h3><p>پیشرفت دوره‌های ثبت‌نام‌شده</p></div>
+            <Link href="/academy/classes" style={{ fontSize: 13, color: '#2563EB', textDecoration: 'none', fontWeight: 500 }}>مشاهده همه</Link>
+          </div>
+          {courses.length === 0 ? (
+            <div className="student-page-empty"><BookOpen /><p>هنوز دوره‌ای ندارید.</p></div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {courses.slice(0, 3).map((course, index) => (
+                <div key={course.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid #F1F5F9' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, borderRadius: 8, background: ['#EFF6FF', '#ECFDF5', '#F5F3FF'][index % 3], color: ['#2563EB', '#10B981', '#8B5CF6'][index % 3], flexShrink: 0 }}>
+                    <Code2 style={{ width: 18, height: 18 }} />
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <strong style={{ fontSize: 14, fontWeight: 600, color: '#1E293B', display: 'block' }}>{course.title}</strong>
+                    <small style={{ fontSize: 12, color: '#64748B' }}>{course.teacherName || 'مدرس مشخص نشده'}</small>
+                    <div style={{ width: '100%', height: 5, borderRadius: 3, background: '#F1F5F9', overflow: 'hidden', marginTop: 6 }}>
+                      <div style={{ width: `${course.progress}%`, height: '100%', borderRadius: 3, background: 'linear-gradient(90deg,#2563EB,#1D4ED8)' }} />
+                    </div>
+                  </div>
+                  <b style={{ fontSize: 13, fontWeight: 700, color: '#1E293B', whiteSpace: 'nowrap' }}>{course.progress.toLocaleString('fa-IR')}٪</b>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
 
-          <section className="student-content-grid">
-            <article className="student-panel student-schedule-panel"><div className="student-panel-heading"><div><h2>جلسات آتی</h2><p>کلاس‌ها و برنامه پیش‌روی شما</p></div><Link href="/academy/classes">مشاهده همه</Link></div>{upcoming.length === 0 ? <div className="student-empty"><CalendarDays /><p>جلسه‌ای برای نمایش وجود ندارد.</p></div> : upcoming.slice(0, 4).map((item) => <div className="student-schedule-row" key={item.id}><span className="student-schedule-icon"><Code2 /></span><div><strong>{item.title}</strong><small>{item.teacherName || 'مدرس مشخص نشده'} · {formatJalali(item.startsAt)}</small></div><time>{new Date(item.startsAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}</time></div>)}</article>
-            <article className="student-panel student-courses-panel"><div className="student-panel-heading"><div><h2>دوره‌های من</h2><p>پیشرفت دوره‌های ثبت‌نام‌شده</p></div><Link href="/academy/classes">مشاهده همه</Link></div>{courses.length === 0 ? <div className="student-empty"><BookOpen /><p>هنوز دوره‌ای ندارید.</p></div> : courses.slice(0, 3).map((course, index) => <div className="student-course-row" key={course.id}><span className={`student-course-icon course-${index}`}><Code2 /></span><div><strong>{course.title}</strong><small>{course.teacherName || 'مدرس مشخص نشده'}</small><div className="student-course-progress"><span style={{ width: `${course.progress}%` }} /></div></div><b>{course.progress.toLocaleString('fa-IR')}٪</b></div>)}</article>
-            <article className="student-panel student-notices-panel"><div className="student-panel-heading"><div><h2>یادداشت‌ها و اطلاعیه‌ها</h2><p>آخرین اطلاعیه‌های آموزشگاه</p></div><Bell /></div>{notices.length === 0 ? <div className="student-empty"><Bell /><p>اطلاعیه‌ای وجود ندارد.</p></div> : notices.slice(0, 3).map((notice, index) => <div className={`student-notice-row notice-${index}`} key={notice.id}><span>{index === 0 ? <Bell /> : index === 1 ? <ClipboardCheck /> : <CalendarDays />}</span><div><strong>{notice.title}</strong><small>{notice.body || formatJalali(notice.createdAt)}</small></div></div>)}</article>
-          </section>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <section className="student-page-panel" style={{ marginBottom: 0 }}>
+          <div className="student-page-panel-heading">
+            <div><h3>فعالیت‌های اخیر</h3><p>آخرین فعالیت‌های ثبت‌شده شما</p></div>
+            <Link href="/academy/education-record" style={{ fontSize: 13, color: '#2563EB', textDecoration: 'none', fontWeight: 500 }}>مشاهده همه</Link>
+          </div>
+          <div className="student-page-table-wrap">
+            <table className="student-page-table">
+              <thead>
+                <tr><th>موضوع</th><th>دوره</th><th>تاریخ</th><th>وضعیت</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>آخرین تکلیف ثبت‌شده</strong></td>
+                  <td>{firstAssignment?.title || 'فعالیت آموزشی'}</td>
+                  <td>{formatJalali(firstAssignment?.dueDate || null)}</td>
+                  <td><span className="student-page-badge pending">در انتظار انجام</span></td>
+                </tr>
+                <tr>
+                  <td><strong>پیشرفت دوره</strong></td>
+                  <td>{firstCourse?.title || 'دوره آموزشی'}</td>
+                  <td>امروز</td>
+                  <td><span className="student-page-badge present">در حال پیشرفت</span></td>
+                </tr>
+                <tr>
+                  <td><strong>حضور در کلاس</strong></td>
+                  <td>{firstCourse?.title || 'کلاس آموزشی'}</td>
+                  <td>اخیراً</td>
+                  <td><span className="student-page-badge present">حاضر</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
 
-          <section className="student-bottom-grid">
-            <article className="student-panel student-activities-panel"><div className="student-panel-heading"><div><h2>فعالیت‌های اخیر</h2><p>آخرین فعالیت‌های ثبت‌شده شما</p></div><Link href="/academy/education-record">مشاهده همه فعالیت‌ها</Link></div><div className="student-activity-table"><div><span>موضوع</span><span>دوره</span><span>تاریخ</span><span>وضعیت</span></div><div><strong>آخرین تکلیف ثبت‌شده</strong><span>{firstAssignment?.title || 'فعالیت آموزشی'}</span><span>{formatJalali(firstAssignment?.dueDate || null)}</span><b>در انتظار انجام</b></div><div><strong>پیشرفت دوره</strong><span>{firstCourse?.title || 'دوره آموزشی'}</span><span>امروز</span><b className="success">در حال پیشرفت</b></div><div><strong>حضور در کلاس</strong><span>{firstCourse?.title || 'کلاس آموزشی'}</span><span>اخیراً</span><b className="success">حاضر</b></div></div></article>
-            <article className="student-panel student-overall-panel"><div className="student-panel-heading"><div><h2>پیشرفت کلی</h2><p>نمایش وضعیت یادگیری شما</p></div><TrendingUp /></div><div className="student-donut" style={{ '--progress': `${progress * 3.6}deg` } as React.CSSProperties}><div><strong>{progress.toLocaleString('fa-IR')}٪</strong><small>پیشرفت کلی</small></div></div><Link href="/academy/education-record">گزارش کامل پیشرفت</Link></article>
-          </section>
-        </div>
-      </main>
-    </div>
+        <section className="student-page-panel" style={{ marginBottom: 0 }}>
+          <div className="student-page-panel-heading">
+            <div><h3>یادداشت‌ها و اطلاعیه‌ها</h3><p>آخرین اطلاعیه‌های آموزشگاه</p></div>
+            <Bell style={{ width: 20, height: 20, color: '#94A3B8' }} />
+          </div>
+          {notices.length === 0 ? (
+            <div className="student-page-empty"><Bell /><p>اطلاعیه‌ای وجود ندارد.</p></div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {notices.slice(0, 3).map((notice, index) => (
+                <div key={notice.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 0', borderBottom: '1px solid #F1F5F9' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: 8, background: ['#EFF6FF', '#ECFDF5', '#FEF3C7'][index % 3], color: ['#2563EB', '#10B981', '#F59E0B'][index % 3], flexShrink: 0 }}>
+                    {index === 0 ? <Bell style={{ width: 16, height: 16 }} /> : index === 1 ? <ClipboardCheck style={{ width: 16, height: 16 }} /> : <CalendarDays style={{ width: 16, height: 16 }} />}
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <strong style={{ fontSize: 13, fontWeight: 600, color: '#1E293B', display: 'block' }}>{notice.title}</strong>
+                    <small style={{ fontSize: 12, color: '#64748B', display: 'block', marginTop: 2 }}>{notice.body || formatJalali(notice.createdAt)}</small>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+    </StudentShell>
   );
 }
 

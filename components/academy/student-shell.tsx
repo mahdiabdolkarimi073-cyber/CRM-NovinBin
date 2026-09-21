@@ -4,21 +4,14 @@ import { useRouter } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
 import {
   BookOpen,
-  CalendarDays,
-  ClipboardList,
   CheckCircle2,
   GraduationCap,
   Wallet,
-  UserRound,
-  Settings,
   LifeBuoy,
   Menu,
   Search,
   Bell,
   LogOut,
-  MessageSquare,
-  Folder,
-  UserPlus,
   Home,
 } from 'lucide-react';
 
@@ -34,11 +27,6 @@ const defaultNavItems: StudentNavItem[] = [
   { label: 'حضور و غیاب', icon: CheckCircle2, href: '/academy/attendance' },
   { label: 'نمرات و پیشرفت', icon: GraduationCap, href: '/academy/education-record' },
   { label: 'پرداخت‌ها', icon: Wallet, href: '/academy/finance' },
-  { label: 'ثبت‌نام / تمدید', icon: UserPlus, href: '/academy/registration' },
-  { label: 'پیام‌ها', icon: MessageSquare, href: '/academy/classes' },
-  { label: 'فایل‌ها و منابع', icon: Folder, href: '/academy/classes' },
-  { label: 'پروفایل من', icon: UserRound, href: '/academy/classes' },
-  { label: 'تنظیمات', icon: Settings, href: '/academy/classes' },
 ];
 
 export function StudentShell({
@@ -95,7 +83,6 @@ export function StudentShell({
               >
                 <item.icon />
                 <span>{item.label}</span>
-                {item.label === 'پیام‌ها' && noticeCount > 0 && <b>{noticeCount.toLocaleString('fa-IR')}</b>}
               </button>
             ))}
           </nav>

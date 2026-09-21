@@ -39,23 +39,32 @@ export async function GET(req: NextRequest) {
       ? await (prisma.academyCourse as any).findUnique({ where: { id: activeCourse.courseId } })
       : null;
 
-    let grades: GradeRow[] = record?.grades ? (record.grades as GradeRow[]) : [];
-    if (!grades.length) {
-      const assignments = await (prisma.academyAssignment as any).findMany({
-        where: { studentId, score: { not: null } },
-        orderBy: { createdAt: 'asc' },
-        take: 6,
-      });
-      grades = assignments
-        .filter((a: any) => typeof a.score === 'number')
-        .map((a: any) => ({ label: a.title, score: a.score as number }));
+    const studentGrades = await (prisma.academyStudentGrade as any).findMany({
+      where: { studentId },
+      include: { course: { select: { id: true, title: true } } },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    const grades: GradeRow[] = [];
+    for (const g of studentGrades) {
+      const courseTitle = g.course?.title || 'دوره';
+      if (g.examScore != null) grades.push({ label: `${courseTitle} - آزمون`, score: g.examScore });
+      if (g.assignmentScore != null) grades.push({ label: `${courseTitle} - تکلیف`, score: g.assignmentScore });
+      if (g.participationScore != null) grades.push({ label: `${courseTitle} - مشارکت`, score: g.participationScore });
+      if (g.speakingScore != null) grades.push({ label: `${courseTitle} - Speaking`, score: g.speakingScore });
+      if (g.listeningScore != null) grades.push({ label: `${courseTitle} - Listening`, score: g.listeningScore });
+      if (g.readingScore != null) grades.push({ label: `${courseTitle} - Reading`, score: g.readingScore });
+      if (g.writingScore != null) grades.push({ label: `${courseTitle} - Writing`, score: g.writingScore });
     }
 
-    const averageGrade = record?.averageGrade
-      ? record.averageGrade
-      : grades.length
-        ? Math.round((grades.reduce((s, g) => s + g.score, 0) / grades.length) * 10) / 10
-        : 0;
+    const allScores = studentGrades.flatMap((g: any) => [
+      g.examScore, g.assignmentScore, g.participationScore,
+      g.speakingScore, g.listeningScore, g.readingScore, g.writingScore,
+    ].filter((v: any) => v != null) as number[]);
+
+    const averageGrade = allScores.length
+      ? Math.round((allScores.reduce((s: number, v: number) => s + v, 0) / allScores.length) * 10) / 10
+      : 0;
 
     const progress = record?.progressPercent ?? activeCourse?.progress ?? 0;
 
