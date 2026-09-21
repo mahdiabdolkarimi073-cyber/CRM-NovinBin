@@ -249,13 +249,12 @@ function jalaliDay(iso: string | null) {
 
 const teacherNavItems = [
   { label: 'داشبورد', icon: BookOpen, href: '/academy/dashboard', active: true },
-  { label: 'کلاس‌های من', icon: BookOpen, href: '/academy/classes', active: false },
-  { label: 'حضور و غیاب', icon: CheckSquare, href: '/academy/attendance', active: false },
-  { label: 'سوابق تحصیلی', icon: GraduationCap, href: '/academy/education-record', active: false },
-  { label: 'ثبت‌نام', icon: ClipboardList, href: '/academy/registration', active: false },
-  { label: 'پرداخت‌ها', icon: Wallet, href: '/academy/finance', active: false },
-  { label: 'پروفایل', icon: UserRound, href: '/academy/classes', active: false },
-  { label: 'تنظیمات', icon: Settings, href: '/academy/classes', active: false },
+  { label: 'کلاس‌های من', icon: BookOpen, href: '/academy/teacher-classes', active: false },
+  { label: 'حضور و غیاب', icon: CheckSquare, href: '/academy/teacher-attendance', active: false },
+  { label: 'نمرات دانش‌آموزان', icon: GraduationCap, href: '/academy/teacher-grades', active: false },
+  { label: 'ارزیابی مدرس', icon: ClipboardList, href: '/academy/teacher-evaluation', active: false },
+  { label: 'پرداخت‌ها', icon: Wallet, href: '/academy/teacher-finance', active: false },
+  { label: 'پروفایل', icon: UserRound, href: '/academy/teacher-profile', active: false },
 ];
 
 function TeacherDashboard({

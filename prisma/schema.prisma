@@ -1961,7 +1961,7 @@ model AcademyStudentGrade {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now())
 
-  course        AcademyCourse @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  course        AcademyCourse? @relation(fields: [courseId], references: [id], onDelete: SetNull)
 
   @@index([studentId, courseId])
   @@index([courseId])
@@ -1982,7 +1982,7 @@ model AcademyTeacherEvaluation {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @default(now())
 
-  course        AcademyCourse @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  course        AcademyCourse? @relation(fields: [courseId], references: [id], onDelete: SetNull)
 
   @@index([studentId, courseId])
   @@index([courseId])
@@ -2002,7 +2002,7 @@ model AcademyInstallment {
   createdAt     DateTime @default(now())
 
   student        AcademyUser   @relation("InstallmentStudent", fields: [studentId], references: [id], onDelete: Cascade)
-  course         AcademyCourse @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  course         AcademyCourse? @relation(fields: [courseId], references: [id], onDelete: SetNull)
 
   @@index([studentId, status])
   @@map("academy_installments")
@@ -2018,7 +2018,7 @@ model AcademyInvoice {
   createdAt   DateTime @default(now())
 
   student        AcademyUser   @relation("InvoiceStudent", fields: [studentId], references: [id], onDelete: Cascade)
-  course         AcademyCourse @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  course         AcademyCourse? @relation(fields: [courseId], references: [id], onDelete: SetNull)
   receipts       AcademyReceipt[]
 
   @@index([studentId])
@@ -2035,7 +2035,7 @@ model AcademyReceipt {
   createdAt       DateTime @default(now())
 
   student        AcademyUser   @relation("ReceiptStudent", fields: [studentId], references: [id], onDelete: Cascade)
-  invoice        AcademyInvoice @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  invoice        AcademyInvoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
 
   @@index([studentId])
   @@map("academy_receipts")
@@ -2199,7 +2199,7 @@ model AcademySyllabus {
   order       Int      @default(0)
   createdAt   DateTime @default(now())
 
-  course       AcademyCourse @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  course       AcademyCourse? @relation(fields: [courseId], references: [id], onDelete: SetNull)
 
   @@index([courseId])
   @@map("academy_syllabi")
@@ -2229,9 +2229,9 @@ model AcademyWeeklySchedule {
   enrolled    Int      @default(0)
   createdAt   DateTime @default(now())
 
-  course       AcademyCourse @relation(fields: [courseId], references: [id], onDelete: SetNull)
-  teacher      AcademyUser   @relation("ScheduleTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
-  room         AcademyRoom   @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  course       AcademyCourse? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  teacher      AcademyUser?   @relation("ScheduleTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
+  room         AcademyRoom?   @relation(fields: [roomId], references: [id], onDelete: SetNull)
 
   @@index([courseId])
   @@index([teacherId])
@@ -2249,8 +2249,8 @@ model AcademyDiscount {
   amount      BigInt   @default(0)
   createdAt   DateTime @default(now())
 
-  student       AcademyUser   @relation("DiscountStudent", fields: [studentId], references: [id], onDelete: SetNull)
-  course        AcademyCourse @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  student       AcademyUser?   @relation("DiscountStudent", fields: [studentId], references: [id], onDelete: SetNull)
+  course        AcademyCourse? @relation(fields: [courseId], references: [id], onDelete: SetNull)
 
   @@index([studentId])
   @@map("academy_discounts")
@@ -2282,7 +2282,7 @@ model AcademyTeacherShare {
   createdAt   DateTime @default(now())
 
   teacher       AcademyUser   @relation("ShareTeacher", fields: [teacherId], references: [id], onDelete: Cascade)
-  course        AcademyCourse @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  course        AcademyCourse? @relation(fields: [courseId], references: [id], onDelete: SetNull)
 
   @@index([teacherId])
   @@map("academy_teacher_shares")

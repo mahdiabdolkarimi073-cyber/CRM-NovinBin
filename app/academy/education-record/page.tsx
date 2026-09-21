@@ -3,30 +3,12 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
-  BookOpen,
-  ClipboardList,
-  CalendarDays,
-  CheckCircle,
-  GraduationCap,
-  MessageSquare,
-  Folder,
-  Wallet,
-  User,
-  UserPlus,
-  Settings,
-  LifeBuoy,
-  Menu,
-  Search,
-  Bell,
   Star,
-  TrendingUp,
-  Target,
-  Award,
-  FileText,
+  CheckCircle,
   Loader2,
   Phone,
-  ArrowLeft,
 } from 'lucide-react';
+import { StudentShell } from '@/components/academy/student-shell';
 
 type User = { firstName: string; lastName: string; avatarUrl?: string | null; role: string };
 type GradeRow = { label: string; score: number };
@@ -46,20 +28,6 @@ type RecordData = {
 };
 type ActiveCourse = { title: string; teacherName: string | null; level: string | null; progress: number };
 
-const navItems = [
-  { label: 'کلاس‌های من', icon: BookOpen, href: '/academy/classes' },
-  { label: 'تکالیف', icon: ClipboardList, href: '/academy/classes' },
-  { label: 'برنامه هفتگی', icon: CalendarDays, href: '/academy/classes' },
-  { label: 'حضور و غیاب', icon: CheckCircle, href: '/academy/attendance' },
-  { label: 'نمرات و پیشرفت', icon: GraduationCap, href: '/academy/education-record', active: true },
-  { label: 'پیام‌ها', icon: MessageSquare, href: '/academy/classes' },
-  { label: 'فایل‌ها', icon: Folder, href: '/academy/classes' },
-  { label: 'پرداخت‌ها', icon: Wallet, href: '/academy/finance' },
-  { label: 'ثبت‌نام / تمدید', icon: UserPlus, href: '/academy/registration' },
-  { label: 'پروفایل من', icon: User, href: '/academy/classes' },
-  { label: 'تنظیمات', icon: Settings, href: '/academy/classes' },
-];
-
 function jalaliDate(iso: string | null) {
   if (!iso) return '—';
   try {
@@ -76,18 +44,16 @@ function renderStars(rating: number) {
   const rounded = rating - full >= 0.75 ? full + 1 : full;
   for (let i = 0; i < 5; i++) {
     if (i < rounded) {
-      stars.push(<Star key={i} className="edu-star full" />);
+      stars.push(<Star key={i} style={{width:18,height:18,color:'#F59E0B',fill:'#F59E0B'}} />);
     } else if (i === rounded && hasHalf) {
       stars.push(
-        <span key={i} className="edu-star-half-wrap">
-          <Star className="edu-star empty" />
-          <span className="edu-star-half">
-            <Star />
-          </span>
+        <span key={i} style={{position:'relative',display:'inline-flex'}}>
+          <Star style={{width:18,height:18,color:'#E2E8F0'}} />
+          <span style={{position:'absolute',top:0,left:0,overflow:'hidden',width:'50%'}}><Star style={{width:18,height:18,color:'#F59E0B',fill:'#F59E0B'}} /></span>
         </span>,
       );
     } else {
-      stars.push(<Star key={i} className="edu-star empty" />);
+      stars.push(<Star key={i} style={{width:18,height:18,color:'#E2E8F0'}} />);
     }
   }
   return stars;
@@ -101,7 +67,11 @@ export default function EducationRecordPage() {
   const [activeCourse, setActiveCourse] = useState<ActiveCourse | null>(null);
   const [grades, setGrades] = useState<GradeRow[]>([]);
   const [averageGrade, setAverageGrade] = useState(0);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  async function logout() {
+    await fetch('/api/academy/logout', { method: 'POST' });
+    router.replace('/academy/login');
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -122,10 +92,10 @@ export default function EducationRecordPage() {
   }, [router]);
 
   if (loading) {
-    return <div className="edu-record-loading"><Loader2 className="animate-spin" /></div>;
+    return <div className="student-shell-loading"><Loader2 className="animate-spin" /></div>;
   }
   if (!user) {
-    return <div className="edu-record-loading"><p>خطا در بارگذاری صفحه</p></div>;
+    return <div className="student-shell-loading"><p>خطا در بارگذاری صفحه</p></div>;
   }
 
   const currentLevel = record?.currentLevel || 'B2';
@@ -156,163 +126,109 @@ export default function EducationRecordPage() {
     ? Math.round((gradesRows.reduce((s, g) => s + g.score, 0) / gradesRows.length) * 10) / 10
     : 0);
 
+  const levelCards = [
+    { label: 'سطح فعلی', value: currentLevel, sub: currentLevelName, badge: 'فعال', date: `از تاریخ ${jalaliDate(record?.levelStartDate ?? null)}` },
+    { label: 'نتیجه تعیین سطح', value: record?.placementResult || currentLevel, sub: '', badge: '', date: `تاریخ آزمون: ${jalaliDate(record?.placementDate ?? null)}` },
+    { label: 'سطح هدف', value: targetLevel, sub: targetLevelName, badge: 'در حال هدف', date: '' },
+  ];
+
   return (
-    <div className="edu-record-layout" dir="rtl">
-      {sidebarOpen && <div className="edu-record-overlay" onClick={() => setSidebarOpen(false)} />}
+    <StudentShell
+      user={user}
+      activePath="/academy/education-record"
+      pageTitle="پرونده آموزشی من"
+      pageSubtitle="گزارش کامل از وضعیت یادگیری و پیشرفت شما"
+      onLogout={logout}
+    >
+      <section className="student-page-hero">
+        <div>
+          <h2>پرونده آموزشی</h2>
+          <p>مسیر پیشرفت از سطح {currentLevel} به {targetLevel}</p>
+        </div>
+        <div className="student-page-hero-badge">
+          <strong>{currentLevel}</strong>
+          <span>{currentLevelName}</span>
+        </div>
+      </section>
 
-      <aside className={`edu-record-sidebar ${sidebarOpen ? 'open' : ''}`}>
-        <div className="edu-record-sidebar-inner">
-          <div className="edu-record-brand">
-            <div className="edu-record-avatar">{user.firstName.slice(0, 1)}</div>
-            <div>
-              <strong>{user.firstName} {user.lastName}</strong>
-              <small>دانش‌آموز</small>
+      <section className="student-page-stats" style={{gridTemplateColumns:'repeat(4,1fr)'}}>
+        {levelCards.map((card, i) => (
+          <div key={i} className="student-page-stat-card" style={{flexDirection:'column',alignItems:'flex-start',gap:4}}>
+            <span className="student-page-stat-label">{card.label}</span>
+            <div style={{display:'flex',alignItems:'center',gap:8}}>
+              <strong className="student-page-stat-value">{card.value}</strong>
+              {card.badge && <span className={`student-page-badge ${card.badge === 'فعال' ? 'present' : 'pending'}`}>{card.badge}</span>}
             </div>
+            {card.sub && <span style={{fontSize:12,color:'#94A3B8'}}>{card.sub}</span>}
+            {card.date && <span style={{fontSize:11,color:'#94A3B8'}}>{card.date}</span>}
           </div>
-
-          <nav className="edu-record-nav">
-            {navItems.map((item) => (
-              <button
-                key={item.label}
-                type="button"
-                className={item.active ? 'active' : ''}
-                onClick={() => router.push(item.href)}
-              >
-                <item.icon />
-                <span>{item.label}</span>
-              </button>
-            ))}
-          </nav>
-
-          <div className="edu-record-support">
-            <strong>نیاز به کمک دارید؟</strong>
-            <p>با پشتیبانی در ارتباط باشید</p>
-            <button type="button"><LifeBuoy /> پشتیبانی</button>
+        ))}
+        <div className="student-page-stat-card" style={{flexDirection:'column',alignItems:'flex-start',gap:4}}>
+          <span className="student-page-stat-label">میزان پیشرفت</span>
+          <strong className="student-page-stat-value" style={{color:'#2563EB'}}>{progress}%</strong>
+          <span style={{fontSize:12,color:'#94A3B8'}}>در مسیر رسیدن به سطح هدف</span>
+          <div style={{width:'100%',height:6,borderRadius:3,background:'#F1F5F9',overflow:'hidden',marginTop:4}}>
+            <div style={{width:`${progress}%`,height:'100%',borderRadius:3,background:'linear-gradient(90deg,#2563EB,#1D4ED8)'}} />
           </div>
         </div>
-      </aside>
+      </section>
 
-      <div className="edu-record-main">
-        <header className="edu-record-header">
-          <div className="edu-record-header-right">
-            <button type="button" className="edu-record-burger" onClick={() => setSidebarOpen(true)} aria-label="منو">
-              <Menu />
-            </button>
-            <div>
-              <h1>پرونده آموزشی من</h1>
-              <p>گزارش کامل از وضعیت یادگیری و پیشرفت شما</p>
-            </div>
-          </div>
-          <div className="edu-record-header-left">
-            <button type="button" aria-label="جستجو"><Search /></button>
-            <button type="button" aria-label="اعلان‌ها" className="edu-record-bell"><Bell /><span /></button>
-            <div className="edu-record-header-avatar">{user.firstName.slice(0, 1)}</div>
-          </div>
-        </header>
-
-        <div className="edu-record-scroll">
-          <section className="edu-record-hero">
-            <div>
-              <h2>پرونده آموزشی</h2>
-              <p>مسیر پیشرفت از سطح {currentLevel} به {targetLevel}</p>
-            </div>
-            <div className="edu-record-hero-level">
-              <strong>{currentLevel}</strong>
-              <span>{currentLevelName}</span>
-            </div>
-          </section>
-
-          <section className="edu-record-cards">
-            <article className="edu-level-card">
-              <span className="edu-card-label">سطح فعلی</span>
-              <div className="edu-card-value-row">
-                <strong className="edu-card-value">{currentLevel}</strong>
-                <span className="edu-status-badge active">فعال</span>
-              </div>
-              <span className="edu-card-sub">{currentLevelName}</span>
-              <span className="edu-card-date">از تاریخ {jalaliDate(record?.levelStartDate ?? null)}</span>
-            </article>
-
-            <article className="edu-level-card">
-              <span className="edu-card-label">نتیجه تعیین سطح</span>
-              <strong className="edu-card-value">{record?.placementResult || currentLevel}</strong>
-              <span className="edu-card-date">تاریخ آزمون: {jalaliDate(record?.placementDate ?? null)}</span>
-              <a className="edu-card-link" href="#">مشاهده جزئیات آزمون</a>
-            </article>
-
-            <article className="edu-level-card">
-              <span className="edu-card-label">سطح هدف</span>
-              <div className="edu-card-value-row">
-                <strong className="edu-card-value">{targetLevel}</strong>
-                <span className="edu-status-badge target">در حال هدف</span>
-              </div>
-              <span className="edu-card-sub">{targetLevelName}</span>
-            </article>
-
-            <article className="edu-level-card">
-              <span className="edu-card-label">میزان پیشرفت</span>
-              <strong className="edu-card-value progress">{progress}%</strong>
-              <span className="edu-card-sub">در مسیر رسیدن به سطح هدف</span>
-              <div className="edu-progress-bar">
-                <div style={{ width: `${progress}%` }} />
-              </div>
-              <a className="edu-card-link" href="#">مشاهده گزارش کامل</a>
-            </article>
-          </section>
-
-          <section className="edu-record-row2">
-            <div className="edu-panel">
-              <h3>نمرات من</h3>
-              <div className="edu-grades-table">
-                <div className="edu-grades-head">
-                  <span>نمره</span>
-                  <span>نتایج</span>
-                </div>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:24}}>
+        <section className="student-page-panel" style={{marginBottom:0}}>
+          <div className="student-page-panel-heading"><div><h3>نمرات من</h3></div></div>
+          <div className="student-page-table-wrap">
+            <table className="student-page-table">
+              <thead>
+                <tr><th>نمره</th><th>نتایج</th></tr>
+              </thead>
+              <tbody>
                 {gradesRows.map((g, i) => (
-                  <div key={i} className="edu-grades-row">
-                    <span>{g.label}</span>
-                    <strong>{g.score}</strong>
-                  </div>
+                  <tr key={i}>
+                    <td>{g.label}</td>
+                    <td style={{fontWeight:700,color:'#1E293B'}}>{g.score}</td>
+                  </tr>
                 ))}
-                <div className="edu-grades-row avg">
-                  <span>میانگین کل</span>
-                  <strong>{avg}</strong>
-                </div>
-              </div>
-            </div>
+                <tr style={{background:'#F8FAFC'}}>
+                  <td style={{fontWeight:700}}>میانگین کل</td>
+                  <td style={{fontWeight:700,color:'#2563EB'}}>{avg}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
 
-            <div className="edu-panel">
-              <h3>ارزیابی مدرس</h3>
-              <div className="edu-rating-row">
-                <strong className="edu-rating-score">{teacherRating.toFixed(1)}</strong>
-                <div className="edu-stars">{renderStars(teacherRating)}</div>
-              </div>
-              <p className="edu-teacher-comment">{teacherComment || 'نظری ثبت نشده است.'}</p>
-              <a className="edu-card-link" href="#">مشاهده همه ارزیابی‌ها</a>
-            </div>
-          </section>
-
-          <section className="edu-next-course">
-            <div className="edu-next-left">
-              <h3>پیشنهاد دوره بعد</h3>
-              <p className="edu-next-subtitle">{nextCourseTitle}</p>
-              <ul className="edu-next-reasons">
-                {nextReasons.map((reason, i) => (
-                  <li key={i}><CheckCircle /> <span>{reason}</span></li>
-                ))}
-              </ul>
-            </div>
-            <div className="edu-next-right">
-              <button type="button" className="edu-next-primary">مشاهده جزئیات و ثبت‌نام</button>
-              <div className="edu-next-support">
-                <span>نیاز به کمک دارید؟</span>
-                <a href="#">با پشتیبانی در ارتباط باشید</a>
-              </div>
-              <button type="button" className="edu-next-secondary"><Phone /> تماس با پشتیبانی</button>
-            </div>
-          </section>
-        </div>
+        <section className="student-page-panel" style={{marginBottom:0}}>
+          <div className="student-page-panel-heading"><div><h3>ارزیابی مدرس</h3></div></div>
+          <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:12}}>
+            <strong style={{fontSize:28,fontWeight:700,color:'#1E293B'}}>{teacherRating.toFixed(1)}</strong>
+            <div style={{display:'flex',gap:2}}>{renderStars(teacherRating)}</div>
+          </div>
+          <p style={{fontSize:13,color:'#64748B',lineHeight:1.6,margin:0}}>{teacherComment || 'نظری ثبت نشده است.'}</p>
+          <a href="#" style={{fontSize:13,color:'#2563EB',textDecoration:'none',fontWeight:500,display:'block',marginTop:12}}>مشاهده همه ارزیابی‌ها</a>
+        </section>
       </div>
-    </div>
+
+      <section className="student-page-panel">
+        <div className="student-page-panel-heading"><div><h3>پیشنهاد دوره بعد</h3><p>{nextCourseTitle}</p></div></div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24,alignItems:'center'}}>
+          <ul style={{listStyle:'none',padding:0,margin:0,display:'flex',flexDirection:'column',gap:8}}>
+            {nextReasons.map((reason, i) => (
+              <li key={i} style={{display:'flex',alignItems:'center',gap:8,fontSize:13,color:'#475569'}}>
+                <CheckCircle style={{width:18,height:18,color:'#22C55E',flexShrink:0}} />
+                <span>{reason}</span>
+              </li>
+            ))}
+          </ul>
+          <div style={{display:'flex',flexDirection:'column',gap:10,alignItems:'flex-start'}}>
+            <button type="button" className="student-page-btn primary">مشاهده جزئیات و ثبت‌نام</button>
+            <div style={{fontSize:12,color:'#94A3B8'}}>
+              <span>نیاز به کمک دارید؟ </span>
+              <a href="#" style={{color:'#2563EB',textDecoration:'none'}}>با پشتیبانی در ارتباط باشید</a>
+            </div>
+            <button type="button" className="student-page-btn secondary"><Phone style={{width:15,height:15}} /> تماس با پشتیبانی</button>
+          </div>
+        </div>
+      </section>
+    </StudentShell>
   );
 }
