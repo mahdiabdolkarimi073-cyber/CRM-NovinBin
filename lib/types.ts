@@ -2847,6 +2847,7 @@ export interface CustomerSocialMessage {
   attachmentName: string | null;
   attachmentType: string | null;
   readAt: string | null;
+  replyToId: string | null;
   createdAt: string;
 }
 

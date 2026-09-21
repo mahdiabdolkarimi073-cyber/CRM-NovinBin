@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { fetchData, createData, updateData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
 import { EmptyState } from '@/components/dashboard/empty-state';
-import { MessageCircle, Send, Search, Paperclip, Video, FileText, X, Info, MoreVertical, Smile, Mic, CheckCheck, Users, XCircle, Phone, ArrowLeft, ArrowRight, FolderTree } from 'lucide-react';
+import { MessageCircle, Send, Search, Paperclip, Video, FileText, X, Info, MoreVertical, Smile, Mic, CheckCheck, Users, XCircle, Phone, PhoneCall, ArrowLeft, ArrowRight, FolderTree, Reply, Menu, User } from 'lucide-react';
 import { relativeTime, formatJalali } from '@/lib/format';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -47,6 +47,7 @@ export default function PortalSocialPage() {
   const [isUsersOpen, setIsUsersOpen] = useState(false);
   const [isEmojiOpen, setIsEmojiOpen] = useState(false);
   const [attachment, setAttachment] = useState<{ url: string; name: string; type: string } | null>(null);
+  const [replyTo, setReplyTo] = useState<CustomerSocialMessage | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -237,8 +238,9 @@ export default function PortalSocialPage() {
     try {
       const payload: Record<string, any> = { receiverId: selectedUser.id, content: text.trim() || null };
       if (attachment) { payload.attachmentUrl = attachment.url; payload.attachmentName = attachment.name; payload.attachmentType = attachment.type; }
+      if (replyTo) payload.replyToId = replyTo.id;
       await createData('customer_social_messages', payload);
-      setText(''); setAttachment(null); setIsEmojiOpen(false);
+      setText(''); setAttachment(null); setIsEmojiOpen(false); setReplyTo(null);
       loadDmMessages(selectedUser.id);
       loadDMConversations();
     } catch (e: any) { toast.error(e.message); }
@@ -290,6 +292,7 @@ export default function PortalSocialPage() {
   const dmConversationUsers = new Set(dmConversations.map((c) => c.profile.id));
   const recentConvoUsers = dmConversations.map((c) => c.profile);
   const otherStaff = filteredStaff.filter((u) => !dmConversationUsers.has(u.id));
+  const mobileUsers = [...recentConvoUsers, ...otherStaff.filter((u) => !recentConvoUsers.some((recent) => recent.id === u.id))];
 
   const filteredDmMessages = useMemo(() => {
     if (!messageSearch.trim()) return dmMessages;
@@ -327,7 +330,37 @@ export default function PortalSocialPage() {
   }
 
   return (
-    <div className="social-network-page">
+    <div className={cn('social-network-page', (selectedUser || (tab === 'folders' && selectedFolderId)) && 'has-mobile-chat')}>
+      {!selectedUser && tab === 'dm' && (
+        <div className="mobile-social-shell">
+          <div className="mobile-social-topbar">
+            <button className="mobile-social-icon" onClick={() => setIsUsersOpen(true)} aria-label="منو"><Menu /></button>
+            <h1>پیام‌ها</h1>
+            <button className="mobile-social-icon" onClick={() => setIsMessageSearchOpen((value) => !value)} aria-label="جستجو"><Search /></button>
+          </div>
+          <div className="mobile-social-search"><Search /><input placeholder="جستجو در پیام‌ها و مخاطبین..." value={search} onChange={(e) => setSearch(e.target.value)} /></div>
+          <div className="mobile-social-filters">
+            <button className="is-active">همه <b>{mobileUsers.length.toLocaleString('fa-IR')}</b></button>
+            <button>خوانده نشده <b>{dmConversations.reduce((sum, conversation) => sum + conversation.unreadCount, 0).toLocaleString('fa-IR')}</b></button>
+            <button onClick={() => setTab('folders')}>گروه‌ها</button>
+            <button>کانال‌ها</button>
+          </div>
+          <div className="mobile-social-list">
+            {mobileUsers.length === 0 ? <div className="mobile-social-empty">هنوز گفتگویی وجود ندارد</div> : mobileUsers.map((user) => {
+              const conversation = dmConversations.find((item) => item.profile.id === user.id);
+              const online = isOnline(user.lastSeenAt);
+              return <button key={user.id} className="mobile-social-row" onClick={() => selectUser(user)}>
+                <span className="mobile-social-row-time">{conversation?.lastMessage ? relativeTime(conversation.lastMessage.createdAt) : ''}<i>{conversation?.unreadCount ? conversation.unreadCount.toLocaleString('fa-IR') : '✓✓'}</i></span>
+                <span className="mobile-social-row-copy"><strong>{getUserLabel(user)}</strong><small>{conversation?.lastMessage?.content || (conversation?.lastMessage?.attachmentUrl ? 'فایل ارسال شد' : online ? 'آنلاین' : 'گفتگوی جدید')}</small></span>
+                <span className="mobile-social-avatar-wrap"><span className="mobile-social-avatar">{getInitials(user)}</span>{online && <i />}</span>
+              </button>;
+            })}
+          </div>
+          <nav className="mobile-social-bottom-nav">
+            <button><PhoneCall /><span>تماس‌ها</span></button><button><Users /><span>گروه‌ها</span></button><button className="is-active"><MessageCircle /><span>پیام‌ها</span></button><button><User /><span>مخاطبین</span></button>
+          </nav>
+        </div>
+      )}
       <header className="social-network-header">
         <div className="social-network-header-info">
           <span className="social-network-title-accent" />
@@ -398,8 +431,6 @@ export default function PortalSocialPage() {
                   <button className="call-action-btn call-action-audio" onClick={() => startCall(selectedUser, 'audio')} aria-label="تماس صوتی" title="تماس صوتی"><Phone /></button>
                   <button className="call-action-btn call-action-video" onClick={() => startCall(selectedUser, 'video')} aria-label="تماس تصویری" title="تماس تصویری"><Video /></button>
                   <button className="staff-chat-icon-button" onClick={() => setIsMessageSearchOpen((v) => !v)} aria-label="جستجوی پیام"><Search /></button>
-                  <button className="staff-chat-icon-button" aria-label="اطلاعات"><Info /></button>
-                  <button className="staff-chat-icon-button" aria-label="گزینه‌های بیشتر"><MoreVertical /></button>
                 </div>
               </header>
 
@@ -419,9 +450,19 @@ export default function PortalSocialPage() {
                   <div className="staff-chat-empty"><Search /><p>پیامی با این عبارت یافت نشد</p></div>
                 ) : filteredDmMessages.map((msg) => {
                   const isMine = msg.senderId === profile?.id;
+                  const repliedMsg = msg.replyToId ? dmMessages.find((m) => m.id === msg.replyToId) : null;
                   return <div key={msg.id} className={cn('staff-chat-message-row', isMine ? 'is-mine' : 'is-other')}>
+                    <button className="staff-chat-reply-btn" onClick={() => setReplyTo(msg)} aria-label="پاسخ"><Reply style={{ width: 14, height: 14 }} /></button>
                     {!isMine && <span className="staff-chat-avatar staff-chat-message-avatar">{getInitials(selectedUser)}</span>}
                     <div className={cn('staff-chat-bubble', isMine ? 'is-mine' : 'is-other')}>
+                      {repliedMsg && (
+                        <div className="staff-chat-bubble-reply">
+                          <div>
+                            <div className="bubble-reply-name">{repliedMsg.senderId === profile?.id ? 'شما' : getUserLabel(selectedUser)}</div>
+                            <div className="bubble-reply-text">{repliedMsg.content || (repliedMsg.attachmentUrl ? 'فایل' : '')}</div>
+                          </div>
+                        </div>
+                      )}
                       {msg.content && <p>{msg.content}</p>}
                       {msg.attachmentUrl && msg.attachmentType === 'image' && <img src={msg.attachmentUrl} alt={msg.attachmentName || ''} />}
                       {msg.attachmentUrl && msg.attachmentType === 'video' && <video src={msg.attachmentUrl} controls />}
@@ -496,6 +537,16 @@ export default function PortalSocialPage() {
 
           {tab === 'dm' && selectedUser && (
             <>
+              {replyTo && (
+                <div className="social-chat-reply-bar">
+                  <Reply className="reply-icon" style={{ width: 18, height: 18 }} />
+                  <div className="reply-content">
+                    <div className="reply-name">{replyTo.senderId === profile?.id ? 'شما' : getUserLabel(selectedUser)}</div>
+                    <div className="reply-text">{replyTo.content || (replyTo.attachmentUrl ? 'فایل' : '')}</div>
+                  </div>
+                  <button className="reply-close" onClick={() => setReplyTo(null)} aria-label="بستن"><X style={{ width: 16, height: 16 }} /></button>
+                </div>
+              )}
               {attachment && <div className="staff-chat-attachment-preview">
                 {attachment.type === 'image' ? <img src={attachment.url} alt="" /> : <span>{attachment.type === 'video' ? <Video /> : attachment.type === 'audio' ? <Mic /> : <FileText />}</span>}
                 <strong>{attachment.name}</strong><button onClick={() => setAttachment(null)} aria-label="حذف فایل"><X /></button>

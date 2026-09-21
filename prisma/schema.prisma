@@ -4665,6 +4665,7 @@ model CustomerSocialMessage {
   attachmentName String?
   attachmentType String?
   readAt         DateTime?
+  replyToId      String?  @db.Uuid
   createdAt      DateTime @default(now())
 
   @@map("customer_social_messages")
