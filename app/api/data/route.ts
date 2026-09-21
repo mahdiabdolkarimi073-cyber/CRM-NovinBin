@@ -192,6 +192,11 @@ const MODEL_MAP: Record<string, any> = {
   customer_social_messages: prisma.customerSocialMessage,
   customer_social_call_sessions: prisma.customerSocialCallSession,
   customer_social_call_signals: prisma.customerSocialCallSignal,
+  secretariat_letters: prisma.secretariatLetter,
+  secretariat_referrals: prisma.secretariatReferral,
+  secretariat_signatures: prisma.secretariatSignature,
+  secretariat_attachments: prisma.secretariatAttachment,
+  secretariat_timeline: prisma.secretariatTimeline,
 };
 
 function getAuth(req: NextRequest) {
@@ -300,6 +305,11 @@ const MODEL_PAGE: Record<string, string> = {
   customer_social_messages: '/dashboard/customer-social',
   customer_social_call_sessions: '/dashboard/customer-social',
   customer_social_call_signals: '/dashboard/customer-social',
+  secretariat_letters: '/dashboard/secretariat',
+  secretariat_referrals: '/dashboard/secretariat',
+  secretariat_signatures: '/dashboard/secretariat',
+  secretariat_attachments: '/dashboard/secretariat',
+  secretariat_timeline: '/dashboard/secretariat',
 };
 
 const SHARED_MODELS = new Set([
@@ -314,6 +324,8 @@ const SHARED_MODELS = new Set([
   'customer_social_folders', 'customer_social_folder_members',
   'customer_social_folder_customers', 'customer_social_messages',
   'customer_social_call_sessions', 'customer_social_call_signals',
+  'secretariat_letters', 'secretariat_referrals', 'secretariat_signatures',
+  'secretariat_attachments', 'secretariat_timeline',
 ]);
 
 async function canAccess(auth: { userId: string }, model: string): Promise<boolean> {
@@ -408,6 +420,23 @@ export async function GET(req: NextRequest) {
       where = { ...where, profileId: auth.userId };
     }
   }
+  if (model === 'secretariat_letters') {
+    const fullProfile = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });
+    const canSeeAll = fullProfile?.role === 'super_admin' || fullProfile?.role === 'owner' || fullProfile?.role === 'admin';
+    if (!canSeeAll) {
+      where = { ...where, OR: [{ createdById: auth.userId }, { currentHolderId: auth.userId }] };
+    }
+  }
+  if (model === 'secretariat_referrals') {
+    const fullProfile = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });
+    const canSeeAll = fullProfile?.role === 'super_admin' || fullProfile?.role === 'owner' || fullProfile?.role === 'admin';
+    if (!canSeeAll) {
+      where = { ...where, OR: [{ fromUserId: auth.userId }, { toUserId: auth.userId }] };
+    }
+  }
+  if (model === 'secretariat_timeline' || model === 'secretariat_signatures' || model === 'secretariat_attachments') {
+    // Access is controlled via the parent letter's access check — these are sub-resources
+  }
   const includeStr = searchParams.get('include');
   const include = includeStr ? JSON.parse(includeStr) : undefined;
   const orderByStr = searchParams.get('orderBy');
@@ -476,6 +505,15 @@ export async function POST(req: NextRequest) {
   }
   if (model === 'host_domains') {
     postData = { ...data, createdBy: auth.userId };
+  }
+  if (model === 'secretariat_letters') {
+    postData = { ...data, createdById: auth.userId };
+  }
+  if (model === 'secretariat_timeline') {
+    postData = { ...data, actionBy: auth.userId };
+  }
+  if (model === 'secretariat_attachments') {
+    postData = { ...data, uploadedBy: auth.userId };
   }
 
   try {

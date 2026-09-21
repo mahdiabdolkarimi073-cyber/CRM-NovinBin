@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { fetchData, createData, updateData, deleteData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
 import { EmptyState } from '@/components/dashboard/empty-state';
-import { MessageCircle, Send, Search, Paperclip, Video, FileText, X, Info, MoreVertical, Filter, Plus, Smile, Mic, CheckCheck, Users, XCircle, UserPlus, UserMinus, Phone, ArrowLeft, FolderTree } from 'lucide-react';
+import { MessageCircle, Send, Search, Paperclip, Video, FileText, X, Info, MoreVertical, Filter, Plus, Smile, Mic, CheckCheck, Users, XCircle, UserPlus, UserMinus, Phone, ArrowLeft, ArrowRight, FolderTree } from 'lucide-react';
 import { relativeTime, formatJalali } from '@/lib/format';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -79,6 +79,9 @@ export default function SocialNetworkPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  const [isRecording, setIsRecording] = useState(false);
 
   const roleLabels: Record<string, string> = { owner: 'مالک', super_admin: 'سوپرادمین', admin: 'مدیر', personnel: 'پرسنل' };
 
@@ -363,6 +366,35 @@ export default function SocialNetworkPage() {
 
   const handleSend = tab === 'dm' ? handleSendDM : handleSendGroup;
 
+  const toggleVoiceRecording = async () => {
+    if (isRecording) {
+      mediaRecorderRef.current?.stop();
+      setIsRecording(false);
+      return;
+    }
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      toast.error('ضبط صدا در این مرورگر پشتیبانی نمی‌شود');
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      recordedChunksRef.current = [];
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+      recorder.ondataavailable = (event: BlobEvent) => { if (event.data.size > 0) recordedChunksRef.current.push(event.data); };
+      recorder.onstop = () => {
+        stream.getTracks().forEach((track) => track.stop());
+        const blob = new Blob(recordedChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+        if (blob.size > 10 * 1024 * 1024) { toast.error('حداکثر حجم ویس ۱۰ مگابایت است'); return; }
+        const reader = new FileReader();
+        reader.onload = () => setAttachment({ url: reader.result as string, name: 'پیام صوتی.webm', type: 'audio' });
+        reader.readAsDataURL(blob);
+      };
+      recorder.start();
+      setIsRecording(true);
+    } catch { toast.error('اجازه دسترسی به میکروفن داده نشد'); }
+  };
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -524,7 +556,7 @@ export default function SocialNetworkPage() {
                   </div>
                 </div>
                 <div className="staff-chat-actions">
-                  <button className="staff-chat-icon-button mobile-only" onClick={() => setIsUsersOpen(true)} aria-label="نمایش کاربران"><Users /></button>
+                  <button className="social-chat-back" onClick={() => { setSelectedUser(null); setIsUsersOpen(true); }} aria-label="بازگشت"><ArrowRight /></button>
                   <button className="call-action-btn call-action-audio" onClick={() => startCall(selectedUser, 'audio')} aria-label="تماس صوتی" title="تماس صوتی"><Phone /></button>
                   <button className="call-action-btn call-action-video" onClick={() => startCall(selectedUser, 'video')} aria-label="تماس تصویری" title="تماس تصویری"><Video /></button>
                   <button className="staff-chat-icon-button" onClick={() => setIsMessageSearchOpen((v) => !v)} aria-label="جستجوی پیام"><Search /></button>
@@ -555,6 +587,7 @@ export default function SocialNetworkPage() {
                       {msg.content && <p>{msg.content}</p>}
                       {msg.attachmentUrl && msg.attachmentType === 'image' && <img src={msg.attachmentUrl} alt={msg.attachmentName || ''} />}
                       {msg.attachmentUrl && msg.attachmentType === 'video' && <video src={msg.attachmentUrl} controls />}
+                      {msg.attachmentUrl && msg.attachmentType === 'audio' && <audio src={msg.attachmentUrl} controls preload="metadata" />}
                       {msg.attachmentUrl && msg.attachmentType === 'file' && <a href={msg.attachmentUrl} download={msg.attachmentName || ''}><FileText />{msg.attachmentName || 'دانلود فایل'}</a>}
                       <span className="staff-chat-message-meta">{relativeTime(msg.createdAt)} {isMine && <CheckCheck />}</span>
                     </div>
@@ -583,7 +616,7 @@ export default function SocialNetworkPage() {
                   </div>
                 </div>
                 <div className="staff-chat-actions">
-                  <button className="staff-chat-icon-button mobile-only" onClick={() => setIsUsersOpen(true)} aria-label="نمایش گروه‌ها"><Users /></button>
+                  <button className="social-chat-back" onClick={() => { setSelectedGroup(null); setIsUsersOpen(true); }} aria-label="بازگشت"><ArrowRight /></button>
                   <button className="staff-chat-icon-button" onClick={() => setIsMessageSearchOpen((v) => !v)} aria-label="جستجوی پیام"><Search /></button>
                   <button className="staff-chat-icon-button" onClick={() => setShowGroupMembers((v) => !v)} aria-label="اعضای گروه"><Users /></button>
                   {isGroupOwner && <button className="staff-chat-icon-button" onClick={() => setShowAddMember(true)} aria-label="افزودن عضو"><UserPlus /></button>}
@@ -644,6 +677,7 @@ export default function SocialNetworkPage() {
                       {msg.content && <p>{msg.content}</p>}
                       {msg.attachmentUrl && msg.attachmentType === 'image' && <img src={msg.attachmentUrl} alt={msg.attachmentName || ''} />}
                       {msg.attachmentUrl && msg.attachmentType === 'video' && <video src={msg.attachmentUrl} controls />}
+                      {msg.attachmentUrl && msg.attachmentType === 'audio' && <audio src={msg.attachmentUrl} controls preload="metadata" />}
                       {msg.attachmentUrl && msg.attachmentType === 'file' && <a href={msg.attachmentUrl} download={msg.attachmentName || ''}><FileText />{msg.attachmentName || 'دانلود فایل'}</a>}
                       <span className="staff-chat-message-meta">{relativeTime(msg.createdAt)}</span>
                     </div>
@@ -671,7 +705,7 @@ export default function SocialNetworkPage() {
                   </div>
                 </div>
                 <div className="staff-chat-actions">
-                  <button className="staff-chat-icon-button mobile-only" onClick={() => setIsUsersOpen(true)} aria-label="نمایش پوشه‌ها"><FolderTree /></button>
+                  <button className="social-chat-back" onClick={() => { setSelectedFolder(null); setIsUsersOpen(true); }} aria-label="بازگشت"><ArrowRight /></button>
                   <a href="/super-admin/customer-folders" className="staff-chat-icon-button" aria-label="مدیریت پوشه" title="مدیریت پوشه‌ها"><Info /></a>
                 </div>
               </header>
@@ -737,7 +771,7 @@ export default function SocialNetworkPage() {
           {((selectedUser || selectedGroup) || (tab === 'folders' && selectedFolder && false)) && (
             <>
               {attachment && <div className="staff-chat-attachment-preview">
-                {attachment.type === 'image' ? <img src={attachment.url} alt="" /> : <span>{attachment.type === 'video' ? <Video /> : <FileText />}</span>}
+                {attachment.type === 'image' ? <img src={attachment.url} alt="" /> : <span>{attachment.type === 'video' ? <Video /> : attachment.type === 'audio' ? <Mic /> : <FileText />}</span>}
                 <strong>{attachment.name}</strong><button onClick={() => setAttachment(null)} aria-label="حذف فایل"><X /></button>
               </div>}
 
@@ -752,7 +786,7 @@ export default function SocialNetworkPage() {
               <div className="staff-chat-composer">
                 <button className="staff-chat-tool" onClick={() => setIsEmojiOpen((v) => !v)} aria-label="افزودن شکلک"><Smile /></button>
                 <label className="staff-chat-tool" aria-label="افزودن فایل"><input type="file" accept="image/*,video/*" onChange={handleFileSelect} style={{ display: 'none' }} /><Paperclip /></label>
-                <button className="staff-chat-tool" aria-label="ضبط صدا"><Mic /></button>
+                <button className={cn('staff-chat-tool', isRecording && 'is-recording')} onClick={toggleVoiceRecording} aria-label={isRecording ? 'توقف ضبط صدا' : 'ضبط صدا'}><Mic /></button>
                 <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder="پیام خود را بنویسید..." />
                 <button className="staff-chat-send" onClick={handleSend} disabled={sending || (!text.trim() && !attachment)} aria-label="ارسال پیام"><Send /></button>
               </div>

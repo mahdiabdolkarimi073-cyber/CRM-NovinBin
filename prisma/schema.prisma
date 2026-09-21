@@ -4644,3 +4644,111 @@ model CustomerSocialCallSignal {
 
   @@map("customer_social_call_signals")
 }
+
+// ============ SECRETARIAT (دبیرخانه) ============
+
+model SecretariatLetter {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId            String?  @db.Uuid
+  letterType       String   @default("internal")
+  subject          String
+  letterNumber     String?
+  letterDate       DateTime?
+  registeredAt     DateTime @default(now())
+  urgency          String   @default("normal")
+  confidentiality  String   @default("normal")
+  senderName       String?
+  receiverName     String?
+  cc               String?
+  body             String?
+  fileNumber       String?
+  notes            String?
+  status           String   @default("DRAFT")
+  trackingCode     String?
+  registrationNumber String?
+  issuedNumber     String?
+  issuedDate       DateTime?
+  sendMethod       String?
+  sendStatus       String?
+  sentAt           DateTime?
+  sendTrackingCode String?
+  signedContent    String?
+  isSigned         Boolean  @default(false)
+  signedAt         DateTime?
+  signedById       String?  @db.Uuid
+  createdById      String   @db.Uuid
+  currentHolderId  String?  @db.Uuid
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @default(now())
+
+  referrals        SecretariatReferral[]
+  signatures       SecretariatSignature[]
+  attachments      SecretariatAttachment[]
+  timeline         SecretariatTimeline[]
+
+  @@map("secretariat_letters")
+}
+
+model SecretariatReferral {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  letterId      String   @db.Uuid
+  fromUserId    String   @db.Uuid
+  toUserId      String   @db.Uuid
+  referredAt    DateTime @default(now())
+  referralType  String   @default("review")
+  notes         String?
+  deadline      DateTime?
+  priority      String   @default("normal")
+  status        String   @default("pending")
+  isReturn      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  letter        SecretariatLetter @relation(fields: [letterId], references: [id], onDelete: Cascade)
+
+  @@map("secretariat_referrals")
+}
+
+model SecretariatSignature {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  letterId        String   @db.Uuid
+  signerId        String   @db.Uuid
+  signedAt        DateTime @default(now())
+  status          String   @default("pending")
+  notes           String?
+  contentSnapshot String?
+  digitalSignature String?
+  createdAt       DateTime @default(now())
+
+  letter          SecretariatLetter @relation(fields: [letterId], references: [id], onDelete: Cascade)
+
+  @@map("secretariat_signatures")
+}
+
+model SecretariatAttachment {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  letterId   String   @db.Uuid
+  fileName   String
+  fileUrl    String
+  fileType   String?
+  fileSize   Int?
+  uploadedBy String   @db.Uuid
+  createdAt  DateTime @default(now())
+
+  letter     SecretariatLetter @relation(fields: [letterId], references: [id], onDelete: Cascade)
+
+  @@map("secretariat_attachments")
+}
+
+model SecretariatTimeline {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  letterId  String   @db.Uuid
+  action    String
+  actionBy  String   @db.Uuid
+  actionAt  DateTime @default(now())
+  details   String?
+  createdAt DateTime @default(now())
+
+  letter    SecretariatLetter @relation(fields: [letterId], references: [id], onDelete: Cascade)
+
+  @@map("secretariat_timeline")
+}

@@ -8,7 +8,7 @@ import {
   UserCheck, ClipboardList, Network, Contact, Megaphone, Wallet,
   FileCheck, Banknote, CreditCard, ArrowRightLeft, Sparkles,
   ClipboardCheck, FileSearch, ArrowUpFromLine, Undo2, Percent, Server, Fingerprint, BriefcaseBusiness,
-  Palette, Archive, FolderTree, Headset,
+  Palette, Archive, FolderTree, Headset, Mailbox,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { Profile } from '@/lib/types';
@@ -61,6 +61,7 @@ export const cartableItems: NavItem[] = [
   { href: '/dashboard/meeting-sms', label: 'پنل پیامک جلسات', icon: Send },
   { href: '/dashboard/calls', label: 'مکالمات', icon: Phone },
   { href: '/dashboard/graphic-works', label: 'کارهای گرافیک', icon: Palette },
+  { href: '/dashboard/secretariat', label: 'دبیرخانه', icon: Mailbox },
 ];
 
 export const financeItems: NavItem[] = [
@@ -288,6 +289,7 @@ export const availablePages = [
   { path: '/dashboard/lead-referrals', label: 'ارجاعیات سرنخ‌های فروش' },
   { path: '/dashboard/service-purchase-invoices', label: 'فاکتور خرید خدمات' },
   { path: '/dashboard/employment-applications', label: 'درخواست‌های استخدام' },
+  { path: '/dashboard/secretariat', label: 'دبیرخانه' },
 ];
 
 export function filterByAccess(profile: Profile | null, items: NavItem[]): NavItem[] {
