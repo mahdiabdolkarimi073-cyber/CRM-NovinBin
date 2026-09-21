@@ -22,11 +22,13 @@ const tabs: { key: TabKey; label: string; icon: any }[] = [
 
 const navItems = [
   { label: 'داشبورد', icon: BookOpen, href: '/academy/admin-dashboard' },
-  { label: 'دانش‌آموزان', icon: Users, href: '/academy/students' },
+  { label: 'مدیریت دانش‌آموزان', icon: Users, href: '/academy/admin-students' },
   { label: 'مدرس‌ها', icon: Users, href: '/academy/teachers' },
   { label: 'آموزش', icon: ClipboardList, href: '/academy/education', active: true },
   { label: 'مالی', icon: Wallet, href: '/academy/finance-management' },
-  { label: 'تنظیمات', icon: Settings, href: '/academy/classes' },
+  { label: 'ثبت‌نام‌ها', icon: ClipboardList, href: '/academy/admin-registration' },
+  { label: 'کلاس‌ها', icon: CalendarDays, href: '/academy/education' },
+  { label: 'تنظیمات', icon: Settings, href: '/academy/admin-settings' },
 ];
 
 function formatJalali(date: string | null) {
@@ -90,6 +92,17 @@ export default function EducationPage() {
   }
 
   if (loading) return <div className="academy-admin-loading"><Loader2 className="animate-spin" /></div>;
+  if (!data) return <div className="academy-admin-loading"><p>خطا در بارگذاری اطلاعات آموزش</p></div>;
+
+  const safeData = {
+    courses: data.courses || [],
+    terms: data.terms || [],
+    levels: data.levels || [],
+    syllabi: data.syllabi || [],
+    rooms: data.rooms || [],
+    weeklySchedules: data.weeklySchedules || [],
+    teachers: data.teachers || [],
+  };
 
   return (
     <div className="academy-admin-layout" dir="rtl">
@@ -144,14 +157,14 @@ export default function EducationPage() {
             {activeTab === 'courses' && (
               <div className="academy-admin-sec">
                 <div className="academy-admin-sec-header"><h3>دوره‌ها</h3><button type="button" className="academy-admin-btn-primary" onClick={() => openCreate('course')}><Plus /> دوره جدید</button></div>
-                {data.courses.length === 0 ? (
+                {safeData.courses.length === 0 ? (
                   <div className="academy-admin-list-empty"><GraduationCap /><p>دوره‌ای ثبت نشده است.</p></div>
                 ) : (
                   <div className="academy-admin-table-wrap">
                     <table className="academy-admin-table">
                       <thead><tr><th>عنوان</th><th>کد</th><th>سطح</th><th>مدرس</th><th>وضعیت</th><th>عملیات</th></tr></thead>
                       <tbody>
-                        {data.courses.map((c: any) => (
+                        {safeData.courses.map((c: any) => (
                           <tr key={c.id}>
                             <td><strong>{c.title}</strong></td><td>{c.code || '—'}</td><td>{c.level || '—'}</td><td>{c.teacherName || '—'}</td>
                             <td><span className={`academy-admin-badge ${c.active ? 'badge-success' : 'badge-neutral'}`}>{c.active ? 'فعال' : 'غیرفعال'}</span></td>
@@ -173,14 +186,14 @@ export default function EducationPage() {
             {activeTab === 'terms' && (
               <div className="academy-admin-sec">
                 <div className="academy-admin-sec-header"><h3>ترم‌ها</h3><button type="button" className="academy-admin-btn-primary" onClick={() => openCreate('term')}><Plus /> ترم جدید</button></div>
-                {data.terms.length === 0 ? (
+                {safeData.terms.length === 0 ? (
                   <div className="academy-admin-list-empty"><CalendarDays /><p>ترمی ثبت نشده است.</p></div>
                 ) : (
                   <div className="academy-admin-table-wrap">
                     <table className="academy-admin-table">
                       <thead><tr><th>عنوان</th><th>شروع</th><th>پایان</th><th>وضعیت</th><th>عملیات</th></tr></thead>
                       <tbody>
-                        {data.terms.map((t: any) => (
+                        {safeData.terms.map((t: any) => (
                           <tr key={t.id}>
                             <td><strong>{t.title}</strong></td><td>{formatJalali(t.startDate)}</td><td>{formatJalali(t.endDate)}</td>
                             <td><span className={`academy-admin-badge ${t.active ? 'badge-success' : 'badge-neutral'}`}>{t.active ? 'فعال' : 'غیرفعال'}</span></td>
@@ -200,14 +213,14 @@ export default function EducationPage() {
             {activeTab === 'levels' && (
               <div className="academy-admin-sec">
                 <div className="academy-admin-sec-header"><h3>سطوح</h3><button type="button" className="academy-admin-btn-primary" onClick={() => openCreate('level')}><Plus /> سطح جدید</button></div>
-                {data.levels.length === 0 ? (
+                {safeData.levels.length === 0 ? (
                   <div className="academy-admin-list-empty"><Layers /><p>سطحی ثبت نشده است.</p></div>
                 ) : (
                   <div className="academy-admin-table-wrap">
                     <table className="academy-admin-table">
                       <thead><tr><th>عنوان</th><th>کد</th><th>ترتیب</th><th>عملیات</th></tr></thead>
                       <tbody>
-                        {data.levels.map((l: any) => (
+                        {safeData.levels.map((l: any) => (
                           <tr key={l.id}>
                             <td><strong>{l.title}</strong></td><td>{l.code || '—'}</td><td>{l.order.toLocaleString('fa-IR')}</td>
                             <td><div className="academy-admin-row-actions">
@@ -226,14 +239,14 @@ export default function EducationPage() {
             {activeTab === 'syllabi' && (
               <div className="academy-admin-sec">
                 <div className="academy-admin-sec-header"><h3>سرفصل‌ها</h3><button type="button" className="academy-admin-btn-primary" onClick={() => openCreate('syllabus')}><Plus /> سرفصل جدید</button></div>
-                {data.syllabi.length === 0 ? (
+                {safeData.syllabi.length === 0 ? (
                   <div className="academy-admin-list-empty"><BookMarked /><p>سرفصلی ثبت نشده است.</p></div>
                 ) : (
                   <div className="academy-admin-table-wrap">
                     <table className="academy-admin-table">
                       <thead><tr><th>عنوان</th><th>دوره</th><th>ترتیب</th><th>عملیات</th></tr></thead>
                       <tbody>
-                        {data.syllabi.map((s: any) => (
+                        {safeData.syllabi.map((s: any) => (
                           <tr key={s.id}>
                             <td><strong>{s.title}</strong></td><td>{s.courseTitle}</td><td>{s.order.toLocaleString('fa-IR')}</td>
                             <td><div className="academy-admin-row-actions">
@@ -251,14 +264,14 @@ export default function EducationPage() {
             {activeTab === 'rooms' && (
               <div className="academy-admin-sec">
                 <div className="academy-admin-sec-header"><h3>اتاق‌ها</h3><button type="button" className="academy-admin-btn-primary" onClick={() => openCreate('room')}><Plus /> اتاق جدید</button></div>
-                {data.rooms.length === 0 ? (
+                {safeData.rooms.length === 0 ? (
                   <div className="academy-admin-list-empty"><DoorOpen /><p>اتاقی ثبت نشده است.</p></div>
                 ) : (
                   <div className="academy-admin-table-wrap">
                     <table className="academy-admin-table">
                       <thead><tr><th>نام</th><th>ظرفیت</th><th>وضعیت</th><th>عملیات</th></tr></thead>
                       <tbody>
-                        {data.rooms.map((r: any) => (
+                        {safeData.rooms.map((r: any) => (
                           <tr key={r.id}>
                             <td><strong>{r.name}</strong></td><td>{r.capacity.toLocaleString('fa-IR')}</td>
                             <td><span className={`academy-admin-badge ${r.active ? 'badge-success' : 'badge-neutral'}`}>{r.active ? 'فعال' : 'غیرفعال'}</span></td>
@@ -278,14 +291,14 @@ export default function EducationPage() {
             {activeTab === 'weekly' && (
               <div className="academy-admin-sec">
                 <div className="academy-admin-sec-header"><h3>برنامه هفتگی</h3><button type="button" className="academy-admin-btn-primary" onClick={() => openCreate('weeklySchedule')}><Plus /> برنامه جدید</button></div>
-                {data.weeklySchedules.length === 0 ? (
+                {safeData.weeklySchedules.length === 0 ? (
                   <div className="academy-admin-list-empty"><CalendarClock /><p>برنامه‌ای ثبت نشده است.</p></div>
                 ) : (
                   <div className="academy-admin-table-wrap">
                     <table className="academy-admin-table">
                       <thead><tr><th>دوره</th><th>مدرس</th><th>اتاق</th><th>روز</th><th>شروع</th><th>پایان</th><th>ظرفیت</th><th>ثبت‌نام شده</th><th>عملیات</th></tr></thead>
                       <tbody>
-                        {data.weeklySchedules.map((w: any) => (
+                        {safeData.weeklySchedules.map((w: any) => (
                           <tr key={w.id}>
                             <td><strong>{w.courseTitle}</strong></td><td>{w.teacherName}</td><td>{w.roomName}</td>
                             <td>{w.weekday}</td><td>{w.startTime}</td><td>{w.endTime}</td>
@@ -306,14 +319,14 @@ export default function EducationPage() {
             {activeTab === 'assign' && (
               <div className="academy-admin-sec">
                 <h3>تخصیص مدرس به دوره</h3>
-                <AssignTeacherForm courses={data.courses} teachers={data.teachers} onDone={fetchData} />
+                <AssignTeacherForm courses={safeData.courses} teachers={safeData.teachers} onDone={fetchData} />
               </div>
             )}
 
             {activeTab === 'move' && (
               <div className="academy-admin-sec">
                 <h3>جابه‌جایی دانش‌آموز</h3>
-                <MoveStudentForm courses={data.courses} onDone={fetchData} />
+                <MoveStudentForm courses={safeData.courses} onDone={fetchData} />
               </div>
             )}
           </div>
@@ -374,13 +387,13 @@ export default function EducationPage() {
                     <div className="academy-admin-field"><label>دوره</label>
                       <select value={form.courseId || ''} onChange={(e) => setForm({ ...form, courseId: e.target.value })}>
                         <option value="">انتخاب...</option>
-                        {data.courses.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
+                        {safeData.courses.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
                       </select>
                     </div>
                     <div className="academy-admin-field"><label>مدرس</label>
                       <select value={form.teacherId || ''} onChange={(e) => setForm({ ...form, teacherId: e.target.value })}>
                         <option value="">انتخاب...</option>
-                        {data.teachers.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                        {safeData.teachers.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
                       </select>
                     </div>
                     <div className="academy-admin-field"><label>روز</label>

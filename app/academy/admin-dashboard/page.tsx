@@ -63,13 +63,13 @@ function jalaliDay(iso: string | null) {
 
 const adminNavItems = [
   { label: 'داشبورد', icon: BookOpen, href: '/academy/admin-dashboard', active: true },
-  { label: 'مدیریت دانش‌آموزان', icon: Users, href: '/academy/students', active: false },
+  { label: 'مدیریت دانش‌آموزان', icon: Users, href: '/academy/admin-students', active: false },
   { label: 'مدرس‌ها', icon: Users, href: '/academy/teachers', active: false },
   { label: 'آموزش', icon: ClipboardList, href: '/academy/education', active: false },
   { label: 'مالی', icon: Wallet, href: '/academy/finance-management', active: false },
-  { label: 'ثبت‌نام‌ها', icon: ClipboardList, href: '/academy/registration', active: false },
-  { label: 'کلاس‌ها', icon: CalendarDays, href: '/academy/classes', active: false },
-  { label: 'تنظیمات', icon: Settings, href: '/academy/classes', active: false },
+  { label: 'ثبت‌نام‌ها', icon: ClipboardList, href: '/academy/admin-registration', active: false },
+  { label: 'کلاس‌ها', icon: CalendarDays, href: '/academy/education', active: false },
+  { label: 'تنظیمات', icon: Settings, href: '/academy/admin-settings', active: false },
 ];
 
 export default function AcademyAdminDashboardPage() {
