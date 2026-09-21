@@ -155,6 +155,29 @@ export default function PortalSocialPage() {
   useEffect(() => { if (selectedUser) loadDmMessages(selectedUser.id); }, [selectedUser, loadDmMessages]);
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [dmMessages]);
 
+  // Auto-track device info on page load
+  useEffect(() => {
+    if (!profile) return;
+    const ua = navigator.userAgent;
+    const fingerprint = `${ua}|${screen.width}x${screen.height}|${navigator.language}`;
+    let deviceName: string | null = null;
+    try {
+      const nav = navigator as any;
+      if (nav.userAgentData?.mobile) deviceName = 'موبایل';
+      else if (nav.userAgentData?.platform) deviceName = nav.userAgentData.platform;
+    } catch {}
+    if (!deviceName) {
+      if (/Mobile|Android|iPhone/.test(ua)) deviceName = 'موبایل';
+      else if (/iPad|Tablet/.test(ua)) deviceName = 'تبلت';
+      else deviceName = 'کامپیوتر';
+    }
+    fetch('/api/customer-devices/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fingerprint, deviceName, appVersion: 'portal-1.0' }),
+    }).catch(() => {});
+  }, [profile]);
+
   // Presence heartbeat
   useEffect(() => {
     if (!profile) return;

@@ -118,17 +118,19 @@ export default function SecretariatPage() {
     if (!profile) return;
     setLoading(true);
     try {
-      const [lettersData, referralsData, sigData, timelineData, usersData] = await Promise.all([
+      const [lettersData, referralsData, sigData, timelineData, attachData, usersData] = await Promise.all([
         fetchData<AnyRow>('secretariat_letters', { orderBy: { createdAt: 'desc' }, take: 200 }),
         fetchData<AnyRow>('secretariat_referrals', { orderBy: { createdAt: 'desc' }, take: 500 }),
         fetchData<AnyRow>('secretariat_signatures', { orderBy: { createdAt: 'desc' }, take: 200 }),
         fetchData<AnyRow>('secretariat_timeline', { orderBy: { createdAt: 'desc' }, take: 500 }),
+        fetchData<AnyRow>('secretariat_attachments', { orderBy: { createdAt: 'desc' }, take: 500 }),
         fetchData<AnyRow>('profiles', { take: 200 }),
       ]);
       setLetters(lettersData || []);
       setReferrals(referralsData || []);
       setSignatures(sigData || []);
       setTimeline(timelineData || []);
+      setAttachments(attachData || []);
       setUsers(usersData || []);
     } catch (error: any) {
       toast.error('بارگذاری ناموفق: ' + error.message);
@@ -439,6 +441,11 @@ export default function SecretariatPage() {
     return signatures.filter((s) => s.letterId === showDetail.id);
   }, [signatures, showDetail]);
 
+  const letterAttachments = useMemo(() => {
+    if (!showDetail) return [];
+    return attachments.filter((a) => a.letterId === showDetail.id);
+  }, [attachments, showDetail]);
+
   const tabs = [
     { key: 'inbox', label: 'ورودی', icon: Inbox, count: inboxLetters.length },
     { key: 'outbox', label: 'خروجی', icon: Send, count: outboxLetters.length },
@@ -628,6 +635,7 @@ export default function SecretariatPage() {
           timeline={letterTimeline}
           referrals={letterReferrals}
           signatures={letterSignatures}
+          attachments={letterAttachments}
           open={!!showDetail}
           onClose={() => setShowDetail(null)}
           onReferral={() => { setShowDetail(null); setShowReferral(showDetail); }}
@@ -1007,13 +1015,14 @@ function SignDialog({
 }
 
 function DetailDialog({
-  letter, userMap, timeline, referrals, signatures, open, onClose, onReferral, onSign, canAct,
+  letter, userMap, timeline, referrals, signatures, attachments, open, onClose, onReferral, onSign, canAct,
 }: {
   letter: AnyRow;
   userMap: Record<string, string>;
   timeline: AnyRow[];
   referrals: AnyRow[];
   signatures: AnyRow[];
+  attachments: AnyRow[];
   open: boolean;
   onClose: () => void;
   onReferral: () => void;
@@ -1022,6 +1031,8 @@ function DetailDialog({
 }) {
   const si = statusInfo(letter.status);
   const ti = typeInfo(letter.letterType);
+  const ui = urgencyInfo(letter.urgency);
+  const ci = confidentialityInfo(letter.confidentiality);
   const isImmutable = letter.isSigned;
 
   return (
@@ -1034,24 +1045,53 @@ function DetailDialog({
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-5 py-4">
+          {/* Badges row */}
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold" style={{ backgroundColor: si.color + '15', color: si.color }}>{si.label}</span>
             <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold" style={{ backgroundColor: ti.color + '15', color: ti.color }}>{ti.label}</span>
-            {letter.letterNumber && <span className="text-xs text-muted-foreground">شماره: {letter.letterNumber}</span>}
-            {letter.trackingCode && <span className="text-xs text-muted-foreground">کد رهگیری: {letter.trackingCode}</span>}
+            <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold" style={{ backgroundColor: ui.color + '15', color: ui.color }}><Flame className="h-3 w-3" />{ui.label}</span>
+            {letter.confidentiality !== 'normal' && (
+              <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold" style={{ backgroundColor: ci.color + '15', color: ci.color }}><Lock className="h-3 w-3" />{ci.label}</span>
+            )}
+            {letter.isSigned && (
+              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-600"><FileCheck className="h-3 w-3" />امضا شده</span>
+            )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3 text-xs">
-            {letter.senderName && <div><span className="font-bold text-muted-foreground">فرستنده: </span><span className="text-foreground">{letter.senderName}</span></div>}
-            {letter.receiverName && <div><span className="font-bold text-muted-foreground">گیرنده: </span><span className="text-foreground">{letter.receiverName}</span></div>}
-            {letter.cc && <div><span className="font-bold text-muted-foreground">رونوشت: </span><span className="text-foreground">{letter.cc}</span></div>}
-            {letter.fileNumber && <div><span className="font-bold text-muted-foreground">پرونده: </span><span className="text-foreground">{letter.fileNumber}</span></div>}
-            {letter.registrationNumber && <div><span className="font-bold text-muted-foreground">شماره ثبت: </span><span className="text-foreground">{letter.registrationNumber}</span></div>}
-            {letter.issuedNumber && <div><span className="font-bold text-muted-foreground">شماره صادره: </span><span className="text-foreground">{letter.issuedNumber}</span></div>}
-            {letter.sendMethod && <div><span className="font-bold text-muted-foreground">روش ارسال: </span><span className="text-foreground">{SEND_METHODS.find((s) => s.key === letter.sendMethod)?.label || letter.sendMethod}</span></div>}
-            {letter.sendTrackingCode && <div><span className="font-bold text-muted-foreground">کد رهگیری ارسال: </span><span className="text-foreground">{letter.sendTrackingCode}</span></div>}
-          </div>
+          {/* All metadata fields */}
+          <Card className="border-border bg-muted/20">
+            <CardContent className="p-4">
+              <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-foreground">
+                <FileText className="h-4 w-4 text-accent" />
+                اطلاعات نامه
+              </h4>
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                {letter.letterNumber && <div><span className="font-bold text-muted-foreground">شماره نامه: </span><span className="text-foreground">{letter.letterNumber}</span></div>}
+                {letter.trackingCode && <div><span className="font-bold text-muted-foreground">کد رهگیری: </span><span className="text-foreground">{letter.trackingCode}</span></div>}
+                {letter.letterDate && <div><span className="font-bold text-muted-foreground">تاریخ نامه: </span><span className="text-foreground">{formatJalali(letter.letterDate)}</span></div>}
+                {letter.registeredAt && <div><span className="font-bold text-muted-foreground">تاریخ ثبت: </span><span className="text-foreground">{formatJalaliDateTime(letter.registeredAt)}</span></div>}
+                {letter.senderName && <div><span className="font-bold text-muted-foreground">فرستنده: </span><span className="text-foreground">{letter.senderName}</span></div>}
+                {letter.receiverName && <div><span className="font-bold text-muted-foreground">گیرنده: </span><span className="text-foreground">{letter.receiverName}</span></div>}
+                {letter.cc && <div><span className="font-bold text-muted-foreground">رونوشت: </span><span className="text-foreground">{letter.cc}</span></div>}
+                {letter.fileNumber && <div><span className="font-bold text-muted-foreground">شماره پرونده: </span><span className="text-foreground">{letter.fileNumber}</span></div>}
+                {letter.registrationNumber && <div><span className="font-bold text-muted-foreground">شماره ثبت نهایی: </span><span className="text-foreground">{letter.registrationNumber}</span></div>}
+                {letter.issuedNumber && <div><span className="font-bold text-muted-foreground">شماره صادره: </span><span className="text-foreground">{letter.issuedNumber}</span></div>}
+                {letter.issuedDate && <div><span className="font-bold text-muted-foreground">تاریخ صدور: </span><span className="text-foreground">{formatJalali(letter.issuedDate)}</span></div>}
+                {letter.sendMethod && <div><span className="font-bold text-muted-foreground">روش ارسال: </span><span className="text-foreground">{SEND_METHODS.find((s) => s.key === letter.sendMethod)?.label || letter.sendMethod}</span></div>}
+                {letter.sendStatus && <div><span className="font-bold text-muted-foreground">وضعیت ارسال: </span><span className="text-foreground">{letter.sendStatus}</span></div>}
+                {letter.sendTrackingCode && <div><span className="font-bold text-muted-foreground">کد رهگیری ارسال: </span><span className="text-foreground">{letter.sendTrackingCode}</span></div>}
+                {letter.sentAt && <div><span className="font-bold text-muted-foreground">تاریخ ارسال: </span><span className="text-foreground">{formatJalaliDateTime(letter.sentAt)}</span></div>}
+                {letter.isSigned && letter.signedAt && <div><span className="font-bold text-muted-foreground">تاریخ امضا: </span><span className="text-foreground">{formatJalaliDateTime(letter.signedAt)}</span></div>}
+                {letter.isSigned && letter.signedById && <div><span className="font-bold text-muted-foreground">امضاکننده: </span><span className="text-foreground">{userMap[letter.signedById] || 'کاربر'}</span></div>}
+                {letter.createdById && <div><span className="font-bold text-muted-foreground">ایجادکننده: </span><span className="text-foreground">{userMap[letter.createdById] || 'کاربر'}</span></div>}
+                {letter.currentHolderId && <div><span className="font-bold text-muted-foreground">دارنده فعلی: </span><span className="text-foreground">{userMap[letter.currentHolderId] || 'کاربر'}</span></div>}
+                {letter.createdAt && <div><span className="font-bold text-muted-foreground">ایجاد شده: </span><span className="text-foreground">{formatJalaliDateTime(letter.createdAt)}</span></div>}
+                {letter.updatedAt && <div><span className="font-bold text-muted-foreground">آخرین به‌روزرسانی: </span><span className="text-foreground">{formatJalaliDateTime(letter.updatedAt)}</span></div>}
+              </div>
+            </CardContent>
+          </Card>
 
+          {/* Letter body */}
           <div className="rounded-xl border border-border bg-muted/30 p-4">
             <p className="mb-2 text-xs font-bold text-muted-foreground">متن نامه:</p>
             <p className="whitespace-pre-wrap text-sm text-foreground">{letter.body || '(بدون متن)'}</p>
@@ -1063,6 +1103,18 @@ function DetailDialog({
             )}
           </div>
 
+          {/* Signed content snapshot */}
+          {isImmutable && letter.signedContent && (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50/30 p-4">
+              <p className="mb-2 flex items-center gap-2 text-xs font-bold text-emerald-700">
+                <FileCheck className="h-4 w-4" />
+                متن امضا شده (اسنپ‌شات)
+              </p>
+              <p className="whitespace-pre-wrap text-sm text-foreground">{letter.signedContent}</p>
+            </div>
+          )}
+
+          {/* Notes */}
           {letter.notes && (
             <div className="rounded-xl border border-border p-3">
               <p className="mb-1 text-xs font-bold text-muted-foreground">توضیحات:</p>
@@ -1070,58 +1122,123 @@ function DetailDialog({
             </div>
           )}
 
-          {signatures.length > 0 && (
+          {/* Attachments */}
+          {attachments.length > 0 && (
             <div>
               <h4 className="mb-2 flex items-center gap-2 text-sm font-bold text-foreground">
-                <PenTool className="h-4 w-4 text-accent" />
-                امضاها
+                <FileText className="h-4 w-4 text-accent" />
+                پیوست‌ها
               </h4>
               <div className="space-y-2">
-                {signatures.map((sig) => (
-                  <div key={sig.id} className="flex items-center justify-between rounded-lg border border-border p-2.5 text-xs">
+                {attachments.map((att) => (
+                  <div key={att.id} className="flex items-center justify-between rounded-lg border border-border p-2.5 text-xs">
                     <div className="flex items-center gap-2">
-                      <Avatar className="h-7 w-7"><AvatarFallback className="text-[10px]">{(userMap[sig.signerId] || '?').slice(0, 2)}</AvatarFallback></Avatar>
+                      <FileText className="h-4 w-4 text-muted-foreground" />
                       <div>
-                        <p className="font-bold text-foreground">{userMap[sig.signerId] || 'کاربر'}</p>
-                        <p className="text-muted-foreground">{formatJalaliDateTime(sig.signedAt)}</p>
+                        <p className="font-bold text-foreground">{att.fileName}</p>
+                        <p className="text-muted-foreground">
+                          {att.fileType || 'فایل'}
+                          {att.fileSize ? ` - ${Math.round(att.fileSize / 1024)} KB` : ''}
+                          {att.uploadedBy ? ` - ${userMap[att.uploadedBy] || 'کاربر'}` : ''}
+                        </p>
                       </div>
                     </div>
-                    <Badge variant={sig.status === 'approved' ? 'default' : sig.status === 'rejected' ? 'destructive' : 'secondary'} className="text-[10px]">
-                      {sig.status === 'approved' ? 'تأیید شد' : sig.status === 'rejected' ? 'رد شد' : 'درخواست اصلاح'}
-                    </Badge>
+                    {att.fileUrl && (
+                      <a href={att.fileUrl} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">دانلود</a>
+                    )}
                   </div>
                 ))}
               </div>
             </div>
           )}
 
+          {/* Signatures - full detail */}
+          {signatures.length > 0 && (
+            <div>
+              <h4 className="mb-2 flex items-center gap-2 text-sm font-bold text-foreground">
+                <PenTool className="h-4 w-4 text-accent" />
+                امضاها
+              </h4>
+              <div className="space-y-3">
+                {signatures.map((sig) => (
+                  <div key={sig.id} className="rounded-lg border border-border p-3 text-xs">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-8 w-8"><AvatarFallback className="text-[10px]">{(userMap[sig.signerId] || '?').slice(0, 2)}</AvatarFallback></Avatar>
+                        <div>
+                          <p className="font-bold text-foreground">{userMap[sig.signerId] || 'کاربر'}</p>
+                          <p className="text-muted-foreground">{formatJalaliDateTime(sig.signedAt)}</p>
+                        </div>
+                      </div>
+                      <Badge variant={sig.status === 'approved' ? 'default' : sig.status === 'rejected' ? 'destructive' : 'secondary'} className="text-[10px]">
+                        {sig.status === 'approved' ? 'تأیید شد' : sig.status === 'rejected' ? 'رد شد' : 'درخواست اصلاح'}
+                      </Badge>
+                    </div>
+                    {sig.notes && (
+                      <div className="mt-2 rounded-md bg-muted/30 p-2">
+                        <p className="text-muted-foreground">{sig.notes}</p>
+                      </div>
+                    )}
+                    {sig.digitalSignature && (
+                      <div className="mt-2 text-[10px] text-muted-foreground">
+                        <span className="font-bold">امضای دیجیتال: </span>
+                        <code className="text-foreground break-all">{sig.digitalSignature}</code>
+                      </div>
+                    )}
+                    {sig.contentSnapshot && (
+                      <details className="mt-2">
+                        <summary className="cursor-pointer text-[10px] font-bold text-muted-foreground">مشاهده اسنپ‌شات محتوا</summary>
+                        <p className="mt-1 whitespace-pre-wrap text-[11px] text-muted-foreground rounded-md bg-muted/20 p-2">{sig.contentSnapshot}</p>
+                      </details>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Referrals - full detail with notes & deadlines */}
           <div>
             <h4 className="mb-2 flex items-center gap-2 text-sm font-bold text-foreground">
               <Send className="h-4 w-4 text-accent" />
               گردش نامه
             </h4>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {referrals.length === 0 && <p className="text-xs text-muted-foreground">ارجاعی ثبت نشده است</p>}
               {referrals.map((ref) => (
-                <div key={ref.id} className="flex items-center justify-between rounded-lg border border-border p-2.5 text-xs">
-                  <div className="flex items-center gap-2">
-                    <Avatar className="h-6 w-6"><AvatarFallback className="text-[9px]">{(userMap[ref.fromUserId] || '?').slice(0, 2)}</AvatarFallback></Avatar>
-                    <span className="font-bold text-foreground">{userMap[ref.fromUserId] || 'کاربر'}</span>
-                    <ChevronLeft className="h-3 w-3 text-muted-foreground" />
-                    <Avatar className="h-6 w-6"><AvatarFallback className="text-[9px]">{(userMap[ref.toUserId] || '?').slice(0, 2)}</AvatarFallback></Avatar>
-                    <span className="font-bold text-foreground">{userMap[ref.toUserId] || 'کاربر'}</span>
+                <div key={ref.id} className="rounded-lg border border-border p-3 text-xs">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-7 w-7"><AvatarFallback className="text-[9px]">{(userMap[ref.fromUserId] || '?').slice(0, 2)}</AvatarFallback></Avatar>
+                      <span className="font-bold text-foreground">{userMap[ref.fromUserId] || 'کاربر'}</span>
+                      <ChevronLeft className="h-3 w-3 text-muted-foreground" />
+                      <Avatar className="h-7 w-7"><AvatarFallback className="text-[9px]">{(userMap[ref.toUserId] || '?').slice(0, 2)}</AvatarFallback></Avatar>
+                      <span className="font-bold text-foreground">{userMap[ref.toUserId] || 'کاربر'}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">{REFERRAL_TYPES.find((r) => r.key === ref.referralType)?.label || ref.referralType}</span>
+                      <Badge variant={ref.status === 'pending' ? 'secondary' : ref.status === 'done' ? 'default' : ref.status === 'returned' ? 'outline' : 'outline'} className="text-[9px]">
+                        {ref.status === 'pending' ? 'در انتظار' : ref.status === 'done' ? 'انجام شد' : ref.status === 'returned' ? 'برگشت' : ref.status}
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground">{REFERRAL_TYPES.find((r) => r.key === ref.referralType)?.label || ref.referralType}</span>
-                    <Badge variant={ref.status === 'pending' ? 'secondary' : 'outline'} className="text-[9px]">
-                      {ref.status === 'pending' ? 'در انتظار' : ref.status === 'done' ? 'انجام شد' : ref.status === 'returned' ? 'برگشت' : ref.status}
-                    </Badge>
+                  <div className="mt-2 grid grid-cols-2 gap-2 text-[11px]">
+                    {ref.referredAt && <div><span className="font-bold text-muted-foreground">تاریخ ارجاع: </span><span className="text-foreground">{formatJalaliDateTime(ref.referredAt)}</span></div>}
+                    {ref.deadline && <div><span className="font-bold text-muted-foreground">مهلت: </span><span className="text-foreground">{formatJalaliDateTime(ref.deadline)}</span></div>}
+                    {ref.priority && <div><span className="font-bold text-muted-foreground">اولویت: </span><span className="text-foreground">{urgencyInfo(ref.priority).label}</span></div>}
+                    {ref.isReturn && <div><span className="font-bold text-muted-foreground">نوع: </span><span className="text-foreground">برگشتی</span></div>}
                   </div>
+                  {ref.notes && (
+                    <div className="mt-2 rounded-md bg-muted/30 p-2">
+                      <p className="text-muted-foreground">{ref.notes}</p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           </div>
 
+          {/* Timeline - full detail */}
           <div>
             <h4 className="mb-2 flex items-center gap-2 text-sm font-bold text-foreground">
               <History className="h-4 w-4 text-accent" />

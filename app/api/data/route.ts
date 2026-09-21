@@ -197,6 +197,7 @@ const MODEL_MAP: Record<string, any> = {
   secretariat_signatures: prisma.secretariatSignature,
   secretariat_attachments: prisma.secretariatAttachment,
   secretariat_timeline: prisma.secretariatTimeline,
+  customer_devices: prisma.customerDevice,
 };
 
 function getAuth(req: NextRequest) {
@@ -326,6 +327,7 @@ const SHARED_MODELS = new Set([
   'customer_social_call_sessions', 'customer_social_call_signals',
   'secretariat_letters', 'secretariat_referrals', 'secretariat_signatures',
   'secretariat_attachments', 'secretariat_timeline',
+  'customer_devices',
 ]);
 
 async function canAccess(auth: { userId: string }, model: string): Promise<boolean> {
