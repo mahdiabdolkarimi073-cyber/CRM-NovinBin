@@ -4752,3 +4752,27 @@ model SecretariatTimeline {
 
   @@map("secretariat_timeline")
 }
+
+// ============ CUSTOMER DEVICES (دستگاه‌های فعال مشتریان) ============
+
+model CustomerDevice {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileId    String   @db.Uuid
+  deviceModel  String?
+  deviceBrand  String?
+  osVersion    String?
+  ipAddress    String?
+  userAgent    String?
+  appVersion   String?
+  isActive     Boolean  @default(true)
+  lastSeenAt   DateTime @default(now())
+  firstSeenAt  DateTime @default(now())
+  deviceName   String?
+  location     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now())
+
+  @@index([profileId])
+  @@index([isActive])
+  @@map("customer_devices")
+}
