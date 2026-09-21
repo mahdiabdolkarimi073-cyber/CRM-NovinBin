@@ -58,15 +58,28 @@ export async function GET(req: NextRequest) {
     const enrolledCount = enrollments.length;
     const freeCapacity = Math.max(0, courseCapacity - enrolledCount);
 
-    const atRiskStudents = await (prisma as any).academyCourseEnrollment.findMany({
+    const atRiskEnrollments = await (prisma as any).academyCourseEnrollment.findMany({
       where: { status: 'active', progress: { lt: 30 } },
-      include: { student: { select: { id: true, firstName: true, lastName: true } } },
     });
-    const atRisk = atRiskStudents.map((e: any) => ({
-      id: e.student.id,
-      name: `${e.student.firstName} ${e.student.lastName}`,
-      progress: e.progress,
-    }));
+    const atRiskStudentIds = [...new Set(atRiskEnrollments.map((e: any) => e.studentId))];
+    const atRiskStudentRecords = atRiskStudentIds.length > 0
+      ? await (prisma as any).academyUser.findMany({
+          where: { id: { in: atRiskStudentIds } },
+          select: { id: true, firstName: true, lastName: true },
+        })
+      : [];
+    const studentMap = new Map(atRiskStudentRecords.map((s: any) => [s.id, s]));
+    const atRisk = atRiskEnrollments
+      .map((e: any) => {
+        const student = studentMap.get(e.studentId);
+        if (!student) return null;
+        return {
+          id: student.id,
+          name: `${student.firstName} ${student.lastName}`,
+          progress: e.progress,
+        };
+      })
+      .filter((x: any) => x !== null);
 
     const recentLeads = await (prisma as any).academyRegistrationRequest.findMany({
       where: { status: 'pending' },
