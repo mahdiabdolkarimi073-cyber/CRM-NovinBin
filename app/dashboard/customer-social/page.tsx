@@ -24,6 +24,19 @@ interface DMConversation {
   unreadCount: number;
 }
 
+const MOBILE_SAMPLE_CONVERSATIONS = [
+  { name: 'علی رضایی', preview: 'سلام، خوبی؟', time: '۱۲:۴۵', receipt: '✓✓', unread: '۳', online: true, tone: 'navy' },
+  { name: 'مهدی احمدی', preview: 'فایل ارسال شد', time: '۱۱:۳۲', receipt: '♬', unread: '۵', tone: 'blue' },
+  { name: 'سارا محمدی', preview: 'باشه 👍', time: '۱۰:۱۵', receipt: '✓✓', tone: 'rose' },
+  { name: 'گروه دوستان', preview: 'علی: فردا میبینمتون', time: '۰۹:۴۸', receipt: '', unread: '۷', group: true },
+  { name: 'رضا کاوه', preview: 'متون، حتما میفرستم', time: 'دیروز', receipt: '✓✓', tone: 'sand' },
+  { name: 'نرگس کریمی', preview: 'عکس', time: 'دیروز', receipt: '✓✓', tone: 'amber', image: true },
+  { name: 'کانال اخبار', preview: 'آخرین اخبار امروز منتشر شد...', time: 'جمعه', receipt: '', unread: '۱۲', channel: true },
+  { name: 'علیرضا اسدی', preview: 'دمت گرم 🙏', time: 'پنجشنبه', receipt: '✓✓', tone: 'sunset' },
+  { name: 'فاطمه جلالی', preview: 'تا بعد...', time: 'سه‌شنبه', receipt: '✓✓', tone: 'green' },
+  { name: 'محمد شریفی', preview: 'عالیه 👍', time: 'دوشنبه', receipt: '✓✓', tone: 'slate' },
+];
+
 export default function CustomerSocialPage() {
   const { profile } = useAuth();
   const [customerProfiles, setCustomerProfiles] = useState<Profile[]>([]);
@@ -297,30 +310,40 @@ export default function CustomerSocialPage() {
       {!selectedUser && (
         <div className="mobile-social-shell">
           <div className="mobile-social-topbar">
-            <button className="mobile-social-icon" onClick={() => setIsUsersOpen(true)} aria-label="منو"><Menu /></button>
-            <h1>پیام‌ها</h1>
             <button className="mobile-social-icon" onClick={() => setIsMessageSearchOpen((value) => !value)} aria-label="جستجو"><Search /></button>
+            <h1>پیام‌ها</h1>
+            <button className="mobile-social-icon" onClick={() => setIsUsersOpen(true)} aria-label="منو"><Menu /></button>
           </div>
           <div className="mobile-social-search"><Search /><input placeholder="جستجو در پیام‌ها و مخاطبین..." value={search} onChange={(e) => setSearch(e.target.value)} /></div>
           <div className="mobile-social-filters">
-            <button className="is-active">همه <b>{mobileUsers.length.toLocaleString('fa-IR')}</b></button>
-            <button>خوانده نشده <b>{dmConversations.reduce((sum, conversation) => sum + conversation.unreadCount, 0).toLocaleString('fa-IR')}</b></button>
-            <button>گروه‌ها</button>
+            <button className="is-active">همه <b>{mobileUsers.length > 0 ? mobileUsers.length.toLocaleString('fa-IR') : '۱۲'}</b></button>
+            <button>خوانده نشده <b>{mobileUsers.length > 0 ? dmConversations.reduce((sum, conversation) => sum + conversation.unreadCount, 0).toLocaleString('fa-IR') : '۸'}</b></button>
+            <button>گروه‌ها <b>{mobileUsers.length > 0 ? '' : '۳'}</b></button>
             <button>کانال‌ها</button>
           </div>
           <div className="mobile-social-list">
-            {mobileUsers.length === 0 ? <div className="mobile-social-empty">هنوز گفتگویی وجود ندارد</div> : mobileUsers.map((user) => {
+            {mobileUsers.length === 0 ? (
+              <div className="mobile-social-sample-list">
+                {MOBILE_SAMPLE_CONVERSATIONS.map((conversation) => (
+                  <div key={conversation.name} className="mobile-social-row mobile-social-sample-row">
+                    <span className="mobile-social-row-time"><span>{conversation.time}</span><i className={conversation.unread ? 'has-unread' : 'is-receipt'}>{conversation.unread || conversation.receipt}</i></span>
+                    <span className="mobile-social-row-copy"><strong>{conversation.name}</strong><small>{conversation.preview}{conversation.image && <span className="mobile-social-attachment-mark"><FileText /></span>}</small></span>
+                    <span className="mobile-social-avatar-wrap"><span className={cn('mobile-social-avatar mobile-social-sample-avatar', conversation.tone, conversation.group && 'is-group', conversation.channel && 'is-channel')}>{conversation.group ? <Users /> : conversation.channel ? <Send /> : conversation.name.slice(0, 1)}</span>{conversation.online && <i />}</span>
+                  </div>
+                ))}
+              </div>
+            ) : mobileUsers.map((user) => {
               const conversation = dmConversations.find((item) => item.profile.id === user.id);
               const online = isOnline(user.lastSeenAt);
               return <button key={user.id} className="mobile-social-row" onClick={() => selectUser(user)}>
-                <span className="mobile-social-row-time">{conversation?.lastMessage ? relativeTime(conversation.lastMessage.createdAt) : ''}<i>{conversation?.unreadCount ? conversation.unreadCount.toLocaleString('fa-IR') : '✓✓'}</i></span>
+                <span className="mobile-social-row-time"><span>{conversation?.lastMessage ? relativeTime(conversation.lastMessage.createdAt) : ''}</span><i>{conversation?.unreadCount ? conversation.unreadCount.toLocaleString('fa-IR') : '✓✓'}</i></span>
                 <span className="mobile-social-row-copy"><strong>{getUserLabel(user)}</strong><small>{conversation?.lastMessage?.content || (conversation?.lastMessage?.attachmentUrl ? 'فایل ارسال شد' : online ? 'آنلاین' : 'گفتگوی جدید')}</small></span>
                 <span className="mobile-social-avatar-wrap"><span className="mobile-social-avatar">{getInitials(user)}</span>{online && <i />}</span>
               </button>;
             })}
           </div>
           <nav className="mobile-social-bottom-nav">
-            <button><PhoneCall /><span>تماس‌ها</span></button><button><Users /><span>گروه‌ها</span></button><button className="is-active"><MessageCircle /><span>پیام‌ها</span></button><button><User /><span>مخاطبین</span></button>
+            <button><PhoneCall /><span>تماس‌ها</span></button><button><Users /><span>گروه‌ها</span></button><button className="is-active"><span className="mobile-social-nav-icon"><MessageCircle /><b>۱۲</b></span><span>پیام‌ها</span></button><button><User /><span>مخاطبین</span></button>
           </nav>
         </div>
       )}

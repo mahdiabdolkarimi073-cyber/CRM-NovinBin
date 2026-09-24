@@ -1,9 +1,15 @@
 import './globals.css';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import { AuthProvider } from '@/components/providers/auth-provider';
 import { SmsReminderPoller } from '@/components/providers/sms-reminder-poller';
 import { Toaster } from '@/components/ui/sonner';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+};
 
 export const metadata: Metadata = {
   title: 'نوین بین | سیستم مدیریت یکپارچه سازمان',

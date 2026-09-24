@@ -65,13 +65,16 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!profile?.id) return;
-    const safe = <T,>(request: Promise<T[]>): Promise<T[]> => request.catch(() => []);
+    const safe = <T,>(section: string, request: Promise<T[]>): Promise<T[]> => request.catch((error: unknown) => {
+      console.error('[dashboard-data]', { section, error });
+      return [];
+    });
     Promise.all([
-      safe(fetchData<Report>('daily_work_reports', { orderBy: { createdAt: 'desc' } })),
-      safe(fetchData<Report>('monthly_work_reports', { orderBy: { createdAt: 'desc' } })),
-      safe(fetchData<Task>('tasks', { where: { status: { notIn: ['completed', 'cancelled'] } } })),
-      safe(fetchData<Meeting>('meetings', { orderBy: { date: 'asc' } })),
-      safe(fetchData<Notification>('notifications', { where: { profileId: profile.id }, orderBy: { createdAt: 'desc' }, take: 5 })),
+      safe('daily_work_reports', fetchData<Report>('daily_work_reports', { orderBy: { createdAt: 'desc' } })),
+      safe('monthly_work_reports', fetchData<Report>('monthly_work_reports', { orderBy: { createdAt: 'desc' } })),
+      safe('tasks', fetchData<Task>('tasks', { where: { status: { notIn: ['completed', 'cancelled'] } } })),
+      safe('meetings', fetchData<Meeting>('meetings', { orderBy: { date: 'asc' } })),
+      safe('notifications', fetchData<Notification>('notifications', { where: { profileId: profile.id }, orderBy: { createdAt: 'desc' }, take: 5 })),
     ]).then(([dailyReports, monthlyReports, openTasks, meetingList, notificationList]) => {
       setDaily(dailyReports); setMonthly(monthlyReports); setTasks(openTasks); setMeetings(meetingList); setNotifications(notificationList); setLoading(false);
     });
@@ -116,5 +119,83 @@ export default function DashboardPage() {
   </div>;
 }
 
-function Kpi({ title, value, subtitle, trend, icon: Icon, tone }: { title: string; value: number; subtitle: string; trend: string; icon: React.ElementType; tone: Tone }) { return <div className="flex h-[140px] flex-col justify-between rounded-2xl border border-[#E7EBF3] bg-white p-4 shadow-[0_5px_18px_rgba(20,40,80,.045)] transition-all duration-200 hover:-translate-y-px mobile:h-[160px] tablet:h-[174px] tablet:p-5"><div className="flex items-start justify-between"><div><div className="text-sm font-bold text-[#344054]">{title}</div><div className="mt-2 text-[22px] font-extrabold leading-none text-[#101828] mobile:text-[26px] tablet:text-[28px]">{value.toLocaleString('fa-IR')}</div></div><div className={cn('flex h-[44px] w-[44px] items-center justify-center rounded-[14px] mobile:h-[48px] tablet:h-[52px] tablet:w-[52px]', tones[tone])}><Icon className="h-5 w-5 mobile:h-6 mobile:w-6" /></div></div><div className="flex items-end justify-between gap-3"><svg viewBox="0 0 108 24" className={cn('h-7 w-[108px]', tone === 'green' ? 'text-[#16A34A]' : tone === 'orange' ? 'text-[#F97316]' : tone === 'purple' ? 'text-[#7C3AED]' : 'text-[#2563EB]')} fill="none" aria-hidden="true"><path d="M1 18 C9 15, 10 7, 18 11 S29 22, 37 14 S47 4, 55 10 S64 21, 72 13 S83 5, 90 12 S99 17, 107 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg><div className="text-left"><div className="text-xs font-medium text-[#8490A5]">{subtitle}</div><div className={cn('mt-2 text-[11px] font-semibold', trend.includes('↓') ? 'text-[#EF4444]' : 'text-[#16A34A')}>{trend}</div></div></div></div>; }
-function Summary({ label, value }: { label: string; value: number }) { return <div className="flex items-center justify-between border-b border-[#F0F2F5] py-3 text-sm last:border-0"><span className="font-medium text-[#667085]">{label}</span><strong className="text-[#101828]">{value.toLocaleString('fa-IR')}</strong></div>; }
+function Kpi({
+  title,
+  value,
+  subtitle,
+  trend,
+  icon: Icon,
+  tone,
+}: {
+  title: string;
+  value: number;
+  subtitle: string;
+  trend: string;
+  icon: React.ElementType;
+  tone: Tone;
+}) {
+  return (
+    <div className="flex h-[140px] flex-col justify-between rounded-2xl border border-[#E7EBF3] bg-white p-4 shadow-[0_5px_18px_rgba(20,40,80,.045)] transition-all duration-200 hover:-translate-y-px mobile:h-[160px] tablet:h-[174px] tablet:p-5">
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="text-sm font-bold text-[#344054]">{title}</div>
+          <div className="mt-2 text-[22px] font-extrabold leading-none text-[#101828] mobile:text-[26px] tablet:text-[28px]">
+            {value.toLocaleString('fa-IR')}
+          </div>
+        </div>
+        <div
+          className={cn(
+            'flex h-[44px] w-[44px] items-center justify-center rounded-[14px] mobile:h-[48px] tablet:h-[52px] tablet:w-[52px]',
+            tones[tone],
+          )}
+        >
+          <Icon className="h-5 w-5 mobile:h-6 mobile:w-6" />
+        </div>
+      </div>
+      <div className="flex items-end justify-between gap-3">
+        <svg
+          viewBox="0 0 108 24"
+          className={cn(
+            'h-7 w-[108px]',
+            tone === 'green'
+              ? 'text-[#16A34A]'
+              : tone === 'orange'
+                ? 'text-[#F97316]'
+                : tone === 'purple'
+                  ? 'text-[#7C3AED]'
+                  : 'text-[#2563EB]',
+          )}
+          fill="none"
+          aria-hidden="true"
+        >
+          <path
+            d="M1 18 C9 15, 10 7, 18 11 S29 22, 37 14 S47 4, 55 10 S64 21, 72 13 S83 5, 90 12 S99 17, 107 8"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+        </svg>
+        <div className="text-left">
+          <div className="text-xs font-medium text-[#8490A5]">{subtitle}</div>
+          <div
+            className={cn(
+              'mt-2 text-[11px] font-semibold',
+              trend.includes('↓') ? 'text-[#EF4444]' : 'text-[#16A34A]',
+            )}
+          >
+            {trend}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Summary({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="flex items-center justify-between border-b border-[#F0F2F5] py-3 text-sm last:border-0">
+      <span className="font-medium text-[#667085]">{label}</span>
+      <strong className="text-[#101828]">{value.toLocaleString('fa-IR')}</strong>
+    </div>
+  );
+}
