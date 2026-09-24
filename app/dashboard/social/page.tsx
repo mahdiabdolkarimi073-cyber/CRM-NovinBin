@@ -503,11 +503,13 @@ export default function SocialNetworkPage() {
   const isGroupOwner = selectedGroup && profile && selectedGroup.ownerId === profile.id;
 
   if (loading) {
-    return <div className="social-network-page"><div className="staff-chat-loading" style={{ background: '#F8F9FC' }}><span style={{ borderColor: '#2563EB #E2E8F0 #E2E8F0' }} /></div></div>;
+    return <div className={cn('social-network-page', 'has-mobile-chat')}><div className="staff-chat-loading" style={{ background: '#F8F9FC' }}><span style={{ borderColor: '#2563EB #E2E8F0 #E2E8F0' }} /></div></div>;
   }
 
+  const hasMobileChat = !!(selectedUser || selectedGroup || selectedFolder);
+
   return (
-    <div className="social-network-page">
+    <div className={cn('social-network-page', hasMobileChat && 'has-mobile-chat')}>
       <header className="social-network-header">
         <div className="social-network-header-info">
           <span className="social-network-title-accent" />

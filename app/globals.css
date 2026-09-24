@@ -1124,7 +1124,7 @@
 .staff-chat-empty svg { width: 40px; height: 40px; opacity: .5; }
 .staff-chat-empty p { margin: 0; font-size: 13px; }
 .staff-chat-empty-panel { padding: 24px; }
-.staff-chat-composer { display: flex; align-items: center; gap: 8px; min-height: 72px; padding: 12px 16px; border-top: 1px solid #E8EDF3; background: #fff; }
+.staff-chat-composer { display: flex; align-items: center; gap: 8px; min-height: 72px; flex-shrink: 0; padding: 12px 16px; border-top: 1px solid #E8EDF3; background: #fff; }
 .staff-chat-composer input { min-width: 0; flex: 1; height: 50px; padding: 0 16px; border: 1px solid #DCE3ED; border-radius: 14px; outline: none; color: #24324A; font: inherit; font-size: 13px; transition: 150ms ease; }
 .staff-chat-composer input:focus { border-color: #F97316; box-shadow: 0 0 0 3px rgba(249,115,22,.08); }
 .staff-chat-composer input::placeholder { color: #94A3B8; }
@@ -1264,7 +1264,7 @@
 
 /* ===== Social Network Page — Clean White Redesign ===== */
 .social-network-page {
-  direction: rtl; width: 100%; height: calc(100vh - 0px); overflow: hidden;
+  direction: rtl; width: 100%; height: 100dvh; overflow: hidden;
   background: #F8F9FC; color: #1a1a2e; display: flex; flex-direction: column;
   position: fixed; top: 0; right: 0; left: 0; bottom: 0; z-index: 50;
   font-family: 'Vazirmatn', system-ui, sans-serif;
@@ -1323,11 +1323,11 @@
   background: #FFFFFF; border-right: 1px solid #EAECF2; overflow: hidden;
 }
 .social-network-page .staff-chat-panel {
-  background: #FFFFFF; border-left: 1px solid #EAECF2;
+  background: #FFFFFF; border-left: 1px solid #EAECF2; min-width: 0; flex: 1; display: flex; flex-direction: column; overflow: hidden;
 }
 .social-network-page .staff-chat-header {
   background: #FFFFFF; border-bottom: 1px solid #EAECF2;
-  padding: 14px 20px;
+  padding: 14px 20px; flex-shrink: 0;
 }
 .social-network-page .staff-chat-person strong { color: #0F172A; font-size: 15px; }
 .social-network-page .staff-chat-person .staff-chat-status { color: #94A3B8; font-size: 12px; }
@@ -1343,7 +1343,7 @@
 .social-network-page .staff-chat-icon-button:hover { background: #EFF6FF; border-color: #BFDBFE; color: #2563EB; }
 .social-network-page .staff-chat-icon-button svg { width: 17px; height: 17px; }
 .social-network-page .staff-chat-messages {
-  background: #F8F9FC; padding: 16px 20px;
+  background: #F8F9FC; padding: 16px 20px; flex: 1; min-height: 0; overflow-y: auto;
 }
 .social-network-page .staff-chat-date {
   background: #E2E8F0; border: none; color: #64748B;
@@ -1384,7 +1384,7 @@
 .social-network-page .staff-chat-avatar-large { width: 44px; height: 44px; font-size: 15px; }
 .social-network-page .staff-chat-composer {
   background: #FFFFFF; border-top: 1px solid #EAECF2;
-  padding: 10px 16px; display: flex; align-items: center; gap: 6px;
+  padding: 10px 16px; display: flex; align-items: center; gap: 6px; flex-shrink: 0;
 }
 .social-network-page .staff-chat-composer input {
   background: #F1F5F9; border: 1px solid #E2E8F0; color: #1E293B;
@@ -1537,7 +1537,7 @@
 @media (max-width: 1199px) { .social-network-body { grid-template-columns: 1fr 260px; } }
 @media (max-width: 767px) {
   .social-network-body { display: flex; flex-direction: column; }
-  .social-network-users { position: fixed; z-index: 1000; top: 0; right: 0; width: 85vw; max-width: 340px; height: 100vh; transform: translateX(100%); transition: transform 250ms ease; }
+  .social-network-users { position: fixed; z-index: 1000; top: 0; right: 0; width: 85vw; max-width: 340px; height: 100dvh; transform: translateX(100%); transition: transform 250ms ease; }
   .social-network-users.is-open { transform: translateX(0); box-shadow: -10px 0 30px rgba(0,0,0,.1); }
   .social-network-header { padding: 12px 16px; }
   .social-network-header h1 { font-size: 18px; }
@@ -1545,6 +1545,11 @@
   .social-network-tab { height: 38px; padding: 0 14px; font-size: 12px; white-space: nowrap; }
   .social-network-page .staff-chat-bubble { max-width: 80%; }
   .social-network-page .mobile-user-trigger { display: inline-flex; }
+  .social-network-page:not(.has-mobile-chat) .mobile-social-shell { display: none; }
+  .social-network-page:not(.has-mobile-chat) > .social-network-header,
+  .social-network-page:not(.has-mobile-chat) > .social-network-tabs,
+  .social-network-page:not(.has-mobile-chat) > .social-network-body { display: flex; }
+  .social-network-page:not(.has-mobile-chat) > .social-network-body > .staff-chat-panel { display: flex; }
 }
 
 /* ===== Social Network Premium Theme — Orange/Amber ===== */
@@ -1620,6 +1625,7 @@
   background: #FFFFFF;
   border-bottom: 1px solid #F1E8E0;
   box-shadow: 0 1px 4px rgba(249,115,22,.03);
+  flex-shrink: 0;
 }
 .social-network-page .staff-chat-person strong { color: #0C0A09; font-weight: 800; }
 .social-network-page .staff-chat-person .staff-chat-status { color: #A8867A; font-weight: 500; }
@@ -1647,6 +1653,7 @@
 .social-network-page .staff-chat-messages {
   background: #F8F5F2;
   padding: 20px 24px;
+  flex: 1; min-height: 0; overflow-y: auto;
 }
 .social-network-page .staff-chat-date {
   background: #FFFFFF;
@@ -1710,6 +1717,7 @@
   border-top: 1px solid #F1E8E0;
   padding: 12px 18px;
   gap: 8px;
+  flex-shrink: 0;
 }
 .social-network-page .staff-chat-composer input {
   background: #FFF7ED;
@@ -2016,9 +2024,15 @@
 /* ===== Social Mobile ===== */
 @media (max-width: 767px) {
   .social-network-page { height: 100dvh; }
-  .social-network-page .social-network-header { display: none; }
+  .social-network-page .social-network-header { display: flex; padding: 10px 14px; flex-shrink: 0; }
+  .social-network-page .social-network-header-info { gap: 8px; }
+  .social-network-page .social-network-title-accent { height: 28px; width: 4px; }
+  .social-network-page .social-network-header h1 { font-size: 15px; }
+  .social-network-page .social-network-header p { display: none; }
+  .social-network-page .social-network-close { height: 34px; padding: 0 12px; font-size: 12px; }
+  .social-network-page .social-network-close svg { width: 14px; height: 14px; }
   .social-network-page .social-network-tabs {
-    height: 60px; padding: 0 8px; gap: 2px; align-items: stretch; justify-content: space-around;
+    height: 56px; padding: 0 8px; gap: 2px; align-items: stretch; justify-content: space-around;
     border-bottom: 1px solid #F1E8E0;
     box-shadow: 0 2px 10px rgba(249,115,22,.06);
     overflow: visible; flex-shrink: 0;
@@ -2038,7 +2052,7 @@
   }
   .social-network-page .social-network-tab svg { width: 18px; height: 18px; }
   .social-network-page .social-network-body { display: flex; flex: 1; min-height: 0; }
-  .social-network-page .staff-chat-panel { min-height: 0; }
+  .social-network-page .staff-chat-panel { flex: 1; min-width: 0; min-height: 0; }
   .social-network-page .social-network-users { width: 100%; border: 0; }
   .social-network-page .staff-chat-users-toolbar {
     height: 64px; padding: 10px 14px; border-bottom-color: #F1E8E0;
@@ -2074,14 +2088,14 @@
     transform: translateX(0); box-shadow: -10px 0 30px rgba(0,0,0,.08);
   }
   .social-network-page .social-network-body:not(:has(.staff-chat-empty-panel)) .staff-chat-overlay { display: block; }
-  .social-network-page .staff-chat-header { height: 60px; flex-basis: 60px; padding: 8px 12px; }
+  .social-network-page .staff-chat-header { height: 56px; flex: 0 0 56px; padding: 8px 10px; }
   .social-network-page .social-chat-back { width: 38px; height: 38px; border-radius: 12px; }
   .social-network-page .staff-chat-icon-button { width: 36px; height: 36px; border-radius: 10px; }
   .social-network-page .call-action-btn { width: 36px; height: 36px; border-radius: 10px; }
-  .social-network-page .staff-chat-messages { padding: 14px 10px; }
+  .social-network-page .staff-chat-messages { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 10px; }
   .social-network-page .staff-chat-bubble { max-width: 84%; border-radius: 16px 16px 16px 5px; }
   .social-network-page .staff-chat-bubble.is-mine { border-radius: 16px 16px 5px 16px; }
-  .social-network-page .staff-chat-composer { padding: 8px 10px; gap: 4px; }
+  .social-network-page .staff-chat-composer { flex-shrink: 0; padding: 8px 10px; gap: 4px; }
   .social-network-page .staff-chat-composer input { font-size: 13px; height: 44px; border-radius: 12px; }
   .social-network-page .staff-chat-tool { width: 36px; height: 36px; }
   .social-network-page .staff-chat-send { width: 42px; height: 42px; border-radius: 12px; }
@@ -6978,11 +6992,11 @@
 
 @media (max-width: 767px) {
   .social-network-page.has-mobile-chat .mobile-social-shell { display: none; }
-  .social-network-page:not(.has-mobile-chat) .mobile-social-shell { display: flex; }
+  .social-network-page:not(.has-mobile-chat) .mobile-social-shell { display: none; }
   .social-network-page:not(.has-mobile-chat) > .social-network-header,
   .social-network-page:not(.has-mobile-chat) > .social-network-tabs,
   .social-network-page:not(.has-mobile-chat) > .portal-social-folders,
-  .social-network-page:not(.has-mobile-chat) > .social-network-body { display: none; }
+  .social-network-page:not(.has-mobile-chat) > .social-network-body { display: flex; }
   .social-network-page.has-mobile-chat .social-network-header,
   .social-network-page.has-mobile-chat .social-network-tabs,
   .social-network-page.has-mobile-chat .portal-social-folders { display: none; }
