@@ -28,6 +28,7 @@ export function useWebRTC() {
   const remoteStreamRef = useRef<MediaStream | null>(null);
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
+  const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const pendingCandidatesRef = useRef<RTCIceCandidate[]>([]);
 
   const [state, setState] = useState<WebRTCCallState>({
@@ -59,6 +60,10 @@ export function useWebRTC() {
       updateState({ remoteStream: stream });
       if (remoteVideoRef.current) {
         remoteVideoRef.current.srcObject = stream;
+      }
+      if (remoteAudioRef.current) {
+        remoteAudioRef.current.srcObject = stream;
+        remoteAudioRef.current.play().catch(() => {});
       }
     };
 
@@ -350,6 +355,7 @@ export function useWebRTC() {
     state,
     localVideoRef,
     remoteVideoRef,
+    remoteAudioRef,
     startCall,
     acceptCall,
     rejectCall,

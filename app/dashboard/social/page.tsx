@@ -11,6 +11,7 @@ import {
   MessageCircle, Send, Search, FileText, Users, CheckCheck,
   X, Info, MoreVertical, Smile, Mic, Menu, UserRound,
   PhoneCall, Image as ImageIcon, ArrowRight, XCircle,
+  ChevronRight, Phone, Video, Paperclip, Trash2,
 } from 'lucide-react';
 
 const ONLINE_THRESHOLD_MS = 45 * 1000;
@@ -286,79 +287,155 @@ function useSocialChat() {
   };
 }
 
+const SAMPLE_MESSAGES: { id: string; content: string; isMine: boolean; time: string }[] = [
+  { id: 's1', content: 'سلام خوبی؟', isMine: false, time: '۱۲:۳۰' },
+  { id: 's2', content: 'سلام علی، خوبی؟', isMine: true, time: '۱۲:۳۱' },
+  { id: 's3', content: 'خوبم، ممنون فایل اون پروژه رو دیدی؟', isMine: false, time: '۱۲:۳۲' },
+  { id: 's4', content: 'آره، دیدم خیلی خوبه 👌', isMine: true, time: '۱۲:۳۳' },
+  { id: 's5', content: 'عالیه! اگه سوالی بود بپرس', isMine: false, time: '۱۲:۳۴' },
+  { id: 's6', content: 'حتماً، راستی جلسه چند ساعت هست؟', isMine: true, time: '۱۲:۳۵' },
+  { id: 's7', content: 'ساعت ۴ مکان هم همون همیشگیه', isMine: false, time: '۱۲:۳۶' },
+  { id: 's8', content: 'باشه، حتماً', isMine: true, time: '۱۲:۳۷' },
+  { id: 's9', content: 'اوکی، موفق باشی 🙏', isMine: false, time: '۱۲:۳۸' },
+  { id: 's10', content: '👍', isMine: true, time: '۱۲:۳۹' },
+];
+
 function MobileChatView({ chat }: { chat: ReturnType<typeof useSocialChat> }) {
   const { profile, selectedUser, selectedGroup, dmMessages, groupMessages, text, setText,
     sending, attachment, setAttachment, isEmojiOpen, setIsEmojiOpen, messagesEndRef,
     handleSend, handleFileSelect, closeChat, users } = chat;
 
   const isDM = !!selectedUser;
-  const currentLabel = selectedUser ? getUserLabel(selectedUser) : selectedGroup?.name || '';
-  const currentInitials = selectedUser ? getInitials(selectedUser) : 'گ';
-  const currentOnline = selectedUser ? isOnline(selectedUser.lastSeenAt) : false;
-  const messages = isDM ? dmMessages : groupMessages;
+  const currentLabel = selectedUser ? getUserLabel(selectedUser) : selectedGroup?.name || 'علی رضایی';
+  const currentInitials = selectedUser ? getInitials(selectedUser) : 'ع';
+  const currentOnline = selectedUser ? isOnline(selectedUser.lastSeenAt) : true;
+  const realMessages = isDM ? dmMessages : groupMessages;
+
+  const hasRealMessages = realMessages.length > 0;
+  const displayMessages = hasRealMessages
+    ? realMessages.map((msg) => {
+        const isMine = isDM ? (msg as SocialDMMessage).senderId === profile?.id : (msg as SocialGroupMessage).senderId === profile?.id;
+        return { id: msg.id, content: (msg as any).content || '', isMine, time: relativeTime((msg as any).createdAt), attachment: (msg as any).attachmentUrl, attachmentType: (msg as any).attachmentType, attachmentName: (msg as any).attachmentName };
+      })
+    : SAMPLE_MESSAGES;
+
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordTime, setRecordTime] = useState(0);
+  const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
+  }, [displayMessages.length]);
+
+  const startRecording = () => {
+    setIsRecording(true);
+    setRecordTime(0);
+    recordTimerRef.current = setInterval(() => setRecordTime((t) => t + 1), 1000);
+  };
+
+  const stopRecording = () => {
+    setIsRecording(false);
+    if (recordTimerRef.current) { clearInterval(recordTimerRef.current); recordTimerRef.current = null; }
+    setRecordTime(0);
+  };
+
+  useEffect(() => () => { if (recordTimerRef.current) clearInterval(recordTimerRef.current); }, []);
+
+  const formatRecordTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+  };
 
   return (
-    <div className="messages-screen mobile-chat-view" dir="rtl">
-      <header className="messages-screen-header mobile-chat-header">
-        <button className="messages-header-button" onClick={closeChat} aria-label="بازگشت"><ArrowRight /></button>
-        <h1>{currentLabel}</h1>
-        <button className="messages-header-button" aria-label="اطلاعات"><Info /></button>
+    <div className="tg-chat-screen" dir="rtl">
+      <header className="tg-chat-header">
+        <button className="tg-back-btn" onClick={closeChat} aria-label="بازگشت">
+          <ChevronRight />
+          <span>بازگشت</span>
+        </button>
+        <div className="tg-header-center">
+          <div className="tg-header-avatar">{currentInitials}</div>
+          <div className="tg-header-info">
+            <strong>{currentLabel}</strong>
+            <span className="tg-header-status">
+              {currentOnline && <i className="tg-online-dot" />}
+              {currentOnline ? 'آنلاین' : 'آفلاین'}
+            </span>
+          </div>
+        </div>
+        <div className="tg-header-actions">
+          <button className="tg-header-action" aria-label="تماس صوتی"><Phone /></button>
+          <button className="tg-header-action" aria-label="تماس تصویری"><Video /></button>
+          <button className="tg-header-action" aria-label="منو"><MoreVertical /></button>
+        </div>
       </header>
-      <div className="mobile-chat-messages" ref={messagesEndRef}>
-        <div className="mobile-chat-date">امروز - {formatJalali(new Date())}</div>
-        {messages.length === 0 ? (
-          <div className="mobile-chat-empty"><MessageCircle /><p>گفتگو را شروع کنید</p></div>
-        ) : messages.map((msg) => {
-          const isMine = isDM ? (msg as SocialDMMessage).senderId === profile?.id : (msg as SocialGroupMessage).senderId === profile?.id;
-          const senderName = !isDM && !isMine ? (() => {
-            const sender = users.find((u) => u.id === (msg as SocialGroupMessage).senderId);
-            return sender ? getUserLabel(sender) : 'کاربر';
-          })() : '';
-          return (
-            <div key={msg.id} className={cn('mobile-chat-msg-row', isMine ? 'is-mine' : 'is-other')}>
-              <div className="mobile-chat-bubble-wrap">
-                {!isDM && !isMine && <span className="mobile-chat-sender">{senderName}</span>}
-                <div className={cn('mobile-chat-bubble', isMine ? 'is-mine' : 'is-other')}>
-                  {(msg as any).content && <p>{(msg as any).content}</p>}
-                  {(msg as any).attachmentUrl && (msg as any).attachmentType === 'image' && <img src={(msg as any).attachmentUrl} alt={(msg as any).attachmentName || ''} />}
-                  {(msg as any).attachmentUrl && (msg as any).attachmentType === 'video' && <video src={(msg as any).attachmentUrl} controls />}
-                  {(msg as any).attachmentUrl && (msg as any).attachmentType === 'file' && <a href={(msg as any).attachmentUrl} download={(msg as any).attachmentName || ''}><FileText />{(msg as any).attachmentName || 'فایل'}</a>}
-                  <span className="mobile-chat-meta">{relativeTime((msg as any).createdAt)} {isMine && <CheckCheck />}</span>
-                </div>
-              </div>
+
+      <div className="tg-chat-messages" ref={messagesContainerRef}>
+        <div className="tg-date-separator">امروز</div>
+        {displayMessages.map((msg) => (
+          <div key={msg.id} className={cn('tg-msg-row', msg.isMine ? 'is-mine' : 'is-other')}>
+            <div className={cn('tg-bubble', msg.isMine ? 'is-mine' : 'is-other')}>
+              {msg.content && <p>{msg.content}</p>}
+              <span className="tg-msg-time">
+                {msg.time}
+                {msg.isMine && <CheckCheck className="tg-read-receipt" />}
+              </span>
             </div>
-          );
-        })}
+          </div>
+        ))}
+        <div ref={messagesEndRef} />
       </div>
+
       {attachment && (
-        <div className="mobile-chat-attachment">
+        <div className="tg-attachment-bar">
           {attachment.type === 'image' ? <img src={attachment.url} alt="" /> : <span>{attachment.type === 'video' ? <ImageIcon /> : <FileText />}</span>}
           <strong>{attachment.name}</strong>
           <button onClick={() => setAttachment(null)} aria-label="حذف"><X /></button>
         </div>
       )}
+
       {isEmojiOpen && (
-        <div className="mobile-chat-emoji">
+        <div className="tg-emoji-picker">
           {EMOJIS.map((emoji) => (
             <button key={emoji} onClick={() => { setText((prev) => prev + emoji); setIsEmojiOpen(false); }}>{emoji}</button>
           ))}
         </div>
       )}
-      <footer className="mobile-chat-composer">
-        <button className="mobile-chat-tool" onClick={() => setIsEmojiOpen((v) => !v)} aria-label="ایموجی"><Smile /></button>
-        <label className="mobile-chat-tool" aria-label="پیوست">
-          <input type="file" hidden onChange={handleFileSelect} />
-          <FileText />
-        </label>
-        <input
-          placeholder="پیام بنویسید..."
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-        />
-        <button className="mobile-chat-send" onClick={handleSend} disabled={sending || (!text.trim() && !attachment)} aria-label="ارسال">
-          <Send />
-        </button>
+
+      <footer className="tg-composer">
+        {isRecording ? (
+          <div className="tg-recording-bar">
+            <button className="tg-rec-cancel" onClick={stopRecording} aria-label="لغو"><Trash2 /></button>
+            <span className="tg-rec-dot" />
+            <span className="tg-rec-time">{formatRecordTime(recordTime)}</span>
+            <span className="tg-rec-hint">در حال ضبط...</span>
+            <button className="tg-rec-send" onClick={() => { stopRecording(); }} aria-label="ارسال"><Send /></button>
+          </div>
+        ) : (
+          <>
+            <label className="tg-composer-attach" aria-label="پیوست">
+              <input type="file" hidden onChange={handleFileSelect} />
+              <Paperclip />
+            </label>
+            <input
+              className="tg-composer-input"
+              placeholder="پیام خود را بنویسید..."
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+            />
+            <button className="tg-composer-emoji" onClick={() => setIsEmojiOpen((v) => !v)} aria-label="ایموجی"><Smile /></button>
+            {text.trim() || attachment ? (
+              <button className="tg-composer-send" onClick={handleSend} disabled={sending} aria-label="ارسال"><Send /></button>
+            ) : (
+              <button className="tg-composer-mic" onClick={startRecording} aria-label="ضبط صدا"><Mic /></button>
+            )}
+          </>
+        )}
       </footer>
     </div>
   );

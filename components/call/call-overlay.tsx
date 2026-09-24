@@ -17,7 +17,7 @@ interface CallOverlayProps {
 }
 
 export function CallOverlay({ webrtc, incomingCall, callerProfile, onAccept, onReject, onEnd }: CallOverlayProps) {
-  const { state, localVideoRef, remoteVideoRef, toggleMic, toggleCamera } = webrtc;
+  const { state, localVideoRef, remoteVideoRef, remoteAudioRef, toggleMic, toggleCamera } = webrtc;
   const [callDuration, setCallDuration] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const acceptedAtRef = useRef<number>(0);
@@ -116,6 +116,7 @@ export function CallOverlay({ webrtc, incomingCall, callerProfile, onAccept, onR
 
   return (
     <div className="call-overlay">
+      <audio ref={remoteAudioRef} autoPlay playsInline className="hidden" />
       <div className={isVideo ? 'call-active call-active-video' : 'call-active call-active-audio'}>
         {isVideo && (
           <>
