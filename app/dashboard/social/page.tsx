@@ -1,49 +1,413 @@
 'use client';
 
-import { useState } from 'react';
-import { MessageCircle, Send, Search, FileText, Users, CheckCheck, Menu, UserRound, PhoneCall, Image as ImageIcon } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import { fetchData, createData, updateData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
+import { cn } from '@/lib/utils';
+import { relativeTime, formatJalali } from '@/lib/format';
+import { toast } from 'sonner';
+import type { SocialDMMessage, SocialGroup, SocialGroupMessage, Profile } from '@/lib/types';
+import {
+  MessageCircle, Send, Search, FileText, Users, CheckCheck,
+  X, Info, MoreVertical, Smile, Mic, Menu, UserRound,
+  PhoneCall, Image as ImageIcon, ArrowRight, XCircle,
+} from 'lucide-react';
 
-interface MessagePreview {
-  id: string;
-  name: string;
-  preview: string;
-  time: string;
-  unread?: number;
-  avatar?: string;
-  kind?: 'group' | 'channel';
-  online?: boolean;
-  muted?: boolean;
-  receipt?: 'read' | 'old';
+const ONLINE_THRESHOLD_MS = 45 * 1000;
+const EMOJIS = ['😀', '😄', '😁', '😊', '😍', '🤩', '😎', '🤔', '😅', '😂', '🥳', '😇', '🙂', '😉', '😌', '😋', '🤗', '🤝', '👍', '👏', '🙏', '💪', '🔥', '✨', '🎉', '❤️', '💯', '⭐', '✅', '🚀'];
+
+function isOnline(lastSeenAt: string | null): boolean {
+  if (!lastSeenAt) return false;
+  return Date.now() - new Date(lastSeenAt).getTime() < ONLINE_THRESHOLD_MS;
 }
 
-const messagePreviews: MessagePreview[] = [
-  { id: 'ali', name: 'علی رضایی', preview: 'سلام، خوبی؟', time: '۱۲:۴۵', unread: 3, avatar: '/images/ChatGPT_Image_Aug_15,_2026,_12_00_00_PM.png', online: true, receipt: 'read' },
-  { id: 'mehdi', name: 'مهدی احمدی', preview: 'فایل ارسال شد', time: '۱۱:۳۲', unread: 5, avatar: '/images/ChatGPT_Image_Aug_21,_2026,_03_02_45_PM.png', muted: true, receipt: 'old' },
-  { id: 'sara', name: 'سارا محمدی', preview: 'باشه 👍', time: '۱۰:۱۵', avatar: '/images/ChatGPT_Image_Aug_30,_2026,_02_32_56_PM.png', receipt: 'read' },
-  { id: 'friends', name: 'گروه دوستان', preview: 'علی: فردا میبینمتون', time: '۰۹:۴۸', unread: 7, kind: 'group' },
-  { id: 'reza', name: 'رضا کاوه', preview: 'متون، حتما میفرستم', time: 'دیروز', avatar: '/images/ChatGPT_Image_Aug_30,_2026,_02_39_21_PM.png', receipt: 'old' },
-  { id: 'narges', name: 'نرگس کریمی', preview: 'عکس', time: 'دیروز', avatar: '/images/ChatGPT_Image_Aug_30,_2026,_02_50_26_PM.png', receipt: 'old' },
-  { id: 'news', name: 'کانال اخبار', preview: 'آخرین اخبار امروز منتشر شد...', time: 'جمعه', unread: 12, kind: 'channel' },
-  { id: 'alireza', name: 'علیرضا اسدی', preview: 'دمت گرم 🙏', time: 'پنجشنبه', avatar: '/images/ChatGPT_Image_Sep_13,_2026,_12_18_29_PM.png', receipt: 'old' },
-  { id: 'fatemeh', name: 'فاطمه جلالی', preview: 'تا بعد...', time: 'سه‌شنبه', avatar: '/images/ChatGPT_Image_Sep_16,_2026,_03_10_52_PM.png', receipt: 'old' },
-  { id: 'mohammad', name: 'محمد شریفی', preview: 'عالیه 👍', time: 'دوشنبه', avatar: '/images/ChatGPT_Image_Aug_30,_2026,_02_50_26_PM copy.png', receipt: 'old' },
-];
+type Tab = 'dms' | 'groups';
 
-function BellOffIcon() {
-  return <span className="bell-off-icon">⌁</span>;
+interface DMConversation {
+  profile: Profile;
+  lastMessage?: SocialDMMessage;
+  unreadCount: number;
 }
 
-function MessagesScreen() {
+interface GroupConversation {
+  group: SocialGroup;
+  lastMessage?: SocialGroupMessage;
+  unreadCount: number;
+}
+
+function getUserLabel(u: Profile) {
+  if (u.userType === 'customer' && u.customerType === 'company' && u.companyName) return u.companyName;
+  if (u.fullName) return u.fullName;
+  return [u.firstName, u.lastName].filter(Boolean).join(' ') || (u.companyName || 'کاربر');
+}
+function getInitials(u: Profile) {
+  if (u.userType === 'customer' && u.customerType === 'company' && u.companyName) return u.companyName.slice(0, 2);
+  if (u.fullName) return u.fullName.slice(0, 2);
+  return ((u.firstName?.[0] || '') + (u.lastName?.[0] || '')).toUpperCase() || '؟';
+}
+
+function useSocialChat() {
+  const { profile } = useAuth();
+  const [users, setUsers] = useState<Profile[]>([]);
+  const [dmConversations, setDmConversations] = useState<DMConversation[]>([]);
+  const [dmMessages, setDmMessages] = useState<SocialDMMessage[]>([]);
+  const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
+  const [groups, setGroups] = useState<SocialGroup[]>([]);
+  const [groupConversations, setGroupConversations] = useState<GroupConversation[]>([]);
+  const [groupMessages, setGroupMessages] = useState<SocialGroupMessage[]>([]);
+  const [selectedGroup, setSelectedGroup] = useState<SocialGroup | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [text, setText] = useState('');
+  const [sending, setSending] = useState(false);
+  const [attachment, setAttachment] = useState<{ url: string; name: string; type: string } | null>(null);
+  const [isEmojiOpen, setIsEmojiOpen] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const loadUsers = useCallback(async () => {
+    if (!profile) return;
+    try {
+      const data = await fetchData<Profile>('profiles', { where: { id: { not: profile.id } } });
+      setUsers(data || []);
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+    setLoading(false);
+  }, [profile]);
+
+  const loadDMConversations = useCallback(async () => {
+    if (!profile) return;
+    try {
+      const allMessages = await fetchData<SocialDMMessage>('social_dm_messages', { orderBy: { createdAt: 'desc' } });
+      const userMap = new Map<string, DMConversation>();
+      for (const msg of allMessages || []) {
+        const otherId = msg.senderId === profile.id ? msg.receiverId : msg.senderId;
+        const otherProfile = users.find((u) => u.id === otherId);
+        if (!otherProfile) continue;
+        const existing = userMap.get(otherId);
+        const isUnread = msg.receiverId === profile.id && !msg.readAt;
+        if (!existing) {
+          userMap.set(otherId, { profile: otherProfile, lastMessage: msg, unreadCount: isUnread ? 1 : 0 });
+        } else {
+          if (!existing.lastMessage || new Date(msg.createdAt) > new Date(existing.lastMessage.createdAt)) existing.lastMessage = msg;
+          if (isUnread) existing.unreadCount++;
+        }
+      }
+      setDmConversations(Array.from(userMap.values()).sort((a, b) => {
+        const aTime = a.lastMessage ? new Date(a.lastMessage.createdAt).getTime() : 0;
+        const bTime = b.lastMessage ? new Date(b.lastMessage.createdAt).getTime() : 0;
+        return bTime - aTime;
+      }));
+    } catch {}
+  }, [profile, users]);
+
+  const loadDMMessages = useCallback(async (otherUserId: string) => {
+    if (!profile) return;
+    try {
+      const data = await fetchData<SocialDMMessage>('social_dm_messages', { orderBy: { createdAt: 'asc' } });
+      const filtered = (data || []).filter((m) =>
+        (m.senderId === profile.id && m.receiverId === otherUserId) ||
+        (m.senderId === otherUserId && m.receiverId === profile.id)
+      );
+      setDmMessages(filtered);
+      const unread = filtered.filter((m) => m.receiverId === profile.id && !m.readAt);
+      for (const m of unread) await updateData('social_dm_messages', { id: m.id }, { readAt: new Date() });
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  }, [profile]);
+
+  const loadGroups = useCallback(async () => {
+    if (!profile) return;
+    try {
+      const memberships = await fetchData<any>('social_group_members', { where: { profileId: profile.id } });
+      const groupIds = memberships.map((m: any) => m.groupId);
+      if (groupIds.length === 0) { setGroups([]); setGroupConversations([]); return; }
+      const allGroups: SocialGroup[] = [];
+      for (const gid of groupIds) {
+        const g = await fetchData<SocialGroup>('social_groups', { where: { id: gid } });
+        if (g && g[0]) allGroups.push(g[0]);
+      }
+      setGroups(allGroups);
+
+      const groupMap = new Map<string, GroupConversation>();
+      for (const g of allGroups) {
+        const msgs = await fetchData<SocialGroupMessage>('social_group_messages', { where: { groupId: g.id }, orderBy: { createdAt: 'desc' }, take: 1 });
+        const reads = await fetchData<any>('social_group_message_reads', { where: { profileId: profile.id } });
+        const readMsgIds = new Set(reads.map((r: any) => r.messageId));
+        const allMsgs = await fetchData<SocialGroupMessage>('social_group_messages', { where: { groupId: g.id }, orderBy: { createdAt: 'asc' } });
+        const unread = (allMsgs || []).filter((m) => m.senderId !== profile.id && !readMsgIds.has(m.id));
+        groupMap.set(g.id, { group: g, lastMessage: msgs?.[0], unreadCount: unread.length });
+      }
+      setGroupConversations(Array.from(groupMap.values()).sort((a, b) => {
+        const aTime = a.lastMessage ? new Date(a.lastMessage.createdAt).getTime() : 0;
+        const bTime = b.lastMessage ? new Date(b.lastMessage.createdAt).getTime() : 0;
+        return bTime - aTime;
+      }));
+    } catch {}
+  }, [profile]);
+
+  const loadGroupMessages = useCallback(async (groupId: string) => {
+    if (!profile) return;
+    try {
+      const data = await fetchData<SocialGroupMessage>('social_group_messages', { where: { groupId }, orderBy: { createdAt: 'asc' } });
+      setGroupMessages(data || []);
+      const unread = (data || []).filter((m) => m.senderId !== profile.id);
+      for (const m of unread) {
+        try { await createData('social_group_message_reads', { messageId: m.id, profileId: profile.id }); } catch {}
+      }
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  }, [profile]);
+
+  useEffect(() => { loadUsers(); }, [loadUsers]);
+  useEffect(() => { if (users.length > 0) loadDMConversations(); }, [loadDMConversations]);
+  useEffect(() => { loadGroups(); }, [loadGroups]);
+  useEffect(() => {
+    if (selectedUser) loadDMMessages(selectedUser.id);
+    if (selectedGroup) loadGroupMessages(selectedGroup.id);
+  }, [selectedUser, selectedGroup, loadDMMessages, loadGroupMessages]);
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [dmMessages, groupMessages]);
+
+  useEffect(() => {
+    if (!profile) return;
+    const beat = () => fetch('/api/chat/presence', { method: 'POST' }).catch(() => {});
+    beat();
+    heartbeatRef.current = setInterval(beat, 30000);
+    const onVisible = () => { if (document.visibilityState === 'visible') beat(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [profile]);
+
+  const selectedUserRef = useRef<Profile | null>(null);
+  const selectedGroupRef = useRef<SocialGroup | null>(null);
+  useEffect(() => { selectedUserRef.current = selectedUser; }, [selectedUser]);
+  useEffect(() => { selectedGroupRef.current = selectedGroup; }, [selectedGroup]);
+
+  useEffect(() => {
+    if (!profile) return;
+    const es = new EventSource('/api/social/stream');
+    es.addEventListener('dm', (e) => {
+      try {
+        const msg: SocialDMMessage = JSON.parse(e.data);
+        if (msg.receiverId === profile.id) {
+          setDmMessages((prev) => prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]);
+          if (selectedUserRef.current?.id === msg.senderId) {
+            updateData('social_dm_messages', { id: msg.id }, { readAt: new Date() }).catch(() => {});
+          }
+        }
+        loadDMConversations();
+      } catch {}
+    });
+    es.addEventListener('dm_read', (e) => {
+      try {
+        const msg: SocialDMMessage = JSON.parse(e.data);
+        setDmMessages((prev) => prev.map((m) => m.id === msg.id ? { ...m, readAt: msg.readAt } : m));
+      } catch {}
+    });
+    es.addEventListener('group', (e) => {
+      try {
+        const msg: SocialGroupMessage = JSON.parse(e.data);
+        if (selectedGroupRef.current?.id === msg.groupId) {
+          setGroupMessages((prev) => prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]);
+          if (msg.senderId !== profile.id) {
+            createData('social_group_message_reads', { messageId: msg.id, profileId: profile.id }).catch(() => {});
+          }
+        }
+        loadGroups();
+      } catch {}
+    });
+    es.addEventListener('error', () => {});
+    return () => es.close();
+  }, [profile, loadDMConversations, loadGroups]);
+
+  const handleSend = async () => {
+    if (!profile) return;
+    if (selectedUser) {
+      if (!text.trim() && !attachment) return;
+      setSending(true);
+      try {
+        const payload: Record<string, any> = { receiverId: selectedUser.id, content: text.trim() || null };
+        if (attachment) {
+          payload.attachmentUrl = attachment.url;
+          payload.attachmentName = attachment.name;
+          payload.attachmentType = attachment.type;
+        }
+        await createData('social_dm_messages', payload);
+        setText(''); setAttachment(null); setIsEmojiOpen(false);
+        loadDMMessages(selectedUser.id);
+        loadDMConversations();
+      } catch (e: any) { toast.error(e.message); }
+      setSending(false);
+    } else if (selectedGroup) {
+      if (!text.trim() && !attachment) return;
+      setSending(true);
+      try {
+        const payload: Record<string, any> = { groupId: selectedGroup.id, content: text.trim() || null };
+        if (attachment) {
+          payload.attachmentUrl = attachment.url;
+          payload.attachmentName = attachment.name;
+          payload.attachmentType = attachment.type;
+        }
+        await createData('social_group_messages', payload);
+        setText(''); setAttachment(null); setIsEmojiOpen(false);
+        loadGroupMessages(selectedGroup.id);
+        loadGroups();
+      } catch (e: any) { toast.error(e.message); }
+      setSending(false);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { toast.error('حداکثر حجم فایل ۱۰ مگابایت'); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const type = file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : 'file';
+      setAttachment({ url: reader.result as string, name: file.name, type });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const selectUser = (user: Profile) => { setSelectedUser(user); setSelectedGroup(null); };
+  const selectGroup = (group: SocialGroup) => { setSelectedGroup(group); setSelectedUser(null); };
+  const closeChat = () => { setSelectedUser(null); setSelectedGroup(null); };
+
+  return {
+    profile, users, dmConversations, dmMessages, selectedUser, groups,
+    groupConversations, groupMessages, selectedGroup, loading,
+    text, setText, sending, attachment, setAttachment, isEmojiOpen, setIsEmojiOpen,
+    messagesEndRef, handleSend, handleFileSelect, selectUser, selectGroup, closeChat,
+  };
+}
+
+function MobileChatView({ chat }: { chat: ReturnType<typeof useSocialChat> }) {
+  const { profile, selectedUser, selectedGroup, dmMessages, groupMessages, text, setText,
+    sending, attachment, setAttachment, isEmojiOpen, setIsEmojiOpen, messagesEndRef,
+    handleSend, handleFileSelect, closeChat, users } = chat;
+
+  const isDM = !!selectedUser;
+  const currentLabel = selectedUser ? getUserLabel(selectedUser) : selectedGroup?.name || '';
+  const currentInitials = selectedUser ? getInitials(selectedUser) : 'گ';
+  const currentOnline = selectedUser ? isOnline(selectedUser.lastSeenAt) : false;
+  const messages = isDM ? dmMessages : groupMessages;
+
+  return (
+    <div className="messages-screen mobile-chat-view" dir="rtl">
+      <header className="messages-screen-header mobile-chat-header">
+        <button className="messages-header-button" onClick={closeChat} aria-label="بازگشت"><ArrowRight /></button>
+        <h1>{currentLabel}</h1>
+        <button className="messages-header-button" aria-label="اطلاعات"><Info /></button>
+      </header>
+      <div className="mobile-chat-messages" ref={messagesEndRef}>
+        <div className="mobile-chat-date">امروز - {formatJalali(new Date())}</div>
+        {messages.length === 0 ? (
+          <div className="mobile-chat-empty"><MessageCircle /><p>گفتگو را شروع کنید</p></div>
+        ) : messages.map((msg) => {
+          const isMine = isDM ? (msg as SocialDMMessage).senderId === profile?.id : (msg as SocialGroupMessage).senderId === profile?.id;
+          const senderName = !isDM && !isMine ? (() => {
+            const sender = users.find((u) => u.id === (msg as SocialGroupMessage).senderId);
+            return sender ? getUserLabel(sender) : 'کاربر';
+          })() : '';
+          return (
+            <div key={msg.id} className={cn('mobile-chat-msg-row', isMine ? 'is-mine' : 'is-other')}>
+              <div className="mobile-chat-bubble-wrap">
+                {!isDM && !isMine && <span className="mobile-chat-sender">{senderName}</span>}
+                <div className={cn('mobile-chat-bubble', isMine ? 'is-mine' : 'is-other')}>
+                  {(msg as any).content && <p>{(msg as any).content}</p>}
+                  {(msg as any).attachmentUrl && (msg as any).attachmentType === 'image' && <img src={(msg as any).attachmentUrl} alt={(msg as any).attachmentName || ''} />}
+                  {(msg as any).attachmentUrl && (msg as any).attachmentType === 'video' && <video src={(msg as any).attachmentUrl} controls />}
+                  {(msg as any).attachmentUrl && (msg as any).attachmentType === 'file' && <a href={(msg as any).attachmentUrl} download={(msg as any).attachmentName || ''}><FileText />{(msg as any).attachmentName || 'فایل'}</a>}
+                  <span className="mobile-chat-meta">{relativeTime((msg as any).createdAt)} {isMine && <CheckCheck />}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {attachment && (
+        <div className="mobile-chat-attachment">
+          {attachment.type === 'image' ? <img src={attachment.url} alt="" /> : <span>{attachment.type === 'video' ? <ImageIcon /> : <FileText />}</span>}
+          <strong>{attachment.name}</strong>
+          <button onClick={() => setAttachment(null)} aria-label="حذف"><X /></button>
+        </div>
+      )}
+      {isEmojiOpen && (
+        <div className="mobile-chat-emoji">
+          {EMOJIS.map((emoji) => (
+            <button key={emoji} onClick={() => { setText((prev) => prev + emoji); setIsEmojiOpen(false); }}>{emoji}</button>
+          ))}
+        </div>
+      )}
+      <footer className="mobile-chat-composer">
+        <button className="mobile-chat-tool" onClick={() => setIsEmojiOpen((v) => !v)} aria-label="ایموجی"><Smile /></button>
+        <label className="mobile-chat-tool" aria-label="پیوست">
+          <input type="file" hidden onChange={handleFileSelect} />
+          <FileText />
+        </label>
+        <input
+          placeholder="پیام بنویسید..."
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+        />
+        <button className="mobile-chat-send" onClick={handleSend} disabled={sending || (!text.trim() && !attachment)} aria-label="ارسال">
+          <Send />
+        </button>
+      </footer>
+    </div>
+  );
+}
+
+function MessagesScreen({ chat }: { chat: ReturnType<typeof useSocialChat> }) {
+  const { profile, dmConversations, groupConversations, selectedUser, selectedGroup, selectUser, selectGroup, loading } = chat;
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('همه');
-  const filters = ['همه', 'خوانده نشده', 'گروه‌ها', 'کانال‌ها'];
-  const visibleMessages = messagePreviews.filter((message) => {
+  const [activeNav, setActiveNav] = useState('messages');
+  const filters = ['همه', 'خوانده نشده', 'گروه‌ها'];
+
+  const allItems = useMemo(() => {
+    const dmItems = dmConversations.map((c) => ({
+      id: c.profile.id,
+      name: getUserLabel(c.profile),
+      preview: c.lastMessage?.content || (c.lastMessage?.attachmentUrl ? 'فایل' : ''),
+      time: c.lastMessage ? relativeTime(c.lastMessage.createdAt) : '',
+      unread: c.unreadCount || undefined,
+      online: isOnline(c.profile.lastSeenAt),
+      receipt: c.lastMessage?.readAt ? 'read' as const : c.lastMessage ? 'old' as const : undefined,
+      kind: undefined as undefined | 'group',
+      onClick: () => selectUser(c.profile),
+    }));
+    const groupItems = groupConversations.map((gc) => ({
+      id: gc.group.id,
+      name: gc.group.name,
+      preview: gc.lastMessage?.content || gc.group.description || 'گروه',
+      time: gc.lastMessage ? relativeTime(gc.lastMessage.createdAt) : '',
+      unread: gc.unreadCount || undefined,
+      online: false,
+      receipt: undefined as undefined | 'read' | 'old',
+      kind: 'group' as const,
+      onClick: () => selectGroup(gc.group),
+    }));
+    return [...dmItems, ...groupItems];
+  }, [dmConversations, groupConversations, selectUser, selectGroup]);
+
+  const visibleMessages = allItems.filter((message) => {
     const matchesQuery = `${message.name} ${message.preview}`.includes(query.trim());
-    const matchesFilter = filter === 'همه' || (filter === 'خوانده نشده' && message.unread) || (filter === 'گروه‌ها' && message.kind === 'group') || (filter === 'کانال‌ها' && message.kind === 'channel');
+    const matchesFilter = filter === 'همه' || (filter === 'خوانده نشده' && message.unread) || (filter === 'گروه‌ها' && message.kind === 'group');
     return matchesQuery && matchesFilter;
   });
+
+  const totalUnread = dmConversations.reduce((s, c) => s + c.unreadCount, 0) + groupConversations.reduce((s, c) => s + c.unreadCount, 0);
+  const unreadDMs = dmConversations.filter((c) => c.unreadCount > 0).length;
+  const groupCount = groupConversations.length;
+
+  if (selectedUser || selectedGroup) return <MobileChatView chat={chat} />;
 
   return (
     <div className="messages-screen" dir="rtl">
@@ -52,7 +416,6 @@ function MessagesScreen() {
         <h1>پیام‌ها</h1>
         <button className="messages-header-button" aria-label="جستجو" onClick={() => document.getElementById('messages-search')?.focus()}><Search /></button>
       </header>
-
       <main className="messages-screen-content">
         <label className="messages-search-bar" htmlFor="messages-search">
           <Search />
@@ -62,45 +425,334 @@ function MessagesScreen() {
           {filters.map((item) => (
             <button key={item} className={cn('messages-filter', filter === item && 'is-active')} onClick={() => setFilter(item)} role="tab" aria-selected={filter === item}>
               <span>{item}</span>
-              {item === 'همه' && <b>۱۲</b>}
-              {item === 'خوانده نشده' && <b>۸</b>}
-              {item === 'گروه‌ها' && <b>۳</b>}
+              {item === 'همه' && <b>{allItems.length.toLocaleString('fa-IR')}</b>}
+              {item === 'خوانده نشده' && <b>{unreadDMs.toLocaleString('fa-IR')}</b>}
+              {item === 'گروه‌ها' && <b>{groupCount.toLocaleString('fa-IR')}</b>}
             </button>
           ))}
         </div>
-
         <section className="messages-list" aria-label="فهرست گفتگوها">
-          {visibleMessages.map((message) => (
-            <button className="message-row" key={message.id}>
+          {loading ? (
+            <div className="messages-loading"><span /></div>
+          ) : visibleMessages.length === 0 ? (
+            <div className="messages-empty"><MessageCircle /><p>گفتگویی وجود ندارد</p></div>
+          ) : visibleMessages.map((message) => (
+            <button className="message-row" key={message.id} onClick={message.onClick}>
               <span className="message-avatar-wrap">
-                {message.kind === 'group' ? <span className="message-avatar message-avatar-group"><Users /></span> : message.kind === 'channel' ? <span className="message-avatar message-avatar-channel"><Send /></span> : <span className="message-avatar" style={{ backgroundImage: `url("${message.avatar}")` }} />}
+                {message.kind === 'group'
+                  ? <span className="message-avatar message-avatar-group"><Users /></span>
+                  : <span className="message-avatar" style={{ background: 'linear-gradient(135deg, #6366F1, #818CF8)' }}>{getUserLabelInitials(message.name)}</span>}
                 {message.online && <i className="message-online-dot" />}
               </span>
               <span className="message-copy">
                 <strong>{message.name}</strong>
-                <span className="message-preview">{message.preview}{message.preview === 'فایل ارسال شد' && <FileText />}{message.preview === 'عکس' && <ImageIcon />}</span>
+                <span className="message-preview">{message.preview}{message.preview === 'فایل' && <FileText />}</span>
               </span>
               <span className="message-meta">
                 <time>{message.time}</time>
-                {message.muted ? <span className="message-muted"><BellOffIcon /></span> : message.receipt && <CheckCheck className={cn('message-receipt', message.receipt === 'read' ? 'is-read' : 'is-old')} />}
+                {message.receipt && <CheckCheck className={cn('message-receipt', message.receipt === 'read' ? 'is-read' : 'is-old')} />}
                 {message.unread && <b className="message-unread">{message.unread.toLocaleString('fa-IR')}</b>}
               </span>
             </button>
           ))}
         </section>
       </main>
-
       <nav className="messages-bottom-nav" aria-label="ناوبری شبکه اجتماعی">
-        <button><UserRound /><span>مخاطبین</span></button>
-        <button className="is-active"><span className="messages-nav-icon"><MessageCircle /><b>۱۲</b></span><span>پیام‌ها</span></button>
-        <button><Users /><span>گروه‌ها</span></button>
-        <button><PhoneCall /><span>تماس‌ها</span></button>
+        <button className={cn(activeNav === 'contacts' && 'is-active')} onClick={() => setActiveNav('contacts')}><UserRound /><span>مخاطبین</span></button>
+        <button className={cn(activeNav === 'messages' && 'is-active')} onClick={() => setActiveNav('messages')}>
+          <span className="messages-nav-icon"><MessageCircle />{totalUnread > 0 && <b>{totalUnread.toLocaleString('fa-IR')}</b>}</span>
+          <span>پیام‌ها</span>
+        </button>
+        <button className={cn(activeNav === 'groups' && 'is-active')} onClick={() => setActiveNav('groups')}><Users /><span>گروه‌ها</span></button>
+        <button className={cn(activeNav === 'calls' && 'is-active')} onClick={() => setActiveNav('calls')}><PhoneCall /><span>تماس‌ها</span></button>
       </nav>
     </div>
   );
 }
 
+function getUserLabelInitials(name: string): string {
+  return name.slice(0, 2);
+}
+
+function SocialNetworkDesktop({ chat }: { chat: ReturnType<typeof useSocialChat> }) {
+  const { profile, users, dmConversations, dmMessages, selectedUser, groups,
+    groupConversations, groupMessages, selectedGroup, loading,
+    text, setText, sending, attachment, setAttachment, isEmojiOpen, setIsEmojiOpen,
+    messagesEndRef, handleSend, handleFileSelect, selectUser, selectGroup } = chat;
+
+  const [tab, setTab] = useState<Tab>('dms');
+  const [search, setSearch] = useState('');
+  const [messageSearch, setMessageSearch] = useState('');
+  const [isMessageSearchOpen, setIsMessageSearchOpen] = useState(false);
+  const [isUsersOpen, setIsUsersOpen] = useState(false);
+
+  const roleLabels: Record<string, string> = { owner: 'مالک', super_admin: 'سوپرادمین', admin: 'مدیر', personnel: 'پرسنل' };
+
+  const filteredUsers = users.filter((u) => getUserLabel(u).toLowerCase().includes(search.toLowerCase()));
+  const conversationUserIds = new Set(dmConversations.map((c) => c.profile.id));
+  const recentDMUsers = dmConversations.map((c) => c.profile);
+  const otherUsers = filteredUsers.filter((u) => !conversationUserIds.has(u.id));
+
+  const filteredDMMessages = useMemo(() => {
+    if (!messageSearch.trim()) return dmMessages;
+    return dmMessages.filter((m) => m.content?.toLowerCase().includes(messageSearch.toLowerCase()));
+  }, [dmMessages, messageSearch]);
+
+  const filteredGroupMessages = useMemo(() => {
+    if (!messageSearch.trim()) return groupMessages;
+    return groupMessages.filter((m) => m.content?.toLowerCase().includes(messageSearch.toLowerCase()));
+  }, [groupMessages, messageSearch]);
+
+  const selectUserAndClose = (user: Profile) => { selectUser(user); setIsUsersOpen(false); };
+  const selectGroupAndClose = (group: SocialGroup) => { selectGroup(group); setIsUsersOpen(false); };
+
+  const renderDMUser = (user: Profile, conversation?: DMConversation) => {
+    const isActive = selectedUser?.id === user.id;
+    const online = isOnline(user.lastSeenAt);
+    return (
+      <button key={user.id} onClick={() => selectUserAndClose(user)} className={cn('staff-chat-user', isActive && 'is-active')}>
+        <span className="staff-chat-avatar-wrap">
+          <span className="staff-chat-avatar">{getInitials(user)}</span>
+          <span className={cn('staff-chat-presence-dot', online ? 'is-online' : 'is-offline')} />
+        </span>
+        <span className="staff-chat-user-copy">
+          <span className="staff-chat-user-topline">
+            <strong>{getUserLabel(user)}</strong>
+            {conversation?.lastMessage && <time>{relativeTime(conversation.lastMessage.createdAt)}</time>}
+          </span>
+          <span className="staff-chat-user-bottomline">
+            <small>{conversation?.lastMessage?.content || (conversation?.lastMessage?.attachmentUrl ? 'فایل' : online ? 'آنلاین' : user.lastSeenAt ? `آخرین بازدید ${relativeTime(user.lastSeenAt)}` : roleLabels[user.role] || user.role)}</small>
+            {conversation?.unreadCount ? <b>{conversation.unreadCount.toLocaleString('fa-IR')}</b> : null}
+          </span>
+        </span>
+      </button>
+    );
+  };
+
+  const renderGroupItem = (gc: GroupConversation) => {
+    const isActive = selectedGroup?.id === gc.group.id;
+    return (
+      <button key={gc.group.id} onClick={() => selectGroupAndClose(gc.group)} className={cn('staff-chat-user', isActive && 'is-active')}>
+        <span className="staff-chat-avatar-wrap">
+          <span className="staff-chat-avatar" style={{ background: 'linear-gradient(135deg, #2F80ED, #1B6FD0)' }}>
+            <Users style={{ width: 22, height: 22 }} />
+          </span>
+        </span>
+        <span className="staff-chat-user-copy">
+          <span className="staff-chat-user-topline">
+            <strong>{gc.group.name}</strong>
+            {gc.lastMessage && <time>{relativeTime(gc.lastMessage.createdAt)}</time>}
+          </span>
+          <span className="staff-chat-user-bottomline">
+            <small>{gc.lastMessage?.content || gc.group.description || 'گروه'}</small>
+            {gc.unreadCount ? <b>{gc.unreadCount.toLocaleString('fa-IR')}</b> : null}
+          </span>
+        </span>
+      </button>
+    );
+  };
+
+  if (loading) {
+    return <div className="staff-chat-page"><div className="staff-chat-loading"><span /></div></div>;
+  }
+
+  const currentMessages = tab === 'dms' ? filteredDMMessages : filteredGroupMessages;
+  const currentSelected = tab === 'dms' ? selectedUser : selectedGroup;
+  const currentLabel = tab === 'dms' && selectedUser ? getUserLabel(selectedUser) : tab === 'groups' && selectedGroup ? selectedGroup.name : '';
+  const currentInitials = tab === 'dms' && selectedUser ? getInitials(selectedUser) : 'گ';
+  const currentOnline = tab === 'dms' && selectedUser ? isOnline(selectedUser.lastSeenAt) : false;
+  const currentStatus = tab === 'dms' && selectedUser
+    ? (currentOnline ? 'آنلاین' : selectedUser.lastSeenAt ? `آخرین بازدید ${relativeTime(selectedUser.lastSeenAt)}` : roleLabels[selectedUser.role] || selectedUser.role)
+    : tab === 'groups' && selectedGroup ? (selectedGroup.description || 'گروه') : '';
+
+  return (
+    <div className="social-network-page" dir="rtl">
+      <header className="social-network-header">
+        <div className="social-network-header-info">
+          <span className="social-network-title-accent" />
+          <div>
+            <h1>شبکه اجتماعی</h1>
+            <p>پیام‌رسانی داخلی و گروهی</p>
+          </div>
+        </div>
+      </header>
+
+      <nav className="social-network-tabs">
+        <button className={cn('social-network-tab', tab === 'dms' && 'is-active')} onClick={() => setTab('dms')}>
+          <MessageCircle /> پیام مستقیم
+          {dmConversations.filter((c) => c.unreadCount > 0).length > 0 && (
+            <b>{dmConversations.filter((c) => c.unreadCount > 0).length.toLocaleString('fa-IR')}</b>
+          )}
+        </button>
+        <button className={cn('social-network-tab', tab === 'groups' && 'is-active')} onClick={() => setTab('groups')}>
+          <Users /> گروه‌ها
+          {groupConversations.filter((c) => c.unreadCount > 0).length > 0 && (
+            <b>{groupConversations.filter((c) => c.unreadCount > 0).length.toLocaleString('fa-IR')}</b>
+          )}
+        </button>
+      </nav>
+
+      <div className="social-network-body">
+        <section className="staff-chat-panel">
+          {currentSelected ? (
+            <>
+              <header className="staff-chat-header">
+                <div className="staff-chat-person">
+                  <button className="social-chat-back mobile-only" onClick={() => setIsUsersOpen(true)} aria-label="نمایش لیست">
+                    <ArrowRight />
+                  </button>
+                  <span className="staff-chat-avatar-wrap">
+                    <span className="staff-chat-avatar staff-chat-avatar-large">
+                      {tab === 'dms' ? currentInitials : <Users style={{ width: 24, height: 24 }} />}
+                    </span>
+                    {tab === 'dms' && <span className={cn('staff-chat-presence-dot', currentOnline ? 'is-online' : 'is-offline')} />}
+                  </span>
+                  <div>
+                    <strong>{currentLabel}</strong>
+                    <span className="staff-chat-status">
+                      {tab === 'dms' && <i className={cn(currentOnline ? 'is-online' : 'is-offline')} />}
+                      {currentStatus}
+                    </span>
+                  </div>
+                </div>
+                <div className="staff-chat-actions">
+                  <button className="staff-chat-icon-button mobile-only" onClick={() => setIsUsersOpen(true)} aria-label="نمایش کاربران"><Users /></button>
+                  <button className="staff-chat-icon-button" onClick={() => setIsMessageSearchOpen((v) => !v)} aria-label="جستجوی پیام"><Search /></button>
+                  <button className="staff-chat-icon-button" aria-label="اطلاعات"><Info /></button>
+                  <button className="staff-chat-icon-button" aria-label="گزینه‌های بیشتر"><MoreVertical /></button>
+                </div>
+              </header>
+
+              {isMessageSearchOpen && (
+                <div className="staff-chat-message-search">
+                  <Search />
+                  <input autoFocus placeholder="جستجو در پیام‌ها..." value={messageSearch} onChange={(e) => setMessageSearch(e.target.value)} />
+                  <button onClick={() => { setIsMessageSearchOpen(false); setMessageSearch(''); }} aria-label="بستن جستجو"><XCircle /></button>
+                </div>
+              )}
+
+              <div className="staff-chat-messages">
+                <div className="staff-chat-date">امروز - {formatJalali(new Date())}</div>
+                {currentMessages.length === 0 ? (
+                  messageSearch ? (
+                    <div className="staff-chat-empty"><Search /><p>پیامی با این عبارت یافت نشد</p></div>
+                  ) : (
+                    <div className="staff-chat-empty"><MessageCircle /><p>گفتگو را شروع کنید — اولین پیام را ارسال کنید</p></div>
+                  )
+                ) : currentMessages.map((msg) => {
+                  const isMine = tab === 'dms'
+                    ? (msg as SocialDMMessage).senderId === profile?.id
+                    : (msg as SocialGroupMessage).senderId === profile?.id;
+                  const senderName = tab === 'groups'
+                    ? (() => {
+                        const sender = users.find((u) => u.id === (msg as SocialGroupMessage).senderId);
+                        return sender ? getUserLabel(sender) : 'کاربر';
+                      })()
+                    : '';
+                  return (
+                    <div key={msg.id} className={cn('staff-chat-message-row', isMine ? 'is-mine' : 'is-other')}>
+                      {!isMine && tab === 'dms' && <span className="staff-chat-avatar staff-chat-message-avatar">{currentInitials}</span>}
+                      <div className={cn('staff-chat-bubble', isMine ? 'is-mine' : 'is-other')}>
+                        {tab === 'groups' && !isMine && <span className="social-msg-sender">{senderName}</span>}
+                        {(msg as any).content && <p>{(msg as any).content}</p>}
+                        {(msg as any).attachmentUrl && (msg as any).attachmentType === 'image' && <img src={(msg as any).attachmentUrl} alt={(msg as any).attachmentName || ''} />}
+                        {(msg as any).attachmentUrl && (msg as any).attachmentType === 'video' && <video src={(msg as any).attachmentUrl} controls />}
+                        {(msg as any).attachmentUrl && (msg as any).attachmentType === 'file' && <a href={(msg as any).attachmentUrl} download={(msg as any).attachmentName || ''}><FileText />{(msg as any).attachmentName || 'دانلود فایل'}</a>}
+                        <span className="staff-chat-message-meta">{relativeTime((msg as any).createdAt)} {isMine && <CheckCheck />}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+                <div ref={messagesEndRef} />
+              </div>
+
+              {attachment && (
+                <div className="staff-chat-attachment-preview">
+                  {attachment.type === 'image' ? <img src={attachment.url} alt="" /> : <span>{attachment.type === 'video' ? <ImageIcon /> : <FileText />}</span>}
+                  <strong>{attachment.name}</strong>
+                  <button onClick={() => setAttachment(null)} aria-label="حذف فایل"><X /></button>
+                </div>
+              )}
+
+              {isEmojiOpen && (
+                <div className="staff-chat-emoji-picker">
+                  {EMOJIS.map((emoji) => (
+                    <button key={emoji} className="staff-chat-emoji" onClick={() => { setText((prev) => prev + emoji); setIsEmojiOpen(false); }}>{emoji}</button>
+                  ))}
+                </div>
+              )}
+
+              <footer className="staff-chat-composer">
+                <button className="staff-chat-tool" onClick={() => setIsEmojiOpen((v) => !v)} aria-label="ایموجی"><Smile /></button>
+                <label className="staff-chat-tool" aria-label="پیوست">
+                  <input type="file" hidden onChange={handleFileSelect} />
+                  <FileText />
+                </label>
+                <input
+                  placeholder="پیام بنویسید..."
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                />
+                <button className="staff-chat-tool" aria-label="ضبط صدا"><Mic /></button>
+                <button className="staff-chat-send" onClick={handleSend} disabled={sending || (!text.trim() && !attachment)} aria-label="ارسال">
+                  <Send />
+                </button>
+              </footer>
+            </>
+          ) : (
+            <div className="staff-chat-empty-panel">
+              <MessageCircle />
+              <p>یک گفتگو را انتخاب کنید</p>
+            </div>
+          )}
+        </section>
+
+        <aside className={cn('social-network-users', isUsersOpen && 'is-open')}>
+          <div className="staff-chat-users-toolbar">
+            <div className="staff-chat-search">
+              <Search />
+              <input placeholder="جستجو..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            </div>
+          </div>
+          <div className="staff-chat-users-list">
+            {tab === 'dms' ? (
+              <>
+                {recentDMUsers.filter((u) => getUserLabel(u).toLowerCase().includes(search.toLowerCase())).map((u) => {
+                  const convo = dmConversations.find((c) => c.profile.id === u.id);
+                  return renderDMUser(u, convo);
+                })}
+                {otherUsers.length > 0 && <h3>سایر کاربران</h3>}
+                {otherUsers.map((u) => renderDMUser(u))}
+              </>
+            ) : (
+              <>
+                {groupConversations.filter((gc) => gc.group.name.toLowerCase().includes(search.toLowerCase())).map((gc) => renderGroupItem(gc))}
+                {groups.length === 0 && <div className="staff-chat-no-users">گروهی وجود ندارد</div>}
+              </>
+            )}
+          </div>
+        </aside>
+
+        {isUsersOpen && <div className="staff-chat-overlay" onClick={() => setIsUsersOpen(false)} />}
+      </div>
+    </div>
+  );
+}
+
 export default function SocialNetworkPage() {
-  useAuth();
-  return <MessagesScreen />;
+  const { profile } = useAuth();
+  const [isMobile, setIsMobile] = useState(false);
+  const chat = useSocialChat();
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  if (!profile) return null;
+  if (isMobile) return <MessagesScreen chat={chat} />;
+  return <SocialNetworkDesktop chat={chat} />;
 }
