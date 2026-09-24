@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { fetchData, createData, updateData } from '@/lib/data-client';
+import Link from 'next/link';
 import { useAuth } from '@/components/providers/auth-provider';
 import { cn } from '@/lib/utils';
 import { relativeTime, formatJalali } from '@/lib/format';
@@ -11,7 +12,7 @@ import {
   MessageCircle, Send, Search, FileText, Users, CheckCheck,
   X, Info, MoreVertical, Smile, Mic, Menu, UserRound,
   PhoneCall, Image as ImageIcon, ArrowRight, XCircle,
-  ChevronRight, Phone, Video, Paperclip, Trash2,
+  ChevronRight, Phone, Video, Paperclip, Trash2, ArrowLeft,
 } from 'lucide-react';
 
 const ONLINE_THRESHOLD_MS = 45 * 1000;
@@ -652,6 +653,10 @@ function SocialNetworkDesktop({ chat }: { chat: ReturnType<typeof useSocialChat>
             <p>پیام‌رسانی داخلی و گروهی</p>
           </div>
         </div>
+        <Link href="/dashboard" className="social-back-to-crm">
+          <ArrowLeft className="h-4 w-4" />
+          بازگشت به CRM
+        </Link>
       </header>
 
       <nav className="social-network-tabs">

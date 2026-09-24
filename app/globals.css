@@ -1295,6 +1295,18 @@
   border-color: #2563EB; box-shadow: 0 3px 12px rgba(37,99,235,.2);
 }
 .social-network-close svg { width: 17px; height: 17px; }
+.social-back-to-crm {
+  display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 18px;
+  border: 1px solid #F1E8E0; border-radius: 10px;
+  background: #FFF8F3; color: #C2410C;
+  font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: all .2s ease; text-decoration: none;
+}
+.social-back-to-crm:hover {
+  background: #F97316; color: #fff;
+  border-color: #F97316; box-shadow: 0 3px 12px rgba(249,115,22,.2);
+}
+.social-back-to-crm svg { width: 17px; height: 17px; }
 .social-network-tabs {
   display: flex; gap: 6px; padding: 12px 24px;
   background: #FFFFFF; border-bottom: 1px solid #EAECF2; flex-shrink: 0;

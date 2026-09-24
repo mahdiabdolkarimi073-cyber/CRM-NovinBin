@@ -67,7 +67,7 @@ export default function TasksPage() {
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
   const [lastSeenComments, setLastSeenComments] = useState<Record<string, number>>({});
 
-  const isSuperAdmin = profile?.role === 'super_admin' || profile?.role === 'owner';
+  const isSuperAdmin = profile?.role === 'super_admin';
   const isAdmin = profile?.role === 'admin' || isSuperAdmin;
 
   const loadData = useCallback(async () => {
@@ -78,7 +78,7 @@ export default function TasksPage() {
       const [taskData, staffData, allStaffData, mgrData] = await Promise.all([
         fetchData('tasks', { where, orderBy: { createdAt: 'desc' } }),
         fetchData('profiles', { where: { role: 'personnel' } }),
-        fetchData('profiles', { where: { role: { in: ['admin', 'personnel', 'owner', 'super_admin'] } } }),
+        fetchData('profiles', { where: { role: { in: ['admin', 'personnel', 'super_admin'] } } }),
         fetchData<UserManagerRow>('user_manager', {}),
       ]);
       const mMap: Record<string, string> = {};
@@ -202,7 +202,7 @@ export default function TasksPage() {
       const recipients = new Set<string>();
       if (detailTask.assignedTo && detailTask.assignedTo !== profile.id) recipients.add(detailTask.assignedTo);
       if (detailTask.createdBy && detailTask.createdBy !== profile.id) recipients.add(detailTask.createdBy);
-      allStaff.filter((s) => s.role === 'super_admin' || s.role === 'owner').forEach((a) => { if (a.id !== profile.id) recipients.add(a.id); });
+      allStaff.filter((s) => s.role === 'super_admin').forEach((a) => { if (a.id !== profile.id) recipients.add(a.id); });
       recipients.forEach((rid) => {
         notifPromises.push(
           createData('notifications', {
@@ -245,7 +245,7 @@ export default function TasksPage() {
       const notifPromises: Promise<any>[] = [
         createData('notifications', { profileId: referTo, title: 'وظیفه‌ای به شما ارجاع داده شد', body: `${myName} یک وظیفه${targetTask ? ` «${targetTask.title}»` : ''} را به شما ارجاع داد`, type: 'task', priority: 'normal', link: '/dashboard/tasks' }).catch(() => {}),
       ];
-      allStaff.filter((s) => (s.role === 'super_admin' || s.role === 'owner') && s.id !== profile.id && s.id !== referTo).forEach((admin) => {
+      allStaff.filter((s) => s.role === 'super_admin' && s.id !== profile.id && s.id !== referTo).forEach((admin) => {
         notifPromises.push(
           createData('notifications', { profileId: admin.id, title: 'وظیفه‌ای ارجاع داده شد', body: `${myName} یک وظیفه${targetTask ? ` «${targetTask.title}»` : ''} را به ${fullName(allStaff.find((s) => s.id === referTo)?.firstName, allStaff.find((s) => s.id === referTo)?.lastName) || 'فردی'} ارجاع داد`, type: 'task', priority: 'normal', link: '/dashboard/tasks' }).catch(() => {})
         );
@@ -644,7 +644,7 @@ export default function TasksPage() {
             <div className="space-y-2"><Label>ارجاع به</Label>
               <Select value={referTo} onValueChange={setReferTo}>
                 <SelectTrigger><SelectValue placeholder="انتخاب کاربر..." /></SelectTrigger>
-                <SelectContent><SelectItem value="none">انتخاب کنید...</SelectItem>{referOptions.map((s) => <SelectItem key={s.id} value={s.id}>{fullName(s.firstName, s.lastName)}{s.role === 'admin' || s.role === 'super_admin' || s.role === 'owner' ? ` (${s.role === 'owner' ? 'مدیر سازمان' : s.role === 'super_admin' ? 'سوپرادمین' : 'مدیر'})` : ' (پرسنل)'}</SelectItem>)}</SelectContent>
+                <SelectContent><SelectItem value="none">انتخاب کنید...</SelectItem>{referOptions.map((s) => <SelectItem key={s.id} value={s.id}>{fullName(s.firstName, s.lastName)}{s.role === 'admin' || s.role === 'super_admin' ? ` (${s.role === 'super_admin' ? 'سوپرادمین' : 'مدیر'})` : ' (پرسنل)'}</SelectItem>)}</SelectContent>
               </Select>
             </div>
           </div>

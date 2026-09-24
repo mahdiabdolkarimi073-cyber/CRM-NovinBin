@@ -13,11 +13,11 @@ import {
 } from '@/components/ui/select';
 import {
   ArrowRight, X, FileText, UploadCloud, Loader2, User, Tag,
-  Flag, Lightbulb, Info, Type, AlignRight, Gauge, UserCheck,
+  Flag, Lightbulb, Info, Type, AlignRight, Gauge, UserCheck, Headset,
 } from 'lucide-react';
 import { TASK_PRIORITIES, fullName } from '@/lib/constants';
 import { toast } from 'sonner';
-import type { Profile, Customer } from '@/lib/types';
+import type { Profile, Customer, TicketDepartment } from '@/lib/types';
 
 const MAX_DESC = 2000;
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -34,6 +34,7 @@ export default function NewTicketPage() {
   const router = useRouter();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [staff, setStaff] = useState<Profile[]>([]);
+  const [departments, setDepartments] = useState<TicketDepartment[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -43,16 +44,19 @@ export default function NewTicketPage() {
     description: '',
     customerId: '',
     priority: 'medium',
+    departmentId: '',
   });
 
   const loadData = useCallback(async () => {
     try {
-      const [custData, staffData] = await Promise.all([
+      const [custData, staffData, deptData] = await Promise.all([
         fetchData<Customer>('customers', { where: {} }),
-        fetchData<Profile>('profiles', { where: { userType: 'staff' } }),
+        fetchData<Profile>('profiles', { where: { userType: 'staff', role: { in: ['personnel', 'admin', 'super_admin'] } } }),
+        fetchData<TicketDepartment>('ticket_departments', { where: { active: true }, orderBy: { name: 'asc' } }),
       ]);
       setCustomers(custData || []);
       setStaff(staffData || []);
+      setDepartments(deptData || []);
     } catch {
       setCustomers([]);
       setStaff([]);
@@ -83,6 +87,7 @@ export default function NewTicketPage() {
         subject: form.subject.trim(),
         description: form.description.trim(),
         customerId: form.customerId || null,
+        departmentId: form.departmentId || null,
         priority: form.priority,
         status: 'open',
         channel: 'internal',
@@ -203,6 +208,26 @@ export default function NewTicketPage() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              {/* Department */}
+              <div className="nt-field">
+                <Label className="nt-label">دپارتمان</Label>
+                <Select
+                  value={form.departmentId || 'none'}
+                  onValueChange={(v) => setForm({ ...form, departmentId: v === 'none' ? '' : v })}
+                >
+                  <SelectTrigger className="nt-select">
+                    <span className="nt-select-icon"><Headset className="h-4 w-4" /></span>
+                    <SelectValue placeholder="انتخاب دپارتمان..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">بدون دپارتمان</SelectItem>
+                    {departments.map((d) => (
+                      <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Attachment */}

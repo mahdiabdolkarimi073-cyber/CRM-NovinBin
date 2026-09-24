@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Building2, Package, CreditCard, Receipt,
   Settings, FileCheck, ClipboardList, Gauge, Palette, Users,
-  FolderTree,
+  FolderTree, Headset,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -18,6 +18,7 @@ export const superAdminNavItems: SuperAdminNavItem[] = [
   { href: '/super-admin/tenants', label: 'سازمان‌ها', icon: Building2 },
   { href: '/super-admin/customers', label: 'مشتریان', icon: Users },
   { href: '/super-admin/customer-folders', label: 'پوشه‌های باشگاه مشتریان', icon: FolderTree },
+  { href: '/super-admin/ticket-departments', label: 'دپارتمان‌های تیکت', icon: Headset },
   { href: '/super-admin/plans', label: 'پلن‌ها', icon: Package },
   { href: '/super-admin/modules', label: 'ماژول‌ها', icon: Package },
   { href: '/super-admin/subscriptions', label: 'اشتراک‌ها', icon: CreditCard },

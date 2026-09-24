@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { formatFileSize, formatJalali, relativeTime } from '@/lib/format';
 import { fullName, TASK_PRIORITIES } from '@/lib/constants';
-import type { Customer, Profile, Ticket, TicketMessage } from '@/lib/types';
+import type { Customer, Profile, Ticket, TicketMessage, TicketDepartment } from '@/lib/types';
 import {
   CalendarDays, Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Circle,
   Download, Eye, FileText, Filter, MessageCircle, MoreVertical, Paperclip, Plus,
@@ -57,6 +57,7 @@ export default function TicketsPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [staff, setStaff] = useState<Profile[]>([]);
+  const [departments, setDepartments] = useState<TicketDepartment[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('all');
@@ -70,14 +71,16 @@ export default function TicketsPage() {
     if (!profile) return;
     setLoading(true);
     try {
-      const [ticketData, customerData, staffData] = await Promise.all([
+      const [ticketData, customerData, staffData, deptData] = await Promise.all([
         fetchData<Ticket>('tickets', { orderBy: { createdAt: 'desc' } }),
         fetchData<Customer>('customers', { where: {} }),
-        fetchData<Profile>('profiles', { where: { userType: 'staff' } }),
+        fetchData<Profile>('profiles', { where: { userType: 'staff', role: { in: ['personnel', 'admin', 'super_admin'] } } }),
+        fetchData<TicketDepartment>('ticket_departments', { where: { active: true }, orderBy: { name: 'asc' } }),
       ]);
       setTickets(ticketData || []);
       setCustomers(customerData || []);
       setStaff(staffData || []);
+      setDepartments(deptData || []);
     } catch (error: any) {
       toast.error('بارگذاری تیکت‌ها ناموفق بود: ' + error.message);
     } finally {
@@ -94,6 +97,10 @@ export default function TicketsPage() {
   const staffMap = useMemo(
     () => new Map(staff.map((s) => [s.id, s])),
     [staff],
+  );
+  const deptMap = useMemo(
+    () => new Map(departments.map((d) => [d.id, d])),
+    [departments],
   );
 
   const filteredTickets = useMemo(() => tickets.filter((t) => {
@@ -195,6 +202,7 @@ export default function TicketsPage() {
                   <tr>
                     <th>شناسه</th>
                     <th className="subject-column">موضوع</th>
+                    <th>دپارتمان</th>
                     <th>مشتری</th>
                     <th>اولویت</th>
                     <th>وضعیت</th>
@@ -206,10 +214,10 @@ export default function TicketsPage() {
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan={9} className="tickets-empty">در حال بارگذاری تیکت‌ها...</td></tr>
+                    <tr><td colSpan={10} className="tickets-empty">در حال بارگذاری تیکت‌ها...</td></tr>
                   ) : visibleTickets.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="tickets-empty">
+                      <td colSpan={10} className="tickets-empty">
                         <MessageCircle /> تیکتی مطابق فیلترها پیدا نشد
                       </td>
                     </tr>
@@ -224,6 +232,9 @@ export default function TicketsPage() {
                         <td className="subject-cell">
                           <MessageCircle />
                           <span title={t.subject}>{t.subject}</span>
+                        </td>
+                        <td className="dept-cell" title={deptMap.get(t.departmentId || '')?.name || ''}>
+                          {deptMap.get(t.departmentId || '')?.name || '—'}
                         </td>
                         <td className="customer-cell" title={customerName(customer)}>
                           {customerName(customer)}

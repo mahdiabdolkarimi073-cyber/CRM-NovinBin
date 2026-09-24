@@ -582,24 +582,51 @@ model MeetingReferral {
 // ============ TICKETS ============
 
 model Ticket {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  orgId       String?    @db.Uuid
-  subject     String
-  description String?
-  customerId  String?   @db.Uuid
-  priority    String    @default("medium")
-  status      String    @default("open")
-  channel     String    @default("internal")
-  assignedTo  String?   @db.Uuid
-  slaDeadline DateTime?
-  createdBy   String    @db.Uuid
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @default(now())
-  org         Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  customer    Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  messages    TicketMessage[]
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId        String?    @db.Uuid
+  subject      String
+  description  String?
+  customerId   String?   @db.Uuid
+  departmentId String?   @db.Uuid
+  priority     String    @default("medium")
+  status       String    @default("open")
+  channel      String    @default("internal")
+  assignedTo   String?   @db.Uuid
+  slaDeadline  DateTime?
+  createdBy    String    @db.Uuid
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now())
+  org          Organization?    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  customer     Customer?       @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  department   TicketDepartment? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  messages     TicketMessage[]
 
   @@map("tickets")
+}
+
+model TicketDepartment {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String
+  description String?
+  active      Boolean  @default(true)
+  createdBy   String   @db.Uuid
+  createdAt   DateTime @default(now())
+  members     TicketDepartmentMember[]
+  tickets     Ticket[]
+
+  @@map("ticket_departments")
+}
+
+model TicketDepartmentMember {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  departmentId String   @db.Uuid
+  profileId    String   @db.Uuid
+  assignedBy   String   @db.Uuid
+  createdAt    DateTime @default(now())
+  department   TicketDepartment @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@unique([departmentId, profileId])
+  @@map("ticket_department_members")
 }
 
 model TicketMessage {

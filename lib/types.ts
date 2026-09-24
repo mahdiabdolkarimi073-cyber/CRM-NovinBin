@@ -288,12 +288,32 @@ export interface Ticket {
   status: string;
   priority: string;
   customerId: string | null;
+  departmentId: string | null;
   assignedTo: string | null;
   channel: string;
   slaDeadline: string | null;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+  department?: TicketDepartment | null;
+}
+
+export interface TicketDepartment {
+  id: string;
+  name: string;
+  description: string | null;
+  active: boolean;
+  createdBy: string;
+  createdAt: string;
+  members?: TicketDepartmentMember[];
+}
+
+export interface TicketDepartmentMember {
+  id: string;
+  departmentId: string;
+  profileId: string;
+  assignedBy: string;
+  createdAt: string;
 }
 
 export interface TicketMessage {

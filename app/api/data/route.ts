@@ -198,6 +198,8 @@ const MODEL_MAP: Record<string, any> = {
   secretariat_attachments: prisma.secretariatAttachment,
   secretariat_timeline: prisma.secretariatTimeline,
   customer_devices: prisma.customerDevice,
+  ticket_departments: prisma.ticketDepartment,
+  ticket_department_members: prisma.ticketDepartmentMember,
 };
 
 function getAuth(req: NextRequest) {
@@ -311,6 +313,8 @@ const MODEL_PAGE: Record<string, string> = {
   secretariat_signatures: '/dashboard/secretariat',
   secretariat_attachments: '/dashboard/secretariat',
   secretariat_timeline: '/dashboard/secretariat',
+  ticket_departments: '/super-admin/ticket-departments',
+  ticket_department_members: '/super-admin/ticket-departments',
 };
 
 const SHARED_MODELS = new Set([
@@ -328,6 +332,8 @@ const SHARED_MODELS = new Set([
   'secretariat_letters', 'secretariat_referrals', 'secretariat_signatures',
   'secretariat_attachments', 'secretariat_timeline',
   'customer_devices',
+  'ticket_departments',
+  'ticket_department_members',
 ]);
 
 async function canAccess(auth: { userId: string }, model: string): Promise<boolean> {
@@ -407,6 +413,28 @@ export async function GET(req: NextRequest) {
     const fullProfile = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });
     if (fullProfile?.role !== 'super_admin' && fullProfile?.role !== 'owner' && fullProfile?.role !== 'admin') {
       where = { ...where, assignedTo: auth.userId };
+    }
+  }
+  if (model === 'tickets') {
+    const fullProfile = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true, userType: true, customerId: true } });
+    const canSeeAll = fullProfile?.role === 'admin' || fullProfile?.role === 'super_admin' || fullProfile?.role === 'owner';
+    if (!canSeeAll) {
+      if (fullProfile?.userType === 'customer' && fullProfile.customerId) {
+        where = { ...where, customerId: fullProfile.customerId };
+      } else {
+        const deptMemberships = await prisma.ticketDepartmentMember.findMany({
+          where: { profileId: auth.userId },
+          select: { departmentId: true },
+        });
+        const deptIds = deptMemberships.map((d) => d.departmentId);
+        where = {
+          ...where,
+          OR: [
+            { departmentId: { in: deptIds } },
+            { departmentId: null, createdBy: auth.userId },
+          ],
+        };
+      }
     }
   }
   if (model === 'meetings' || model === 'meeting_assignments' || model === 'notifications') {
@@ -653,6 +681,32 @@ export async function POST(req: NextRequest) {
               type: 'verification',
               priority: 'normal',
               link: '/super-admin/site-verifications',
+            })),
+          });
+        }
+      } catch {}
+    }
+
+    // Notify department members when a ticket is created with a department
+    if (model === 'tickets' && postData.departmentId) {
+      try {
+        const dept = await prisma.ticketDepartment.findUnique({
+          where: { id: postData.departmentId },
+          select: { name: true },
+        });
+        const members = await prisma.ticketDepartmentMember.findMany({
+          where: { departmentId: postData.departmentId, profileId: { not: auth.userId } },
+          select: { profileId: true },
+        });
+        if (members.length > 0) {
+          await prisma.notification.createMany({
+            data: members.map((m) => ({
+              profileId: m.profileId,
+              title: `تیکت جدید در دپارتمان ${dept?.name || ''}`,
+              body: postData.subject ? String(postData.subject).slice(0, 120) : null,
+              type: 'ticket',
+              priority: postData.priority || 'normal',
+              link: '/dashboard/tickets',
             })),
           });
         }
