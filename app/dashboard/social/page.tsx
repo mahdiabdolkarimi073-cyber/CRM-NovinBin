@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { fetchData, createData, updateData } from '@/lib/data-client';
 import Link from 'next/link';
 import { useAuth } from '@/components/providers/auth-provider';
+import { useCall } from '@/components/providers/call-provider';
 import { cn } from '@/lib/utils';
 import { relativeTime, formatJalali } from '@/lib/format';
 import { toast } from 'sonner';
@@ -50,6 +51,7 @@ function getInitials(u: Profile) {
 
 function useSocialChat() {
   const { profile } = useAuth();
+  const callCtx = useCall();
   const [users, setUsers] = useState<Profile[]>([]);
   const [dmConversations, setDmConversations] = useState<DMConversation[]>([]);
   const [dmMessages, setDmMessages] = useState<SocialDMMessage[]>([]);
@@ -285,6 +287,7 @@ function useSocialChat() {
     groupConversations, groupMessages, selectedGroup, loading,
     text, setText, sending, attachment, setAttachment, isEmojiOpen, setIsEmojiOpen,
     messagesEndRef, handleSend, handleFileSelect, selectUser, selectGroup, closeChat,
+    startCall: callCtx.startCall,
   };
 }
 
@@ -304,7 +307,7 @@ const SAMPLE_MESSAGES: { id: string; content: string; isMine: boolean; time: str
 function MobileChatView({ chat }: { chat: ReturnType<typeof useSocialChat> }) {
   const { profile, selectedUser, selectedGroup, dmMessages, groupMessages, text, setText,
     sending, attachment, setAttachment, isEmojiOpen, setIsEmojiOpen, messagesEndRef,
-    handleSend, handleFileSelect, closeChat, users } = chat;
+    handleSend, handleFileSelect, closeChat, users, startCall } = chat;
 
   const isDM = !!selectedUser;
   const currentLabel = selectedUser ? getUserLabel(selectedUser) : selectedGroup?.name || 'علی رضایی';
@@ -369,8 +372,8 @@ function MobileChatView({ chat }: { chat: ReturnType<typeof useSocialChat> }) {
           </div>
         </div>
         <div className="tg-header-actions">
-          <button className="tg-header-action" aria-label="تماس صوتی"><Phone /></button>
-          <button className="tg-header-action" aria-label="تماس تصویری"><Video /></button>
+          <button className="tg-header-action" aria-label="تماس صوتی" onClick={() => selectedUser && startCall(selectedUser, 'audio')} disabled={!selectedUser}><Phone /></button>
+          <button className="tg-header-action" aria-label="تماس تصویری" onClick={() => selectedUser && startCall(selectedUser, 'video')} disabled={!selectedUser}><Video /></button>
           <button className="tg-header-action" aria-label="منو"><MoreVertical /></button>
         </div>
       </header>
@@ -556,7 +559,7 @@ function SocialNetworkDesktop({ chat }: { chat: ReturnType<typeof useSocialChat>
   const { profile, users, dmConversations, dmMessages, selectedUser, groups,
     groupConversations, groupMessages, selectedGroup, loading,
     text, setText, sending, attachment, setAttachment, isEmojiOpen, setIsEmojiOpen,
-    messagesEndRef, handleSend, handleFileSelect, selectUser, selectGroup } = chat;
+    messagesEndRef, handleSend, handleFileSelect, selectUser, selectGroup, startCall } = chat;
 
   const [tab, setTab] = useState<Tab>('dms');
   const [search, setSearch] = useState('');
@@ -699,6 +702,12 @@ function SocialNetworkDesktop({ chat }: { chat: ReturnType<typeof useSocialChat>
                 </div>
                 <div className="staff-chat-actions">
                   <button className="staff-chat-icon-button mobile-only" onClick={() => setIsUsersOpen(true)} aria-label="نمایش کاربران"><Users /></button>
+                  {tab === 'dms' && selectedUser && (
+                    <>
+                      <button className="staff-chat-icon-button" onClick={() => startCall(selectedUser, 'audio')} aria-label="تماس صوتی"><Phone /></button>
+                      <button className="staff-chat-icon-button" onClick={() => startCall(selectedUser, 'video')} aria-label="تماس تصویری"><Video /></button>
+                    </>
+                  )}
                   <button className="staff-chat-icon-button" onClick={() => setIsMessageSearchOpen((v) => !v)} aria-label="جستجوی پیام"><Search /></button>
                   <button className="staff-chat-icon-button" aria-label="اطلاعات"><Info /></button>
                   <button className="staff-chat-icon-button" aria-label="گزینه‌های بیشتر"><MoreVertical /></button>

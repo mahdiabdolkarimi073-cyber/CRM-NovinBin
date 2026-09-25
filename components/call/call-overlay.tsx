@@ -61,6 +61,7 @@ export function CallOverlay({ webrtc, incomingCall, callerProfile, onAccept, onR
     missed: 'تماس پاسخ داده نشد',
     ended: 'تماس قطع شد',
     failed: 'خطا در برقراری تماس',
+    timeout: 'تماس پاسخ داده نشد',
     idle: '',
   };
 

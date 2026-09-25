@@ -28,6 +28,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const esRef = useRef<EventSource | null>(null);
   const [incomingCall, setIncomingCall] = useState<SocialCallSession | null>(null);
   const [callerProfile, setCallerProfile] = useState<Profile | null>(null);
+  const callTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
     try {
@@ -91,6 +92,15 @@ export function CallProvider({ children }: { children: ReactNode }) {
       }
       const session: SocialCallSession = data.session;
       startOutgoingRing();
+      if (callTimeoutRef.current) clearTimeout(callTimeoutRef.current);
+      callTimeoutRef.current = setTimeout(() => {
+        if (webrtc.state.status === 'calling' || webrtc.state.status === 'ringing') {
+          stopAllRings();
+          stopTitleFlash();
+          webrtc.endCall('timeout');
+          toast.info('تماس پاسخ داده نشد');
+        }
+      }, 45000);
       await webrtc.startCall(session.id, remoteUser.id, callType);
     } catch (e: any) {
       toast.error('خطا در برقراری تماس: ' + (e?.message || e));
@@ -112,11 +122,12 @@ export function CallProvider({ children }: { children: ReactNode }) {
       }
       stopAllRings();
       stopTitleFlash();
-      const offerSdp = incomingCall.offerSdp;
+      const freshSession: SocialCallSession = data.session;
+      const offerSdp = freshSession.offerSdp || incomingCall.offerSdp;
       if (offerSdp) {
         await webrtc.acceptCall(incomingCall.id, incomingCall.callerId, incomingCall.callType as 'audio' | 'video', offerSdp);
       } else {
-        toast.error('اطلاعات تماس ناقص است');
+        toast.error('اطلاعات تماس ناقص است — لطفاً دوباره تلاش کنید');
       }
       setIncomingCall(null);
     } catch (e: any) {
@@ -128,6 +139,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     if (!incomingCall) return;
     stopAllRings();
     stopTitleFlash();
+    if (callTimeoutRef.current) { clearTimeout(callTimeoutRef.current); callTimeoutRef.current = null; }
     await webrtc.rejectCall(incomingCall.id);
     setIncomingCall(null);
     setCallerProfile(null);
@@ -136,6 +148,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const handleEndCall = useCallback(() => {
     stopAllRings();
     stopTitleFlash();
+    if (callTimeoutRef.current) { clearTimeout(callTimeoutRef.current); callTimeoutRef.current = null; }
     webrtc.endCall();
   }, [webrtc]);
 
@@ -171,7 +184,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       try {
         const call: SocialCallSession = JSON.parse(e.data);
         if (call.receiverId === profile.id && (call.status === 'calling' || call.status === 'ringing')) {
-          setIncomingCall(call);
+          setIncomingCall((prev) => prev && prev.id === call.id ? prev : call);
           const cp = await fetchProfile(call.callerId);
           setCallerProfile(cp);
           startIncomingRing();
@@ -206,6 +219,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
             webrtc.endCall('missed');
           } else if (call.status === 'accepted') {
             stopAllRings();
+            if (callTimeoutRef.current) { clearTimeout(callTimeoutRef.current); callTimeoutRef.current = null; }
+          } else {
+            if (callTimeoutRef.current) { clearTimeout(callTimeoutRef.current); callTimeoutRef.current = null; }
           }
         }
       } catch (err) {
@@ -239,6 +255,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     return () => {
       es.close();
       esRef.current = null;
+      if (callTimeoutRef.current) { clearTimeout(callTimeoutRef.current); callTimeoutRef.current = null; }
       stopAllRings();
       stopTitleFlash();
     };

@@ -51,7 +51,10 @@ export default function NewTaskPage() {
   const loadStaff = useCallback(async () => {
     try {
       const data = await fetchData<Profile>('profiles', {
-        where: { role: { in: ['admin', 'personnel', 'owner', 'super_admin'] } },
+        where: {
+          userType: 'staff',
+          role: { in: ['admin', 'personnel', 'owner', 'super_admin'] },
+        },
       });
       setStaff(data || []);
     } catch {
