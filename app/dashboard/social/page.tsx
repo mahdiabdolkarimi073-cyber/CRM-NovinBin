@@ -272,11 +272,94 @@ function useSocialChat() {
     if (file.size > 10 * 1024 * 1024) { toast.error('حداکثر حجم فایل ۱۰ مگابایت'); return; }
     const reader = new FileReader();
     reader.onload = () => {
-      const type = file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : 'file';
+      const type = file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : file.type.startsWith('audio/') ? 'audio' : 'file';
       setAttachment({ url: reader.result as string, name: file.name, type });
     };
     reader.readAsDataURL(file);
   };
+
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordTime, setRecordTime] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const audioStreamRef = useRef<MediaStream | null>(null);
+
+  const cancelRecording = useCallback(() => {
+    if (recordTimerRef.current) { clearInterval(recordTimerRef.current); recordTimerRef.current = null; }
+    setIsRecording(false);
+    setRecordTime(0);
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state !== 'inactive') {
+      recorder.onstop = null;
+      recorder.stop();
+    }
+    mediaRecorderRef.current = null;
+    if (audioStreamRef.current) {
+      audioStreamRef.current.getTracks().forEach((t) => t.stop());
+      audioStreamRef.current = null;
+    }
+    recordedChunksRef.current = [];
+  }, []);
+
+  const toggleVoiceRecording = useCallback(async () => {
+    if (isRecording) {
+      if (recordTimerRef.current) { clearInterval(recordTimerRef.current); recordTimerRef.current = null; }
+      setIsRecording(false);
+      setRecordTime(0);
+      const recorder = mediaRecorderRef.current;
+      if (recorder && recorder.state !== 'inactive') {
+        recorder.stop();
+      }
+      mediaRecorderRef.current = null;
+      return;
+    }
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      toast.error('ضبط صدا در این مرورگر پشتیبانی نمی‌شود');
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioStreamRef.current = stream;
+      recordedChunksRef.current = [];
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+      recorder.ondataavailable = (event: BlobEvent) => {
+        if (event.data.size > 0) recordedChunksRef.current.push(event.data);
+      };
+      recorder.onstop = () => {
+        if (audioStreamRef.current) {
+          audioStreamRef.current.getTracks().forEach((track) => track.stop());
+          audioStreamRef.current = null;
+        }
+        const blob = new Blob(recordedChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+        if (blob.size > 10 * 1024 * 1024) { toast.error('حداکثر حجم ویس ۱۰ مگابایت است'); return; }
+        if (blob.size === 0) return;
+        const reader = new FileReader();
+        reader.onload = () => setAttachment({ url: reader.result as string, name: 'پیام صوتی.webm', type: 'audio' });
+        reader.readAsDataURL(blob);
+      };
+      recorder.start();
+      setIsRecording(true);
+      setRecordTime(0);
+      recordTimerRef.current = setInterval(() => setRecordTime((t) => t + 1), 1000);
+    } catch {
+      toast.error('اجازه دسترسی به میکروفن داده نشد');
+    }
+  }, [isRecording, setAttachment]);
+
+  useEffect(() => {
+    return () => {
+      if (recordTimerRef.current) clearInterval(recordTimerRef.current);
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.onstop = null;
+        mediaRecorderRef.current.stop();
+      }
+      if (audioStreamRef.current) {
+        audioStreamRef.current.getTracks().forEach((t) => t.stop());
+      }
+    };
+  }, []);
 
   const selectUser = (user: Profile) => { setSelectedUser(user); setSelectedGroup(null); };
   const selectGroup = (group: SocialGroup) => { setSelectedGroup(group); setSelectedUser(null); };
@@ -288,6 +371,7 @@ function useSocialChat() {
     text, setText, sending, attachment, setAttachment, isEmojiOpen, setIsEmojiOpen,
     messagesEndRef, handleSend, handleFileSelect, selectUser, selectGroup, closeChat,
     startCall: callCtx.startCall,
+    isRecording, recordTime, toggleVoiceRecording, cancelRecording,
   };
 }
 
@@ -304,10 +388,17 @@ const SAMPLE_MESSAGES: { id: string; content: string; isMine: boolean; time: str
   { id: 's10', content: '👍', isMine: true, time: '۱۲:۳۹' },
 ];
 
+function formatRecordTime(s: number) {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+}
+
 function MobileChatView({ chat }: { chat: ReturnType<typeof useSocialChat> }) {
   const { profile, selectedUser, selectedGroup, dmMessages, groupMessages, text, setText,
     sending, attachment, setAttachment, isEmojiOpen, setIsEmojiOpen, messagesEndRef,
-    handleSend, handleFileSelect, closeChat, users, startCall } = chat;
+    handleSend, handleFileSelect, closeChat, users, startCall,
+    isRecording, recordTime, toggleVoiceRecording, cancelRecording } = chat;
 
   const isDM = !!selectedUser;
   const currentLabel = selectedUser ? getUserLabel(selectedUser) : selectedGroup?.name || 'علی رضایی';
@@ -323,9 +414,6 @@ function MobileChatView({ chat }: { chat: ReturnType<typeof useSocialChat> }) {
       })
     : SAMPLE_MESSAGES;
 
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordTime, setRecordTime] = useState(0);
-  const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -333,26 +421,6 @@ function MobileChatView({ chat }: { chat: ReturnType<typeof useSocialChat> }) {
       messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
     }
   }, [displayMessages.length]);
-
-  const startRecording = () => {
-    setIsRecording(true);
-    setRecordTime(0);
-    recordTimerRef.current = setInterval(() => setRecordTime((t) => t + 1), 1000);
-  };
-
-  const stopRecording = () => {
-    setIsRecording(false);
-    if (recordTimerRef.current) { clearInterval(recordTimerRef.current); recordTimerRef.current = null; }
-    setRecordTime(0);
-  };
-
-  useEffect(() => () => { if (recordTimerRef.current) clearInterval(recordTimerRef.current); }, []);
-
-  const formatRecordTime = (s: number) => {
-    const m = Math.floor(s / 60);
-    const sec = s % 60;
-    return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
-  };
 
   return (
     <div className="tg-chat-screen" dir="rtl">
@@ -384,6 +452,10 @@ function MobileChatView({ chat }: { chat: ReturnType<typeof useSocialChat> }) {
           <div key={msg.id} className={cn('tg-msg-row', msg.isMine ? 'is-mine' : 'is-other')}>
             <div className={cn('tg-bubble', msg.isMine ? 'is-mine' : 'is-other')}>
               {msg.content && <p>{msg.content}</p>}
+              {msg.attachment && msg.attachmentType === 'image' && <img src={msg.attachment} alt={msg.attachmentName || ''} style={{ maxWidth: '100%', borderRadius: 8, marginTop: 4 }} />}
+              {msg.attachment && msg.attachmentType === 'video' && <video src={msg.attachment} controls style={{ maxWidth: '100%', borderRadius: 8, marginTop: 4 }} />}
+              {msg.attachment && msg.attachmentType === 'audio' && <audio src={msg.attachment} controls preload="metadata" style={{ width: '100%', marginTop: 4 }} />}
+              {msg.attachment && msg.attachmentType === 'file' && <a href={msg.attachment} download={msg.attachmentName || ''} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><FileText /> {msg.attachmentName || 'دانلود فایل'}</a>}
               <span className="tg-msg-time">
                 {msg.time}
                 {msg.isMine && <CheckCheck className="tg-read-receipt" />}
@@ -396,7 +468,7 @@ function MobileChatView({ chat }: { chat: ReturnType<typeof useSocialChat> }) {
 
       {attachment && (
         <div className="tg-attachment-bar">
-          {attachment.type === 'image' ? <img src={attachment.url} alt="" /> : <span>{attachment.type === 'video' ? <ImageIcon /> : <FileText />}</span>}
+          {attachment.type === 'image' ? <img src={attachment.url} alt="" /> : <span>{attachment.type === 'video' ? <ImageIcon /> : attachment.type === 'audio' ? <Mic /> : <FileText />}</span>}
           <strong>{attachment.name}</strong>
           <button onClick={() => setAttachment(null)} aria-label="حذف"><X /></button>
         </div>
@@ -413,11 +485,11 @@ function MobileChatView({ chat }: { chat: ReturnType<typeof useSocialChat> }) {
       <footer className="tg-composer">
         {isRecording ? (
           <div className="tg-recording-bar">
-            <button className="tg-rec-cancel" onClick={stopRecording} aria-label="لغو"><Trash2 /></button>
+            <button className="tg-rec-cancel" onClick={cancelRecording} aria-label="لغو"><Trash2 /></button>
             <span className="tg-rec-dot" />
             <span className="tg-rec-time">{formatRecordTime(recordTime)}</span>
             <span className="tg-rec-hint">در حال ضبط...</span>
-            <button className="tg-rec-send" onClick={() => { stopRecording(); }} aria-label="ارسال"><Send /></button>
+            <button className="tg-rec-send" onClick={toggleVoiceRecording} aria-label="ارسال"><Send /></button>
           </div>
         ) : (
           <>
@@ -436,7 +508,7 @@ function MobileChatView({ chat }: { chat: ReturnType<typeof useSocialChat> }) {
             {text.trim() || attachment ? (
               <button className="tg-composer-send" onClick={handleSend} disabled={sending} aria-label="ارسال"><Send /></button>
             ) : (
-              <button className="tg-composer-mic" onClick={startRecording} aria-label="ضبط صدا"><Mic /></button>
+              <button className="tg-composer-mic" onClick={toggleVoiceRecording} aria-label="ضبط صدا"><Mic /></button>
             )}
           </>
         )}
@@ -559,7 +631,8 @@ function SocialNetworkDesktop({ chat }: { chat: ReturnType<typeof useSocialChat>
   const { profile, users, dmConversations, dmMessages, selectedUser, groups,
     groupConversations, groupMessages, selectedGroup, loading,
     text, setText, sending, attachment, setAttachment, isEmojiOpen, setIsEmojiOpen,
-    messagesEndRef, handleSend, handleFileSelect, selectUser, selectGroup, startCall } = chat;
+    messagesEndRef, handleSend, handleFileSelect, selectUser, selectGroup, startCall,
+    isRecording, recordTime, toggleVoiceRecording, cancelRecording } = chat;
 
   const [tab, setTab] = useState<Tab>('dms');
   const [search, setSearch] = useState('');
@@ -748,6 +821,7 @@ function SocialNetworkDesktop({ chat }: { chat: ReturnType<typeof useSocialChat>
                         {(msg as any).content && <p>{(msg as any).content}</p>}
                         {(msg as any).attachmentUrl && (msg as any).attachmentType === 'image' && <img src={(msg as any).attachmentUrl} alt={(msg as any).attachmentName || ''} />}
                         {(msg as any).attachmentUrl && (msg as any).attachmentType === 'video' && <video src={(msg as any).attachmentUrl} controls />}
+                        {(msg as any).attachmentUrl && (msg as any).attachmentType === 'audio' && <audio src={(msg as any).attachmentUrl} controls preload="metadata" />}
                         {(msg as any).attachmentUrl && (msg as any).attachmentType === 'file' && <a href={(msg as any).attachmentUrl} download={(msg as any).attachmentName || ''}><FileText />{(msg as any).attachmentName || 'دانلود فایل'}</a>}
                         <span className="staff-chat-message-meta">{relativeTime((msg as any).createdAt)} {isMine && <CheckCheck />}</span>
                       </div>
@@ -759,7 +833,7 @@ function SocialNetworkDesktop({ chat }: { chat: ReturnType<typeof useSocialChat>
 
               {attachment && (
                 <div className="staff-chat-attachment-preview">
-                  {attachment.type === 'image' ? <img src={attachment.url} alt="" /> : <span>{attachment.type === 'video' ? <ImageIcon /> : <FileText />}</span>}
+                  {attachment.type === 'image' ? <img src={attachment.url} alt="" /> : <span>{attachment.type === 'video' ? <ImageIcon /> : attachment.type === 'audio' ? <Mic /> : <FileText />}</span>}
                   <strong>{attachment.name}</strong>
                   <button onClick={() => setAttachment(null)} aria-label="حذف فایل"><X /></button>
                 </div>
@@ -770,6 +844,16 @@ function SocialNetworkDesktop({ chat }: { chat: ReturnType<typeof useSocialChat>
                   {EMOJIS.map((emoji) => (
                     <button key={emoji} className="staff-chat-emoji" onClick={() => { setText((prev) => prev + emoji); setIsEmojiOpen(false); }}>{emoji}</button>
                   ))}
+                </div>
+              )}
+
+              {isRecording && (
+                <div className="staff-chat-recording-bar">
+                  <button className="staff-chat-rec-cancel" onClick={cancelRecording} aria-label="لغو"><Trash2 /></button>
+                  <span className="staff-chat-rec-dot" />
+                  <span className="staff-chat-rec-time">{formatRecordTime(recordTime)}</span>
+                  <span className="staff-chat-rec-hint">در حال ضبط...</span>
+                  <button className="staff-chat-rec-send" onClick={toggleVoiceRecording} aria-label="ارسال"><Send /></button>
                 </div>
               )}
 
@@ -785,7 +869,7 @@ function SocialNetworkDesktop({ chat }: { chat: ReturnType<typeof useSocialChat>
                   onChange={(e) => setText(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
                 />
-                <button className="staff-chat-tool" aria-label="ضبط صدا"><Mic /></button>
+                <button className={cn('staff-chat-tool', isRecording && 'is-recording')} onClick={toggleVoiceRecording} aria-label={isRecording ? 'توقف ضبط' : 'ضبط صدا'}><Mic /></button>
                 <button className="staff-chat-send" onClick={handleSend} disabled={sending || (!text.trim() && !attachment)} aria-label="ارسال">
                   <Send />
                 </button>

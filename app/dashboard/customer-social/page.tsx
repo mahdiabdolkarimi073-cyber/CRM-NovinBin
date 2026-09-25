@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { fetchData, createData, updateData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
+import { useCall } from '@/components/providers/call-provider';
 import { EmptyState } from '@/components/dashboard/empty-state';
 import { MessageCircle, Send, Search, Paperclip, Video, FileText, X, Info, Smile, Mic, CheckCheck, Users, XCircle, Phone, PhoneCall, ArrowLeft, ArrowRight, User, FolderTree, Reply, Menu } from 'lucide-react';
 import { relativeTime, formatJalali } from '@/lib/format';
@@ -39,6 +40,7 @@ const MOBILE_SAMPLE_CONVERSATIONS = [
 
 export default function CustomerSocialPage() {
   const { profile } = useAuth();
+  const { startCall: startCallFromHook } = useCall();
   const [customerProfiles, setCustomerProfiles] = useState<Profile[]>([]);
   const [folders, setFolders] = useState<CustomerSocialFolder[]>([]);
   const [folderCustomerMap, setFolderCustomerMap] = useState<Record<string, Profile[]>>({});
@@ -227,14 +229,7 @@ export default function CustomerSocialPage() {
   }, [profile, selectedUser, loadDMConversations]);
 
   const startCall = async (remoteUser: Profile, callType: 'audio' | 'video') => {
-    try {
-      const res = await fetch('/api/customer-call/initiate', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ receiverId: remoteUser.id, callType }),
-      });
-      if (!res.ok) { const err = await res.json(); toast.error(err.error || 'خطا در برقراری تماس'); return; }
-      toast.success(`تماس ${callType === 'video' ? 'تصویری' : 'صوتی'} با ${getUserLabel(remoteUser)} برقرار شد`);
-    } catch (e: any) { toast.error(e.message); }
+    await startCallFromHook(remoteUser, callType, 'customer');
   };
 
   const handleSend = async () => {

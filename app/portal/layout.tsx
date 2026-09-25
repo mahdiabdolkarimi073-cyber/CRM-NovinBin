@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/components/providers/auth-provider';
+import { CallProvider } from '@/components/providers/call-provider';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Loader2, LogOut, Bell } from 'lucide-react';
@@ -97,7 +98,9 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           ))}
         </nav>
       </header>
-      <main className="mx-auto max-w-[1400px] px-4 py-6 lg:px-7 lg:py-8">{children}</main>
+      <CallProvider modes={['customer']}>
+        <main className="mx-auto max-w-[1400px] px-4 py-6 lg:px-7 lg:py-8">{children}</main>
+      </CallProvider>
     </div>
   );
 }

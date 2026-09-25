@@ -8,8 +8,10 @@ import { toast } from 'sonner';
 import { startIncomingRing, startOutgoingRing, stopAllRings } from '@/lib/ringtone';
 import type { SocialCallSession, Profile } from '@/lib/types';
 
+type CallScope = 'social' | 'customer';
+
 interface CallContextValue {
-  startCall: (remoteUser: Profile, callType: 'audio' | 'video') => Promise<void>;
+  startCall: (remoteUser: Profile, callType: 'audio' | 'video', scope?: CallScope) => Promise<void>;
   endCall: () => void;
   toggleMic: () => void;
   toggleCamera: () => void;
@@ -22,13 +24,17 @@ const CallContext = createContext<CallContextValue>({
   toggleCamera: () => {},
 });
 
-export function CallProvider({ children }: { children: ReactNode }) {
+export function CallProvider({ children, modes = ['social'] }: { children: ReactNode; modes?: CallScope[] }) {
   const { profile } = useAuth();
   const webrtc = useWebRTC();
   const esRef = useRef<EventSource | null>(null);
+  const customerEsRef = useRef<EventSource | null>(null);
   const [incomingCall, setIncomingCall] = useState<SocialCallSession | null>(null);
   const [callerProfile, setCallerProfile] = useState<Profile | null>(null);
+  const [activeScope, setActiveScope] = useState<CallScope>('social');
   const callTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeScopeRef = useRef<CallScope>('social');
+  activeScopeRef.current = activeScope;
 
   const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
     try {
@@ -74,13 +80,15 @@ export function CallProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const handleStartCall = useCallback(async (remoteUser: Profile, callType: 'audio' | 'video') => {
+  const handleStartCall = useCallback(async (remoteUser: Profile, callType: 'audio' | 'video', scope: CallScope = 'social') => {
     if (!profile) {
       toast.error('کاربر احراز هویت نشده');
       return;
     }
+    const apiBase = scope === 'customer' ? '/api/customer-call' : '/api/call';
+    setActiveScope(scope);
     try {
-      const res = await fetch('/api/call/initiate', {
+      const res = await fetch(`${apiBase}/initiate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ receiverId: remoteUser.id, callType }),
@@ -109,8 +117,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   const handleAcceptCall = useCallback(async () => {
     if (!incomingCall || !profile) return;
+    const apiBase = activeScopeRef.current === 'customer' ? '/api/customer-call' : '/api/call';
     try {
-      const res = await fetch('/api/call/accept', {
+      const res = await fetch(`${apiBase}/accept`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId: incomingCall.id }),
@@ -137,6 +146,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   const handleRejectCall = useCallback(async () => {
     if (!incomingCall) return;
+    const apiBase = activeScopeRef.current === 'customer' ? '/api/customer-call' : '/api/call';
     stopAllRings();
     stopTitleFlash();
     if (callTimeoutRef.current) { clearTimeout(callTimeoutRef.current); callTimeoutRef.current = null; }
@@ -170,21 +180,16 @@ export function CallProvider({ children }: { children: ReactNode }) {
     }
   }, [webrtc.state.status, incomingCall]);
 
-  useEffect(() => {
-    if (!profile) return;
-
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission().catch(() => {});
-    }
-
-    const es = new EventSource('/api/call/stream');
-    esRef.current = es;
-
-    es.addEventListener('incoming_call', async (e) => {
+  // Shared SSE event handler factory
+  const createSSEHandlers = useCallback((scope: CallScope) => {
+    const handleIncoming = async (e: MessageEvent) => {
       try {
         const call: SocialCallSession = JSON.parse(e.data);
-        if (call.receiverId === profile.id && (call.status === 'calling' || call.status === 'ringing')) {
-          setIncomingCall((prev) => prev && prev.id === call.id ? prev : call);
+        if (call.receiverId === profile?.id && (call.status === 'calling' || call.status === 'ringing')) {
+          // Don't override if already in a call
+          if (incomingCall || webrtc.state.status !== 'idle') return;
+          setActiveScope(scope);
+          setIncomingCall(call);
           const cp = await fetchProfile(call.callerId);
           setCallerProfile(cp);
           startIncomingRing();
@@ -195,26 +200,23 @@ export function CallProvider({ children }: { children: ReactNode }) {
           startTitleFlash(callerName);
         }
       } catch (err) {
-        console.error('[CALL] SSE incoming_call error', err);
+        console.error(`[CALL:${scope}] SSE incoming_call error`, err);
       }
-    });
+    };
 
-    es.addEventListener('call_update', (e) => {
+    const handleUpdate = (e: MessageEvent) => {
       try {
         const call: SocialCallSession = JSON.parse(e.data);
-        if (call.callerId === profile.id) {
+        if (call.callerId === profile?.id) {
           if (call.status === 'rejected') {
-            stopAllRings();
-            stopTitleFlash();
+            stopAllRings(); stopTitleFlash();
             toast.info('تماس رد شد');
             webrtc.endCall('rejected');
           } else if (call.status === 'ended') {
-            stopAllRings();
-            stopTitleFlash();
+            stopAllRings(); stopTitleFlash();
             webrtc.endCall('ended');
           } else if (call.status === 'missed') {
-            stopAllRings();
-            stopTitleFlash();
+            stopAllRings(); stopTitleFlash();
             toast.info('تماس پاسخ داده نشد');
             webrtc.endCall('missed');
           } else if (call.status === 'accepted') {
@@ -225,41 +227,81 @@ export function CallProvider({ children }: { children: ReactNode }) {
           }
         }
       } catch (err) {
-        console.error('[CALL] SSE call_update error', err);
+        console.error(`[CALL:${scope}] SSE call_update error`, err);
       }
-    });
+    };
 
-    es.addEventListener('call_signal', (e) => {
+    const handleSignal = (e: MessageEvent) => {
       try {
         const sig = JSON.parse(e.data);
         if (sig.signalType === 'end') {
-          stopAllRings();
-          stopTitleFlash();
+          stopAllRings(); stopTitleFlash();
           webrtc.endCall('remote_ended');
         } else if (sig.signalType === 'reject') {
-          stopAllRings();
-          stopTitleFlash();
+          stopAllRings(); stopTitleFlash();
           webrtc.endCall('rejected');
         } else {
           webrtc.handleSignal(sig.signalType, sig.signalData);
         }
       } catch (err) {
-        console.error('[CALL] SSE call_signal error', err);
+        console.error(`[CALL:${scope}] SSE call_signal error`, err);
       }
-    });
+    };
 
+    return { handleIncoming, handleUpdate, handleSignal };
+  }, [profile, incomingCall, webrtc, fetchProfile, showBrowserNotification, startTitleFlash, stopTitleFlash]);
+
+  useEffect(() => {
+    if (!profile) return;
+
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
+
+    // Staff-to-staff call stream
+    if (modes.includes('social')) {
+      const es = new EventSource('/api/call/stream');
+      esRef.current = es;
+      const handlers = createSSEHandlers('social');
+      es.addEventListener('incoming_call', handlers.handleIncoming as any);
+      es.addEventListener('call_update', handlers.handleUpdate as any);
+      es.addEventListener('call_signal', handlers.handleSignal as any);
+      es.addEventListener('error', (e: any) => {
+        console.error('[CALL:social] SSE stream error', e?.message || e);
+      });
+
+      return () => {
+        es.close();
+        esRef.current = null;
+      };
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile]);
+
+  // Customer-social call stream (separate useEffect so both can run simultaneously)
+  useEffect(() => {
+    if (!profile) return;
+    if (!modes.includes('customer')) return;
+
+    const es = new EventSource('/api/customer-call/stream');
+    customerEsRef.current = es;
+    const handlers = createSSEHandlers('customer');
+    es.addEventListener('incoming_call', handlers.handleIncoming as any);
+    es.addEventListener('call_update', handlers.handleUpdate as any);
+    es.addEventListener('call_signal', handlers.handleSignal as any);
     es.addEventListener('error', (e: any) => {
-      console.error('[CALL] SSE stream error', e?.message || e);
+      console.error('[CALL:customer] SSE stream error', e?.message || e);
     });
 
     return () => {
       es.close();
-      esRef.current = null;
+      customerEsRef.current = null;
       if (callTimeoutRef.current) { clearTimeout(callTimeoutRef.current); callTimeoutRef.current = null; }
       stopAllRings();
       stopTitleFlash();
     };
-  }, [profile, webrtc, fetchProfile, showBrowserNotification, startTitleFlash, stopTitleFlash]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile]);
 
   return (
     <CallContext.Provider value={{ startCall: handleStartCall, endCall: handleEndCall, toggleMic: webrtc.toggleMic, toggleCamera: webrtc.toggleCamera }}>

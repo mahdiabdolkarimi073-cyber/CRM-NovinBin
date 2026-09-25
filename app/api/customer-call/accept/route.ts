@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
 
 function getAuth(req: NextRequest) {
@@ -21,7 +24,7 @@ export async function POST(req: NextRequest) {
     if (session.receiverId !== auth.userId) return NextResponse.json({ error: 'شما گیرنده این تماس نیستید' }, { status: 403 });
     if (!['calling', 'ringing'].includes(session.status)) return NextResponse.json({ error: 'این تماس قابل پاسخ نیست' }, { status: 400 });
     const updated = await prisma.customerSocialCallSession.update({ where: { id: sessionId }, data: { status: 'accepted', startedAt: new Date() } });
-    return NextResponse.json({ data: { id: updated.id, status: updated.status } });
+    return NextResponse.json({ session: updated });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }

@@ -2,6 +2,9 @@ import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
 
 function getAuth(req: NextRequest) {
@@ -26,46 +29,84 @@ function serialize(data: any): any {
 export async function GET(req: NextRequest) {
   const auth = getAuth(req);
   if (!auth) return new Response('Unauthorized', { status: 401 });
-  const headers = { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' };
+
   const stream = new ReadableStream({
-    start(controller) {
+    async start(controller) {
+      const encoder = new TextEncoder();
+      const send = (event: string, data: any) => {
+        controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+      };
+
+      send('connected', { userId: auth.userId });
+
+      let lastCheck = new Date();
       let closed = false;
+
       const interval = setInterval(async () => {
         if (closed) return;
         try {
           const incomingCalls = await prisma.customerSocialCallSession.findMany({
-            where: { receiverId: auth.userId, status: { in: ['calling', 'ringing'] } }
-          });
-          for (const c of incomingCalls) {
-            controller.enqueue(`event: incoming_call\ndata: ${JSON.stringify(serialize(c))}\n\n`);
-          }
-          const callUpdates = await prisma.customerSocialCallSession.findMany({
-            where: { callerId: auth.userId, status: { in: ['accepted', 'rejected', 'missed', 'ended', 'failed'] } }
-          });
-          for (const c of callUpdates) {
-            controller.enqueue(`event: call_update\ndata: ${JSON.stringify(serialize(c))}\n\n`);
-          }
-          const signals = await prisma.customerSocialCallSignal.findMany({
-            where: { receiverId: auth.userId },
+            where: {
+              receiverId: auth.userId,
+              createdAt: { gt: lastCheck },
+              status: { in: ['calling', 'ringing'] },
+            },
             orderBy: { createdAt: 'asc' },
-            take: 20
           });
-          for (const s of signals) {
-            controller.enqueue(`event: call_signal\ndata: ${JSON.stringify(serialize(s))}\n\n`);
-            await prisma.customerSocialCallSignal.delete({ where: { id: s.id } }).catch(() => {});
+          for (const call of incomingCalls) {
+            send('incoming_call', serialize(call));
           }
-        } catch {}
+
+          const callUpdates = await prisma.customerSocialCallSession.findMany({
+            where: {
+              callerId: auth.userId,
+              createdAt: { gt: lastCheck },
+              status: { in: ['accepted', 'rejected', 'missed', 'ended', 'failed'] },
+            },
+            orderBy: { createdAt: 'asc' },
+          });
+          for (const call of callUpdates) {
+            send('call_update', serialize(call));
+          }
+
+          const signals = await prisma.customerSocialCallSignal.findMany({
+            where: {
+              receiverId: auth.userId,
+              createdAt: { gt: lastCheck },
+            },
+            orderBy: { createdAt: 'asc' },
+          });
+          for (const sig of signals) {
+            send('call_signal', serialize(sig));
+          }
+
+          lastCheck = new Date();
+        } catch (err) {
+          send('error', { message: 'Poll failed' });
+        }
       }, 1500);
+
       const heartbeat = setInterval(() => {
-        if (!closed) controller.enqueue(`: heartbeat\n\n`);
+        if (!closed) {
+          try { controller.enqueue(encoder.encode(`: heartbeat\n\n`)); } catch {}
+        }
       }, 25000);
+
       req.signal.addEventListener('abort', () => {
         closed = true;
         clearInterval(interval);
         clearInterval(heartbeat);
-        controller.close();
+        try { controller.close(); } catch {}
       });
-    }
+    },
   });
-  return new Response(stream, { headers });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+      'X-Accel-Buffering': 'no',
+    },
+  });
 }

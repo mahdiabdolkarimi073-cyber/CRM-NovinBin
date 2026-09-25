@@ -65,7 +65,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300" dir="rtl">
-      <CallProvider>
+      <CallProvider modes={['social', 'customer']}>
         <GlobalNavbar sidebarOpen={sidebarOpen} onToggleSidebar={toggleSidebar} />
         <DashboardSidebar open={sidebarOpen} onToggle={toggleSidebar} />
         <main

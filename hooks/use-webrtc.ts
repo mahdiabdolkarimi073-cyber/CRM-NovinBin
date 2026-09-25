@@ -22,7 +22,7 @@ const ICE_SERVERS: RTCIceServer[] = [
   { urls: 'stun:stun2.l.google.com:19302' },
 ];
 
-export function useWebRTC() {
+export function useWebRTC(apiPrefix = '/api/call') {
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const remoteStreamRef = useRef<MediaStream | null>(null);
@@ -30,6 +30,8 @@ export function useWebRTC() {
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const pendingCandidatesRef = useRef<RTCIceCandidate[]>([]);
+  const apiPrefixRef = useRef<string>(apiPrefix);
+  apiPrefixRef.current = apiPrefix;
 
   const [state, setState] = useState<WebRTCCallState>({
     status: 'idle',
@@ -70,7 +72,7 @@ export function useWebRTC() {
     pc.onicecandidate = (event) => {
       if (event.candidate) {
         console.log('[WEBRTC] ICE candidate generated');
-        fetch('/api/call/signal', {
+        fetch(`${apiPrefixRef.current}/signal`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -169,8 +171,8 @@ export function useWebRTC() {
       await pc.setLocalDescription(offer);
       console.log('[WEBRTC] offer created & setLocalDescription done', { type: offer.type, sdpLength: offer.sdp?.length });
 
-      console.log('[WEBRTC] sending offer via /api/call/signal');
-      const sigRes = await fetch('/api/call/signal', {
+      console.log('[WEBRTC] sending offer via', apiPrefixRef.current + '/signal');
+      const sigRes = await fetch(`${apiPrefixRef.current}/signal`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -190,7 +192,7 @@ export function useWebRTC() {
       console.error('[WEBRTC] startCall failed', e);
       updateState({ status: 'failed', error: e.message || 'خطا در برقراری تماس' });
       if (sessionId) {
-        fetch('/api/call/end', {
+        fetch(`${apiPrefixRef.current}/end`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sessionId, reason: 'media_failed' }),
@@ -220,8 +222,8 @@ export function useWebRTC() {
       await pc.setLocalDescription(answer);
       console.log('[WEBRTC] answer created & setLocalDescription done');
 
-      console.log('[WEBRTC] sending answer via /api/call/signal');
-      const sigRes = await fetch('/api/call/signal', {
+      console.log('[WEBRTC] sending answer via', apiPrefixRef.current + '/signal');
+      const sigRes = await fetch(`${apiPrefixRef.current}/signal`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -248,7 +250,7 @@ export function useWebRTC() {
       console.error('[WEBRTC] acceptCall failed', e);
       updateState({ status: 'failed', error: e.message || 'خطا در پاسخ به تماس' });
       if (sessionId) {
-        fetch('/api/call/end', {
+        fetch(`${apiPrefixRef.current}/end`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sessionId, reason: 'media_failed' }),
@@ -323,7 +325,7 @@ export function useWebRTC() {
     pendingCandidatesRef.current = [];
 
     if (state.sessionId) {
-      await fetch('/api/call/end', {
+      await fetch(`${apiPrefixRef.current}/end`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId: state.sessionId, reason }),
@@ -335,7 +337,7 @@ export function useWebRTC() {
   }, [state.sessionId, updateState]);
 
   const rejectCall = useCallback(async (sessionId: string) => {
-    await fetch('/api/call/reject', {
+    await fetch(`${apiPrefixRef.current}/reject`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sessionId }),

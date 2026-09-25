@@ -2033,6 +2033,37 @@
   50% { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
 }
 
+.staff-chat-recording-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 18px;
+  background: #FFF7ED;
+  border-top: 1px solid #FDE6D3;
+}
+.staff-chat-rec-cancel {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; border-radius: 50%; border: none;
+  background: transparent; color: #A8867A; cursor: pointer; transition: all .2s ease;
+}
+.staff-chat-rec-cancel:hover { background: #FED7AA; color: #EF4444; }
+.staff-chat-rec-dot {
+  width: 10px; height: 10px; border-radius: 50%; background: #EF4444;
+  animation: socialRecordingPulse 1s infinite; flex-shrink: 0;
+}
+.staff-chat-rec-time {
+  color: #0C0A09; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.staff-chat-rec-hint { color: #A8867A; font-size: 13px; flex: 1; }
+.staff-chat-rec-send {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; border-radius: 50%; border: none;
+  background: linear-gradient(135deg, #F97316, #EA580C); color: #fff;
+  cursor: pointer; transition: all .2s ease; margin-right: auto;
+  box-shadow: 0 2px 8px rgba(249,115,22,.3);
+}
+.staff-chat-rec-send:hover { transform: scale(1.08); box-shadow: 0 4px 14px rgba(249,115,22,.4); }
+
 /* ===== Social Mobile ===== */
 @media (max-width: 767px) {
   .social-network-page { height: 100dvh; }
