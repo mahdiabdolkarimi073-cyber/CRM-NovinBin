@@ -19,17 +19,25 @@ function getAuth(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const auth = getAuth(req);
-  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!auth) {
+    console.error('[API call/end] Unauthorized');
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   try {
     const body = await req.json();
     const { sessionId, reason } = body as { sessionId: string; reason?: string };
+    console.log('[API call/end]', { userId: auth.userId, sessionId, reason });
 
     if (!sessionId) return NextResponse.json({ error: 'شناسه تماس الزامی است' }, { status: 400 });
 
     const session = await prisma.socialCallSession.findUnique({ where: { id: sessionId } });
-    if (!session) return NextResponse.json({ error: 'تماس یافت نشد' }, { status: 404 });
+    if (!session) {
+      console.error('[API call/end] session not found', sessionId);
+      return NextResponse.json({ error: 'تماس یافت نشد' }, { status: 404 });
+    }
     if (session.receiverId !== auth.userId && session.callerId !== auth.userId) {
+      console.error('[API call/end] unauthorized', { userId: auth.userId });
       return NextResponse.json({ error: 'دسترسی غیرمجاز' }, { status: 403 });
     }
 
@@ -41,11 +49,13 @@ export async function POST(req: NextRequest) {
 
     const isMissed = reason === 'timeout' && !session.startedAt;
     const finalStatus = isMissed ? 'missed' : 'ended';
+    console.log('[API call/end] computing final status', { sessionId, isMissed, finalStatus, durationSeconds });
 
     const updated = await prisma.socialCallSession.update({
       where: { id: sessionId },
       data: { status: finalStatus, endedAt: now, durationSeconds, endReason: reason || 'ended' },
     });
+    console.log('[API call/end] session updated', { sessionId, finalStatus });
 
     await prisma.socialCallSignal.create({
       data: {
@@ -56,6 +66,7 @@ export async function POST(req: NextRequest) {
         signalData: reason || 'ended',
       },
     });
+    console.log('[API call/end] end signal created', { sessionId });
 
     const otherUserId = auth.userId === session.callerId ? session.receiverId : session.callerId;
     let summaryContent: string;

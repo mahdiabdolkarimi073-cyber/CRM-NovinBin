@@ -28,7 +28,11 @@ function serialize(data: any): any {
 
 export async function GET(req: NextRequest) {
   const auth = getAuth(req);
-  if (!auth) return new Response('Unauthorized', { status: 401 });
+  if (!auth) {
+    console.error('[API customer-call/stream] Unauthorized');
+    return new Response('Unauthorized', { status: 401 });
+  }
+  console.log('[API customer-call/stream] SSE connection opened', { userId: auth.userId });
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -54,6 +58,7 @@ export async function GET(req: NextRequest) {
             orderBy: { createdAt: 'asc' },
           });
           for (const call of incomingCalls) {
+            console.log('[API customer-call/stream] sending incoming_call', { sessionId: call.id, status: call.status, hasOffer: !!call.offerSdp });
             send('incoming_call', serialize(call));
           }
 
@@ -66,6 +71,7 @@ export async function GET(req: NextRequest) {
             orderBy: { createdAt: 'asc' },
           });
           for (const call of callUpdates) {
+            console.log('[API customer-call/stream] sending call_update', { sessionId: call.id, status: call.status });
             send('call_update', serialize(call));
           }
 
@@ -77,6 +83,7 @@ export async function GET(req: NextRequest) {
             orderBy: { createdAt: 'asc' },
           });
           for (const sig of signals) {
+            console.log('[API customer-call/stream] sending call_signal', { signalId: sig.id, signalType: sig.signalType });
             send('call_signal', serialize(sig));
           }
 
@@ -96,6 +103,7 @@ export async function GET(req: NextRequest) {
         closed = true;
         clearInterval(interval);
         clearInterval(heartbeat);
+        console.log('[API customer-call/stream] SSE connection closed', { userId: auth.userId });
         try { controller.close(); } catch {}
       });
     },

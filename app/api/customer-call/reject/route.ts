@@ -12,15 +12,27 @@ function getAuth(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const auth = getAuth(req);
-  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!auth) {
+    console.error('[API customer-call/reject] Unauthorized');
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   const { sessionId } = await req.json();
+  console.log('[API customer-call/reject]', { userId: auth.userId, sessionId });
   if (!sessionId) return NextResponse.json({ error: 'sessionId الزامی است' }, { status: 400 });
   try {
     const session = await prisma.customerSocialCallSession.findUnique({ where: { id: sessionId } });
-    if (!session) return NextResponse.json({ error: 'تماس یافت نشد' }, { status: 404 });
-    if (session.callerId !== auth.userId && session.receiverId !== auth.userId) return NextResponse.json({ error: 'شما طرف این تماس نیستید' }, { status: 403 });
+    if (!session) {
+      console.error('[API customer-call/reject] session not found', sessionId);
+      return NextResponse.json({ error: 'تماس یافت نشد' }, { status: 404 });
+    }
+    if (session.callerId !== auth.userId && session.receiverId !== auth.userId) {
+      console.error('[API customer-call/reject] unauthorized', { userId: auth.userId });
+      return NextResponse.json({ error: 'شما طرف این تماس نیستید' }, { status: 403 });
+    }
     const updated = await prisma.customerSocialCallSession.update({ where: { id: sessionId }, data: { status: 'rejected', endedAt: new Date() } });
+    console.log('[API customer-call/reject] session rejected', { sessionId, previousStatus: session.status });
     await prisma.customerSocialCallSignal.create({ data: { callSessionId: sessionId, senderId: auth.userId, receiverId: session.callerId === auth.userId ? session.receiverId : session.callerId, signalType: 'reject', signalData: 'rejected' } });
+    console.log('[API customer-call/reject] reject signal created', { sessionId });
     await prisma.customerSocialMessage.create({
       data: {
         senderId: auth.userId,
@@ -31,6 +43,7 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({ data: { id: updated.id, status: updated.status } });
   } catch (e: any) {
+    console.error('[API customer-call/reject] error', e?.message || e);
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }

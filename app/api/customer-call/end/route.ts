@@ -12,18 +12,31 @@ function getAuth(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const auth = getAuth(req);
-  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!auth) {
+    console.error('[API customer-call/end] Unauthorized');
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   const { sessionId, reason } = await req.json();
+  console.log('[API customer-call/end]', { userId: auth.userId, sessionId, reason });
   if (!sessionId) return NextResponse.json({ error: 'sessionId الزامی است' }, { status: 400 });
   try {
     const session = await prisma.customerSocialCallSession.findUnique({ where: { id: sessionId } });
-    if (!session) return NextResponse.json({ error: 'تماس یافت نشد' }, { status: 404 });
-    if (session.callerId !== auth.userId && session.receiverId !== auth.userId) return NextResponse.json({ error: 'شما طرف این تماس نیستید' }, { status: 403 });
+    if (!session) {
+      console.error('[API customer-call/end] session not found', sessionId);
+      return NextResponse.json({ error: 'تماس یافت نشد' }, { status: 404 });
+    }
+    if (session.callerId !== auth.userId && session.receiverId !== auth.userId) {
+      console.error('[API customer-call/end] unauthorized', { userId: auth.userId });
+      return NextResponse.json({ error: 'شما طرف این تماس نیستید' }, { status: 403 });
+    }
     const durationSeconds = session.startedAt ? Math.floor((Date.now() - new Date(session.startedAt).getTime()) / 1000) : null;
     const isMissed = reason === 'timeout' && !session.startedAt;
     const finalStatus = isMissed ? 'missed' : 'ended';
+    console.log('[API customer-call/end] computing final status', { sessionId, isMissed, finalStatus, durationSeconds });
     const updated = await prisma.customerSocialCallSession.update({ where: { id: sessionId }, data: { status: finalStatus, endedAt: new Date(), durationSeconds, endReason: reason || null } });
+    console.log('[API customer-call/end] session updated', { sessionId, finalStatus });
     await prisma.customerSocialCallSignal.create({ data: { callSessionId: sessionId, senderId: auth.userId, receiverId: session.callerId === auth.userId ? session.receiverId : session.callerId, signalType: 'end', signalData: reason || 'ended' } });
+    console.log('[API customer-call/end] end signal created', { sessionId });
     const otherUserId = session.callerId === auth.userId ? session.receiverId : session.callerId;
     let summaryContent: string;
     if (isMissed) {

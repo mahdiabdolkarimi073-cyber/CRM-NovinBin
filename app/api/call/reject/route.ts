@@ -19,17 +19,25 @@ function getAuth(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const auth = getAuth(req);
-  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!auth) {
+    console.error('[API call/reject] Unauthorized');
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   try {
     const body = await req.json();
     const { sessionId } = body as { sessionId: string };
+    console.log('[API call/reject]', { userId: auth.userId, sessionId });
 
     if (!sessionId) return NextResponse.json({ error: 'شناسه تماس الزامی است' }, { status: 400 });
 
     const session = await prisma.socialCallSession.findUnique({ where: { id: sessionId } });
-    if (!session) return NextResponse.json({ error: 'تماس یافت نشد' }, { status: 404 });
+    if (!session) {
+      console.error('[API call/reject] session not found', sessionId);
+      return NextResponse.json({ error: 'تماس یافت نشد' }, { status: 404 });
+    }
     if (session.receiverId !== auth.userId && session.callerId !== auth.userId) {
+      console.error('[API call/reject] unauthorized', { userId: auth.userId, callerId: session.callerId, receiverId: session.receiverId });
       return NextResponse.json({ error: 'دسترسی غیرمجاز' }, { status: 403 });
     }
 
@@ -37,6 +45,7 @@ export async function POST(req: NextRequest) {
       where: { id: sessionId },
       data: { status: 'rejected', endedAt: new Date() },
     });
+    console.log('[API call/reject] session rejected', { sessionId, previousStatus: session.status });
 
     await prisma.socialCallSignal.create({
       data: {
@@ -47,6 +56,7 @@ export async function POST(req: NextRequest) {
         signalData: 'rejected',
       },
     });
+    console.log('[API call/reject] reject signal created', { sessionId });
 
     await prisma.socialDMMessage.create({
       data: {
@@ -59,6 +69,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ session: updated });
   } catch (e: any) {
+    console.error('[API call/reject] error', e?.message || e);
     return NextResponse.json({ error: e.message || 'خطای سرور' }, { status: 500 });
   }
 }

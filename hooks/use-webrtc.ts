@@ -53,23 +53,9 @@ export function useWebRTC(apiPrefixRef: MutableRefObject<string>) {
     const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
     pcRef.current = pc;
 
-    pc.ontrack = (event) => {
-      console.log('[WEBRTC] ontrack received', { streams: event.streams.length });
-      const stream = event.streams[0];
-      remoteStreamRef.current = stream;
-      updateState({ remoteStream: stream });
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = stream;
-      }
-      if (remoteAudioRef.current) {
-        remoteAudioRef.current.srcObject = stream;
-        remoteAudioRef.current.play().catch(() => {});
-      }
-    };
-
     pc.onicecandidate = (event) => {
       if (event.candidate) {
-        console.log('[WEBRTC] ICE candidate generated');
+        console.log('[WEBRTC] ICE candidate generated', { candidateType: event.candidate.candidate?.split(' ')[7] || 'unknown', sdpMLineIndex: event.candidate.sdpMLineIndex });
         fetch(`${apiPrefixRef.current}/signal`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -79,25 +65,62 @@ export function useWebRTC(apiPrefixRef: MutableRefObject<string>) {
             signalType: 'ice',
             signalData: JSON.stringify(event.candidate),
           }),
-        }).catch((e) => console.error('[WEBRTC] ICE candidate send failed', e));
+        }).then(() => console.log('[WEBRTC] ICE candidate sent successfully')).catch((e) => console.error('[WEBRTC] ICE candidate send failed', e));
       } else {
-        console.log('[WEBRTC] ICE gathering complete');
+        console.log('[WEBRTC] ICE gathering complete', { iceGatheringState: pc.iceGatheringState });
       }
     };
 
     pc.oniceconnectionstatechange = () => {
-      console.log('[WEBRTC] ICE connection state', pc.iceConnectionState);
+      console.log('[WEBRTC] ICE connection state changed', { state: pc.iceConnectionState, gatheringState: pc.iceGatheringState });
+      if (pc.iceConnectionState === 'connected') {
+        console.log('[WEBRTC] ICE connected — peer-to-peer link established');
+      } else if (pc.iceConnectionState === 'disconnected') {
+        console.warn('[WEBRTC] ICE disconnected — network issue detected');
+      } else if (pc.iceConnectionState === 'failed') {
+        console.error('[WEBRTC] ICE failed — NAT traversal may have failed, consider TURN server');
+      }
     };
 
     pc.onconnectionstatechange = () => {
-      console.log('[WEBRTC] connection state', pc.connectionState);
-      if (pc.connectionState === 'failed') {
+      console.log('[WEBRTC] connection state changed', { state: pc.connectionState });
+      if (pc.connectionState === 'connected') {
+        console.log('[WEBRTC] PeerConnection established successfully');
+      } else if (pc.connectionState === 'failed') {
+        console.error('[WEBRTC] PeerConnection failed');
         updateState({ status: 'failed', error: 'اتصال قطع شد' });
+      } else if (pc.connectionState === 'disconnected') {
+        console.warn('[WEBRTC] PeerConnection disconnected');
+      } else if (pc.connectionState === 'closed') {
+        console.log('[WEBRTC] PeerConnection closed');
       }
     };
 
     pc.onsignalingstatechange = () => {
-      console.log('[WEBRTC] signaling state', pc.signalingState);
+      console.log('[WEBRTC] signaling state changed', { state: pc.signalingState });
+    };
+
+    pc.ontrack = (event) => {
+      console.log('[WEBRTC] ontrack received', { trackKind: event.track.kind, streams: event.streams.length, trackEnabled: event.track.enabled, trackState: event.track.readyState });
+      const stream = event.streams[0];
+      if (!stream) {
+        console.warn('[WEBRTC] ontrack: no stream in event, creating from track');
+        const newStream = new MediaStream([event.track]);
+        remoteStreamRef.current = newStream;
+        updateState({ remoteStream: newStream });
+      } else {
+        remoteStreamRef.current = stream;
+        updateState({ remoteStream: stream });
+      }
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = remoteStreamRef.current;
+        console.log('[WEBRTC] remote video srcObject set');
+      }
+      if (remoteAudioRef.current) {
+        remoteAudioRef.current.srcObject = remoteStreamRef.current;
+        remoteAudioRef.current.play().then(() => console.log('[WEBRTC] remote audio playing')).catch((e) => console.warn('[WEBRTC] remote audio play failed', e));
+      }
+      console.log('[WEBRTC] remote stream tracks', { audio: remoteStreamRef.current?.getAudioTracks().length || 0, video: remoteStreamRef.current?.getVideoTracks().length || 0 });
     };
 
     return pc;
@@ -259,29 +282,32 @@ export function useWebRTC(apiPrefixRef: MutableRefObject<string>) {
 
   const handleSignal = useCallback(async (signalType: string, signalData: string) => {
     const pc = pcRef.current;
+    console.log('[WEBRTC] handleSignal received', { signalType, hasPC: !!pc, pcSignalingState: pc?.signalingState, dataLength: signalData?.length });
     if (!pc) {
-      console.warn('[WEBRTC] handleSignal called but no PC', { signalType });
+      console.warn('[WEBRTC] handleSignal called but no PeerConnection exists', { signalType });
       return;
     }
 
     try {
       if (signalType === 'answer') {
         const answer = JSON.parse(signalData) as RTCSessionDescriptionInit;
-        console.log('[WEBRTC] setting remote description (answer)');
+        console.log('[WEBRTC] setting remote description (answer)', { type: answer.type, sdpLength: answer.sdp?.length });
         await pc.setRemoteDescription(answer);
-        console.log('[WEBRTC] setRemoteDescription(answer) done');
+        console.log('[WEBRTC] setRemoteDescription(answer) done', { signalingState: pc.signalingState });
       } else if (signalType === 'ice') {
         const candidate = JSON.parse(signalData) as RTCIceCandidateInit;
         if (pc.remoteDescription) {
           await pc.addIceCandidate(new RTCIceCandidate(candidate));
-          console.log('[WEBRTC] ICE candidate added');
+          console.log('[WEBRTC] ICE candidate added', { candidateType: (candidate as any).candidate?.split(' ')[7] || 'unknown' });
         } else {
           pendingCandidatesRef.current.push(new RTCIceCandidate(candidate));
           console.log('[WEBRTC] ICE candidate queued (no remote description yet)', { pending: pendingCandidatesRef.current.length });
         }
+      } else {
+        console.warn('[WEBRTC] handleSignal: unhandled signalType', signalType);
       }
     } catch (err) {
-      console.error('[WEBRTC] handleSignal error', { signalType, error: err });
+      console.error('[WEBRTC] handleSignal error', { signalType, error: err, message: (err as Error)?.message });
     }
   }, []);
 
@@ -306,8 +332,10 @@ export function useWebRTC(apiPrefixRef: MutableRefObject<string>) {
   }, [updateState]);
 
   const endCall = useCallback(async (reason?: string) => {
+    console.log('[WEBRTC] endCall begin', { reason, sessionId: state.sessionId, status: state.status });
     const pc = pcRef.current;
     if (pc) {
+      console.log('[WEBRTC] closing PeerConnection', { connectionState: pc.connectionState, iceConnectionState: pc.iceConnectionState });
       pc.close();
       pcRef.current = null;
     }
@@ -323,23 +351,25 @@ export function useWebRTC(apiPrefixRef: MutableRefObject<string>) {
     pendingCandidatesRef.current = [];
 
     if (state.sessionId) {
+      console.log('[WEBRTC] sending end signal to server', { sessionId: state.sessionId, reason });
       await fetch(`${apiPrefixRef.current}/end`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId: state.sessionId, reason }),
-      }).catch(() => {});
+      }).then(() => console.log('[WEBRTC] end signal sent')).catch((e) => console.warn('[WEBRTC] end signal failed', e));
     }
 
     updateState({ status: 'ended', localStream: null, remoteStream: null });
     setTimeout(() => updateState({ status: 'idle', sessionId: null, remoteUserId: null }), 1500);
-  }, [state.sessionId, updateState]);
+  }, [state.sessionId, state.status, updateState]);
 
   const rejectCall = useCallback(async (sessionId: string) => {
+    console.log('[WEBRTC] rejectCall', { sessionId });
     await fetch(`${apiPrefixRef.current}/reject`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sessionId }),
-    }).catch(() => {});
+    }).then(() => console.log('[WEBRTC] reject signal sent')).catch((e) => console.warn('[WEBRTC] reject signal failed', e));
     updateState({ status: 'rejected' });
     setTimeout(() => updateState({ status: 'idle', sessionId: null, remoteUserId: null }), 1500);
   }, [updateState]);

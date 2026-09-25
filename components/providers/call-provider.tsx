@@ -198,9 +198,14 @@ export function CallProvider({ children, modes = ['social'] }: { children: React
     const handleIncoming = async (e: MessageEvent) => {
       try {
         const call: SocialCallSession = JSON.parse(e.data);
+        console.log(`[CALL:${scope}] SSE incoming_call received`, { sessionId: call.id, status: call.status, callerId: call.callerId, receiverId: call.receiverId, hasOffer: !!call.offerSdp });
         if (call.receiverId === profile?.id && (call.status === 'calling' || call.status === 'ringing')) {
           // Don't override if already in a call
-          if (incomingCallRef.current || webrtcStatusRef.current !== 'idle') return;
+          if (incomingCallRef.current || webrtcStatusRef.current !== 'idle') {
+            console.log(`[CALL:${scope}] incoming_call ignored — already in a call`, { webrtcStatus: webrtcStatusRef.current, hasIncoming: !!incomingCallRef.current });
+            return;
+          }
+          console.log(`[CALL:${scope}] showing incoming call UI`, { sessionId: call.id, callerId: call.callerId });
           setActiveScope(scope);
           setIncomingCall(call);
           const cp = await fetchProfile(call.callerId);
@@ -220,22 +225,28 @@ export function CallProvider({ children, modes = ['social'] }: { children: React
     const handleUpdate = (e: MessageEvent) => {
       try {
         const call: SocialCallSession = JSON.parse(e.data);
+        console.log(`[CALL:${scope}] SSE call_update received`, { sessionId: call.id, status: call.status, callerId: call.callerId });
         if (call.callerId === profile?.id) {
           if (call.status === 'rejected') {
+            console.log(`[CALL:${scope}] call rejected by remote`, { sessionId: call.id });
             stopAllRings(); stopTitleFlash();
             toast.info('تماس رد شد');
             webrtcEndCallRef.current('rejected');
           } else if (call.status === 'ended') {
+            console.log(`[CALL:${scope}] call ended by remote`, { sessionId: call.id });
             stopAllRings(); stopTitleFlash();
             webrtcEndCallRef.current('ended');
           } else if (call.status === 'missed') {
+            console.log(`[CALL:${scope}] call missed`, { sessionId: call.id });
             stopAllRings(); stopTitleFlash();
             toast.info('تماس پاسخ داده نشد');
             webrtcEndCallRef.current('missed');
           } else if (call.status === 'accepted') {
+            console.log(`[CALL:${scope}] call accepted by remote`, { sessionId: call.id });
             stopAllRings();
             if (callTimeoutRef.current) { clearTimeout(callTimeoutRef.current); callTimeoutRef.current = null; }
           } else {
+            console.log(`[CALL:${scope}] call update unhandled status`, { sessionId: call.id, status: call.status });
             if (callTimeoutRef.current) { clearTimeout(callTimeoutRef.current); callTimeoutRef.current = null; }
           }
         }
@@ -247,13 +258,17 @@ export function CallProvider({ children, modes = ['social'] }: { children: React
     const handleSignal = (e: MessageEvent) => {
       try {
         const sig = JSON.parse(e.data);
+        console.log(`[CALL:${scope}] SSE call_signal received`, { signalId: sig.id, signalType: sig.signalType, senderId: sig.senderId, dataLength: sig.signalData?.length });
         if (sig.signalType === 'end') {
+          console.log(`[CALL:${scope}] remote ended call`, { sessionId: sig.callSessionId });
           stopAllRings(); stopTitleFlash();
           webrtcEndCallRef.current('remote_ended');
         } else if (sig.signalType === 'reject') {
+          console.log(`[CALL:${scope}] remote rejected call`, { sessionId: sig.callSessionId });
           stopAllRings(); stopTitleFlash();
           webrtcEndCallRef.current('rejected');
         } else {
+          console.log(`[CALL:${scope}] forwarding signal to WebRTC`, { signalType: sig.signalType });
           webrtcHandleSignalRef.current(sig.signalType, sig.signalData);
         }
       } catch (err) {

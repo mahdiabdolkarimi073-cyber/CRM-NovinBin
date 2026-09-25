@@ -8,7 +8,7 @@ import { useCall } from '@/components/providers/call-provider';
 import { cn } from '@/lib/utils';
 import { relativeTime, formatJalali } from '@/lib/format';
 import { toast } from 'sonner';
-import type { SocialDMMessage, SocialGroup, SocialGroupMessage, Profile } from '@/lib/types';
+import type { SocialDMMessage, SocialGroup, SocialGroupMessage, Profile, CustomerSocialMessage } from '@/lib/types';
 import {
   MessageCircle, Send, Search, FileText, Users, CheckCheck,
   X, Info, MoreVertical, Smile, Mic, Menu, UserRound,
@@ -55,7 +55,7 @@ function useSocialChat() {
   const callCtx = useCall();
   const [users, setUsers] = useState<Profile[]>([]);
   const [dmConversations, setDmConversations] = useState<DMConversation[]>([]);
-  const [dmMessages, setDmMessages] = useState<SocialDMMessage[]>([]);
+  const [dmMessages, setDmMessages] = useState<(SocialDMMessage | CustomerSocialMessage)[]>([]);
   const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
   const [groups, setGroups] = useState<SocialGroup[]>([]);
   const [groupConversations, setGroupConversations] = useState<GroupConversation[]>([]);
@@ -83,18 +83,22 @@ function useSocialChat() {
   const loadDMConversations = useCallback(async () => {
     if (!profile) return;
     try {
-      const allMessages = await fetchData<SocialDMMessage>('social_dm_messages', { orderBy: { createdAt: 'desc' } });
+      const [staffMsgs, customerMsgs] = await Promise.all([
+        fetchData<SocialDMMessage>('social_dm_messages', { orderBy: { createdAt: 'desc' } }),
+        fetchData<CustomerSocialMessage>('customer_social_messages', { orderBy: { createdAt: 'desc' } }),
+      ]);
       const userMap = new Map<string, DMConversation>();
-      for (const msg of allMessages || []) {
+      const allMsgs = [...(staffMsgs || []), ...(customerMsgs || [])];
+      for (const msg of allMsgs) {
         const otherId = msg.senderId === profile.id ? msg.receiverId : msg.senderId;
         const otherProfile = users.find((u) => u.id === otherId);
         if (!otherProfile) continue;
         const existing = userMap.get(otherId);
         const isUnread = msg.receiverId === profile.id && !msg.readAt;
         if (!existing) {
-          userMap.set(otherId, { profile: otherProfile, lastMessage: msg, unreadCount: isUnread ? 1 : 0 });
+          userMap.set(otherId, { profile: otherProfile, lastMessage: msg as SocialDMMessage, unreadCount: isUnread ? 1 : 0 });
         } else {
-          if (!existing.lastMessage || new Date(msg.createdAt) > new Date(existing.lastMessage.createdAt)) existing.lastMessage = msg;
+          if (!existing.lastMessage || new Date(msg.createdAt) > new Date(existing.lastMessage.createdAt)) existing.lastMessage = msg as SocialDMMessage;
           if (isUnread) existing.unreadCount++;
         }
       }
@@ -109,18 +113,21 @@ function useSocialChat() {
   const loadDMMessages = useCallback(async (otherUserId: string) => {
     if (!profile) return;
     try {
-      const data = await fetchData<SocialDMMessage>('social_dm_messages', { orderBy: { createdAt: 'asc' } });
-      const filtered = (data || []).filter((m) =>
+      const otherUser = users.find((u) => u.id === otherUserId);
+      const isCustomer = otherUser?.userType === 'customer';
+      const table = isCustomer ? 'customer_social_messages' : 'social_dm_messages';
+      const data = await fetchData<any>(table, { orderBy: { createdAt: 'asc' } });
+      const filtered = (data || []).filter((m: any) =>
         (m.senderId === profile.id && m.receiverId === otherUserId) ||
         (m.senderId === otherUserId && m.receiverId === profile.id)
       );
       setDmMessages(filtered);
-      const unread = filtered.filter((m) => m.receiverId === profile.id && !m.readAt);
-      for (const m of unread) await updateData('social_dm_messages', { id: m.id }, { readAt: new Date() });
+      const unread = filtered.filter((m: any) => m.receiverId === profile.id && !m.readAt);
+      for (const m of unread) await updateData(table, { id: m.id }, { readAt: new Date() });
     } catch (e: any) {
       toast.error(e.message);
     }
-  }, [profile]);
+  }, [profile, users]);
 
   const loadGroups = useCallback(async () => {
     if (!profile) return;
@@ -230,19 +237,47 @@ function useSocialChat() {
     return () => es.close();
   }, [profile, loadDMConversations, loadGroups]);
 
+  // Listen to customer-social stream so staff see customer messages in real-time
+  useEffect(() => {
+    if (!profile) return;
+    const ces = new EventSource('/api/customer-social/stream');
+    ces.addEventListener('dm', (e) => {
+      try {
+        const msg: CustomerSocialMessage = JSON.parse(e.data);
+        if (msg.receiverId === profile.id) {
+          setDmMessages((prev) => prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]);
+          if (selectedUserRef.current?.id === msg.senderId) {
+            updateData('customer_social_messages', { id: msg.id }, { readAt: new Date() }).catch(() => {});
+          }
+        }
+        loadDMConversations();
+      } catch {}
+    });
+    ces.addEventListener('dm_read', (e) => {
+      try {
+        const msg: CustomerSocialMessage = JSON.parse(e.data);
+        setDmMessages((prev) => prev.map((m) => m.id === msg.id ? { ...m, readAt: msg.readAt } : m));
+      } catch {}
+    });
+    ces.addEventListener('error', () => {});
+    return () => ces.close();
+  }, [profile, loadDMConversations]);
+
   const handleSend = async () => {
     if (!profile) return;
     if (selectedUser) {
       if (!text.trim() && !attachment) return;
       setSending(true);
       try {
+        const isCustomer = selectedUser.userType === 'customer';
+        const table = isCustomer ? 'customer_social_messages' : 'social_dm_messages';
         const payload: Record<string, any> = { receiverId: selectedUser.id, content: text.trim() || null };
         if (attachment) {
           payload.attachmentUrl = attachment.url;
           payload.attachmentName = attachment.name;
           payload.attachmentType = attachment.type;
         }
-        await createData('social_dm_messages', payload);
+        await createData(table, payload);
         setText(''); setAttachment(null); setIsEmojiOpen(false);
         loadDMMessages(selectedUser.id);
         loadDMConversations();
@@ -371,7 +406,10 @@ function useSocialChat() {
     groupConversations, groupMessages, selectedGroup, loading,
     text, setText, sending, attachment, setAttachment, isEmojiOpen, setIsEmojiOpen,
     messagesEndRef, handleSend, handleFileSelect, selectUser, selectGroup, closeChat,
-    startCall: callCtx.startCall,
+    startCall: (remoteUser: Profile, callType: 'audio' | 'video') => {
+      const scope = remoteUser.userType === 'customer' ? 'customer' : 'social';
+      return callCtx.startCall(remoteUser, callType, scope);
+    },
     isRecording, recordTime, toggleVoiceRecording, cancelRecording,
   };
 }
