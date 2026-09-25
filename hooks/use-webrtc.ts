@@ -22,6 +22,63 @@ const ICE_SERVERS: RTCIceServer[] = [
   { urls: 'stun:stun2.l.google.com:19302' },
 ];
 
+function boostAudioBitrate(sdp: string): string {
+  const lines = sdp.split('\r\n');
+  let mLineIndex = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].startsWith('m=audio')) {
+      mLineIndex = i;
+      break;
+    }
+  }
+  if (mLineIndex === -1) return sdp;
+
+  let opusPayload = '';
+  for (let i = mLineIndex + 1; i < lines.length; i++) {
+    if (lines[i].startsWith('m=')) break;
+    const parts = lines[i].split(' ');
+    if (parts.length >= 2 && parts[0] === 'a=rtpmap:' && parts[1].includes('opus/48000')) {
+      opusPayload = parts[0].substring('a=rtpmap:'.length).split('/')[0];
+      break;
+    }
+  }
+  if (!opusPayload) return sdp;
+
+  const fmtpLine = `a=fmtp:${opusPayload} minptime=10;useinbandfec=1;maxaveragebitrate=510000;stereo=1;`;
+  let sdpModified = '';
+  let fmtpInserted = false;
+  for (let i = 0; i < lines.length; i++) {
+    sdpModified += lines[i] + '\r\n';
+    if (!fmtpInserted && lines[i].startsWith(`a=rtpmap:${opusPayload}`)) {
+      sdpModified += fmtpLine + '\r\n';
+      fmtpInserted = true;
+    }
+  }
+  if (!fmtpInserted) {
+    sdpModified += fmtpLine + '\r\n';
+  }
+  return sdpModified;
+}
+
+async function setSenderBitrate(pc: RTCPeerConnection): Promise<void> {
+  const senders = pc.getSenders();
+  for (const sender of senders) {
+    if (sender.track?.kind === 'audio' && sender.transport) {
+      const params = sender.getParameters();
+      if (!params.encodings) params.encodings = [{}];
+      if (params.encodings.length > 0) {
+        params.encodings[0].maxBitrate = 510000;
+        try {
+          await sender.setParameters(params);
+          console.log('[WEBRTC] audio sender maxBitrate set to 510kbps');
+        } catch (e) {
+          console.warn('[WEBRTC] failed to set audio sender bitrate', e);
+        }
+      }
+    }
+  }
+}
+
 export function useWebRTC(apiPrefixRef: MutableRefObject<string>) {
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -149,8 +206,16 @@ export function useWebRTC(apiPrefixRef: MutableRefObject<string>) {
   }
 
   const getLocalMedia = useCallback(async (callType: CallType): Promise<MediaStream> => {
+    const audioConstraints: MediaTrackConstraints = {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+      channelCount: 1,
+      sampleRate: 48000,
+      sampleSize: 16,
+    };
     const constraints: MediaStreamConstraints = {
-      audio: true,
+      audio: audioConstraints,
       video: callType === 'video',
     };
     console.log('[WEBRTC] getUserMedia constraints', constraints);
@@ -161,6 +226,7 @@ export function useWebRTC(apiPrefixRef: MutableRefObject<string>) {
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       console.log('[WEBRTC] getUserMedia success', { audioTracks: stream.getAudioTracks().length, videoTracks: stream.getVideoTracks().length });
       localStreamRef.current = stream;
+
       updateState({
         localStream: stream,
         micEnabled: true,
@@ -189,8 +255,11 @@ export function useWebRTC(apiPrefixRef: MutableRefObject<string>) {
       console.log('[WEBRTC] tracks added to PC', { count: stream.getTracks().length });
 
       const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: callType === 'video' });
-      await pc.setLocalDescription(offer);
+      const boostedOffer = { ...offer, sdp: boostAudioBitrate(offer.sdp || '') };
+      await pc.setLocalDescription(boostedOffer);
       console.log('[WEBRTC] offer created & setLocalDescription done', { type: offer.type, sdpLength: offer.sdp?.length });
+
+      await setSenderBitrate(pc);
 
       console.log('[WEBRTC] sending offer via', apiPrefixRef.current + '/signal');
       const sigRes = await fetch(`${apiPrefixRef.current}/signal`, {
@@ -200,7 +269,7 @@ export function useWebRTC(apiPrefixRef: MutableRefObject<string>) {
           callSessionId: sessionId,
           receiverId: remoteUserId,
           signalType: 'offer',
-          signalData: JSON.stringify(offer),
+          signalData: JSON.stringify(boostedOffer),
         }),
       });
       const sigData = await sigRes.json();
@@ -240,8 +309,11 @@ export function useWebRTC(apiPrefixRef: MutableRefObject<string>) {
       console.log('[WEBRTC] setRemoteDescription(offer) done');
 
       const answer = await pc.createAnswer({ offerToReceiveAudio: true, offerToReceiveVideo: callType === 'video' });
-      await pc.setLocalDescription(answer);
+      const boostedAnswer = { ...answer, sdp: boostAudioBitrate(answer.sdp || '') };
+      await pc.setLocalDescription(boostedAnswer);
       console.log('[WEBRTC] answer created & setLocalDescription done');
+
+      await setSenderBitrate(pc);
 
       console.log('[WEBRTC] sending answer via', apiPrefixRef.current + '/signal');
       const sigRes = await fetch(`${apiPrefixRef.current}/signal`, {
@@ -251,7 +323,7 @@ export function useWebRTC(apiPrefixRef: MutableRefObject<string>) {
           callSessionId: sessionId,
           receiverId: remoteUserId,
           signalType: 'answer',
-          signalData: JSON.stringify(answer),
+          signalData: JSON.stringify(boostedAnswer),
         }),
       });
       const sigData = await sigRes.json();
@@ -284,7 +356,19 @@ export function useWebRTC(apiPrefixRef: MutableRefObject<string>) {
     const pc = pcRef.current;
     console.log('[WEBRTC] handleSignal received', { signalType, hasPC: !!pc, pcSignalingState: pc?.signalingState, dataLength: signalData?.length });
     if (!pc) {
-      console.warn('[WEBRTC] handleSignal called but no PeerConnection exists', { signalType });
+      if (signalType === 'ice') {
+        try {
+          const candidate = new RTCIceCandidate(JSON.parse(signalData));
+          pendingCandidatesRef.current.push(candidate);
+          console.log('[WEBRTC] ICE candidate buffered (no PC yet)', { pending: pendingCandidatesRef.current.length });
+        } catch (err) {
+          console.error('[WEBRTC] failed to buffer ICE candidate (no PC)', err);
+        }
+      } else if (signalType === 'offer') {
+        console.log('[WEBRTC] offer signal received but no PC yet — will be handled by acceptCall from server session');
+      } else {
+        console.warn('[WEBRTC] handleSignal called but no PeerConnection exists', { signalType });
+      }
       return;
     }
 
@@ -294,6 +378,7 @@ export function useWebRTC(apiPrefixRef: MutableRefObject<string>) {
         console.log('[WEBRTC] setting remote description (answer)', { type: answer.type, sdpLength: answer.sdp?.length });
         await pc.setRemoteDescription(answer);
         console.log('[WEBRTC] setRemoteDescription(answer) done', { signalingState: pc.signalingState });
+        updateState({ status: 'accepted' });
       } else if (signalType === 'ice') {
         const candidate = JSON.parse(signalData) as RTCIceCandidateInit;
         if (pc.remoteDescription) {
@@ -309,7 +394,7 @@ export function useWebRTC(apiPrefixRef: MutableRefObject<string>) {
     } catch (err) {
       console.error('[WEBRTC] handleSignal error', { signalType, error: err, message: (err as Error)?.message });
     }
-  }, []);
+  }, [updateState]);
 
   const toggleMic = useCallback(() => {
     const stream = localStreamRef.current;

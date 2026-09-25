@@ -188,7 +188,7 @@ export function CallProvider({ children, modes = ['social'] }: { children: React
     }
     if (webrtc.state.status === 'calling' || webrtc.state.status === 'ringing') {
       startOutgoingRing();
-    } else if (webrtc.state.status !== 'accepted' && webrtc.state.status !== 'idle') {
+    } else {
       stopAllRings();
     }
   }, [webrtc.state.status, incomingCall]);
@@ -243,7 +243,7 @@ export function CallProvider({ children, modes = ['social'] }: { children: React
             webrtcEndCallRef.current('missed');
           } else if (call.status === 'accepted') {
             console.log(`[CALL:${scope}] call accepted by remote`, { sessionId: call.id });
-            stopAllRings();
+            stopAllRings(); stopTitleFlash();
             if (callTimeoutRef.current) { clearTimeout(callTimeoutRef.current); callTimeoutRef.current = null; }
           } else {
             console.log(`[CALL:${scope}] call update unhandled status`, { sessionId: call.id, status: call.status });

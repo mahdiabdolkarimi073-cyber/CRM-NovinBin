@@ -49,6 +49,7 @@ export async function GET(req: NextRequest) {
 
       let lastCheck = new Date();
       let closed = false;
+      const sentUpdates = new Set<string>();
 
       const interval = setInterval(async () => {
         if (closed) return;
@@ -63,20 +64,24 @@ export async function GET(req: NextRequest) {
           });
           for (const call of incomingCalls) {
             console.log('[API call/stream] sending incoming_call', { sessionId: call.id, status: call.status, hasOffer: !!call.offerSdp });
+            sentUpdates.add(`${call.id}:${call.status}`);
             send('incoming_call', serialize(call));
           }
 
           const callUpdates = await prisma.socialCallSession.findMany({
             where: {
               callerId: auth.userId,
-              createdAt: { gt: lastCheck },
               status: { in: ['accepted', 'rejected', 'missed', 'ended', 'failed'] },
             },
             orderBy: { createdAt: 'asc' },
           });
           for (const call of callUpdates) {
-            console.log('[API call/stream] sending call_update', { sessionId: call.id, status: call.status });
-            send('call_update', serialize(call));
+            const key = `${call.id}:${call.status}`;
+            if (!sentUpdates.has(key)) {
+              console.log('[API call/stream] sending call_update', { sessionId: call.id, status: call.status });
+              sentUpdates.add(key);
+              send('call_update', serialize(call));
+            }
           }
 
           const signals = await prisma.socialCallSignal.findMany({
