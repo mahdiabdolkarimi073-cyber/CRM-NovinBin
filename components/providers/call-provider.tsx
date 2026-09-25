@@ -26,15 +26,25 @@ const CallContext = createContext<CallContextValue>({
 
 export function CallProvider({ children, modes = ['social'] }: { children: ReactNode; modes?: CallScope[] }) {
   const { profile } = useAuth();
-  const webrtc = useWebRTC();
+  const [activeScope, setActiveScope] = useState<CallScope>('social');
+  const activeScopeRef = useRef<CallScope>('social');
+  activeScopeRef.current = activeScope;
+  const apiPrefixRef = useRef<string>('/api/call');
+  apiPrefixRef.current = activeScope === 'customer' ? '/api/customer-call' : '/api/call';
+  const webrtc = useWebRTC(apiPrefixRef);
   const esRef = useRef<EventSource | null>(null);
   const customerEsRef = useRef<EventSource | null>(null);
   const [incomingCall, setIncomingCall] = useState<SocialCallSession | null>(null);
   const [callerProfile, setCallerProfile] = useState<Profile | null>(null);
-  const [activeScope, setActiveScope] = useState<CallScope>('social');
   const callTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const activeScopeRef = useRef<CallScope>('social');
-  activeScopeRef.current = activeScope;
+  const incomingCallRef = useRef<SocialCallSession | null>(null);
+  incomingCallRef.current = incomingCall;
+  const webrtcStatusRef = useRef<string>('idle');
+  webrtcStatusRef.current = webrtc.state.status;
+  const webrtcEndCallRef = useRef(webrtc.endCall);
+  webrtcEndCallRef.current = webrtc.endCall;
+  const webrtcHandleSignalRef = useRef(webrtc.handleSignal);
+  webrtcHandleSignalRef.current = webrtc.handleSignal;
 
   const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
     try {
@@ -85,8 +95,10 @@ export function CallProvider({ children, modes = ['social'] }: { children: React
       toast.error('کاربر احراز هویت نشده');
       return;
     }
-    const apiBase = scope === 'customer' ? '/api/customer-call' : '/api/call';
     setActiveScope(scope);
+    activeScopeRef.current = scope;
+    apiPrefixRef.current = scope === 'customer' ? '/api/customer-call' : '/api/call';
+    const apiBase = apiPrefixRef.current;
     try {
       const res = await fetch(`${apiBase}/initiate`, {
         method: 'POST',
@@ -118,6 +130,7 @@ export function CallProvider({ children, modes = ['social'] }: { children: React
   const handleAcceptCall = useCallback(async () => {
     if (!incomingCall || !profile) return;
     const apiBase = activeScopeRef.current === 'customer' ? '/api/customer-call' : '/api/call';
+    apiPrefixRef.current = apiBase;
     try {
       const res = await fetch(`${apiBase}/accept`, {
         method: 'POST',
@@ -146,7 +159,7 @@ export function CallProvider({ children, modes = ['social'] }: { children: React
 
   const handleRejectCall = useCallback(async () => {
     if (!incomingCall) return;
-    const apiBase = activeScopeRef.current === 'customer' ? '/api/customer-call' : '/api/call';
+    apiPrefixRef.current = activeScopeRef.current === 'customer' ? '/api/customer-call' : '/api/call';
     stopAllRings();
     stopTitleFlash();
     if (callTimeoutRef.current) { clearTimeout(callTimeoutRef.current); callTimeoutRef.current = null; }
@@ -187,7 +200,7 @@ export function CallProvider({ children, modes = ['social'] }: { children: React
         const call: SocialCallSession = JSON.parse(e.data);
         if (call.receiverId === profile?.id && (call.status === 'calling' || call.status === 'ringing')) {
           // Don't override if already in a call
-          if (incomingCall || webrtc.state.status !== 'idle') return;
+          if (incomingCallRef.current || webrtcStatusRef.current !== 'idle') return;
           setActiveScope(scope);
           setIncomingCall(call);
           const cp = await fetchProfile(call.callerId);
@@ -211,14 +224,14 @@ export function CallProvider({ children, modes = ['social'] }: { children: React
           if (call.status === 'rejected') {
             stopAllRings(); stopTitleFlash();
             toast.info('تماس رد شد');
-            webrtc.endCall('rejected');
+            webrtcEndCallRef.current('rejected');
           } else if (call.status === 'ended') {
             stopAllRings(); stopTitleFlash();
-            webrtc.endCall('ended');
+            webrtcEndCallRef.current('ended');
           } else if (call.status === 'missed') {
             stopAllRings(); stopTitleFlash();
             toast.info('تماس پاسخ داده نشد');
-            webrtc.endCall('missed');
+            webrtcEndCallRef.current('missed');
           } else if (call.status === 'accepted') {
             stopAllRings();
             if (callTimeoutRef.current) { clearTimeout(callTimeoutRef.current); callTimeoutRef.current = null; }
@@ -236,12 +249,12 @@ export function CallProvider({ children, modes = ['social'] }: { children: React
         const sig = JSON.parse(e.data);
         if (sig.signalType === 'end') {
           stopAllRings(); stopTitleFlash();
-          webrtc.endCall('remote_ended');
+          webrtcEndCallRef.current('remote_ended');
         } else if (sig.signalType === 'reject') {
           stopAllRings(); stopTitleFlash();
-          webrtc.endCall('rejected');
+          webrtcEndCallRef.current('rejected');
         } else {
-          webrtc.handleSignal(sig.signalType, sig.signalData);
+          webrtcHandleSignalRef.current(sig.signalType, sig.signalData);
         }
       } catch (err) {
         console.error(`[CALL:${scope}] SSE call_signal error`, err);
@@ -249,7 +262,7 @@ export function CallProvider({ children, modes = ['social'] }: { children: React
     };
 
     return { handleIncoming, handleUpdate, handleSignal };
-  }, [profile, incomingCall, webrtc, fetchProfile, showBrowserNotification, startTitleFlash, stopTitleFlash]);
+  }, [profile, fetchProfile, showBrowserNotification, startTitleFlash, stopTitleFlash]);
 
   useEffect(() => {
     if (!profile) return;

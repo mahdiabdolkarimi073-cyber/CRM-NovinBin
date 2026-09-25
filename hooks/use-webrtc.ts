@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useCallback, useEffect } from 'react';
+import { useRef, useState, useCallback, useEffect, type MutableRefObject } from 'react';
 import type { CallType, CallStatus } from '@/lib/types';
 
 interface WebRTCCallState {
@@ -22,7 +22,7 @@ const ICE_SERVERS: RTCIceServer[] = [
   { urls: 'stun:stun2.l.google.com:19302' },
 ];
 
-export function useWebRTC(apiPrefix = '/api/call') {
+export function useWebRTC(apiPrefixRef: MutableRefObject<string>) {
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const remoteStreamRef = useRef<MediaStream | null>(null);
@@ -30,8 +30,6 @@ export function useWebRTC(apiPrefix = '/api/call') {
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const pendingCandidatesRef = useRef<RTCIceCandidate[]>([]);
-  const apiPrefixRef = useRef<string>(apiPrefix);
-  apiPrefixRef.current = apiPrefix;
 
   const [state, setState] = useState<WebRTCCallState>({
     status: 'idle',

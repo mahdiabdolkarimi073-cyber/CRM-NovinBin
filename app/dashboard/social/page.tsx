@@ -14,6 +14,7 @@ import {
   X, Info, MoreVertical, Smile, Mic, Menu, UserRound,
   PhoneCall, Image as ImageIcon, ArrowRight, XCircle,
   ChevronRight, Phone, Video, Paperclip, Trash2, ArrowLeft,
+  PhoneMissed,
 } from 'lucide-react';
 
 const ONLINE_THRESHOLD_MS = 45 * 1000;
@@ -823,6 +824,12 @@ function SocialNetworkDesktop({ chat }: { chat: ReturnType<typeof useSocialChat>
                         {(msg as any).attachmentUrl && (msg as any).attachmentType === 'video' && <video src={(msg as any).attachmentUrl} controls />}
                         {(msg as any).attachmentUrl && (msg as any).attachmentType === 'audio' && <audio src={(msg as any).attachmentUrl} controls preload="metadata" />}
                         {(msg as any).attachmentUrl && (msg as any).attachmentType === 'file' && <a href={(msg as any).attachmentUrl} download={(msg as any).attachmentName || ''}><FileText />{(msg as any).attachmentName || 'دانلود فایل'}</a>}
+                        {(msg as any).attachmentType === 'call_log' && (
+                          <div className="staff-chat-call-log">
+                            <PhoneCall style={{ width: 16, height: 16 }} />
+                            <span>{(msg as any).content}</span>
+                          </div>
+                        )}
                         <span className="staff-chat-message-meta">{relativeTime((msg as any).createdAt)} {isMine && <CheckCheck />}</span>
                       </div>
                     </div>

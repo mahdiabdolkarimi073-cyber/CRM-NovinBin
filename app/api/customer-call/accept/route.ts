@@ -24,6 +24,14 @@ export async function POST(req: NextRequest) {
     if (session.receiverId !== auth.userId) return NextResponse.json({ error: 'شما گیرنده این تماس نیستید' }, { status: 403 });
     if (!['calling', 'ringing'].includes(session.status)) return NextResponse.json({ error: 'این تماس قابل پاسخ نیست' }, { status: 400 });
     const updated = await prisma.customerSocialCallSession.update({ where: { id: sessionId }, data: { status: 'accepted', startedAt: new Date() } });
+    await prisma.customerSocialMessage.create({
+      data: {
+        senderId: auth.userId,
+        receiverId: session.callerId === auth.userId ? session.receiverId : session.callerId,
+        content: 'تماس پاسخ داده شد',
+        attachmentType: 'call_log',
+      },
+    });
     return NextResponse.json({ session: updated });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });

@@ -39,9 +39,12 @@ export async function POST(req: NextRequest) {
       durationSeconds = Math.floor((now.getTime() - session.startedAt.getTime()) / 1000);
     }
 
+    const isMissed = reason === 'timeout' && !session.startedAt;
+    const finalStatus = isMissed ? 'missed' : 'ended';
+
     const updated = await prisma.socialCallSession.update({
       where: { id: sessionId },
-      data: { status: 'ended', endedAt: now, durationSeconds, endReason: reason || 'ended' },
+      data: { status: finalStatus, endedAt: now, durationSeconds, endReason: reason || 'ended' },
     });
 
     await prisma.socialCallSignal.create({
@@ -51,6 +54,25 @@ export async function POST(req: NextRequest) {
         receiverId: auth.userId === session.callerId ? session.receiverId : session.callerId,
         signalType: 'end',
         signalData: reason || 'ended',
+      },
+    });
+
+    const otherUserId = auth.userId === session.callerId ? session.receiverId : session.callerId;
+    let summaryContent: string;
+    if (isMissed) {
+      summaryContent = 'تماس پاسخ داده نشد';
+    } else {
+      const mins = durationSeconds != null ? Math.floor(durationSeconds / 60) : 0;
+      const secs = durationSeconds != null ? durationSeconds % 60 : 0;
+      const pad = (n: number) => n.toString().padStart(2, '0').replace(/\d/g, (d: string) => '۰۱۲۳۴۵۶۷۸۹'[+d]);
+      summaryContent = `تماس پایان یافت — مدت: ${mins.toLocaleString('fa-IR')}:${pad(secs)}`;
+    }
+    await prisma.socialDMMessage.create({
+      data: {
+        senderId: auth.userId,
+        receiverId: otherUserId,
+        content: summaryContent,
+        attachmentType: 'call_log',
       },
     });
 

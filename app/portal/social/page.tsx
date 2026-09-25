@@ -485,6 +485,12 @@ export default function PortalSocialPage() {
                       {msg.attachmentUrl && msg.attachmentType === 'video' && <video src={msg.attachmentUrl} controls />}
                       {msg.attachmentUrl && msg.attachmentType === 'audio' && <audio src={msg.attachmentUrl} controls preload="metadata" />}
                       {msg.attachmentUrl && msg.attachmentType === 'file' && <a href={msg.attachmentUrl} download={msg.attachmentName || ''}><FileText />{msg.attachmentName || 'دانلود فایل'}</a>}
+                      {msg.attachmentType === 'call_log' && (
+                        <div className="staff-chat-call-log">
+                          <PhoneCall style={{ width: 16, height: 16 }} />
+                          <span>{msg.content}</span>
+                        </div>
+                      )}
                       <span className="staff-chat-message-meta">{relativeTime(msg.createdAt)} {isMine && <CheckCheck />}</span>
                     </div>
                   </div>;

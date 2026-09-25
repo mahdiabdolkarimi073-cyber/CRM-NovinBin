@@ -1119,6 +1119,8 @@
 .staff-chat-bubble a { display: flex; align-items: center; gap: 7px; margin-top: 8px; color: #2563EB; font-size: 13px; text-decoration: underline; }
 .staff-chat-bubble a svg { width: 16px; height: 16px; }
 .staff-chat-message-meta { display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-top: 5px; color: #94A3B8; font-size: 10px; }
+.staff-chat-call-log { display: flex; align-items: center; gap: 8px; padding: 6px 2px; font-size: 13px; font-weight: 600; }
+.staff-chat-call-log svg { flex-shrink: 0; opacity: 0.8; }
 .staff-chat-message-meta svg { width: 13px; height: 13px; color: #2563EB; }
 .staff-chat-empty, .staff-chat-empty-panel { display: flex; flex: 1; align-items: center; justify-content: center; flex-direction: column; gap: 12px; text-align: center; color: #94A3B8; }
 .staff-chat-empty svg { width: 40px; height: 40px; opacity: .5; }

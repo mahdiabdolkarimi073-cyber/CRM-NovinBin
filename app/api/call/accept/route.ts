@@ -51,6 +51,15 @@ export async function POST(req: NextRequest) {
     });
     console.log('[API call/accept] session accepted', { sessionId, hasOffer: !!updated.offerSdp });
 
+    await prisma.socialDMMessage.create({
+      data: {
+        senderId: auth.userId,
+        receiverId: session.callerId === auth.userId ? session.receiverId : session.callerId,
+        content: 'تماس پاسخ داده شد',
+        attachmentType: 'call_log',
+      },
+    });
+
     return NextResponse.json({ session: updated });
   } catch (e: any) {
     console.error('[API call/accept] error', e?.message || e);

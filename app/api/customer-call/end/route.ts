@@ -20,8 +20,28 @@ export async function POST(req: NextRequest) {
     if (!session) return NextResponse.json({ error: 'تماس یافت نشد' }, { status: 404 });
     if (session.callerId !== auth.userId && session.receiverId !== auth.userId) return NextResponse.json({ error: 'شما طرف این تماس نیستید' }, { status: 403 });
     const durationSeconds = session.startedAt ? Math.floor((Date.now() - new Date(session.startedAt).getTime()) / 1000) : null;
-    const updated = await prisma.customerSocialCallSession.update({ where: { id: sessionId }, data: { status: 'ended', endedAt: new Date(), durationSeconds, endReason: reason || null } });
+    const isMissed = reason === 'timeout' && !session.startedAt;
+    const finalStatus = isMissed ? 'missed' : 'ended';
+    const updated = await prisma.customerSocialCallSession.update({ where: { id: sessionId }, data: { status: finalStatus, endedAt: new Date(), durationSeconds, endReason: reason || null } });
     await prisma.customerSocialCallSignal.create({ data: { callSessionId: sessionId, senderId: auth.userId, receiverId: session.callerId === auth.userId ? session.receiverId : session.callerId, signalType: 'end', signalData: reason || 'ended' } });
+    const otherUserId = session.callerId === auth.userId ? session.receiverId : session.callerId;
+    let summaryContent: string;
+    if (isMissed) {
+      summaryContent = 'تماس پاسخ داده نشد';
+    } else {
+      const mins = durationSeconds != null ? Math.floor(durationSeconds / 60) : 0;
+      const secs = durationSeconds != null ? durationSeconds % 60 : 0;
+      const pad = (n: number) => n.toString().padStart(2, '0').replace(/\d/g, (d: string) => '۰۱۲۳۴۵۶۷۸۹'[+d]);
+      summaryContent = `تماس پایان یافت — مدت: ${mins.toLocaleString('fa-IR')}:${pad(secs)}`;
+    }
+    await prisma.customerSocialMessage.create({
+      data: {
+        senderId: auth.userId,
+        receiverId: otherUserId,
+        content: summaryContent,
+        attachmentType: 'call_log',
+      },
+    });
     return NextResponse.json({ data: { id: updated.id, status: updated.status } });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });

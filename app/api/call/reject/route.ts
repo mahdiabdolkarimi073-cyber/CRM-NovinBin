@@ -48,6 +48,15 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    await prisma.socialDMMessage.create({
+      data: {
+        senderId: auth.userId,
+        receiverId: auth.userId === session.callerId ? session.receiverId : session.callerId,
+        content: 'تماس رد شد',
+        attachmentType: 'call_log',
+      },
+    });
+
     return NextResponse.json({ session: updated });
   } catch (e: any) {
     return NextResponse.json({ error: e.message || 'خطای سرور' }, { status: 500 });

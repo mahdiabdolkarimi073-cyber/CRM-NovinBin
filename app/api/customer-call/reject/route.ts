@@ -21,6 +21,14 @@ export async function POST(req: NextRequest) {
     if (session.callerId !== auth.userId && session.receiverId !== auth.userId) return NextResponse.json({ error: 'شما طرف این تماس نیستید' }, { status: 403 });
     const updated = await prisma.customerSocialCallSession.update({ where: { id: sessionId }, data: { status: 'rejected', endedAt: new Date() } });
     await prisma.customerSocialCallSignal.create({ data: { callSessionId: sessionId, senderId: auth.userId, receiverId: session.callerId === auth.userId ? session.receiverId : session.callerId, signalType: 'reject', signalData: 'rejected' } });
+    await prisma.customerSocialMessage.create({
+      data: {
+        senderId: auth.userId,
+        receiverId: session.callerId === auth.userId ? session.receiverId : session.callerId,
+        content: 'تماس رد شد',
+        attachmentType: 'call_log',
+      },
+    });
     return NextResponse.json({ data: { id: updated.id, status: updated.status } });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
