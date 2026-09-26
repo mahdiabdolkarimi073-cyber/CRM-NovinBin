@@ -74,15 +74,19 @@ export default function FinancePage() {
   async function handlePay(installmentId: string) {
     setPayingId(installmentId);
     try {
-      const res = await fetch('/api/academy/finance', {
+      const res = await fetch('/api/academy/payment/initiate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ installmentId, action: 'pay_installment' }),
+        body: JSON.stringify({ type: 'installment', installmentId }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'پرداخت ناموفق بود');
-      toast.success(`پرداخت با موفقیت ثبت شد. کد پیگیری: ${data.trackingCode}`);
-      await load();
+      if (data.redirectUrl) {
+        toast.success('در حال انتقال به درگاه پرداخت بانک ملت...');
+        window.location.href = data.redirectUrl;
+      } else {
+        throw new Error('لینک پرداخت دریافت نشد');
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'پرداخت ناموفق بود');
     } finally {
