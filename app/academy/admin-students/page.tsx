@@ -37,7 +37,7 @@ export default function AdminStudentsPage() {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editStudent, setEditStudent] = useState<Student | null>(null);
-  const [form, setForm] = useState({ firstName: '', lastName: '', username: '', phone: '', email: '', nationalId: '', password: '' });
+  const [form, setForm] = useState({ firstName: '', lastName: '', username: '', phone: '', nationalId: '', password: '' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -61,14 +61,14 @@ export default function AdminStudentsPage() {
 
   function openCreate() {
     setEditStudent(null);
-    setForm({ firstName: '', lastName: '', username: '', phone: '', email: '', nationalId: '', password: '' });
+    setForm({ firstName: '', lastName: '', username: '', phone: '', nationalId: '', password: '' });
     setError('');
     setShowModal(true);
   }
 
   function openEdit(s: Student) {
     setEditStudent(s);
-    setForm({ firstName: s.firstName, lastName: s.lastName, username: s.username, phone: s.phone || '', email: s.email || '', nationalId: s.nationalId || '', password: '' });
+    setForm({ firstName: s.firstName, lastName: s.lastName, username: s.username, phone: s.phone || '', nationalId: s.nationalId || '', password: '' });
     setError('');
     setShowModal(true);
   }
@@ -217,32 +217,28 @@ export default function AdminStudentsPage() {
               {error && <div className="academy-admin-modal-error">{error}</div>}
               <div className="academy-admin-form-grid">
                 <div className="academy-admin-field">
-                  <label>نام</label>
+                  <label>نام <span style={{color:'#ef4444'}}>*</span></label>
                   <input type="text" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} />
                 </div>
                 <div className="academy-admin-field">
-                  <label>نام خانوادگی</label>
+                  <label>نام خانوادگی <span style={{color:'#ef4444'}}>*</span></label>
                   <input type="text" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} />
                 </div>
                 <div className="academy-admin-field">
-                  <label>نام کاربری</label>
-                  <input type="text" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} disabled={!!editStudent} />
+                  <label>نام کاربری <span style={{color:'#ef4444'}}>*</span></label>
+                  <input type="text" dir="ltr" style={{textAlign:'right'}} value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} disabled={!!editStudent} placeholder="english_only" />
                 </div>
                 <div className="academy-admin-field">
-                  <label>رمز عبور {editStudent && '(اختیاری)'}</label>
-                  <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder={editStudent ? 'بدون تغییر خالی بگذارید' : ''} />
+                  <label>رمز عبور {editStudent ? '(اختیاری)' : <span style={{color:'#ef4444'}}>*</span>}</label>
+                  <input type="password" dir="ltr" style={{textAlign:'right'}} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder={editStudent ? 'بدون تغییر خالی بگذارید' : 'حداقل ۶ کاراکتر'} />
                 </div>
                 <div className="academy-admin-field">
                   <label>تلفن</label>
-                  <input type="text" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-                </div>
-                <div className="academy-admin-field">
-                  <label>ایمیل</label>
-                  <input type="text" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+                  <input type="text" dir="ltr" style={{textAlign:'right'}} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
                 </div>
                 <div className="academy-admin-field">
                   <label>کد ملی</label>
-                  <input type="text" value={form.nationalId} onChange={(e) => setForm({ ...form, nationalId: e.target.value })} />
+                  <input type="text" dir="ltr" style={{textAlign:'right'}} value={form.nationalId} onChange={(e) => setForm({ ...form, nationalId: e.target.value })} />
                 </div>
               </div>
             </div>

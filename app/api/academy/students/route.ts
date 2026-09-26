@@ -70,18 +70,25 @@ export async function POST(req: NextRequest) {
   if (!admin) return NextResponse.json({ error: 'دسترسی مجاز نیست' }, { status: 403 });
 
   const body = await req.json();
-  const { firstName, lastName, username, phone, email, nationalId, password } = body;
+  const { firstName, lastName, username, phone, nationalId, password } = body;
 
   if (!firstName || !lastName || !username || !password) {
     return NextResponse.json({ error: 'نام، نام خانوادگی، نام کاربری و رمز عبور الزامی است' }, { status: 400 });
   }
+  if (password.length < 6) {
+    return NextResponse.json({ error: 'رمز عبور باید حداقل ۶ کاراکتر باشد' }, { status: 400 });
+  }
+  if (!/^[a-z0-9._-]{3,30}$/.test(String(username).toLowerCase())) {
+    return NextResponse.json({ error: 'نام کاربری باید انگلیسی، حداقل ۳ کاراکتر و فقط شامل حروف، اعداد، نقطه، خط تیره و زیرخط باشد' }, { status: 400 });
+  }
 
-  const existing = await (prisma as any).academyUser.findUnique({ where: { username } });
-  if (existing) return NextResponse.json({ error: 'این نام کاربری قبلاً ثبت شده است' }, { status: 400 });
+  const normalizedUsername = String(username).toLowerCase().trim();
+  const existing = await (prisma as any).academyUser.findUnique({ where: { username: normalizedUsername } });
+  if (existing) return NextResponse.json({ error: 'این نام کاربری قبلاً ثبت شده است' }, { status: 409 });
 
   const passwordHash = await bcrypt.hash(password, 10);
   const student = await (prisma as any).academyUser.create({
-    data: { firstName, lastName, username, phone, email, nationalId, passwordHash, role: 'student', active: true },
+    data: { firstName, lastName, username: normalizedUsername, phone: phone || null, nationalId: nationalId || null, passwordHash, role: 'student', active: true },
   });
 
   return NextResponse.json({ student: { id: student.id, firstName: student.firstName, lastName: student.lastName } });
@@ -92,13 +99,16 @@ export async function PUT(req: NextRequest) {
   if (!admin) return NextResponse.json({ error: 'دسترسی مجاز نیست' }, { status: 403 });
 
   const body = await req.json();
-  const { id, firstName, lastName, phone, email, nationalId, active, password } = body;
+  const { id, firstName, lastName, phone, nationalId, active, password } = body;
 
   if (!id) return NextResponse.json({ error: 'شناسه هنرجو الزامی است' }, { status: 400 });
 
-  const data: any = { firstName, lastName, phone, email, nationalId };
+  const data: any = { firstName, lastName, phone, nationalId };
   if (typeof active === 'boolean') data.active = active;
-  if (password && password.length > 0) data.passwordHash = await bcrypt.hash(password, 10);
+  if (password && password.length > 0) {
+    if (password.length < 6) return NextResponse.json({ error: 'رمز عبور باید حداقل ۶ کاراکتر باشد' }, { status: 400 });
+    data.passwordHash = await bcrypt.hash(password, 10);
+  }
 
   // Remove undefined fields
   Object.keys(data).forEach((k) => data[k] === undefined && delete data[k]);

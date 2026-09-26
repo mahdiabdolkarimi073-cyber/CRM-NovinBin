@@ -13,7 +13,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Search, UserPlus, Loader2, Mail, Phone, Users, Building2, User, Pencil, Trash2, Power } from 'lucide-react';
+import { Search, UserPlus, Loader2, Mail, Phone, Users, Building2, User, Pencil, Trash2, Power, Lock } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
@@ -39,7 +39,17 @@ export default function SuperAdminCustomersPage() {
   const [customers, setCustomers] = useState<CustomerRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  // Create dialog
   const [createDialog, setCreateDialog] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    customerType: 'individual' as CustomerType,
+    fullName: '',
+    companyName: '',
+    phone: '',
+    email: '',
+    password: '',
+  });
+  const [creating, setCreating] = useState(false);
 
   // Edit dialog
   const [editDialog, setEditDialog] = useState(false);
@@ -162,6 +172,49 @@ export default function SuperAdminCustomersPage() {
       toast.error('خطا: ' + (e.message || ''));
     }
     setDeleting(false);
+  };
+
+  const handleCreate = async () => {
+    if (createForm.customerType === 'individual' && !createForm.fullName.trim()) {
+      toast.error('نام و نام خانوادگی الزامی است');
+      return;
+    }
+    if (createForm.customerType === 'company' && !createForm.companyName.trim()) {
+      toast.error('نام شرکت الزامی است');
+      return;
+    }
+    if (!createForm.phone.trim()) {
+      toast.error('شماره موبایل الزامی است');
+      return;
+    }
+    if (createForm.password.length < 6) {
+      toast.error('رمز عبور باید حداقل ۶ کاراکتر باشد');
+      return;
+    }
+    setCreating(true);
+    try {
+      const res = await fetch('/api/auth/create-customer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: createForm.phone.trim(),
+          password: createForm.password,
+          customerType: createForm.customerType,
+          fullName: createForm.fullName.trim(),
+          companyName: createForm.companyName.trim(),
+          email: createForm.email.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'ایجاد مشتری ناموفق بود');
+      toast.success('مشتری با موفقیت ایجاد شد');
+      setCreateDialog(false);
+      setCreateForm({ customerType: 'individual', fullName: '', companyName: '', phone: '', email: '', password: '' });
+      load();
+    } catch (e: any) {
+      toast.error('خطا: ' + (e.message || ''));
+    }
+    setCreating(false);
   };
 
   return (
@@ -392,21 +445,106 @@ export default function SuperAdminCustomersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Create Dialog (kept from original for backward compatibility) */}
+      {/* Create Dialog */}
       <Dialog open={createDialog} onOpenChange={setCreateDialog}>
         <DialogContent className="max-w-md" dir="rtl">
           <DialogHeader>
-            <DialogTitle>ثبت مشتری جدید</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="w-5 h-5 text-amber-600" />
+              ثبت مشتری جدید
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-slate-500">
-              برای ثبت مشتری جدید از صفحه ثبت‌نام مشتریان استفاده کنید.
-            </p>
+            <div className="space-y-2">
+              <Label>نوع مشتری</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCreateForm({ ...createForm, customerType: 'individual' })}
+                  className={`flex items-center gap-2 rounded-lg border-2 p-3 text-sm font-medium transition-all ${
+                    createForm.customerType === 'individual'
+                      ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                      : 'border-slate-200 text-slate-500 hover:border-slate-300'
+                  }`}
+                >
+                  <User className="h-4 w-4" />
+                  حقیقی
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCreateForm({ ...createForm, customerType: 'company' })}
+                  className={`flex items-center gap-2 rounded-lg border-2 p-3 text-sm font-medium transition-all ${
+                    createForm.customerType === 'company'
+                      ? 'border-blue-500 bg-blue-50 text-blue-700'
+                      : 'border-slate-200 text-slate-500 hover:border-slate-300'
+                  }`}
+                >
+                  <Building2 className="h-4 w-4" />
+                  حقوقی
+                </button>
+              </div>
+            </div>
+
+            {createForm.customerType === 'individual' ? (
+              <div className="space-y-2">
+                <Label>نام و نام خانوادگی <span className="text-red-500">*</span></Label>
+                <Input
+                  placeholder="نام و نام خانوادگی"
+                  value={createForm.fullName}
+                  onChange={(e) => setCreateForm({ ...createForm, fullName: e.target.value })}
+                />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>نام شرکت <span className="text-red-500">*</span></Label>
+                <Input
+                  placeholder="نام شرکت"
+                  value={createForm.companyName}
+                  onChange={(e) => setCreateForm({ ...createForm, companyName: e.target.value })}
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label>شماره موبایل <span className="text-red-500">*</span></Label>
+              <Input
+                dir="ltr"
+                placeholder="09123456789"
+                value={createForm.phone}
+                onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })}
+                className="text-left"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>ایمیل (اختیاری)</Label>
+              <Input
+                type="email"
+                dir="ltr"
+                placeholder="email@example.com"
+                value={createForm.email}
+                onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+                className="text-left"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>رمز عبور <span className="text-red-500">*</span></Label>
+              <div className="relative">
+                <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  dir="ltr"
+                  type="password"
+                  placeholder="حداقل ۶ کاراکتر"
+                  value={createForm.password}
+                  onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+                  className="pr-10 text-left"
+                />
+              </div>
+            </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setCreateDialog(false)}>بستن</Button>
-              <Button onClick={() => { setCreateDialog(false); window.location.href = '/register/customer'; }}>
-                <UserPlus className="h-4 w-4" />
-                رفتن به ثبت‌نام
+              <Button variant="outline" onClick={() => setCreateDialog(false)}>انصراف</Button>
+              <Button onClick={handleCreate} disabled={creating}>
+                {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+                ثبت مشتری
               </Button>
             </DialogFooter>
           </div>

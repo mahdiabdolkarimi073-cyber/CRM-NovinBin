@@ -42,7 +42,7 @@ export default function TeachersPage() {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editTeacher, setEditTeacher] = useState<Teacher | null>(null);
-  const [form, setForm] = useState({ firstName: '', lastName: '', username: '', phone: '', email: '', nationalId: '', password: '' });
+  const [form, setForm] = useState({ firstName: '', lastName: '', username: '', phone: '', nationalId: '', password: '' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -59,13 +59,13 @@ export default function TeachersPage() {
 
   function openCreate() {
     setEditTeacher(null);
-    setForm({ firstName: '', lastName: '', username: '', phone: '', email: '', nationalId: '', password: '' });
+    setForm({ firstName: '', lastName: '', username: '', phone: '', nationalId: '', password: '' });
     setError(''); setShowModal(true);
   }
 
   function openEdit(t: Teacher) {
     setEditTeacher(t);
-    setForm({ firstName: t.firstName, lastName: t.lastName, username: t.username, phone: t.phone || '', email: t.email || '', nationalId: t.nationalId || '', password: '' });
+    setForm({ firstName: t.firstName, lastName: t.lastName, username: t.username, phone: t.phone || '', nationalId: t.nationalId || '', password: '' });
     setError(''); setShowModal(true);
   }
 
@@ -189,13 +189,12 @@ export default function TeachersPage() {
             <div className="academy-admin-modal-body">
               {error && <div className="academy-admin-modal-error">{error}</div>}
               <div className="academy-admin-form-grid">
-                <div className="academy-admin-field"><label>نام</label><input type="text" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} /></div>
-                <div className="academy-admin-field"><label>نام خانوادگی</label><input type="text" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} /></div>
-                <div className="academy-admin-field"><label>نام کاربری</label><input type="text" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} disabled={!!editTeacher} /></div>
-                <div className="academy-admin-field"><label>رمز عبور {editTeacher && '(اختیاری)'}</label><input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder={editTeacher ? 'بدون تغییر خالی بگذارید' : ''} /></div>
-                <div className="academy-admin-field"><label>تلفن</label><input type="text" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
-                <div className="academy-admin-field"><label>ایمیل</label><input type="text" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-                <div className="academy-admin-field"><label>کد ملی</label><input type="text" value={form.nationalId} onChange={(e) => setForm({ ...form, nationalId: e.target.value })} /></div>
+                <div className="academy-admin-field"><label>نام <span style={{color:'#ef4444'}}>*</span></label><input type="text" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} /></div>
+                <div className="academy-admin-field"><label>نام خانوادگی <span style={{color:'#ef4444'}}>*</span></label><input type="text" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} /></div>
+                <div className="academy-admin-field"><label>نام کاربری <span style={{color:'#ef4444'}}>*</span></label><input type="text" dir="ltr" style={{textAlign:'right'}} value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} disabled={!!editTeacher} placeholder="english_only" /></div>
+                <div className="academy-admin-field"><label>رمز عبور {editTeacher ? '(اختیاری)' : <span style={{color:'#ef4444'}}>*</span>}</label><input type="password" dir="ltr" style={{textAlign:'right'}} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder={editTeacher ? 'بدون تغییر خالی بگذارید' : 'حداقل ۶ کاراکتر'} /></div>
+                <div className="academy-admin-field"><label>تلفن</label><input type="text" dir="ltr" style={{textAlign:'right'}} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+                <div className="academy-admin-field"><label>کد ملی</label><input type="text" dir="ltr" style={{textAlign:'right'}} value={form.nationalId} onChange={(e) => setForm({ ...form, nationalId: e.target.value })} /></div>
               </div>
             </div>
             <div className="academy-admin-modal-footer">
