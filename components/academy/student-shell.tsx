@@ -23,6 +23,7 @@ export type StudentNavItem = {
 
 const defaultNavItems: StudentNavItem[] = [
   { label: 'داشبورد', icon: Home, href: '/academy/dashboard' },
+  { label: 'دوره‌ها', icon: GraduationCap, href: '/academy/course-catalog' },
   { label: 'کلاس‌های من', icon: BookOpen, href: '/academy/classes' },
   { label: 'حضور و غیاب', icon: CheckCircle2, href: '/academy/attendance' },
   { label: 'نمرات و پیشرفت', icon: GraduationCap, href: '/academy/education-record' },

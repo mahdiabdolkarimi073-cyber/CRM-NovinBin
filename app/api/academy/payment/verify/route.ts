@@ -48,6 +48,29 @@ export async function POST(req: NextRequest) {
           receivedDate: new Date(),
         },
       });
+
+      if (payment.paymentType === 'course' && payment.courseId) {
+        const existing = await (prisma as any).academyCourseEnrollment.findUnique({
+          where: { studentId_courseId: { studentId: payment.studentId, courseId: payment.courseId } },
+        });
+        if (!existing) {
+          const course = await (prisma as any).academyCourse.findUnique({ where: { id: payment.courseId } });
+          await (prisma as any).academyCourseEnrollment.create({
+            data: {
+              studentId: payment.studentId,
+              courseId: payment.courseId,
+              fee: course ? course.price : payment.amount,
+              paid: payment.amount,
+              status: 'active',
+            },
+          });
+        } else if (existing.status !== 'active') {
+          await (prisma as any).academyCourseEnrollment.update({
+            where: { id: existing.id },
+            data: { status: 'active', paid: { increment: payment.amount } },
+          });
+        }
+      }
     }
 
     const status = settleResult === '0' ? 'success' : 'success_no_settle';

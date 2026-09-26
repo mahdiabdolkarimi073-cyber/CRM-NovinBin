@@ -14,7 +14,7 @@ function CallbackContent() {
 
   useEffect(() => {
     if (status === 'success' || status === 'success_no_settle') {
-      const timer = setTimeout(() => { router.replace('/academy/finance'); }, 4000);
+      const timer = setTimeout(() => { router.replace('/academy/course-catalog'); }, 4000);
       return () => clearTimeout(timer);
     }
   }, [status, router]);
@@ -44,9 +44,9 @@ function CallbackContent() {
                 type="button"
                 className="academy-primary-btn"
                 style={{ marginTop: 24 }}
-                onClick={() => router.replace('/academy/finance')}
+                onClick={() => router.replace('/academy/course-catalog')}
               >
-                بازگشت به صفحه مالی
+                بازگشت به دوره‌ها
               </button>
             </>
           )}

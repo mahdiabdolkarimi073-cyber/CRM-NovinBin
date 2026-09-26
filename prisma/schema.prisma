@@ -2293,9 +2293,12 @@ model AcademyPayment {
   id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   studentId   String   @db.Uuid
   invoiceId   String?  @db.Uuid
+  courseId    String?  @db.Uuid
   amount      BigInt   @default(0)
   method      String   @default("cash")
   trackingCode String?
+  description String?
+  paymentType String?
   paidAt      DateTime @default(now())
   createdAt   DateTime @default(now())
 
