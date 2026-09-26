@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
 import {
   Users, Loader2, LogOut, Bell, Menu, LifeBuoy, Settings, ClipboardList, Wallet,
-  CalendarDays, BookOpen, Plus, X, Edit2, Trash2, GraduationCap, Layers, BookMarked, DoorOpen, CalendarClock, UserCheck, ArrowLeftRight,
+  CalendarDays, BookOpen, Plus, X, Edit2, Trash2, GraduationCap, Layers, BookMarked, DoorOpen, CalendarClock, UserCheck, ArrowLeftRight, Upload, Image as ImageIcon,
 } from 'lucide-react';
 
 type TabKey = 'courses' | 'terms' | 'levels' | 'syllabi' | 'rooms' | 'weekly' | 'assign' | 'move';
@@ -65,7 +65,7 @@ export default function EducationPage() {
 
   function openEdit(type: string, id: string, item: any) {
     setModalType(type); setEditId(id);
-    if (type === 'course') setForm({ title: item.title, code: item.code || '', description: item.description || '', teacherName: item.teacherName || '', level: item.level || '', active: item.active });
+    if (type === 'course') setForm({ title: item.title, code: item.code || '', description: item.description || '', teacherName: item.teacherName || '', level: item.level || '', imageUrl: item.imageUrl || '', price: item.price || 0, startDate: item.startDate?.slice(0, 10) || '', endDate: item.endDate?.slice(0, 10) || '', active: item.active });
     else if (type === 'term') setForm({ title: item.title, startDate: item.startDate?.slice(0, 10) || '', endDate: item.endDate?.slice(0, 10) || '', active: item.active });
     else if (type === 'level') setForm({ title: item.title, code: item.code || '', order: item.order });
     else if (type === 'room') setForm({ name: item.name, capacity: item.capacity, active: item.active });
@@ -345,11 +345,41 @@ export default function EducationPage() {
               <div className="academy-admin-form-grid">
                 {modalType === 'course' && (
                   <>
-                    <div className="academy-admin-field"><label>عنوان</label><input type="text" value={form.title || ''} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
-                    <div className="academy-admin-field"><label>کد</label><input type="text" value={form.code || ''} onChange={(e) => setForm({ ...form, code: e.target.value })} /></div>
-                    <div className="academy-admin-field"><label>سطح</label><input type="text" value={form.level || ''} onChange={(e) => setForm({ ...form, level: e.target.value })} /></div>
-                    <div className="academy-admin-field"><label>مدرس</label><input type="text" value={form.teacherName || ''} onChange={(e) => setForm({ ...form, teacherName: e.target.value })} /></div>
-                    <div className="academy-admin-field"><label>توضیحات</label><input type="text" value={form.description || ''} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
+                    <div className="academy-admin-field"><label>عنوان دوره</label><input type="text" placeholder="مثلاً: دوره طراحی سایت" value={form.title || ''} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
+                    <div className="academy-admin-field"><label>کد دوره</label><input type="text" placeholder="مثلاً: WEB-101" value={form.code || ''} onChange={(e) => setForm({ ...form, code: e.target.value })} /></div>
+                    <div className="academy-admin-field"><label>سطح</label><input type="text" placeholder="مثلاً: مقدماتی" value={form.level || ''} onChange={(e) => setForm({ ...form, level: e.target.value })} /></div>
+                    <div className="academy-admin-field"><label>نام مدرس</label><input type="text" placeholder="نام و نام خانوادگی" value={form.teacherName || ''} onChange={(e) => setForm({ ...form, teacherName: e.target.value })} /></div>
+                    <div className="academy-admin-field"><label>قیمت (تومان)</label><input type="number" placeholder="0" value={form.price || 0} onChange={(e) => setForm({ ...form, price: parseInt(e.target.value) || 0 })} /></div>
+                    <div className="academy-admin-field"><label>تاریخ شروع</label><input type="date" value={form.startDate || ''} onChange={(e) => setForm({ ...form, startDate: e.target.value })} /></div>
+                    <div className="academy-admin-field"><label>تاریخ پایان</label><input type="date" value={form.endDate || ''} onChange={(e) => setForm({ ...form, endDate: e.target.value })} /></div>
+                    <div className="academy-admin-field" style={{ gridColumn: '1 / -1' }}><label>توضیحات</label><textarea rows={3} placeholder="توضیحات دوره..." value={form.description || ''} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
+                    <div className="academy-admin-field" style={{ gridColumn: '1 / -1' }}>
+                      <label>تصویر دوره</label>
+                      <div className="academy-admin-image-upload">
+                        {form.imageUrl ? (
+                          <div className="academy-admin-image-preview">
+                            <img src={form.imageUrl} alt="پیش‌نمایش" />
+                            <button type="button" onClick={() => setForm({ ...form, imageUrl: '' })}><X /></button>
+                          </div>
+                        ) : (
+                          <label className="academy-admin-image-upload-btn">
+                            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              const fd = new FormData();
+                              fd.append('file', file);
+                              try {
+                                const res = await fetch('/api/upload/academy-course-image', { method: 'POST', body: fd });
+                                const data = await res.json();
+                                if (res.ok) setForm((prev: any) => ({ ...prev, imageUrl: data.url }));
+                                else setError(data.error || 'آپلود ناموفق بود');
+                              } catch { setError('آپلود ناموفق بود'); }
+                            }} />
+                            <Upload /><span>آپلود تصویر</span>
+                          </label>
+                        )}
+                      </div>
+                    </div>
                     <div className="academy-admin-field"><label>فعال</label><input type="checkbox" checked={form.active ?? true} onChange={(e) => setForm({ ...form, active: e.target.checked })} /></div>
                   </>
                 )}

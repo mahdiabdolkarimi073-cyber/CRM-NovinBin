@@ -26,8 +26,8 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { sessionId, reason } = body as { sessionId: string; reason?: string };
-    console.log('[API call/end]', { userId: auth.userId, sessionId, reason });
+    const { sessionId, reason, recordingUrl } = body as { sessionId: string; reason?: string; recordingUrl?: string | null };
+    console.log('[API call/end]', { userId: auth.userId, sessionId, reason, recordingUrl: !!recordingUrl });
 
     if (!sessionId) return NextResponse.json({ error: 'شناسه تماس الزامی است' }, { status: 400 });
 
@@ -56,6 +56,30 @@ export async function POST(req: NextRequest) {
       data: { status: finalStatus, endedAt: now, durationSeconds, endReason: reason || 'ended' },
     });
     console.log('[API call/end] session updated', { sessionId, finalStatus });
+
+    // Save recording to call_logs
+    if (!isMissed) {
+      try {
+        await prisma.callLog.create({
+          data: {
+            callerId: session.callerId,
+            receiverId: session.receiverId,
+            callType: session.callType,
+            source: 'social',
+            sessionId: sessionId,
+            direction: 'outgoing',
+            status: 'answered',
+            durationSeconds: durationSeconds || 0,
+            callDate: session.startedAt || session.createdAt,
+            recordingUrl: recordingUrl || null,
+            handledBy: auth.userId,
+          },
+        });
+        console.log('[API call/end] call_log created', { sessionId, recordingUrl });
+      } catch (logErr) {
+        console.error('[API call/end] failed to create call_log', logErr);
+      }
+    }
 
     await prisma.socialCallSignal.create({
       data: {

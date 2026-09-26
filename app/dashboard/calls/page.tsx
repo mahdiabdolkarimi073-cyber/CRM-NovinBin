@@ -12,7 +12,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
-import { Phone, PhoneIncoming, PhoneOutgoing, PhoneMissed, Search, Play, Clock, Eye, Trash2 } from 'lucide-react';
+import { Phone, PhoneIncoming, PhoneOutgoing, PhoneMissed, Search, Play, Clock, Eye, Trash2, Video, MessageCircle } from 'lucide-react';
 import { SuperAdminActions } from '@/components/dashboard/super-admin-actions';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,7 +24,7 @@ import { toast } from 'sonner';
 type CallLog = {
   id: string;
   customerId: string | null;
-  phoneNumber: string;
+  phoneNumber: string | null;
   direction: 'incoming' | 'outgoing';
   status: 'answered' | 'missed' | 'rejected' | 'voicemail';
   durationSeconds: number;
@@ -32,7 +32,21 @@ type CallLog = {
   recordingUrl: string | null;
   notes: string | null;
   handledBy: string | null;
+  callerId: string | null;
+  receiverId: string | null;
+  callType: string | null;
+  source: string;
   createdAt: string;
+};
+
+type Profile = {
+  id: string;
+  firstName: string | null;
+  lastName: string | null;
+  fullName?: string | null;
+  userType: string;
+  customerType?: string | null;
+  companyName?: string | null;
 };
 
 const DIRECTION_INFO: Record<string, { label: string; color: string; icon: typeof PhoneIncoming }> = {
@@ -47,6 +61,12 @@ const STATUS_INFO: Record<string, { label: string; color: string }> = {
   voicemail: { label: 'پیام صوتی', color: '#8b5cf6' },
 };
 
+const SOURCE_INFO: Record<string, { label: string; color: string; icon: typeof Phone }> = {
+  phone: { label: 'تلفنی', color: '#6b7280', icon: Phone },
+  social: { label: 'شبکه اجتماعی', color: '#3b82f6', icon: MessageCircle },
+  customer: { label: 'تماس مشتری', color: '#10b981', icon: Phone },
+};
+
 function formatDuration(seconds: number): string {
   if (!seconds) return '۰';
   const mins = Math.floor(seconds / 60);
@@ -54,13 +74,21 @@ function formatDuration(seconds: number): string {
   return `${mins.toLocaleString('fa-IR')}:${secs.toString().padStart(2, '0').replace(/[0-9]/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)])}`;
 }
 
+function getUserLabel(u: Profile): string {
+  if (u.userType === 'customer' && u.customerType === 'company' && u.companyName) return u.companyName;
+  if (u.fullName) return u.fullName;
+  return [u.firstName, u.lastName].filter(Boolean).join(' ') || (u.companyName || 'کاربر');
+}
+
 export default function CallsPage() {
   const { profile } = useAuth();
   const [calls, setCalls] = useState<CallLog[]>([]);
+  const [profilesMap, setProfilesMap] = useState<Record<string, Profile>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterDirection, setFilterDirection] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterSource, setFilterSource] = useState('all');
   const [viewCall, setViewCall] = useState<CallLog | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
 
@@ -72,13 +100,31 @@ export default function CallsPage() {
     const where: Record<string, any> = {};
     if (filterDirection !== 'all') where.direction = filterDirection;
     if (filterStatus !== 'all') where.status = filterStatus;
+    if (filterSource !== 'all') where.source = filterSource;
     const data = await fetchData<CallLog>('call_logs', {
       where,
       orderBy: { callDate: 'desc' },
     });
     setCalls(data);
+
+    // Fetch profiles for caller/receiver names
+    const profileIds = new Set<string>();
+    for (const c of data) {
+      if (c.callerId) profileIds.add(c.callerId);
+      if (c.receiverId) profileIds.add(c.receiverId);
+    }
+    if (profileIds.size > 0) {
+      try {
+        const profs = await fetchData<Profile>('profiles', {
+          where: { id: { in: Array.from(profileIds) } },
+        });
+        const map: Record<string, Profile> = {};
+        for (const p of profs) map[p.id] = p;
+        setProfilesMap(map);
+      } catch {}
+    }
     setLoading(false);
-  }, [profile, filterDirection, filterStatus]);
+  }, [profile, filterDirection, filterStatus, filterSource]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -94,16 +140,30 @@ export default function CallsPage() {
     }
   };
 
-  // Client-side search filter (replaces ilike)
+  const getCallPartyLabel = (call: CallLog): string => {
+    if (call.source === 'phone') return call.phoneNumber || '—';
+    const caller = call.callerId ? profilesMap[call.callerId] : null;
+    const receiver = call.receiverId ? profilesMap[call.receiverId] : null;
+    const callerName = caller ? getUserLabel(caller) : 'نامشخص';
+    const receiverName = receiver ? getUserLabel(receiver) : 'نامشخص';
+    return `${callerName} ← ${receiverName}`;
+  };
+
   const filtered = search
-    ? calls.filter((c) => c.phoneNumber.toLowerCase().includes(search.toLowerCase()))
+    ? calls.filter((c) => {
+        const s = search.toLowerCase();
+        if (c.phoneNumber?.toLowerCase().includes(s)) return true;
+        const party = getCallPartyLabel(c).toLowerCase();
+        if (party.includes(s)) return true;
+        return false;
+      })
     : calls;
 
   return (
     <div>
       <PageHeader
         title="تماس‌ها"
-        description="ثبت و پیگیری تماس‌های ورودی و خروجی"
+        description="ثبت و پیگیری تماس‌های تلفنی، شبکه اجتماعی و مشتریان"
       />
 
       {/* Filters */}
@@ -111,13 +171,22 @@ export default function CallsPage() {
         <div className="relative flex-1">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input
-            placeholder="جستجوی شماره تلفن..."
+            placeholder="جستجو بر اساس شماره یا نام..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pr-10"
             dir="ltr"
           />
         </div>
+        <Select value={filterSource} onValueChange={setFilterSource}>
+          <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">همه منابع</SelectItem>
+            <SelectItem value="phone">تلفنی</SelectItem>
+            <SelectItem value="social">شبکه اجتماعی</SelectItem>
+            <SelectItem value="customer">تماس مشتری</SelectItem>
+          </SelectContent>
+        </Select>
         <Select value={filterDirection} onValueChange={setFilterDirection}>
           <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -148,7 +217,7 @@ export default function CallsPage() {
             <EmptyState
               icon={<Phone className="w-8 h-8" />}
               title="تماسی ثبت نشده"
-              description="تماس‌های ورودی و خروجی در اینجا نمایش داده می‌شوند"
+              description="تماس‌های تلفنی و شبکه اجتماعی در اینجا نمایش داده می‌شوند"
             />
           </CardContent>
         </Card>
@@ -158,11 +227,12 @@ export default function CallsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>منبع</TableHead>
+                  <TableHead>طرفین مکالمه / شماره</TableHead>
                   <TableHead>جهت</TableHead>
-                  <TableHead>شماره تلفن</TableHead>
                   <TableHead>وضعیت</TableHead>
                   <TableHead>مدت</TableHead>
-                  <TableHead>تاریخ تماس</TableHead>
+                  <TableHead>تاریخ و ساعت</TableHead>
                   <TableHead>ضبط صوت</TableHead>
                   {isSuperAdmin && <TableHead className="text-center">عملیات</TableHead>}
                 </TableRow>
@@ -172,8 +242,26 @@ export default function CallsPage() {
                   const dir = DIRECTION_INFO[call.direction] || DIRECTION_INFO.incoming;
                   const DirIcon = dir.icon;
                   const st = STATUS_INFO[call.status] || STATUS_INFO.answered;
+                  const src = SOURCE_INFO[call.source] || SOURCE_INFO.phone;
+                  const SrcIcon = src.icon;
+                  const isVideo = call.callType === 'video';
                   return (
                     <TableRow key={call.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-8 h-8 rounded-full flex items-center justify-center"
+                            style={{ backgroundColor: src.color + '15' }}
+                          >
+                            <SrcIcon className="w-4 h-4" style={{ color: src.color }} />
+                          </div>
+                          <span className="text-sm font-medium text-slate-700">{src.label}</span>
+                          {isVideo && <Video className="w-3.5 h-3.5 text-slate-400" />}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm font-medium text-slate-700">{getCallPartyLabel(call)}</span>
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <div
@@ -184,9 +272,6 @@ export default function CallsPage() {
                           </div>
                           <span className="text-sm font-medium text-slate-700">{dir.label}</span>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm font-medium text-slate-700" dir="ltr">{call.phoneNumber}</span>
                       </TableCell>
                       <TableCell>
                         <Badge
@@ -242,9 +327,11 @@ export default function CallsPage() {
           {viewCall && (
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3 text-sm">
+                <div><span className="text-slate-400">منبع:</span> <span className="font-medium">{SOURCE_INFO[viewCall.source]?.label}</span></div>
+                <div><span className="text-slate-400">نوع:</span> <span className="font-medium">{viewCall.callType === 'video' ? 'تصویری' : 'صوتی'}</span></div>
                 <div><span className="text-slate-400">جهت:</span> <span className="font-medium">{DIRECTION_INFO[viewCall.direction]?.label}</span></div>
                 <div><span className="text-slate-400">وضعیت:</span> <span className="font-medium">{STATUS_INFO[viewCall.status]?.label}</span></div>
-                <div><span className="text-slate-400">شماره:</span> <span className="font-medium" dir="ltr">{viewCall.phoneNumber}</span></div>
+                <div className="col-span-2"><span className="text-slate-400">طرفین:</span> <span className="font-medium">{getCallPartyLabel(viewCall)}</span></div>
                 <div><span className="text-slate-400">مدت:</span> <span className="font-medium" dir="ltr">{formatDuration(viewCall.durationSeconds)}</span></div>
                 <div><span className="text-slate-400">تاریخ:</span> <span className="font-medium">{formatJalaliDateTime(viewCall.callDate)}</span></div>
               </div>

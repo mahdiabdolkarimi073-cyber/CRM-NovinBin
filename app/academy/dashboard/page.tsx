@@ -41,7 +41,7 @@ type Stats = {
   avgProgress: number;
   unpaidBalance: number;
 };
-type Course = { id: string; title: string; teacherName: string | null; level: string | null; imageUrl: string | null; progress: number; status: string };
+type Course = { id: string; title: string; teacherName: string | null; level: string | null; imageUrl: string | null; price: number; progress: number; status: string };
 type UpcomingClass = { id: string; title: string; teacherName: string | null; startsAt: string; durationMin: number };
 type Assignment = { id: string; title: string; description: string | null; dueDate: string | null; status: string };
 type Notice = { id: string; title: string; body: string | null; type: string; read: boolean; createdAt: string };

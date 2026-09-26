@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
   ]);
 
   return NextResponse.json({
-    courses: courses.map((c: any) => ({ id: c.id, title: c.title, code: c.code, description: c.description, teacherName: c.teacherName, level: c.level, imageUrl: c.imageUrl, startDate: c.startDate, endDate: c.endDate, active: c.active, createdAt: c.createdAt })),
+    courses: courses.map((c: any) => ({ id: c.id, title: c.title, code: c.code, description: c.description, teacherName: c.teacherName, level: c.level, imageUrl: c.imageUrl, price: Number(c.price) || 0, startDate: c.startDate, endDate: c.endDate, active: c.active, createdAt: c.createdAt })),
     terms: terms.map((t: any) => ({ id: t.id, title: t.title, startDate: t.startDate, endDate: t.endDate, active: t.active, createdAt: t.createdAt })),
     levels: levels.map((l: any) => ({ id: l.id, title: l.title, code: l.code, order: l.order, createdAt: l.createdAt })),
     syllabi: syllabi.map((s: any) => ({ id: s.id, courseTitle: s.course?.title || '—', title: s.title, description: s.description, order: s.order, createdAt: s.createdAt })),
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
   let result;
   switch (type) {
     case 'course':
-      result = await (prisma as any).academyCourse.create({ data: { title: data.title, code: data.code || null, description: data.description || null, teacherName: data.teacherName || null, level: data.level || null, active: data.active ?? true } });
+      result = await (prisma as any).academyCourse.create({ data: { title: data.title, code: data.code || null, description: data.description || null, teacherName: data.teacherName || null, level: data.level || null, imageUrl: data.imageUrl || null, price: BigInt(data.price || 0), startDate: data.startDate ? new Date(data.startDate) : null, endDate: data.endDate ? new Date(data.endDate) : null, active: data.active ?? true } });
       break;
     case 'term':
       result = await (prisma as any).academyTerm.create({ data: { title: data.title, startDate: data.startDate ? new Date(data.startDate) : new Date(), endDate: data.endDate ? new Date(data.endDate) : null, active: data.active ?? true } });
@@ -113,7 +113,7 @@ export async function PUT(req: NextRequest) {
 
   switch (type) {
     case 'course':
-      await (prisma as any).academyCourse.update({ where: { id }, data: { title: data.title, code: data.code, description: data.description, teacherName: data.teacherName, level: data.level, active: data.active } });
+      await (prisma as any).academyCourse.update({ where: { id }, data: { title: data.title, code: data.code, description: data.description, teacherName: data.teacherName, level: data.level, imageUrl: data.imageUrl || null, price: BigInt(data.price || 0), startDate: data.startDate ? new Date(data.startDate) : null, endDate: data.endDate ? new Date(data.endDate) : null, active: data.active } });
       break;
     case 'term':
       await (prisma as any).academyTerm.update({ where: { id }, data: { title: data.title, startDate: data.startDate ? new Date(data.startDate) : undefined, endDate: data.endDate ? new Date(data.endDate) : undefined, active: data.active } });

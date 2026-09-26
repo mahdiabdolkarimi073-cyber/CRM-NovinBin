@@ -1423,7 +1423,7 @@ model CallLog {
   id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   orgId         String?   @db.Uuid
   customerId    String?  @db.Uuid
-  phoneNumber   String
+  phoneNumber   String?
   direction     String   @default("incoming")
   status        String   @default("answered")
   durationSeconds Int    @default(0)
@@ -1431,6 +1431,11 @@ model CallLog {
   recordingUrl  String?
   notes         String?
   handledBy     String?  @db.Uuid
+  callerId      String?  @db.Uuid
+  receiverId    String?  @db.Uuid
+  callType      String?
+  source        String   @default("phone")
+  sessionId     String?  @db.Uuid
   createdAt     DateTime @default(now())
   org           Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
@@ -1855,6 +1860,7 @@ model AcademyCourse {
   teacherName String?
   level       String?
   imageUrl    String?
+  price       BigInt   @default(0)
   startDate   DateTime?
   endDate     DateTime?
   active      Boolean  @default(true)

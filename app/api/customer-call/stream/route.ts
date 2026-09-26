@@ -67,6 +67,7 @@ export async function GET(req: NextRequest) {
           const callUpdates = await prisma.customerSocialCallSession.findMany({
             where: {
               callerId: auth.userId,
+              createdAt: { gt: lastCheck },
               status: { in: ['accepted', 'rejected', 'missed', 'ended', 'failed'] },
             },
             orderBy: { createdAt: 'asc' },

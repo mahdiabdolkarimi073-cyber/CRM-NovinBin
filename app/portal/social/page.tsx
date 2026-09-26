@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import Link from 'next/link';
 import { fetchData, createData, updateData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useCall } from '@/components/providers/call-provider';
@@ -497,7 +498,7 @@ export default function PortalSocialPage() {
     return (
       <div className="messages-screen" dir="rtl">
         <header className="messages-screen-header">
-          <button className="messages-header-button" aria-label="منو"><Menu /></button>
+          <Link href="/portal" className="messages-header-button" aria-label="بازگشت به باشگاه"><ArrowLeft /></Link>
           <h1>پیام‌ها</h1>
           <button className="messages-header-button" aria-label="جستجو" onClick={() => document.getElementById('portal-messages-search')?.focus()}><Search /></button>
         </header>

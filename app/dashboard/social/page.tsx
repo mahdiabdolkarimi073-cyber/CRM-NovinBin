@@ -604,7 +604,7 @@ function MessagesScreen({ chat }: { chat: ReturnType<typeof useSocialChat> }) {
   return (
     <div className="messages-screen" dir="rtl">
       <header className="messages-screen-header">
-        <button className="messages-header-button" aria-label="منو"><Menu /></button>
+        <Link href="/dashboard" className="messages-header-button" aria-label="بازگشت به داشبورد"><ArrowLeft /></Link>
         <h1>پیام‌ها</h1>
         <button className="messages-header-button" aria-label="جستجو" onClick={() => document.getElementById('messages-search')?.focus()}><Search /></button>
       </header>

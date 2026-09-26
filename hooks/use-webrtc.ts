@@ -87,6 +87,9 @@ export function useWebRTC(apiPrefixRef: MutableRefObject<string>) {
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const pendingCandidatesRef = useRef<RTCIceCandidate[]>([]);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  const mixedStreamRef = useRef<MediaStream | null>(null);
 
   const [state, setState] = useState<WebRTCCallState>({
     status: 'idle',
@@ -178,6 +181,13 @@ export function useWebRTC(apiPrefixRef: MutableRefObject<string>) {
         remoteAudioRef.current.play().then(() => console.log('[WEBRTC] remote audio playing')).catch((e) => console.warn('[WEBRTC] remote audio play failed', e));
       }
       console.log('[WEBRTC] remote stream tracks', { audio: remoteStreamRef.current?.getAudioTracks().length || 0, video: remoteStreamRef.current?.getVideoTracks().length || 0 });
+      // Add remote audio track to recording if recorder is active
+      try {
+        const remoteAudioTrack = stream.getAudioTracks()[0];
+        if (remoteAudioTrack && mixedStreamRef.current && !mixedStreamRef.current.getAudioTracks().some((t) => t.id === remoteAudioTrack.id)) {
+          mixedStreamRef.current.addTrack(remoteAudioTrack);
+        }
+      } catch {}
     };
 
     return pc;
@@ -235,6 +245,31 @@ export function useWebRTC(apiPrefixRef: MutableRefObject<string>) {
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream;
       }
+
+      // Start recording — mix local + remote audio
+      try {
+        const recTracks: MediaStreamTrack[] = [];
+        const localAudio = stream.getAudioTracks()[0];
+        if (localAudio) recTracks.push(localAudio);
+        const remoteAudioTrack = remoteStreamRef.current?.getAudioTracks()[0];
+        if (remoteAudioTrack) recTracks.push(remoteAudioTrack);
+        if (recTracks.length > 0) {
+          const recStream = new MediaStream(recTracks);
+          mixedStreamRef.current = recStream;
+          const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
+          const recorder = new MediaRecorder(recStream, { mimeType });
+          recordedChunksRef.current = [];
+          recorder.ondataavailable = (event: BlobEvent) => {
+            if (event.data.size > 0) recordedChunksRef.current.push(event.data);
+          };
+          recorder.start(1000);
+          mediaRecorderRef.current = recorder;
+          console.log('[WEBRTC] call recording started', { mimeType, tracks: recTracks.length });
+        }
+      } catch (recErr) {
+        console.warn('[WEBRTC] failed to start recording', recErr);
+      }
+
       return stream;
     } catch (e: any) {
       throw new Error(formatMediaError(e));
@@ -416,8 +451,41 @@ export function useWebRTC(apiPrefixRef: MutableRefObject<string>) {
     }
   }, [updateState]);
 
+  const stopAndUploadRecording = useCallback(async (): Promise<string | null> => {
+    const recorder = mediaRecorderRef.current;
+    if (!recorder || recorder.state === 'inactive') {
+      mediaRecorderRef.current = null;
+      mixedStreamRef.current = null;
+      recordedChunksRef.current = [];
+      return null;
+    }
+    return new Promise<string | null>((resolve) => {
+      recorder.onstop = async () => {
+        try {
+          const blob = new Blob(recordedChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+          recordedChunksRef.current = [];
+          mediaRecorderRef.current = null;
+          mixedStreamRef.current = null;
+          if (blob.size === 0) { resolve(null); return; }
+          const formData = new FormData();
+          formData.append('file', blob, `call-recording-${Date.now()}.webm`);
+          const res = await fetch('/api/upload/call-recording', { method: 'POST', body: formData });
+          const data = await res.json();
+          if (!res.ok) { console.warn('[WEBRTC] recording upload failed', data); resolve(null); return; }
+          console.log('[WEBRTC] recording uploaded', data.url);
+          resolve(data.url as string);
+        } catch (e) {
+          console.warn('[WEBRTC] recording upload error', e);
+          resolve(null);
+        }
+      };
+      try { recorder.stop(); } catch { resolve(null); }
+    });
+  }, []);
+
   const endCall = useCallback(async (reason?: string) => {
     console.log('[WEBRTC] endCall begin', { reason, sessionId: state.sessionId, status: state.status });
+    const recordingUrl = await stopAndUploadRecording();
     const pc = pcRef.current;
     if (pc) {
       console.log('[WEBRTC] closing PeerConnection', { connectionState: pc.connectionState, iceConnectionState: pc.iceConnectionState });
@@ -436,17 +504,17 @@ export function useWebRTC(apiPrefixRef: MutableRefObject<string>) {
     pendingCandidatesRef.current = [];
 
     if (state.sessionId) {
-      console.log('[WEBRTC] sending end signal to server', { sessionId: state.sessionId, reason });
+      console.log('[WEBRTC] sending end signal to server', { sessionId: state.sessionId, reason, recordingUrl });
       await fetch(`${apiPrefixRef.current}/end`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: state.sessionId, reason }),
+        body: JSON.stringify({ sessionId: state.sessionId, reason, recordingUrl }),
       }).then(() => console.log('[WEBRTC] end signal sent')).catch((e) => console.warn('[WEBRTC] end signal failed', e));
     }
 
     updateState({ status: 'ended', localStream: null, remoteStream: null });
     setTimeout(() => updateState({ status: 'idle', sessionId: null, remoteUserId: null }), 1500);
-  }, [state.sessionId, state.status, updateState]);
+  }, [state.sessionId, state.status, updateState, stopAndUploadRecording]);
 
   const rejectCall = useCallback(async (sessionId: string) => {
     console.log('[WEBRTC] rejectCall', { sessionId });

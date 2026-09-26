@@ -144,6 +144,7 @@ export async function GET(req: NextRequest) {
         teacherName: courseMap.get(e.courseId)?.teacherName || null,
         level: courseMap.get(e.courseId)?.level || null,
         imageUrl: courseMap.get(e.courseId)?.imageUrl || null,
+        price: Number(courseMap.get(e.courseId)?.price) || 0,
         progress: e.progress || 0,
         status: e.status,
       })),
