@@ -34,8 +34,8 @@ export default function AcademyLoginPage() {
         <div className="academy-brand-mark">دنیای <span>الگوریتم</span></div>
         <div className="academy-auth-heading"><h1><span>ورود</span> به پنل کاربری</h1><p>به <b>دنیای الگوریتم</b> خوش آمدید!</p></div>
         <form onSubmit={handleSubmit} className="academy-form">
-          <label htmlFor="academy-identifier">نام کاربری یا ایمیل</label>
-          <div className="academy-input-wrap"><UserRound /><input id="academy-identifier" value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder="نام کاربری یا ایمیل" autoComplete="username" required /></div>
+          <label htmlFor="academy-identifier">نام کاربری، ایمیل یا شماره موبایل</label>
+          <div className="academy-input-wrap"><UserRound /><input id="academy-identifier" value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder="نام کاربری، ایمیل یا شماره موبایل" autoComplete="username" required /></div>
           <label htmlFor="academy-password">رمز عبور</label>
           <div className="academy-input-wrap"><LockKeyhole /><input id="academy-password" type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="رمز عبور" autoComplete="current-password" required style={{ textAlign: 'left' }} /><button type="button" onClick={() => setShowPassword((value) => !value)} aria-label="نمایش رمز عبور" style={{ order: 3 }}>{showPassword ? <EyeOff /> : <Eye />}</button></div>
           <div className="academy-login-options"><label className="academy-remember"><input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} /> <span>مرا به خاطر بسپار</span></label><button type="button" className="academy-link">رمز عبور را فراموش کرده‌اید؟</button></div>

@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     const normalized = String(identifier).trim().toLowerCase();
 
     let account = await (prisma as any).academyUser.findFirst({
-      where: { OR: [{ username: normalized }, { email: normalized }] },
+      where: { OR: [{ username: normalized }, { email: normalized }, { phone: String(identifier).trim() }] },
     });
 
     // If no AcademyUser found, try CRM User with admin role
@@ -69,13 +69,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'نام کاربری یا رمز عبور اشتباه است' }, { status: 401 });
     }
 
-    const token = jwt.sign({ academyUserId: account.id, role: account.role, username: account.username }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ academyUserId: account.id, role: account.role, username: account.username }, JWT_SECRET, { expiresIn: '30d' });
     const response = NextResponse.json({ user: { id: account.id, username: account.username, role: account.role, firstName: account.firstName, lastName: account.lastName } });
     response.cookies.set('academy_token', token, {
       httpOnly: true,
       secure: false,
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7,
+      maxAge: 60 * 60 * 24 * 30,
       path: '/',
     });
     console.log('[academy-login] SUCCESS', { userId: account.id, role: account.role, username: account.username, tokenPreview: token.slice(0, 20) + '...' });

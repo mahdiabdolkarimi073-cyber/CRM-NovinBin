@@ -22,9 +22,9 @@ export async function POST(req: NextRequest) {
 
     const account = await (prisma as any).academyUser.create({ data: { firstName, lastName, username, email, phone: body.phone ? String(body.phone).trim() : null, passwordHash: bcrypt.hashSync(password, 10), role: 'student' } });
 
-    const token = jwt.sign({ academyUserId: account.id, role: account.role, username: account.username }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ academyUserId: account.id, role: account.role, username: account.username }, JWT_SECRET, { expiresIn: '30d' });
     const response = NextResponse.json({ success: true, user: { id: account.id, username: account.username, role: account.role, firstName: account.firstName, lastName: account.lastName } });
-    response.cookies.set('academy_token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 60 * 60 * 24 * 7, path: '/' });
+    response.cookies.set('academy_token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 60 * 60 * 24 * 30, path: '/' });
     return response;
   } catch {
     return NextResponse.json({ error: 'ثبت‌نام انجام نشد' }, { status: 500 });
