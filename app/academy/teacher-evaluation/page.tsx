@@ -49,7 +49,7 @@ const teacherNavItems = [
   { label: 'داشبورد', icon: BookOpen, href: '/academy/dashboard', active: false },
   { label: 'کلاس‌های من', icon: BookOpen, href: '/academy/teacher-classes', active: false },
   { label: 'حضور و غیاب', icon: CheckSquare, href: '/academy/teacher-attendance', active: false },
-  { label: 'نمرات دانش‌آموزان', icon: GraduationCap, href: '/academy/teacher-grades', active: false },
+  { label: 'نمرات هنرجوان', icon: GraduationCap, href: '/academy/teacher-grades', active: false },
   { label: 'ارزیابی مدرس', icon: ClipboardList, href: '/academy/teacher-evaluation', active: true },
   { label: 'پرداخت‌ها', icon: Wallet, href: '/academy/teacher-finance', active: false },
   { label: 'پروفایل', icon: UserRound, href: '/academy/teacher-profile', active: false },
@@ -225,7 +225,7 @@ export default function TeacherEvaluationPage() {
           <section className="teacher-ta-hero">
             <div>
               <h2>ارزیابی مدرس</h2>
-              <p>ثبت نقاط قوت، ضعف، وضعیت یادگیری و پیشنهاد سطح برای هر دانش‌آموز</p>
+              <p>ثبت نقاط قوت، ضعف، وضعیت یادگیری و پیشنهاد سطح برای هر هنرجو</p>
             </div>
           </section>
 
@@ -258,7 +258,7 @@ export default function TeacherEvaluationPage() {
                   <section className="teacher-ta-filters">
                     <div className="teacher-ta-search-box">
                       <Search />
-                      <input type="text" placeholder="جستجوی نام دانش‌آموز..." value={search} onChange={(e) => setSearch(e.target.value)} />
+                      <input type="text" placeholder="جستجوی نام هنرجو..." value={search} onChange={(e) => setSearch(e.target.value)} />
                     </div>
                   </section>
 
@@ -266,7 +266,7 @@ export default function TeacherEvaluationPage() {
                     {filteredStudents.length === 0 ? (
                       <div className="teacher-list-empty" style={{ padding: '40px 16px' }}>
                         <Users />
-                        <p>{search ? 'دانش‌آموزی با این نام یافت نشد.' : 'هنوز دانش‌آموزی در این کلاس ثبت نشده است.'}</p>
+                        <p>{search ? 'هنرجوی با این نام یافت نشد.' : 'هنوز هنرجوی در این کلاس ثبت نشده است.'}</p>
                       </div>
                     ) : (
                       filteredStudents.map((student: StudentEval) => {
@@ -292,7 +292,7 @@ export default function TeacherEvaluationPage() {
                                 <textarea
                                   value={(studentPending?.strengths as string) ?? student.strengths ?? ''}
                                   onChange={(e) => setField(student.id, 'strengths', e.target.value)}
-                                  placeholder="نقاط قوت دانش‌آموز..."
+                                  placeholder="نقاط قوت هنرجو..."
                                   rows={2}
                                   className="teacher-te-textarea"
                                 />
@@ -303,7 +303,7 @@ export default function TeacherEvaluationPage() {
                                 <textarea
                                   value={(studentPending?.weaknesses as string) ?? student.weaknesses ?? ''}
                                   onChange={(e) => setField(student.id, 'weaknesses', e.target.value)}
-                                  placeholder="نقاط ضعف دانش‌آموز..."
+                                  placeholder="نقاط ضعف هنرجو..."
                                   rows={2}
                                   className="teacher-te-textarea"
                                 />

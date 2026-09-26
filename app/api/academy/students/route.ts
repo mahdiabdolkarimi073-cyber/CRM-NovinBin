@@ -94,7 +94,7 @@ export async function PUT(req: NextRequest) {
   const body = await req.json();
   const { id, firstName, lastName, phone, email, nationalId, active, password } = body;
 
-  if (!id) return NextResponse.json({ error: 'شناسه دانش‌آموز الزامی است' }, { status: 400 });
+  if (!id) return NextResponse.json({ error: 'شناسه هنرجو الزامی است' }, { status: 400 });
 
   const data: any = { firstName, lastName, phone, email, nationalId };
   if (typeof active === 'boolean') data.active = active;

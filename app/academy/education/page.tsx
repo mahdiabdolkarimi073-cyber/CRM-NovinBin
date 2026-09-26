@@ -17,12 +17,12 @@ const tabs: { key: TabKey; label: string; icon: any }[] = [
   { key: 'rooms', label: 'اتاق', icon: DoorOpen },
   { key: 'weekly', label: 'برنامه هفتگی', icon: CalendarClock },
   { key: 'assign', label: 'تخصیص مدرس', icon: UserCheck },
-  { key: 'move', label: 'جابه‌جایی دانش‌آموز', icon: ArrowLeftRight },
+  { key: 'move', label: 'جابه‌جایی هنرجو', icon: ArrowLeftRight },
 ];
 
 const navItems = [
   { label: 'داشبورد', icon: BookOpen, href: '/academy/admin-dashboard' },
-  { label: 'مدیریت دانش‌آموزان', icon: Users, href: '/academy/admin-students' },
+  { label: 'مدیریت هنرجوان', icon: Users, href: '/academy/admin-students' },
   { label: 'مدرس‌ها', icon: Users, href: '/academy/teachers' },
   { label: 'آموزش', icon: ClipboardList, href: '/academy/education', active: true },
   { label: 'مالی', icon: Wallet, href: '/academy/finance-management' },
@@ -325,7 +325,7 @@ export default function EducationPage() {
 
             {activeTab === 'move' && (
               <div className="academy-admin-sec">
-                <h3>جابه‌جایی دانش‌آموز</h3>
+                <h3>جابه‌جایی هنرجو</h3>
                 <MoveStudentForm courses={safeData.courses} onDone={fetchData} />
               </div>
             )}
@@ -510,7 +510,7 @@ function MoveStudentForm({ courses, onDone }: { courses: any[]; onDone: () => vo
       const res = await fetch('/api/academy/education', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'moveStudent', data: { enrollmentId, targetCourseId } }) });
       const data = await res.json();
       if (!res.ok) { setMsg(data.error || 'خطا'); return; }
-      setEnrollmentId(''); setTargetCourseId(''); setMsg('دانش‌آموز با موفقیت جابه‌جا شد'); onDone();
+      setEnrollmentId(''); setTargetCourseId(''); setMsg('هنرجو با موفقیت جابه‌جا شد'); onDone();
     } finally { setSaving(false); }
   }
 
@@ -520,7 +520,7 @@ function MoveStudentForm({ courses, onDone }: { courses: any[]; onDone: () => vo
       <div className="academy-admin-form-grid">
         <div className="academy-admin-field">
           <label>شناسه ثبت‌نام</label>
-          <input type="text" value={enrollmentId} onChange={(e) => setEnrollmentId(e.target.value)} placeholder="شناسه ثبت‌نام دانش‌آموز" />
+          <input type="text" value={enrollmentId} onChange={(e) => setEnrollmentId(e.target.value)} placeholder="شناسه ثبت‌نام هنرجو" />
         </div>
         <div className="academy-admin-field">
           <label>دوره هدف</label>
@@ -531,7 +531,7 @@ function MoveStudentForm({ courses, onDone }: { courses: any[]; onDone: () => vo
         </div>
       </div>
       <button type="button" className="academy-admin-btn-primary" onClick={submit} disabled={saving} style={{ marginTop: 16 }}>
-        {saving ? <Loader2 className="animate-spin" /> : <ArrowLeftRight />} جابه‌جایی دانش‌آموز
+        {saving ? <Loader2 className="animate-spin" /> : <ArrowLeftRight />} جابه‌جایی هنرجو
       </button>
     </div>
   );

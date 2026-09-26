@@ -15,7 +15,7 @@ type Student = {
 
 const navItems = [
   { label: 'داشبورد', icon: BookOpen, href: '/academy/admin-dashboard' },
-  { label: 'مدیریت دانش‌آموزان', icon: Users, href: '/academy/admin-students', active: true },
+  { label: 'مدیریت هنرجوان', icon: Users, href: '/academy/admin-students', active: true },
   { label: 'مدرس‌ها', icon: Users, href: '/academy/teachers' },
   { label: 'آموزش', icon: ClipboardList, href: '/academy/education' },
   { label: 'مالی', icon: Wallet, href: '/academy/finance-management' },
@@ -143,20 +143,20 @@ export default function StudentsPage() {
         <div className="academy-admin-scroll">
           <div className="academy-admin-page-hero">
             <div>
-              <h2>مدیریت دانش‌آموزان</h2>
-              <p>ایجاد، ویرایش و غیرفعال کردن دانش‌آموزان آموزشگاه</p>
+              <h2>مدیریت هنرجوان</h2>
+              <p>ایجاد، ویرایش و غیرفعال کردن هنرجوان آموزشگاه</p>
             </div>
             <div className="academy-admin-tc-search">
               <Search />
               <input type="text" placeholder="جستجوی نام، نام کاربری، تلفن..." value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
-            <button type="button" className="academy-admin-btn-primary" onClick={openCreate}><Plus /> دانش‌آموز جدید</button>
+            <button type="button" className="academy-admin-btn-primary" onClick={openCreate}><Plus /> هنرجو جدید</button>
           </div>
 
           {loading ? (
             <div className="academy-admin-loading-inline"><Loader2 className="animate-spin" /></div>
           ) : students.length === 0 ? (
-            <div className="academy-admin-list-empty"><Users /><p>دانش‌آموزی یافت نشد.</p></div>
+            <div className="academy-admin-list-empty"><Users /><p>هنرجوی یافت نشد.</p></div>
           ) : (
             <div className="academy-admin-table-wrap">
               <table className="academy-admin-table">
@@ -210,7 +210,7 @@ export default function StudentsPage() {
         <div className="academy-admin-modal-overlay" onClick={() => setShowModal(false)}>
           <div className="academy-admin-modal" onClick={(e) => e.stopPropagation()}>
             <div className="academy-admin-modal-header">
-              <h3>{editStudent ? 'ویرایش دانش‌آموز' : 'ایجاد دانش‌آموز جدید'}</h3>
+              <h3>{editStudent ? 'ویرایش هنرجو' : 'ایجاد هنرجو جدید'}</h3>
               <button type="button" onClick={() => setShowModal(false)}><X /></button>
             </div>
             <div className="academy-admin-modal-body">
@@ -249,7 +249,7 @@ export default function StudentsPage() {
             <div className="academy-admin-modal-footer">
               <button type="button" className="academy-admin-btn-ghost" onClick={() => setShowModal(false)}>انصراف</button>
               <button type="button" className="academy-admin-btn-primary" onClick={save} disabled={saving}>
-                {saving ? <Loader2 className="animate-spin" /> : null} {editStudent ? 'ذخیره تغییرات' : 'ایجاد دانش‌آموز'}
+                {saving ? <Loader2 className="animate-spin" /> : null} {editStudent ? 'ذخیره تغییرات' : 'ایجاد هنرجو'}
               </button>
             </div>
           </div>

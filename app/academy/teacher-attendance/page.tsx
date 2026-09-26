@@ -73,7 +73,7 @@ const teacherNavItems = [
   { label: 'داشبورد', icon: BookOpen, href: '/academy/dashboard', active: false },
   { label: 'کلاس‌های من', icon: BookOpen, href: '/academy/teacher-classes', active: false },
   { label: 'حضور و غیاب', icon: CheckSquare, href: '/academy/teacher-attendance', active: true },
-  { label: 'نمرات دانش‌آموزان', icon: GraduationCap, href: '/academy/teacher-grades', active: false },
+  { label: 'نمرات هنرجوان', icon: GraduationCap, href: '/academy/teacher-grades', active: false },
   { label: 'ارزیابی مدرس', icon: ClipboardList, href: '/academy/teacher-evaluation', active: false },
   { label: 'پرداخت‌ها', icon: Wallet, href: '/academy/teacher-finance', active: false },
   { label: 'پروفایل', icon: UserRound, href: '/academy/teacher-profile', active: false },
@@ -300,7 +300,7 @@ export default function TeacherAttendancePage() {
           <section className="teacher-ta-hero">
             <div>
               <h2>حضور و غیاب</h2>
-              <p>ثبت و مدیریت وضعیت حضور دانش‌آموزان در جلسات</p>
+              <p>ثبت و مدیریت وضعیت حضور هنرجوان در جلسات</p>
             </div>
           </section>
 
@@ -346,7 +346,7 @@ export default function TeacherAttendancePage() {
                     <div className="teacher-ta-summary-left">
                       <h3>{activeClass.title}</h3>
                       <div className="teacher-ta-summary-meta">
-                        <span><Users /> {faNum(activeClass.studentCount)} دانش‌آموز</span>
+                        <span><Users /> {faNum(activeClass.studentCount)} هنرجو</span>
                         <span><CalendarDays /> {faNum(activeClass.sessionCount)} جلسه</span>
                         <span className="teacher-ta-rate-badge" style={{
                           background: activeClass.attendance.rate >= 80 ? '#10B9811A' : activeClass.attendance.rate >= 60 ? '#F59E0B1A' : '#EF44441A',
@@ -363,7 +363,7 @@ export default function TeacherAttendancePage() {
                       <Search />
                       <input
                         type="text"
-                        placeholder="جستجوی نام دانش‌آموز..."
+                        placeholder="جستجوی نام هنرجو..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                       />
@@ -398,7 +398,7 @@ export default function TeacherAttendancePage() {
                         <table className="teacher-ta-table">
                           <thead>
                             <tr>
-                              <th>دانش‌آموز</th>
+                              <th>هنرجو</th>
                               <th>تاریخ</th>
                               <th>روز / ساعت</th>
                               <th>وضعیت</th>

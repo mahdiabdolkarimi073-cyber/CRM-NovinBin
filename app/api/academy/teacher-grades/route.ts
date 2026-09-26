@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
       note?: string | null;
     };
 
-    if (!studentId || !courseId) return NextResponse.json({ error: 'شناسه دانش‌آموز و کلاس الزامی است' }, { status: 400 });
+    if (!studentId || !courseId) return NextResponse.json({ error: 'شناسه هنرجو و کلاس الزامی است' }, { status: 400 });
 
     const course = await (prisma as any).academyCourse.findUnique({ where: { id: courseId } });
     const teacherName = `${account.firstName} ${account.lastName}`;

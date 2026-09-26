@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
         const lateCount = studentSessions.filter((s: any) => s.status === 'late').length;
         return {
           id: e.studentId,
-          fullName: student ? `${student.firstName} ${student.lastName}` : 'دانش‌آموز نامشخص',
+          fullName: student ? `${student.firstName} ${student.lastName}` : 'هنرجو نامشخص',
           phone: student?.phone || null,
           presentCount,
           absentCount,

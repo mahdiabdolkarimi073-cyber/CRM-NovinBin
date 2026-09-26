@@ -91,7 +91,7 @@ export async function GET(req: NextRequest) {
         const studentSessions = courseSessions.filter((s: any) => s.studentId === e.studentId);
         return {
           id: e.studentId,
-          fullName: student ? `${student.firstName} ${student.lastName}` : 'دانش‌آموز نامشخص',
+          fullName: student ? `${student.firstName} ${student.lastName}` : 'هنرجو نامشخص',
           presentCount: studentSessions.filter((s: any) => s.status === 'present').length,
           absentCount: studentSessions.filter((s: any) => s.status === 'absent').length,
           lateCount: studentSessions.filter((s: any) => s.status === 'late').length,

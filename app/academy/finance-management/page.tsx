@@ -23,7 +23,7 @@ const tabs: { key: TabKey; label: string; icon: any }[] = [
 
 const navItems = [
   { label: 'داشبورد', icon: BookOpen, href: '/academy/admin-dashboard' },
-  { label: 'مدیریت دانش‌آموزان', icon: Users, href: '/academy/admin-students' },
+  { label: 'مدیریت هنرجوان', icon: Users, href: '/academy/admin-students' },
   { label: 'مدرس‌ها', icon: Users, href: '/academy/teachers' },
   { label: 'آموزش', icon: ClipboardList, href: '/academy/education' },
   { label: 'مالی', icon: Wallet, href: '/academy/finance-management', active: true },
@@ -405,7 +405,7 @@ export default function FinanceManagementPage() {
               {error && <div className="academy-admin-modal-error">{error}</div>}
               <div className="academy-admin-form-grid">
                 {(modalType === 'discount' || modalType === 'installment' || modalType === 'payment' || modalType === 'invoice' || modalType === 'receipt' || modalType === 'teacherShare' || modalType === 'teacherSettlement') && (
-                  <div className="academy-admin-field"><label>شناسه دانش‌آموز</label><input type="text" value={form.studentId || ''} onChange={(e) => setForm({ ...form, studentId: e.target.value })} /></div>
+                  <div className="academy-admin-field"><label>شناسه هنرجو</label><input type="text" value={form.studentId || ''} onChange={(e) => setForm({ ...form, studentId: e.target.value })} /></div>
                 )}
                 {modalType === 'discount' && (
                   <>

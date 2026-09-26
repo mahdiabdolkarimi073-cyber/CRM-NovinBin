@@ -23,13 +23,13 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const studentId = searchParams.get('studentId');
-  if (!studentId) return NextResponse.json({ error: 'شناسه دانش‌آموز الزامی است' }, { status: 400 });
+  if (!studentId) return NextResponse.json({ error: 'شناسه هنرجو الزامی است' }, { status: 400 });
 
   const student = await (prisma as any).academyUser.findUnique({
     where: { id: studentId },
     select: { id: true, firstName: true, lastName: true, username: true, phone: true, email: true, nationalId: true, active: true, createdAt: true },
   });
-  if (!student || student.role !== 'student') return NextResponse.json({ error: 'دانش‌آموز یافت نشد' }, { status: 404 });
+  if (!student || student.role !== 'student') return NextResponse.json({ error: 'هنرجو یافت نشد' }, { status: 404 });
 
   const [enrollments, grades, sessions, installments, invoices, receipts, contracts, notes, educationRecords, evaluations] = await Promise.all([
     (prisma as any).academyCourseEnrollment.findMany({

@@ -53,7 +53,7 @@ const teacherNavItems = [
   { label: 'داشبورد', icon: BookOpen, href: '/academy/dashboard', active: false },
   { label: 'کلاس‌های من', icon: BookOpen, href: '/academy/teacher-classes', active: false },
   { label: 'حضور و غیاب', icon: CheckSquare, href: '/academy/teacher-attendance', active: false },
-  { label: 'نمرات دانش‌آموزان', icon: GraduationCap, href: '/academy/teacher-grades', active: true },
+  { label: 'نمرات هنرجوان', icon: GraduationCap, href: '/academy/teacher-grades', active: true },
   { label: 'ارزیابی مدرس', icon: ClipboardList, href: '/academy/teacher-evaluation', active: false },
   { label: 'پرداخت‌ها', icon: Wallet, href: '/academy/teacher-finance', active: false },
   { label: 'پروفایل', icon: UserRound, href: '/academy/teacher-profile', active: false },
@@ -238,7 +238,7 @@ export default function TeacherGradesPage() {
         <div className="teacher-dashboard-scroll">
           <section className="teacher-ta-hero">
             <div>
-              <h2>نمرات دانش‌آموزان</h2>
+              <h2>نمرات هنرجوان</h2>
               <p>ثبت و مدیریت نمرات آزمون، تکلیف، مشارکت و مهارت‌های زبان</p>
             </div>
           </section>
@@ -284,7 +284,7 @@ export default function TeacherGradesPage() {
                   <section className="teacher-ta-filters">
                     <div className="teacher-ta-search-box">
                       <Search />
-                      <input type="text" placeholder="جستجوی نام دانش‌آموز..." value={search} onChange={(e) => setSearch(e.target.value)} />
+                      <input type="text" placeholder="جستجوی نام هنرجو..." value={search} onChange={(e) => setSearch(e.target.value)} />
                     </div>
                   </section>
 
@@ -292,14 +292,14 @@ export default function TeacherGradesPage() {
                     {filteredStudents.length === 0 ? (
                       <div className="teacher-list-empty" style={{ padding: '40px 16px' }}>
                         <Users />
-                        <p>{search ? 'دانش‌آموزی با این نام یافت نشد.' : 'هنوز دانش‌آموزی در این کلاس ثبت نشده است.'}</p>
+                        <p>{search ? 'هنرجوی با این نام یافت نشد.' : 'هنوز هنرجوی در این کلاس ثبت نشده است.'}</p>
                       </div>
                     ) : (
                       <div className="teacher-tg-table-wrap">
                         <table className="teacher-tg-table">
                           <thead>
                             <tr>
-                              <th>دانش‌آموز</th>
+                              <th>هنرجو</th>
                               {SCORE_FIELDS.map((f) => (
                                 <th key={f.key} className="teacher-tg-score-th">
                                   <f.icon style={{ width: 14, height: 14, color: f.color }} />

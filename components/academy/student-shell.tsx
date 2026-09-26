@@ -70,7 +70,7 @@ export function StudentShell({
             <div className="student-shell-avatar">{user.firstName.slice(0, 1)}</div>
             <div>
               <strong>{user.firstName} {user.lastName}</strong>
-              <small>دانش‌آموز</small>
+              <small>هنرجو</small>
             </div>
           </div>
 
@@ -116,7 +116,7 @@ export function StudentShell({
               <div className="student-shell-profile-avatar">{user.firstName.slice(0, 1)}</div>
               <div>
                 <strong>{user.firstName} {user.lastName}</strong>
-                <small>دانش‌آموز</small>
+                <small>هنرجو</small>
               </div>
             </div>
             <button type="button" className="student-shell-logout" onClick={onLogout} aria-label="خروج">

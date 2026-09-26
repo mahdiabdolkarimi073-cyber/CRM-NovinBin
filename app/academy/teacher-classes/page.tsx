@@ -59,7 +59,7 @@ const teacherNavItems = [
   { label: 'داشبورد', icon: BookOpen, href: '/academy/dashboard', active: false },
   { label: 'کلاس‌های من', icon: BookOpen, href: '/academy/teacher-classes', active: true },
   { label: 'حضور و غیاب', icon: CheckSquare, href: '/academy/teacher-attendance', active: false },
-  { label: 'نمرات دانش‌آموزان', icon: GraduationCap, href: '/academy/teacher-grades', active: false },
+  { label: 'نمرات هنرجوان', icon: GraduationCap, href: '/academy/teacher-grades', active: false },
   { label: 'ارزیابی مدرس', icon: ClipboardList, href: '/academy/teacher-evaluation', active: false },
   { label: 'پرداخت‌ها', icon: Wallet, href: '/academy/teacher-finance', active: false },
   { label: 'پروفایل', icon: UserRound, href: '/academy/teacher-profile', active: false },
@@ -123,7 +123,7 @@ export default function TeacherClassesPage() {
 
   const statCards = [
     { icon: BookOpen, value: stats.totalClasses, label: 'تعداد کلاس‌ها', color: '#10B981' },
-    { icon: Users, value: stats.totalStudents, label: 'کل دانش‌آموزان', color: '#2563EB' },
+    { icon: Users, value: stats.totalStudents, label: 'کل هنرجوان', color: '#2563EB' },
     { icon: CalendarDays, value: stats.totalSessions, label: 'کل جلسات', color: '#F59E0B' },
     { icon: CheckCircle2, value: stats.avgAttendance, label: 'میانگین حضور', color: '#8B5CF6', suffix: '٪' },
   ];
@@ -176,7 +176,7 @@ export default function TeacherClassesPage() {
           <section className="teacher-tc-hero">
             <div>
               <h2>کلاس‌های من</h2>
-              <p>مدیریت کلاس‌ها، دانش‌آموزان و حضور و غیاب</p>
+              <p>مدیریت کلاس‌ها، هنرجوان و حضور و غیاب</p>
             </div>
             <div className="teacher-tc-search">
               <Search />
@@ -228,7 +228,7 @@ export default function TeacherClassesPage() {
                                 <span><Clock /> {cls.schedule.map((s) => `${s.weekday} ${s.time}`).join('، ')}</span>
                               )}
                               {cls.room && <span><MapPin /> {cls.room}</span>}
-                              <span><Users /> {faNum(cls.studentCount)} دانش‌آموز</span>
+                              <span><Users /> {faNum(cls.studentCount)} هنرجو</span>
                             </div>
                           </div>
                         </div>
@@ -267,18 +267,18 @@ export default function TeacherClassesPage() {
 
                           <div className="teacher-tc-students-section">
                             <div className="teacher-tc-students-heading">
-                              <h4>دانش‌آموزان</h4>
+                              <h4>هنرجوان</h4>
                               <span>{faNum(cls.students.length)} نفر</span>
                             </div>
                             {cls.students.length === 0 ? (
-                              <div className="teacher-list-empty"><Users /><p>دانش‌آموزی در این کلاس ثبت‌نام نکرده است.</p></div>
+                              <div className="teacher-list-empty"><Users /><p>هنرجوی در این کلاس ثبت‌نام نکرده است.</p></div>
                             ) : (
                               <div className="teacher-tc-table-wrap">
                                 <table className="teacher-tc-table">
                                   <thead>
                                     <tr>
                                       <th>#</th>
-                                      <th>نام دانش‌آموز</th>
+                                      <th>نام هنرجو</th>
                                       <th>تلفن</th>
                                       <th>حاضر</th>
                                       <th>غایب</th>

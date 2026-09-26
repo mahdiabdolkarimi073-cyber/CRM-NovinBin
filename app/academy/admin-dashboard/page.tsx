@@ -63,7 +63,7 @@ function jalaliDay(iso: string | null) {
 
 const adminNavItems = [
   { label: 'داشبورد', icon: BookOpen, href: '/academy/admin-dashboard', active: true },
-  { label: 'مدیریت دانش‌آموزان', icon: Users, href: '/academy/admin-students', active: false },
+  { label: 'مدیریت هنرجوان', icon: Users, href: '/academy/admin-students', active: false },
   { label: 'مدرس‌ها', icon: Users, href: '/academy/teachers', active: false },
   { label: 'آموزش', icon: ClipboardList, href: '/academy/education', active: false },
   { label: 'مالی', icon: Wallet, href: '/academy/finance-management', active: false },
@@ -131,7 +131,7 @@ export default function AcademyAdminDashboardPage() {
   }
 
   const statCards = [
-    { icon: Users, value: stats.activeStudents, label: 'دانش‌آموزان فعال', color: '#2563EB' },
+    { icon: Users, value: stats.activeStudents, label: 'هنرجوان فعال', color: '#2563EB' },
     { icon: GraduationCap, value: stats.teachers, label: 'مدرس‌ها', color: '#10B981' },
     { icon: TrendingUp, value: stats.newLeads, label: 'سرنخ‌های جدید', color: '#F59E0B' },
     { icon: UserPlus, value: stats.newRegistrations, label: 'ثبت‌نام‌های جدید', color: '#8B5CF6' },
@@ -225,10 +225,10 @@ export default function AcademyAdminDashboardPage() {
 
             <div className="academy-admin-list-card">
               <div className="academy-admin-list-heading">
-                <h2>دانش‌آموزان در معرض ریزش</h2>
+                <h2>هنرجوان در معرض ریزش</h2>
               </div>
               {atRiskStudents.length === 0 ? (
-                <div className="academy-admin-list-empty"><CheckCircle2 /><p>دانش‌آموز در معرض ریزش وجود ندارد.</p></div>
+                <div className="academy-admin-list-empty"><CheckCircle2 /><p>هنرجو در معرض ریزش وجود ندارد.</p></div>
               ) : (
                 <div className="academy-admin-list-items">
                   {atRiskStudents.map((s, i) => (

@@ -9,7 +9,7 @@ import {
 
 const navItems = [
   { label: 'داشبورد', icon: BookOpen, href: '/academy/admin-dashboard' },
-  { label: 'مدیریت دانش‌آموزان', icon: Users, href: '/academy/admin-students' },
+  { label: 'مدیریت هنرجوان', icon: Users, href: '/academy/admin-students' },
   { label: 'مدرس‌ها', icon: Users, href: '/academy/teachers' },
   { label: 'آموزش', icon: ClipboardList, href: '/academy/education' },
   { label: 'مالی', icon: Wallet, href: '/academy/finance-management' },

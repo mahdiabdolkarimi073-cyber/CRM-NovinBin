@@ -28,7 +28,7 @@ const teacherNavItems = [
   { label: 'داشبورد', icon: BookOpen, href: '/academy/dashboard', active: false },
   { label: 'کلاس‌های من', icon: BookOpen, href: '/academy/teacher-classes', active: false },
   { label: 'حضور و غیاب', icon: CheckSquare, href: '/academy/teacher-attendance', active: false },
-  { label: 'نمرات دانش‌آموزان', icon: GraduationCap, href: '/academy/teacher-grades', active: false },
+  { label: 'نمرات هنرجوان', icon: GraduationCap, href: '/academy/teacher-grades', active: false },
   { label: 'ارزیابی مدرس', icon: ClipboardList, href: '/academy/teacher-evaluation', active: false },
   { label: 'پرداخت‌ها', icon: Wallet, href: '/academy/teacher-finance', active: false },
   { label: 'پروفایل', icon: UserRound, href: '/academy/teacher-profile', active: true },

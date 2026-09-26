@@ -9,7 +9,7 @@ import {
 
 const navItems = [
   { label: 'داشبورد', icon: BookOpen, href: '/academy/admin-dashboard' },
-  { label: 'مدیریت دانش‌آموزان', icon: Users, href: '/academy/admin-students' },
+  { label: 'مدیریت هنرجوان', icon: Users, href: '/academy/admin-students' },
   { label: 'مدرس‌ها', icon: Users, href: '/academy/teachers' },
   { label: 'آموزش', icon: ClipboardList, href: '/academy/education' },
   { label: 'مالی', icon: Wallet, href: '/academy/finance-management' },
@@ -130,7 +130,7 @@ export default function AdminRegistrationPage() {
               <table className="academy-admin-table">
                 <thead>
                   <tr>
-                    <th>دانش‌آموز</th><th>نوع</th><th>دوره فعلی</th><th>دوره هدف</th>
+                    <th>هنرجو</th><th>نوع</th><th>دوره فعلی</th><th>دوره هدف</th>
                     <th>مبلغ</th><th>پرداخت</th><th>وضعیت</th><th>تاریخ</th><th>عملیات</th>
                   </tr>
                 </thead>

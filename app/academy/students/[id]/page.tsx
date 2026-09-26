@@ -21,7 +21,7 @@ const tabs: { key: TabKey; label: string; icon: any }[] = [
 
 const navItems = [
   { label: 'داشبورد', icon: BookOpen, href: '/academy/admin-dashboard' },
-  { label: 'مدیریت دانش‌آموزان', icon: Users, href: '/academy/admin-students', active: true },
+  { label: 'مدیریت هنرجوان', icon: Users, href: '/academy/admin-students', active: true },
   { label: 'مدرس‌ها', icon: Users, href: '/academy/teachers' },
   { label: 'آموزش', icon: ClipboardList, href: '/academy/education' },
   { label: 'مالی', icon: Wallet, href: '/academy/finance-management' },
@@ -89,7 +89,7 @@ export default function StudentRecordPage() {
   }
 
   if (loading) return <div className="academy-admin-loading"><Loader2 className="animate-spin" /></div>;
-  if (!data) return <div className="academy-admin-loading"><p>دانش‌آموز یافت نشد</p></div>;
+  if (!data) return <div className="academy-admin-loading"><p>هنرجو یافت نشد</p></div>;
 
   const { student, summary } = data;
 
