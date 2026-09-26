@@ -320,7 +320,7 @@ export default function CustomersChatPage() {
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/30">
+              <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ background: 'transparent' }}>
                 {messages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-center">
                     <MessageSquare className="w-10 h-10 text-slate-300 mb-3" />

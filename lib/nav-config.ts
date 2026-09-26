@@ -42,6 +42,12 @@ export const coreItems: NavItem[] = [
 ];
 
 export const cartableItems: NavItem[] = [
+  { href: '/dashboard/tasks', label: 'تسک‌ها', icon: CheckSquare },
+  { href: '/dashboard/meetings', label: 'جلسات', icon: Calendar },
+  { href: '/dashboard/meetings/archive', label: 'آرشیو جلسات', icon: Archive },
+  { href: '/dashboard/meeting-sms', label: 'پنل پیامک جلسات', icon: Send },
+  { href: '/dashboard/calls', label: 'مکالمات', icon: Phone },
+  { href: '/dashboard/tickets', label: 'تیکت‌ها', icon: MessageSquare },
   { href: '/dashboard/invoices', label: 'فاکتورها', icon: FileText },
   { href: '/dashboard/pre-invoices', label: 'پیش‌فاکتور', icon: FileOutput },
   { href: '/dashboard/pre-invoices-sales', label: 'پیش فاکتور فروش', icon: FileOutput },
@@ -49,17 +55,11 @@ export const cartableItems: NavItem[] = [
   { href: '/dashboard/payments', label: 'پرداخت‌ها', icon: WalletCards },
   { href: '/dashboard/receipts', label: 'دریافت‌ها', icon: ArrowDownToLine },
   { href: '/dashboard/customers-chat', label: 'چت مشتری', icon: Send },
-  { href: '/dashboard/tickets', label: 'تیکت‌ها', icon: MessageSquare },
-  { href: '/dashboard/tasks', label: 'تسک‌ها', icon: CheckSquare },
   { href: '/dashboard/site-verifications', label: 'تاییدیه‌های سایت', icon: FileCheck },
   { href: '/dashboard/host-domains', label: 'ثبت هاست و دامنه', icon: Server },
   { href: '/dashboard/irnic', label: 'مدیریت شناسه ایرنیک', icon: Fingerprint },
   { href: '/dashboard/sms-logs', label: 'پیامک‌ها', icon: Send },
   { href: '/dashboard/doc-issuance-workboard', label: 'کارتابل صدور سند', icon: FileCheck },
-  { href: '/dashboard/meetings', label: 'جلسات', icon: Calendar },
-  { href: '/dashboard/meetings/archive', label: 'آرشیو جلسات', icon: Archive },
-  { href: '/dashboard/meeting-sms', label: 'پنل پیامک جلسات', icon: Send },
-  { href: '/dashboard/calls', label: 'مکالمات', icon: Phone },
   { href: '/dashboard/graphic-works', label: 'کارهای گرافیک', icon: Palette },
   { href: '/dashboard/secretariat', label: 'دبیرخانه', icon: Mailbox },
 ];

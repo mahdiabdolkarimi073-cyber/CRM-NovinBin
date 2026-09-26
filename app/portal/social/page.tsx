@@ -645,8 +645,8 @@ export default function PortalSocialPage() {
                 </div>
                 <div className="staff-chat-actions">
                   <button className="social-chat-back" onClick={() => { setSelectedUser(null); setIsUsersOpen(true); }} aria-label="بازگشت"><ArrowRight /></button>
-                  <button className="call-action-btn call-action-audio" onClick={() => startCall(selectedUser, 'audio')} aria-label="تماس صوتی" title="تماس صوتی"><Phone /></button>
-                  <button className="call-action-btn call-action-video" onClick={() => startCall(selectedUser, 'video')} aria-label="تماس تصویری" title="تماس تصویری"><Video /></button>
+                  <button className="staff-chat-icon-button" onClick={() => startCall(selectedUser, 'audio')} aria-label="تماس صوتی" title="تماس صوتی"><Phone /></button>
+                  <button className="staff-chat-icon-button" onClick={() => startCall(selectedUser, 'video')} aria-label="تماس تصویری" title="تماس تصویری"><Video /></button>
                   <button className="staff-chat-icon-button" onClick={() => setIsMessageSearchOpen((v) => !v)} aria-label="جستجوی پیام"><Search /></button>
                 </div>
               </header>
