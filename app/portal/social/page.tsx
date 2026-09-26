@@ -5,7 +5,7 @@ import { fetchData, createData, updateData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useCall } from '@/components/providers/call-provider';
 import { EmptyState } from '@/components/dashboard/empty-state';
-import { MessageCircle, Send, Search, Paperclip, Video, FileText, X, Info, MoreVertical, Smile, Mic, CheckCheck, Users, XCircle, Phone, PhoneCall, ArrowLeft, ArrowRight, FolderTree, Reply, Menu, User } from 'lucide-react';
+import { MessageCircle, Send, Search, Paperclip, Video, FileText, X, Info, MoreVertical, Smile, Mic, CheckCheck, Users, XCircle, Phone, PhoneCall, ArrowLeft, ArrowRight, FolderTree, Reply, Menu, User, ChevronRight, Trash2 } from 'lucide-react';
 import { relativeTime, formatJalali } from '@/lib/format';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -27,18 +27,12 @@ interface DMConversation {
   unreadCount: number;
 }
 
-const MOBILE_SAMPLE_CONVERSATIONS = [
-  { name: 'علی رضایی', preview: 'سلام، خوبی؟', time: '۱۲:۴۵', receipt: '✓✓', unread: '۳', online: true, tone: 'navy' },
-  { name: 'مهدی احمدی', preview: 'فایل ارسال شد', time: '۱۱:۳۲', receipt: '♬', unread: '۵', tone: 'blue' },
-  { name: 'سارا محمدی', preview: 'باشه 👍', time: '۱۰:۱۵', receipt: '✓✓', tone: 'rose' },
-  { name: 'گروه دوستان', preview: 'علی: فردا میبینمتون', time: '۰۹:۴۸', receipt: '', unread: '۷', group: true },
-  { name: 'رضا کاوه', preview: 'متون، حتما میفرستم', time: 'دیروز', receipt: '✓✓', tone: 'sand' },
-  { name: 'نرگس کریمی', preview: 'عکس', time: 'دیروز', receipt: '✓✓', tone: 'amber', image: true },
-  { name: 'کانال اخبار', preview: 'آخرین اخبار امروز منتشر شد...', time: 'جمعه', receipt: '', unread: '۱۲', channel: true },
-  { name: 'علیرضا اسدی', preview: 'دمت گرم 🙏', time: 'پنجشنبه', receipt: '✓✓', tone: 'sunset' },
-  { name: 'فاطمه جلالی', preview: 'تا بعد...', time: 'سه‌شنبه', receipt: '✓✓', tone: 'green' },
-  { name: 'محمد شریفی', preview: 'عالیه 👍', time: 'دوشنبه', receipt: '✓✓', tone: 'slate' },
-];
+
+function formatRecordTime(s: number) {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+}
 
 export default function PortalSocialPage() {
   const { profile } = useAuth();
@@ -69,6 +63,8 @@ export default function PortalSocialPage() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   const [isRecording, setIsRecording] = useState(false);
+  const [recordTime, setRecordTime] = useState(0);
+  const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const roleLabels: Record<string, string> = { owner: 'مالک', super_admin: 'سوپرادمین', admin: 'مدیر', personnel: 'پرسنل' };
   const getUserLabel = useCallback((u: Profile) => {
@@ -239,6 +235,17 @@ export default function PortalSocialPage() {
     await startCallFromHook(remoteUser, callType, 'customer');
   };
 
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+  useEffect(() => {
+    return () => { if (recordTimerRef.current) clearInterval(recordTimerRef.current); };
+  }, []);
+
   const handleSend = async () => {
     if (!profile || !selectedUser || (!text.trim() && !attachment)) return;
     setSending(true);
@@ -256,8 +263,10 @@ export default function PortalSocialPage() {
 
   const toggleVoiceRecording = async () => {
     if (isRecording) {
+      if (recordTimerRef.current) { clearInterval(recordTimerRef.current); recordTimerRef.current = null; }
       mediaRecorderRef.current?.stop();
       setIsRecording(false);
+      setRecordTime(0);
       return;
     }
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
@@ -280,7 +289,19 @@ export default function PortalSocialPage() {
       };
       recorder.start();
       setIsRecording(true);
+      setRecordTime(0);
+      recordTimerRef.current = setInterval(() => setRecordTime((t) => t + 1), 1000);
     } catch { toast.error('اجازه دسترسی به میکروفن داده نشد'); }
+  };
+
+  const cancelRecording = () => {
+    if (recordTimerRef.current) { clearInterval(recordTimerRef.current); recordTimerRef.current = null; }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.onstop = null;
+      mediaRecorderRef.current.stop();
+    }
+    setIsRecording(false);
+    setRecordTime(0);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -336,48 +357,227 @@ export default function PortalSocialPage() {
     return <div className="staff-chat-page staff-chat-page-full"><div className="staff-chat-loading"><span /></div></div>;
   }
 
-  return (
-    <div className={cn('social-network-page', (selectedUser || (tab === 'folders' && selectedFolderId)) && 'has-mobile-chat')}>
-      {!selectedUser && tab === 'dm' && (
-        <div className="mobile-social-shell">
-          <div className="mobile-social-topbar">
-            <button className="mobile-social-icon" onClick={() => setIsMessageSearchOpen((value) => !value)} aria-label="جستجو"><Search /></button>
-            <h1>پیام‌ها</h1>
-            <button className="mobile-social-icon" onClick={() => setIsUsersOpen(true)} aria-label="منو"><Menu /></button>
+  if (isMobile && profile) {
+    if (tab === 'dm' && selectedUser) {
+      return (
+        <div className="tg-chat-screen" dir="rtl">
+          <header className="tg-chat-header">
+            <button className="tg-back-btn" onClick={() => setSelectedUser(null)} aria-label="بازگشت">
+              <ChevronRight />
+              <span>بازگشت</span>
+            </button>
+            <div className="tg-header-center">
+              <div className="tg-header-avatar">{getInitials(selectedUser)}</div>
+              <div className="tg-header-info">
+                <strong>{getUserLabel(selectedUser)}</strong>
+                <span className="tg-header-status">
+                  {isOnline(selectedUser.lastSeenAt) && <i className="tg-online-dot" />}
+                  {isOnline(selectedUser.lastSeenAt) ? 'آنلاین' : selectedUser.lastSeenAt ? `آخرین بازدید ${relativeTime(selectedUser.lastSeenAt)}` : roleLabels[selectedUser.role] || selectedUser.role}
+                </span>
+              </div>
+            </div>
+            <div className="tg-header-actions">
+              <button className="tg-header-action" aria-label="تماس صوتی" onClick={() => startCall(selectedUser, 'audio')}><Phone /></button>
+              <button className="tg-header-action" aria-label="تماس تصویری" onClick={() => startCall(selectedUser, 'video')}><Video /></button>
+              <button className="tg-header-action" aria-label="منو"><MoreVertical /></button>
+            </div>
+          </header>
+          <div className="tg-chat-messages" ref={messagesContainerRef}>
+            <div className="tg-date-separator">امروز</div>
+            {dmMessages.map((msg) => {
+              const isMine = msg.senderId === profile.id;
+              return (
+                <div key={msg.id} className={cn('tg-msg-row', isMine ? 'is-mine' : 'is-other')}>
+                  <div className={cn('tg-bubble', isMine ? 'is-mine' : 'is-other')}>
+                    {msg.content && <p>{msg.content}</p>}
+                    {msg.attachmentUrl && msg.attachmentType === 'image' && <img src={msg.attachmentUrl} alt={msg.attachmentName || ''} style={{ maxWidth: '100%', borderRadius: 8, marginTop: 4 }} />}
+                    {msg.attachmentUrl && msg.attachmentType === 'video' && <video src={msg.attachmentUrl} controls style={{ maxWidth: '100%', borderRadius: 8, marginTop: 4 }} />}
+                    {msg.attachmentUrl && msg.attachmentType === 'audio' && <audio src={msg.attachmentUrl} controls preload="metadata" style={{ width: '100%', marginTop: 4 }} />}
+                    {msg.attachmentUrl && msg.attachmentType === 'file' && <a href={msg.attachmentUrl} download={msg.attachmentName || ''} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><FileText /> {msg.attachmentName || 'دانلود فایل'}</a>}
+                    <span className="tg-msg-time">{relativeTime(msg.createdAt)}{isMine && <CheckCheck className="tg-read-receipt" />}</span>
+                  </div>
+                </div>
+              );
+            })}
+            <div ref={messagesEndRef} />
           </div>
-          <div className="mobile-social-search"><Search /><input placeholder="جستجو در پیام‌ها و مخاطبین..." value={search} onChange={(e) => setSearch(e.target.value)} /></div>
-          <div className="mobile-social-filters">
-            <button className="is-active">همه <b>{mobileUsers.length > 0 ? mobileUsers.length.toLocaleString('fa-IR') : '۱۲'}</b></button>
-            <button>خوانده نشده <b>{mobileUsers.length > 0 ? dmConversations.reduce((sum, conversation) => sum + conversation.unreadCount, 0).toLocaleString('fa-IR') : '۸'}</b></button>
-            <button onClick={() => setTab('folders')}>گروه‌ها <b>{mobileUsers.length > 0 ? '' : '۳'}</b></button>
-            <button>کانال‌ها</button>
-          </div>
-          <div className="mobile-social-list">
-            {mobileUsers.length === 0 ? (
-              <div className="mobile-social-sample-list">
-                {MOBILE_SAMPLE_CONVERSATIONS.map((conversation) => (
-                  <div key={conversation.name} className="mobile-social-row mobile-social-sample-row">
-                    <span className="mobile-social-row-time"><span>{conversation.time}</span><i className={conversation.unread ? 'has-unread' : 'is-receipt'}>{conversation.unread || conversation.receipt}</i></span>
-                    <span className="mobile-social-row-copy"><strong>{conversation.name}</strong><small>{conversation.preview}{conversation.image && <span className="mobile-social-attachment-mark"><FileText /></span>}</small></span>
-                    <span className="mobile-social-avatar-wrap"><span className={cn('mobile-social-avatar mobile-social-sample-avatar', conversation.tone, conversation.group && 'is-group', conversation.channel && 'is-channel')}>{conversation.group ? <Users /> : conversation.channel ? <Send /> : conversation.name.slice(0, 1)}</span>{conversation.online && <i />}</span>
+          {attachment && (
+            <div className="tg-attachment-bar">
+              {attachment.type === 'image' ? <img src={attachment.url} alt="" /> : <span>{attachment.type === 'video' ? <Video /> : attachment.type === 'audio' ? <Mic /> : <FileText />}</span>}
+              <strong>{attachment.name}</strong>
+              <button onClick={() => setAttachment(null)} aria-label="حذف"><X /></button>
+            </div>
+          )}
+          {isEmojiOpen && (
+            <div className="tg-emoji-picker">
+              {EMOJIS.map((emoji) => (
+                <button key={emoji} onClick={() => { setText((prev) => prev + emoji); setIsEmojiOpen(false); }}>{emoji}</button>
+              ))}
+            </div>
+          )}
+          <footer className="tg-composer">
+            {isRecording ? (
+              <div className="tg-recording-bar">
+                <button className="tg-rec-cancel" onClick={cancelRecording} aria-label="لغو"><Trash2 /></button>
+                <span className="tg-rec-dot" />
+                <span className="tg-rec-time">{formatRecordTime(recordTime)}</span>
+                <span className="tg-rec-hint">در حال ضبط...</span>
+                <button className="tg-rec-send" onClick={toggleVoiceRecording} aria-label="ارسال"><Send /></button>
+              </div>
+            ) : (
+              <>
+                <label className="tg-composer-attach" aria-label="پیوست">
+                  <input type="file" hidden accept="image/*,video/*" onChange={handleFileSelect} />
+                  <Paperclip />
+                </label>
+                <input className="tg-composer-input" placeholder="پیام خود را بنویسید..." value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} />
+                <button className="tg-composer-emoji" onClick={() => setIsEmojiOpen((v) => !v)} aria-label="ایموجی"><Smile /></button>
+                {text.trim() || attachment ? (
+                  <button className="tg-composer-send" onClick={handleSend} disabled={sending} aria-label="ارسال"><Send /></button>
+                ) : (
+                  <button className="tg-composer-mic" onClick={toggleVoiceRecording} aria-label="ضبط صدا"><Mic /></button>
+                )}
+              </>
+            )}
+          </footer>
+        </div>
+      );
+    }
+
+    if (tab === 'folders' && selectedFolderId) {
+      const folder = folders.find((f) => f.id === selectedFolderId);
+      const folderStaff = folderStaffMap[selectedFolderId] || [];
+      return (
+        <div className="tg-chat-screen" dir="rtl">
+          <header className="tg-chat-header">
+            <button className="tg-back-btn" onClick={() => setSelectedFolderId(null)} aria-label="بازگشت">
+              <ChevronRight />
+              <span>بازگشت</span>
+            </button>
+            <div className="tg-header-center">
+              <div className="tg-header-avatar" style={{ background: '#FEF3C7', color: '#D97706' }}><FolderTree style={{ width: 20, height: 20 }} /></div>
+              <div className="tg-header-info">
+                <strong>{folder?.name || ''}</strong>
+                <span className="tg-header-status">{folderStaff.length} پرسنل</span>
+              </div>
+            </div>
+            <div className="tg-header-actions">
+              <button className="tg-header-action" aria-label="منو"><MoreVertical /></button>
+            </div>
+          </header>
+          <div className="tg-chat-messages" style={{ overflowY: 'auto' }}>
+            <div className="tg-date-separator">{folder?.description || 'پوشه باشگاه مشتریان'}</div>
+            <div style={{ padding: '16px 20px' }}>
+              <h4 className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-1.5">
+                <Users style={{ width: 16, height: 16 }} /> پرسنل و مدیران ({folderStaff.length})
+              </h4>
+              <div className="space-y-2">
+                {folderStaff.length === 0 ? (
+                  <p className="text-xs text-slate-400 text-center py-4">پرسنلی در این پوشه نیست</p>
+                ) : folderStaff.map((m) => (
+                  <div key={m.id} className="flex items-center gap-2.5 p-2.5 rounded-lg border bg-slate-50">
+                    <span className="staff-chat-avatar staff-chat-message-avatar">{getInitials(m)}</span>
+                    <div>
+                      <div className="text-sm font-medium text-slate-900">{getUserLabel(m)}</div>
+                      <div className="text-xs text-slate-400">{roleLabels[m.role] || m.role}</div>
+                    </div>
+                    <button className="social-member-remove mr-auto" onClick={() => { selectUser(m); setTab('dm'); }} title="پیام خصوصی" style={{ color: '#2563EB' }}>
+                      <MessageCircle style={{ width: 16, height: 16 }} />
+                    </button>
                   </div>
                 ))}
               </div>
-            ) : mobileUsers.map((user) => {
-              const conversation = dmConversations.find((item) => item.profile.id === user.id);
-              const online = isOnline(user.lastSeenAt);
-              return <button key={user.id} className="mobile-social-row" onClick={() => selectUser(user)}>
-                <span className="mobile-social-row-time"><span>{conversation?.lastMessage ? relativeTime(conversation.lastMessage.createdAt) : ''}</span><i>{conversation?.unreadCount ? conversation.unreadCount.toLocaleString('fa-IR') : '✓✓'}</i></span>
-                <span className="mobile-social-row-copy"><strong>{getUserLabel(user)}</strong><small>{conversation?.lastMessage?.content || (conversation?.lastMessage?.attachmentUrl ? 'فایل ارسال شد' : online ? 'آنلاین' : 'گفتگوی جدید')}</small></span>
-                <span className="mobile-social-avatar-wrap"><span className="mobile-social-avatar">{getInitials(user)}</span>{online && <i />}</span>
-              </button>;
-            })}
+            </div>
           </div>
-          <nav className="mobile-social-bottom-nav">
-            <button><PhoneCall /><span>تماس‌ها</span></button><button><Users /><span>گروه‌ها</span></button><button className="is-active"><span className="mobile-social-nav-icon"><MessageCircle /><b>۱۲</b></span><span>پیام‌ها</span></button><button><User /><span>مخاطبین</span></button>
-          </nav>
         </div>
-      )}
+      );
+    }
+
+    const totalUnread = dmConversations.reduce((s, c) => s + c.unreadCount, 0);
+    return (
+      <div className="messages-screen" dir="rtl">
+        <header className="messages-screen-header">
+          <button className="messages-header-button" aria-label="منو"><Menu /></button>
+          <h1>پیام‌ها</h1>
+          <button className="messages-header-button" aria-label="جستجو" onClick={() => document.getElementById('portal-messages-search')?.focus()}><Search /></button>
+        </header>
+        <main className="messages-screen-content">
+          <label className="messages-search-bar" htmlFor="portal-messages-search">
+            <Search />
+            <input id="portal-messages-search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="جستجو در پیام‌ها و مخاطبین..." />
+          </label>
+          <div className="messages-filter-scroll" role="tablist" aria-label="فیلتر">
+            <button className={cn('messages-filter', tab === 'dm' && 'is-active')} onClick={() => setTab('dm')}>
+              <span>همه</span>
+              <b>{mobileUsers.length.toLocaleString('fa-IR')}</b>
+            </button>
+            <button className={cn('messages-filter', tab === 'folders' && 'is-active')} onClick={() => setTab('folders')}>
+              <span>پوشه‌ها</span>
+              <b>{folders.length.toLocaleString('fa-IR')}</b>
+            </button>
+          </div>
+          <section className="messages-list">
+            {tab === 'dm' ? (
+              mobileUsers.length === 0 ? (
+                <div className="messages-empty"><MessageCircle /><p>گفتگویی وجود ندارد</p></div>
+              ) : mobileUsers.filter((u) => getUserLabel(u).toLowerCase().includes(search.toLowerCase())).map((user) => {
+                const conversation = dmConversations.find((c) => c.profile.id === user.id);
+                const online = isOnline(user.lastSeenAt);
+                return (
+                  <button className="message-row" key={user.id} onClick={() => selectUser(user)}>
+                    <span className="message-avatar-wrap">
+                      <span className="message-avatar" style={{ background: 'linear-gradient(135deg, #6366F1, #818CF8)' }}>{getInitials(user)}</span>
+                      {online && <i className="message-online-dot" />}
+                    </span>
+                    <span className="message-copy">
+                      <strong>{getUserLabel(user)}</strong>
+                      <span className="message-preview">{conversation?.lastMessage?.content || (conversation?.lastMessage?.attachmentUrl ? 'فایل' : online ? 'آنلاین' : 'گفتگوی جدید')}</span>
+                    </span>
+                    <span className="message-meta">
+                      <time>{conversation?.lastMessage ? relativeTime(conversation.lastMessage.createdAt) : ''}</time>
+                      {conversation?.unreadCount ? <b className="message-unread">{conversation.unreadCount.toLocaleString('fa-IR')}</b> : null}
+                    </span>
+                  </button>
+                );
+              })
+            ) : (
+              folders.length === 0 ? (
+                <div className="messages-empty"><FolderTree /><p>پوشه‌ای وجود ندارد</p></div>
+              ) : folders.filter((f) => f.name.toLowerCase().includes(search.toLowerCase())).map((f) => {
+                const memberCount = (folderStaffMap[f.id] || []).length;
+                return (
+                  <button className="message-row" key={f.id} onClick={() => setSelectedFolderId(f.id)}>
+                    <span className="message-avatar-wrap">
+                      <span className="message-avatar message-avatar-group"><FolderTree /></span>
+                    </span>
+                    <span className="message-copy">
+                      <strong>{f.name}</strong>
+                      <span className="message-preview">{memberCount} پرسنل</span>
+                    </span>
+                    <span className="message-meta">
+                      <time></time>
+                    </span>
+                  </button>
+                );
+              })
+            )}
+          </section>
+        </main>
+        <nav className="messages-bottom-nav">
+          <button><User /><span>مخاطبین</span></button>
+          <button className="is-active">
+            <span className="messages-nav-icon"><MessageCircle />{totalUnread > 0 && <b>{totalUnread.toLocaleString('fa-IR')}</b>}</span>
+            <span>پیام‌ها</span>
+          </button>
+          <button onClick={() => setTab('folders')} className={cn(tab === 'folders' && 'is-active')}><FolderTree /><span>پوشه‌ها</span></button>
+          <button><PhoneCall /><span>تماس‌ها</span></button>
+        </nav>
+      </div>
+    );
+  }
+
+  return (
+    <div className={cn('social-network-page', (selectedUser || (tab === 'folders' && selectedFolderId)) && 'has-mobile-chat')}>
       <header className="social-network-header">
         <div className="social-network-header-info">
           <span className="social-network-title-accent" />
@@ -596,7 +796,11 @@ export default function PortalSocialPage() {
 
         <aside className={cn('social-network-users', isUsersOpen && 'is-open')}>
           <div className="staff-chat-users-toolbar">
+            <button className="social-desktop-hamburger" aria-label="منو" onClick={() => setTab(tab === 'dm' ? 'folders' : 'dm')}>
+              <Menu style={{ width: 20, height: 20 }} />
+            </button>
             <div className="staff-chat-search"><Search /><input placeholder={tab === 'dm' ? 'جستجوی پرسنل...' : 'جستجوی پوشه...'} value={search} onChange={(e) => setSearch(e.target.value)} /></div>
+            <span className="social-desktop-avatar" aria-label="پروفایل">{profile ? getInitials(profile) : '؟'}</span>
           </div>
           <div className="staff-chat-users-list">
             {tab === 'dm' && (

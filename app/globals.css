@@ -7537,3 +7537,474 @@
   .tg-chat-messages { padding-inline: 12px; }
   .tg-bubble { max-width: 82%; font-size: 16px; }
 }
+
+/* ===== Portal Social — Desktop-Only Redesign (768px+) ===== */
+@media (min-width: 768px) {
+  /* ---- Page shell ---- */
+  .social-network-page {
+    background: #F8FBFF;
+    background-image:
+      radial-gradient(circle at 12% 8%, rgba(187,217,255,.22) 0%, transparent 28%),
+      radial-gradient(circle at 88% 92%, rgba(220,235,255,.20) 0%, transparent 30%),
+      radial-gradient(circle at 50% 50%, rgba(200,224,255,.10) 0%, transparent 40%);
+    background-attachment: fixed;
+    color: #293C50;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+  }
+
+  /* ---- Hide old header/tabs/folders on desktop ---- */
+  .social-network-page > .social-network-header,
+  .social-network-page > .social-network-tabs,
+  .social-network-page > .portal-social-folders { display: none !important; }
+
+  /* ---- Body: sidebar left, chat area right ---- */
+  .social-network-page .social-network-body {
+    display: flex;
+    flex-direction: row;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    direction: rtl;
+    padding: 0;
+    gap: 0;
+    grid-template-columns: none !important;
+  }
+
+  /* ---- Sidebar (users panel) ---- */
+  .social-network-page .social-network-users {
+    position: fixed;
+    top: 14px;
+    bottom: 14px;
+    right: 14px;
+    width: 343px;
+    max-width: 343px;
+    height: calc(100vh - 28px);
+    background: rgba(255,255,255,.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(220,230,240,.35);
+    border-radius: 22px;
+    box-shadow: 0 8px 30px rgba(60,100,140,.04);
+    display: flex;
+    flex-direction: column;
+    direction: rtl;
+    overflow: hidden;
+    transform: none !important;
+    z-index: 10;
+  }
+
+  /* Sidebar header: hamburger + search + avatar */
+  .social-network-page .staff-chat-users-toolbar {
+    height: 60px;
+    flex: 0 0 60px;
+    padding: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: transparent;
+    border-bottom: none;
+  }
+  .social-network-page .staff-chat-search {
+    flex: 1;
+    height: 40px;
+    background: #F0F4F9;
+    background: rgba(232,238,246,.75);
+    border: none;
+    border-radius: 22px;
+    padding: 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .social-network-page .staff-chat-search:focus-within {
+    background: #fff;
+    box-shadow: 0 0 0 2px rgba(41,149,245,.12);
+  }
+  .social-network-page .staff-chat-search input {
+    font-size: 14px;
+    color: #293C50;
+  }
+  .social-network-page .staff-chat-search input::placeholder { color: #9AAEC3; }
+  .social-network-page .staff-chat-search svg { color: #9AAEC3; width: 18px; height: 18px; }
+
+  /* Hamburger + avatar in sidebar header */
+  .social-network-page .social-desktop-hamburger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 auto;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: #52677D;
+    cursor: pointer;
+    transition: background .15s ease;
+  }
+  .social-network-page .social-desktop-hamburger:hover { background: #F0F4F9; }
+  .social-network-page .social-desktop-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2995F5, #5BB0FF);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 8px rgba(41,149,245,.15);
+  }
+
+  /* Sidebar user list */
+  .social-network-page .staff-chat-users-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 8px 8px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(154,174,195,.2) transparent;
+  }
+  .social-network-page .staff-chat-users-list::-webkit-scrollbar { width: 4px; }
+  .social-network-page .staff-chat-users-list::-webkit-scrollbar-thumb { background: rgba(154,174,195,.2); border-radius: 10px; }
+  .social-network-page .staff-chat-users-list h3 {
+    color: #9AAEC3;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 12px 12px 6px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+
+  /* Chat row */
+  .social-network-page .staff-chat-user {
+    height: 64px;
+    padding: 10px 12px;
+    border: none;
+    border-radius: 14px;
+    gap: 10px;
+    transition: background .15s ease;
+  }
+  .social-network-page .staff-chat-user:hover { background: #F0F4F9; }
+  .social-network-page .staff-chat-user.is-active {
+    background: #2995F5;
+    border: none;
+    box-shadow: 0 4px 12px rgba(41,149,245,.12);
+  }
+  .social-network-page .staff-chat-user.is-active .staff-chat-user-topline strong,
+  .social-network-page .staff-chat-user.is-active .staff-chat-user-bottomline small,
+  .social-network-page .staff-chat-user.is-active .staff-chat-user-topline time { color: #fff; }
+  .social-network-page .staff-chat-user.is-active .staff-chat-user-bottomline small { color: rgba(255,255,255,.82); }
+  .social-network-page .staff-chat-user.is-active .staff-chat-user-topline time { color: rgba(255,255,255,.9); }
+  .social-network-page .staff-chat-user.is-active .staff-chat-user-bottomline b {
+    background: #fff;
+    color: #2995F5;
+  }
+  .social-network-page .staff-chat-user-topline strong { color: #293C50; font-size: 14px; font-weight: 600; }
+  .social-network-page .staff-chat-user-topline time { color: #9AAEC3; font-size: 10px; }
+  .social-network-page .staff-chat-user-bottomline small { color: #7F91A5; font-size: 13px; font-weight: 400; }
+  .social-network-page .staff-chat-user-bottomline b {
+    background: #2995F5;
+    color: #fff;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  /* Sidebar avatars */
+  .social-network-page .staff-chat-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2995F5, #5BB0FF);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .social-network-page .staff-chat-avatar-large { width: 48px; height: 48px; font-size: 14px; }
+  .social-network-page .staff-chat-presence-dot { border-color: rgba(255,255,255,.92); }
+
+  /* ---- Chat panel (right side) ---- */
+  .social-network-page .staff-chat-panel {
+    margin-right: 371px;
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: transparent;
+    border: none;
+    overflow: hidden;
+  }
+
+  /* ---- Chat header (floating) ---- */
+  .social-network-page .staff-chat-header {
+    margin: 30px auto 0;
+    width: 680px;
+    max-width: calc(100% - 40px);
+    height: 54px;
+    flex: 0 0 54px;
+    padding: 0 14px;
+    background: rgba(255,255,255,.90);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: none;
+    border-radius: 18px;
+    box-shadow: 0 5px 20px rgba(50,90,130,.055);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .social-network-page .staff-chat-person { gap: 10px; }
+  .social-network-page .staff-chat-person strong { color: #293C50; font-size: 15px; font-weight: 700; }
+  .social-network-page .staff-chat-person .staff-chat-status { color: #8A9CAE; font-size: 12px; }
+  .social-network-page .staff-chat-person .staff-chat-avatar { width: 38px; height: 38px; font-size: 12px; }
+  .social-network-page .staff-chat-icon-button {
+    background: transparent;
+    border: none;
+    color: #52677D;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+  }
+  .social-network-page .staff-chat-icon-button:hover { background: #F0F4F9; color: #2995F5; }
+  .social-network-page .staff-chat-icon-button svg { width: 20px; height: 20px; }
+  .social-network-page .social-chat-back,
+  .social-network-page .call-action-btn { display: none; }
+
+  /* ---- Messages area ---- */
+  .social-network-page .staff-chat-messages {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 24px 0;
+    background: transparent;
+    background-image: none !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(154,174,195,.15) transparent;
+  }
+  .social-network-page .staff-chat-messages::-webkit-scrollbar { width: 4px; }
+  .social-network-page .staff-chat-messages::-webkit-scrollbar-thumb { background: rgba(154,174,195,.15); border-radius: 10px; }
+  .social-network-page .staff-chat-date {
+    background: rgba(255,255,255,.7);
+    border: none;
+    color: #8A9CAE;
+    font-size: 11px;
+    padding: 4px 16px;
+    border-radius: 20px;
+    box-shadow: 0 2px 8px rgba(50,90,130,.04);
+  margin: 0 auto 16px;
+  width: fit-content;
+  flex: 0 0 auto;
+  align-self: center;
+  order: 0;
+  position: relative;
+    z-index: 1;
+  }
+
+  /* ---- Message rows ---- */
+  .social-network-page .staff-chat-message-row {
+    width: 100%;
+    max-width: 680px;
+    margin: 0 auto 8px;
+    padding: 0 20px;
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    position: relative;
+  }
+  .social-network-page .staff-chat-message-row.is-mine { justify-content: flex-start; flex-direction: row-reverse; }
+  .social-network-page .staff-chat-message-row.is-other { justify-content: flex-start; }
+
+  /* ---- Message bubble ---- */
+  .social-network-page .staff-chat-bubble {
+    max-width: 440px;
+    width: fit-content;
+    background: rgba(255,255,255,.96);
+    color: #34475A;
+    border: 1px solid rgba(220,230,240,.35);
+    border-radius: 13px;
+    padding: 12px 15px;
+    box-shadow: 0 4px 18px rgba(50,90,130,.055);
+    font-size: 14px;
+    line-height: 1.65;
+  }
+  .social-network-page .staff-chat-bubble.is-mine {
+    background: rgba(255,255,255,.96);
+    color: #34475A;
+    border: 1px solid rgba(220,230,240,.35);
+    box-shadow: 0 4px 18px rgba(50,90,130,.055);
+  }
+  .social-network-page .staff-chat-bubble p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .social-network-page .staff-chat-bubble img,
+  .social-network-page .staff-chat-bubble video { border-radius: 8px; max-width: 100%; margin: 4px 0; }
+  .social-network-page .staff-chat-bubble a { color: #2995F5; font-size: 13px; }
+  .social-network-page .staff-chat-message-meta { color: #9AAEC3; font-size: 10px; margin-top: 4px; }
+  .social-network-page .staff-chat-message-meta svg { color: #2995F5; }
+  .social-network-page .staff-chat-message-avatar { width: 34px; height: 34px; font-size: 11px; border-radius: 50%; }
+  .social-network-page .staff-chat-reply-btn { display: none; }
+
+  /* ---- Empty panel ---- */
+  .social-network-page .staff-chat-empty-panel {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+    color: #9AAEC3;
+    background: transparent;
+  }
+  .social-network-page .staff-chat-empty-panel svg { color: #C8E0FF; opacity: .5; }
+  .social-network-page .staff-chat-empty-panel p { color: #7F91A5; }
+  .social-network-page .staff-chat-empty {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+    color: #9AAEC3;
+    background: transparent;
+  }
+  .social-network-page .staff-chat-empty svg { color: #C8E0FF; opacity: .5; }
+  .social-network-page .staff-chat-empty p { color: #7F91A5; }
+
+  /* ---- Message search bar ---- */
+  .social-network-page .staff-chat-message-search {
+    margin: 16px auto 0;
+    width: 680px;
+    max-width: calc(100% - 40px);
+    background: rgba(255,255,255,.90);
+    border: none;
+    border-radius: 14px;
+    padding: 8px 14px;
+    box-shadow: 0 4px 14px rgba(50,90,130,.04);
+  }
+  .social-network-page .staff-chat-message-search input {
+    background: #F0F4F9;
+    border: none;
+    border-radius: 10px;
+    color: #34475A;
+  }
+
+  /* ---- Reply bar ---- */
+  .social-network-page .social-chat-reply-bar {
+    margin: 0 auto;
+    width: 630px;
+    max-width: calc(100% - 40px);
+    background: rgba(255,255,255,.96);
+    border: none;
+    border-right: 3px solid #EF5350;
+    border-radius: 14px 14px 0 0;
+    padding: 8px 14px;
+    box-shadow: 0 4px 14px rgba(50,90,130,.04);
+  }
+  .social-network-page .social-chat-reply-bar .reply-icon { color: #EF5350; }
+  .social-network-page .social-chat-reply-bar .reply-name { color: #EF5350; }
+  .social-network-page .social-chat-reply-bar .reply-text { color: #7F91A5; }
+
+  /* ---- Attachment preview ---- */
+  .social-network-page .staff-chat-attachment-preview {
+    margin: 0 auto;
+    width: 630px;
+    max-width: calc(100% - 40px);
+    background: rgba(255,255,255,.96);
+    border: none;
+    border-radius: 0;
+    padding: 8px 14px;
+    box-shadow: 0 4px 14px rgba(50,90,130,.04);
+  }
+
+  /* ---- Emoji picker ---- */
+  .social-network-page .staff-chat-emoji-picker {
+    margin: 0 auto;
+    width: 630px;
+    max-width: calc(100% - 40px);
+    background: rgba(255,255,255,.96);
+    border: none;
+    border-radius: 0;
+    padding: 10px 14px;
+    box-shadow: 0 4px 14px rgba(50,90,130,.04);
+  }
+
+  /* ---- Composer ---- */
+  .social-network-page .staff-chat-composer {
+    margin: 0 auto 88px;
+    width: 640px;
+    max-width: calc(100% - 40px);
+    height: 88px;
+    flex: 0 0 88px;
+    padding: 12px 16px;
+    background: rgba(255,255,255,.96);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: none;
+    border-radius: 18px;
+    box-shadow: 0 8px 25px rgba(50,90,130,.08);
+    gap: 8px;
+    align-items: center;
+  }
+  .social-network-page .staff-chat-composer input {
+    flex: 1;
+    height: 48px;
+    background: transparent;
+    border: none;
+    color: #34475A;
+    font-size: 14px;
+    padding: 0 8px;
+  }
+  .social-network-page .staff-chat-composer input::placeholder { color: #9AAEC3; }
+  .social-network-page .staff-chat-composer input:focus {
+    background: transparent;
+    box-shadow: none;
+    border: none;
+    outline: none;
+  }
+  .social-network-page .staff-chat-tool {
+    color: #9AAEC3;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+  }
+  .social-network-page .staff-chat-tool:hover { background: #F0F4F9; color: #2995F5; }
+  .social-network-page .staff-chat-tool svg { width: 22px; height: 22px; }
+  .social-network-page .staff-chat-send {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #2995F5;
+    border: none;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(41,149,245,.25);
+  }
+  .social-network-page .staff-chat-send:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 14px rgba(41,149,245,.35);
+  }
+  .social-network-page .staff-chat-send:disabled { opacity: .4; transform: none; box-shadow: none; }
+  .social-network-page .staff-chat-send svg { width: 18px; height: 18px; }
+
+  /* ---- Folders tab content ---- */
+  .social-network-page .staff-chat-messages > div[style*="padding: 16px 20px"] {
+    max-width: 680px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  /* ---- Overlay ---- */
+  .social-network-page .staff-chat-overlay { display: none !important; }
+}
