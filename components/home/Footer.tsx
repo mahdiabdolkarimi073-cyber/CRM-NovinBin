@@ -40,7 +40,7 @@ export default function Footer() {
           <h3 className="text-[15px] font-bold">خدمات نوین بین</h3>
           <ul className="mt-4 space-y-3 text-[14px] font-medium text-slate-300">
             <li><Link href="#" className="hover:text-white">سیستم های هوشمند CRM،ERP</Link></li>
-            <li><Link href="#" className="hover:text-white">سیستم های هوشمند مدیریت قرارداد ها (CLM)</Link></li>
+            <li><Link href="https://novinbin.com/erp-crm/" className="hover:text-white">سیستم های هوشمند مدیریت قرارداد ها (CLM)</Link></li>
             <li><Link href="https://novinbin.com/what-is-website-design/" className="hover:text-white">طراحی سایت</Link></li>
             <li><Link href="https://novinbin.com/website-seo-services/" className="hover:text-white">سئو سایت</Link></li>
             <li><Link href="https://novinbin.com/what-is-content-production/" className="hover:text-white">تولید محتوا</Link></li>
