@@ -154,9 +154,17 @@ export default function NewMonthlyReportPage() {
 
       for (let i = 0; i < images.length; i++) {
         const file = images[i];
+        const formData = new FormData();
+        formData.append('file', file);
+        const uploadRes = await fetch('/api/upload/work-report-image', { method: 'POST', body: formData });
+        const uploadJson = await uploadRes.json();
+        if (!uploadRes.ok) {
+          toast.error(`آپلود تصویر ${file.name} ناموفق بود`);
+          continue;
+        }
         await createData('work_report_images', {
           monthlyReportId: report.id,
-          imageUrl: file.name,
+          imageUrl: uploadJson.url,
         });
       }
 

@@ -8023,3 +8023,664 @@
   /* ---- Overlay ---- */
   .social-network-page .staff-chat-overlay { display: none !important; }
 }
+
+/* ============================================================
+   ACADEMY CRM-STYLE REDESIGN — Blue Theme
+   Matches CRM dashboard look: gradient sidebar, tall navbar,
+   premium cards, blue accent throughout
+   ============================================================ */
+
+/* ---- Shared Academy Sidebar (Student + Teacher + Admin) ---- */
+.student-shell-sidebar,
+.teacher-dashboard-sidebar,
+.academy-admin-sidebar {
+  background: linear-gradient(180deg, #0A1A3A 0%, #0F2D5C 50%, #0A1A3A 100%) !important;
+  border-left: 1px solid rgba(96, 165, 250, 0.12) !important;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+}
+
+.student-shell-inner,
+.teacher-sidebar-inner,
+.academy-admin-sidebar-inner {
+  padding: 20px 16px !important;
+  gap: 14px !important;
+}
+
+/* Brand area */
+.student-shell-brand,
+.teacher-sidebar-brand,
+.academy-admin-sidebar-brand {
+  padding-bottom: 14px !important;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.12) !important;
+  gap: 12px !important;
+}
+
+.student-shell-brand-mark,
+.student-shell-avatar,
+.student-shell-profile-avatar,
+.student-profile-avatar,
+.teacher-header-avatar,
+.academy-admin-header-avatar,
+.academy-admin-profile-avatar-lg,
+.teacher-tg-profile-avatar-lg,
+.academy-admin-summary-card svg {
+  background: linear-gradient(135deg, #2563EB, #1D4ED8) !important;
+  color: #fff !important;
+}
+
+.student-shell-brand-mark {
+  border-radius: 12px !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+}
+
+.student-shell-brand strong,
+.teacher-sidebar-brand,
+.academy-admin-sidebar-brand {
+  color: #fff !important;
+}
+
+.student-shell-brand small,
+.student-shell-user small {
+  color: #7BA3E0 !important;
+}
+
+.teacher-sidebar-logo-alt,
+.academy-admin-sidebar-logo-alt {
+  color: #60A5FA !important;
+}
+
+/* User card in sidebar */
+.student-shell-user {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  padding: 10px 12px !important;
+  border: 1px solid rgba(96, 165, 250, 0.08);
+}
+
+.student-shell-user strong {
+  color: #fff !important;
+}
+
+/* Nav buttons */
+.student-shell-nav button,
+.teacher-sidebar-nav button,
+.academy-admin-sidebar-nav button {
+  height: 46px !important;
+  border-radius: 10px !important;
+  color: #B0C4E0 !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+  position: relative;
+}
+
+.student-shell-nav button:hover,
+.teacher-sidebar-nav button:hover,
+.academy-admin-sidebar-nav button:hover {
+  background: rgba(96, 165, 250, 0.08) !important;
+  color: #fff !important;
+}
+
+.student-shell-nav button.active,
+.teacher-sidebar-nav button.active,
+.academy-admin-sidebar-nav button.active {
+  background: linear-gradient(135deg, #2563EB, #1D4ED8) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+}
+
+.student-shell-nav button.active::before,
+.teacher-sidebar-nav button.active::before,
+.academy-admin-sidebar-nav button.active::before {
+  content: '';
+  position: absolute;
+  right: -16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 60%;
+  border-radius: 4px 0 0 4px;
+  background: #60A5FA;
+}
+
+.student-shell-nav button svg,
+.teacher-sidebar-nav button svg,
+.academy-admin-sidebar-nav button svg {
+  width: 19px !important;
+  height: 19px !important;
+}
+
+/* Support card */
+.student-shell-support,
+.teacher-sidebar-support,
+.academy-admin-sidebar-support {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(96, 165, 250, 0.1) !important;
+  border-radius: 14px !important;
+  padding: 16px !important;
+}
+
+.student-shell-support > svg,
+.teacher-sidebar-support > svg {
+  color: #60A5FA !important;
+}
+
+.student-shell-support strong,
+.teacher-sidebar-support strong,
+.academy-admin-sidebar-support strong {
+  color: #fff !important;
+}
+
+.student-shell-support p,
+.teacher-sidebar-support p,
+.academy-admin-sidebar-support p {
+  color: #7BA3E0 !important;
+}
+
+.student-shell-support button,
+.teacher-sidebar-support button,
+.academy-admin-sidebar-support button {
+  background: linear-gradient(135deg, #2563EB, #1D4ED8) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.student-shell-support button:hover,
+.teacher-sidebar-support button:hover,
+.academy-admin-sidebar-support button:hover {
+  background: #1D4ED8 !important;
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35);
+}
+
+/* ---- Shared Academy Header/Navbar ---- */
+.student-shell-header,
+.teacher-dashboard-header,
+.academy-admin-header {
+  height: 80px !important;
+  background: linear-gradient(135deg, #0A1A3A 0%, #0F2D5C 50%, #0A1A3A 100%) !important;
+  border-bottom: none !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  border-radius: 0 0 14px 14px;
+}
+
+.student-shell-title h1,
+.teacher-dashboard-header .teacher-date-box,
+.academy-admin-header .academy-admin-date-box {
+  color: #fff !important;
+}
+
+.student-shell-title h1 {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+}
+
+.student-shell-title p {
+  color: #7BA3E0 !important;
+}
+
+.teacher-date-box,
+.academy-admin-date-box {
+  background: rgba(96, 165, 250, 0.1) !important;
+  border: 1px solid rgba(96, 165, 250, 0.15) !important;
+  color: #B0C4E0 !important;
+  border-radius: 10px !important;
+}
+
+/* Header action buttons */
+.student-shell-actions > button,
+.teacher-header-left > button,
+.academy-admin-header-left > button {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(96, 165, 250, 0.15) !important;
+  color: #B0C4E0 !important;
+  border-radius: 10px !important;
+  transition: all 0.2s ease !important;
+}
+
+.student-shell-actions > button:hover,
+.teacher-header-left > button:hover,
+.academy-admin-header-left > button:hover {
+  background: rgba(96, 165, 250, 0.12) !important;
+  border-color: rgba(96, 165, 250, 0.3) !important;
+  color: #fff !important;
+}
+
+.student-shell-actions > button > span {
+  background: #EF4444 !important;
+}
+
+/* Header profile area */
+.student-shell-profile strong,
+.teacher-header-profile strong,
+.academy-admin-header-profile strong {
+  color: #fff !important;
+}
+
+.student-shell-profile small,
+.teacher-header-profile small,
+.academy-admin-header-profile small {
+  color: #7BA3E0 !important;
+}
+
+.student-shell-profile-avatar,
+.teacher-header-avatar,
+.academy-admin-header-avatar {
+  border: 2px solid rgba(96, 165, 250, 0.4) !important;
+  background: linear-gradient(135deg, #2563EB, #1D4ED8) !important;
+}
+
+.student-shell-logout,
+.teacher-header-profile > button,
+.academy-admin-header-profile > button {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(96, 165, 250, 0.15) !important;
+  color: #B0C4E0 !important;
+  border-radius: 10px !important;
+}
+
+.student-shell-logout:hover,
+.teacher-header-profile > button:hover,
+.academy-admin-header-profile > button:hover {
+  color: #FCA5A5 !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  background: rgba(239, 68, 68, 0.08) !important;
+}
+
+/* Burger button */
+.student-shell-burger,
+.teacher-burger,
+.academy-admin-burger {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(96, 165, 250, 0.15) !important;
+  color: #B0C4E0 !important;
+  border-radius: 10px !important;
+}
+
+/* ---- Academy Background & Scroll Area ---- */
+.student-shell,
+.teacher-dashboard-layout,
+.academy-admin-layout,
+.student-dashboard {
+  background: #F0F4FA !important;
+}
+
+.student-shell-scroll,
+.teacher-dashboard-scroll,
+.academy-admin-scroll,
+.student-dashboard-scroll {
+  padding: 24px !important;
+}
+
+/* ---- Academy Stat Cards ---- */
+.student-page-stat-card,
+.teacher-stat-card,
+.academy-admin-stat-card,
+.student-stat-card {
+  border-radius: 14px !important;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.06) !important;
+  border: 1px solid rgba(226, 232, 240, 0.6);
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.student-page-stat-card:hover,
+.teacher-stat-card:hover,
+.academy-admin-stat-card:hover,
+.student-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.1) !important;
+}
+
+.student-page-stat-icon,
+.teacher-stat-icon,
+.academy-admin-stat-icon {
+  border-radius: 12px !important;
+}
+
+/* ---- Academy Panels & Cards ---- */
+.student-page-panel,
+.teacher-list-card,
+.academy-admin-list-card,
+.student-panel,
+.academy-admin-data-card,
+.teacher-class-card,
+.academy-admin-reg-card,
+.academy-admin-profile-card,
+.teacher-tg-profile-card,
+.academy-admin-note-item,
+.academy-admin-summary-card,
+.academy-admin-table-wrap {
+  border-radius: 14px !important;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.05) !important;
+  border: 1px solid rgba(226, 232, 240, 0.5);
+}
+
+.student-page-panel-heading h3,
+.teacher-list-heading h2,
+.academy-admin-list-heading h2,
+.student-panel-heading h2,
+.academy-admin-sec h3 {
+  color: #1E293B !important;
+}
+
+.student-page-panel-heading p,
+.student-panel-heading p {
+  color: #7BA3E0 !important;
+}
+
+/* Links in academy */
+.student-page-stat-body a,
+.student-page-panel-heading a,
+.teacher-stat-link,
+.teacher-list-heading a,
+.student-stat-card > a,
+.student-panel-heading a,
+.student-overall-panel > a,
+.academy-admin-back-btn,
+.academy-admin-tc-search {
+  color: #2563EB !important;
+}
+
+.student-page-stat-body a:hover,
+.student-page-panel-heading a:hover,
+.teacher-stat-link:hover,
+.student-stat-card > a:hover,
+.student-panel-heading a:hover,
+.student-overall-panel > a:hover,
+.academy-admin-back-btn:hover {
+  color: #1D4ED8 !important;
+}
+
+/* ---- Academy Buttons ---- */
+.student-page-btn.primary,
+.teacher-ta-save-btn,
+.teacher-tc-online-link,
+.academy-admin-btn-primary,
+.academy-admin-tabs button.active {
+  background: linear-gradient(135deg, #2563EB, #1D4ED8) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+  transition: all 0.2s ease !important;
+}
+
+.student-page-btn.primary:hover,
+.teacher-ta-save-btn:hover:not(:disabled),
+.teacher-tc-online-link:hover,
+.academy-admin-btn-primary:hover:not(:disabled) {
+  background: #1D4ED8 !important;
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.3);
+  transform: translateY(-1px);
+}
+
+.student-page-btn.secondary,
+.academy-admin-btn-ghost,
+.student-page-btn.danger {
+  border-radius: 10px !important;
+}
+
+/* ---- Academy Badges ---- */
+.student-page-badge.present,
+.student-page-badge.paid,
+.student-page-badge.approved,
+.academy-admin-badge.badge-success {
+  background: rgba(34, 197, 94, 0.1) !important;
+  color: #16A34A !important;
+}
+
+.student-page-badge.pending,
+.student-page-badge.late,
+.academy-admin-badge.badge-warning {
+  background: rgba(245, 158, 11, 0.1) !important;
+  color: #D97706 !important;
+}
+
+.student-page-badge.absent,
+.student-page-badge.overdue,
+.student-page-badge.rejected,
+.academy-admin-badge.badge-error {
+  background: rgba(239, 68, 68, 0.1) !important;
+  color: #DC2626 !important;
+}
+
+/* ---- Academy Tables ---- */
+.student-page-table-wrap,
+.teacher-tc-table-wrap,
+.teacher-ta-table-section,
+.academy-admin-table-wrap {
+  border: 1px solid #E2E8F0 !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+}
+
+.student-page-table thead,
+.teacher-tc-table thead,
+.teacher-ta-table thead,
+.academy-admin-table thead {
+  background: #F8FAFC !important;
+}
+
+.student-page-table th,
+.teacher-tc-table th,
+.teacher-ta-table th,
+.academy-admin-table thead th {
+  color: #475569 !important;
+  font-weight: 600 !important;
+}
+
+/* ---- Academy Inputs ---- */
+.teacher-ta-note-input:focus,
+.teacher-te-textarea:focus,
+.teacher-te-select:focus,
+.teacher-tg-score-input:focus,
+.academy-admin-field input:focus,
+.academy-admin-field select:focus,
+.academy-admin-note-input textarea:focus {
+  border-color: #2563EB !important;
+}
+
+/* ---- Academy Tabs ---- */
+.academy-admin-tabs {
+  border: 1px solid rgba(226, 232, 240, 0.5);
+}
+
+.academy-admin-tabs button.active {
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+/* ---- Academy Class Tab (Attendance) ---- */
+.teacher-ta-class-tab.active {
+  background: linear-gradient(135deg, #2563EB, #1D4ED8) !important;
+  border-color: #2563EB !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+/* ---- Academy Weekly Schedule ---- */
+.teacher-weekly-col.today {
+  background: rgba(37, 99, 235, 0.05) !important;
+  border: 2px solid #2563EB !important;
+}
+
+/* ---- Academy Next Class Card ---- */
+.teacher-next-class {
+  background: rgba(37, 99, 235, 0.05) !important;
+  border: 1px solid rgba(96, 165, 250, 0.2) !important;
+}
+
+.teacher-next-time {
+  color: #2563EB !important;
+}
+
+/* ---- Academy Progress Bars ---- */
+.student-course-progress span,
+.student-mini-chart i:last-child {
+  background: linear-gradient(90deg, #2563EB, #1D4ED8) !important;
+}
+
+.student-donut {
+  background: conic-gradient(#2563EB var(--progress, 0deg), #E2E8F0 0deg) !important;
+}
+
+.student-progress-card {
+  background: linear-gradient(135deg, #2563EB, #1D4ED8) !important;
+}
+
+/* ---- Academy Auth Pages — Blue Theme ---- */
+.academy-brand-mark span,
+.academy-auth-heading h1 span {
+  color: #60A5FA !important;
+}
+
+.academy-link,
+.academy-switch-text a,
+.academy-support svg {
+  color: #60A5FA !important;
+}
+
+.academy-primary-btn {
+  background: linear-gradient(135deg, #2563EB, #1D4ED8) !important;
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.28) !important;
+}
+
+.academy-primary-btn:hover:not(:disabled) {
+  background: #1D4ED8 !important;
+  box-shadow: 0 16px 34px rgba(37, 99, 235, 0.38) !important;
+}
+
+.academy-outline-btn {
+  border-color: rgba(96, 165, 250, 0.5) !important;
+  background: rgba(37, 99, 235, 0.08) !important;
+  color: #60A5FA !important;
+}
+
+.academy-outline-btn:hover {
+  border-color: #2563EB !important;
+  background: rgba(37, 99, 235, 0.15) !important;
+  color: #fff !important;
+}
+
+.academy-input-wrap:focus-within,
+.academy-register-form input:focus {
+  border-color: #2563EB !important;
+  background: rgba(37, 99, 235, 0.12) !important;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.13), 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+}
+
+.academy-remember input {
+  accent-color: #2563EB !important;
+}
+
+.academy-back-link:hover,
+.academy-back-top:hover {
+  color: #60A5FA !important;
+}
+
+/* ---- Academy Loading State ---- */
+.academy-admin-loading,
+.student-shell-loading {
+  background: #F0F4FA !important;
+  color: #2563EB !important;
+}
+
+/* ---- Academy Search Boxes ---- */
+.teacher-tc-search,
+.teacher-ta-search-box,
+.academy-admin-tc-search {
+  border-radius: 10px !important;
+  transition: border-color 0.2s ease !important;
+}
+
+.teacher-tc-search:focus-within,
+.teacher-ta-search-box:focus-within,
+.academy-admin-tc-search:focus-within {
+  border-color: #2563EB !important;
+}
+
+/* ---- Academy Filter Chips ---- */
+.teacher-ta-filter-chips button.active {
+  background: #1E293B !important;
+  border-color: #1E293B !important;
+}
+
+/* ---- Academy Modal ---- */
+.academy-admin-modal {
+  border-radius: 18px !important;
+  box-shadow: 0 20px 60px rgba(37, 99, 235, 0.15) !important;
+}
+
+.academy-admin-modal-header button:hover {
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  background: rgba(239, 68, 68, 0.08) !important;
+}
+
+/* ---- Academy Hero Section ---- */
+.student-page-hero h2,
+.teacher-tc-hero h2,
+.teacher-ta-hero h2,
+.academy-admin-page-hero h2 {
+  color: #1E293B !important;
+}
+
+.student-page-hero p,
+.teacher-tc-hero p,
+.teacher-ta-hero p,
+.academy-admin-page-hero p {
+  color: #7BA3E0 !important;
+}
+
+.student-page-hero-badge strong {
+  color: #2563EB !important;
+}
+
+/* ---- Academy Empty States ---- */
+.student-page-empty,
+.student-empty,
+.teacher-list-empty,
+.academy-admin-list-empty {
+  color: #94A3B8 !important;
+}
+
+/* ---- Academy Scrollbar (sidebar) ---- */
+.student-shell-nav::-webkit-scrollbar,
+.teacher-sidebar-nav::-webkit-scrollbar,
+.academy-admin-sidebar-nav::-webkit-scrollbar {
+  width: 4px;
+}
+
+.student-shell-nav::-webkit-scrollbar-thumb,
+.teacher-sidebar-nav::-webkit-scrollbar-thumb,
+.academy-admin-sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(96, 165, 250, 0.2);
+  border-radius: 4px;
+}
+
+.student-shell-nav,
+.teacher-sidebar-nav,
+.academy-admin-sidebar-nav {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(96, 165, 250, 0.2) transparent;
+}
+
+/* ---- Academy Mobile Sidebar Overlay ---- */
+.student-shell-overlay,
+.teacher-dashboard-overlay,
+.academy-admin-overlay {
+  background: rgba(10, 26, 58, 0.5) !important;
+  backdrop-filter: blur(4px);
+}
+
+/* ---- Academy Responsive Adjustments ---- */
+@media (max-width: 1023px) {
+  .student-shell-sidebar,
+  .teacher-dashboard-sidebar,
+  .academy-admin-sidebar {
+    box-shadow: -8px 0 32px rgba(0, 0, 0, 0.2);
+  }
+}
+
+@media (max-width: 767px) {
+  .student-shell-header,
+  .teacher-dashboard-header,
+  .academy-admin-header {
+    height: 64px !important;
+    padding: 0 16px !important;
+  }
+}

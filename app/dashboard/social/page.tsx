@@ -557,11 +557,12 @@ function MobileChatView({ chat }: { chat: ReturnType<typeof useSocialChat> }) {
 }
 
 function MessagesScreen({ chat }: { chat: ReturnType<typeof useSocialChat> }) {
-  const { profile, dmConversations, groupConversations, selectedUser, selectedGroup, selectUser, selectGroup, loading } = chat;
+  const { users, dmConversations, groupConversations, selectedUser, selectedGroup, selectUser, selectGroup, loading } = chat;
   const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState('همه');
   const [activeNav, setActiveNav] = useState('messages');
-  const filters = ['همه', 'خوانده نشده', 'گروه‌ها'];
+
+  const conversationUserIds = new Set(dmConversations.map((c) => c.profile.id));
+  const otherUsers = users.filter((u) => !conversationUserIds.has(u.id));
 
   const allItems = useMemo(() => {
     const dmItems = dmConversations.map((c) => ({
@@ -572,8 +573,19 @@ function MessagesScreen({ chat }: { chat: ReturnType<typeof useSocialChat> }) {
       unread: c.unreadCount || undefined,
       online: isOnline(c.profile.lastSeenAt),
       receipt: c.lastMessage?.readAt ? 'read' as const : c.lastMessage ? 'old' as const : undefined,
-      kind: undefined as undefined | 'group',
+      kind: undefined as 'group' | undefined,
       onClick: () => selectUser(c.profile),
+    }));
+    const otherUserItems = otherUsers.map((u) => ({
+      id: u.id,
+      name: getUserLabel(u),
+      preview: isOnline(u.lastSeenAt) ? 'آنلاین' : 'گفتگوی جدید',
+      time: '',
+      unread: undefined as number | undefined,
+      online: isOnline(u.lastSeenAt),
+      receipt: undefined as 'read' | 'old' | undefined,
+      kind: undefined as 'group' | undefined,
+      onClick: () => selectUser(u),
     }));
     const groupItems = groupConversations.map((gc) => ({
       id: gc.group.id,
@@ -582,22 +594,28 @@ function MessagesScreen({ chat }: { chat: ReturnType<typeof useSocialChat> }) {
       time: gc.lastMessage ? relativeTime(gc.lastMessage.createdAt) : '',
       unread: gc.unreadCount || undefined,
       online: false,
-      receipt: undefined as undefined | 'read' | 'old',
+      receipt: undefined as 'read' | 'old' | undefined,
       kind: 'group' as const,
       onClick: () => selectGroup(gc.group),
     }));
-    return [...dmItems, ...groupItems];
-  }, [dmConversations, groupConversations, selectUser, selectGroup]);
+    return [...dmItems, ...otherUserItems, ...groupItems];
+  }, [dmConversations, groupConversations, otherUsers, selectUser, selectGroup]);
 
-  const visibleMessages = allItems.filter((message) => {
-    const matchesQuery = `${message.name} ${message.preview}`.includes(query.trim());
-    const matchesFilter = filter === 'همه' || (filter === 'خوانده نشده' && message.unread) || (filter === 'گروه‌ها' && message.kind === 'group');
-    return matchesQuery && matchesFilter;
-  });
+  const visibleMessages = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return allItems.filter((message) => {
+      const matchesQuery = !q || `${message.name} ${message.preview}`.toLowerCase().includes(q);
+      const matchesNav =
+        activeNav === 'messages' ||
+        (activeNav === 'contacts' && message.kind !== 'group') ||
+        (activeNav === 'groups' && message.kind === 'group');
+      return matchesQuery && matchesNav;
+    });
+  }, [allItems, query, activeNav]);
 
   const totalUnread = dmConversations.reduce((s, c) => s + c.unreadCount, 0) + groupConversations.reduce((s, c) => s + c.unreadCount, 0);
-  const unreadDMs = dmConversations.filter((c) => c.unreadCount > 0).length;
   const groupCount = groupConversations.length;
+  const contactCount = dmConversations.length + otherUsers.length;
 
   if (selectedUser || selectedGroup) return <MobileChatView chat={chat} />;
 
@@ -613,16 +631,6 @@ function MessagesScreen({ chat }: { chat: ReturnType<typeof useSocialChat> }) {
           <Search />
           <input id="messages-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="جستجو در پیام‌ها و مخاطبین..." />
         </label>
-        <div className="messages-filter-scroll" role="tablist" aria-label="فیلتر پیام‌ها">
-          {filters.map((item) => (
-            <button key={item} className={cn('messages-filter', filter === item && 'is-active')} onClick={() => setFilter(item)} role="tab" aria-selected={filter === item}>
-              <span>{item}</span>
-              {item === 'همه' && <b>{allItems.length.toLocaleString('fa-IR')}</b>}
-              {item === 'خوانده نشده' && <b>{unreadDMs.toLocaleString('fa-IR')}</b>}
-              {item === 'گروه‌ها' && <b>{groupCount.toLocaleString('fa-IR')}</b>}
-            </button>
-          ))}
-        </div>
         <section className="messages-list" aria-label="فهرست گفتگوها">
           {loading ? (
             <div className="messages-loading"><span /></div>
@@ -650,12 +658,18 @@ function MessagesScreen({ chat }: { chat: ReturnType<typeof useSocialChat> }) {
         </section>
       </main>
       <nav className="messages-bottom-nav" aria-label="ناوبری شبکه اجتماعی">
-        <button className={cn(activeNav === 'contacts' && 'is-active')} onClick={() => setActiveNav('contacts')}><UserRound /><span>مخاطبین</span></button>
+        <button className={cn(activeNav === 'contacts' && 'is-active')} onClick={() => setActiveNav('contacts')}>
+          <UserRound /><span>مخاطبین</span>
+          {contactCount > 0 && <b>{contactCount.toLocaleString('fa-IR')}</b>}
+        </button>
         <button className={cn(activeNav === 'messages' && 'is-active')} onClick={() => setActiveNav('messages')}>
           <span className="messages-nav-icon"><MessageCircle />{totalUnread > 0 && <b>{totalUnread.toLocaleString('fa-IR')}</b>}</span>
           <span>پیام‌ها</span>
         </button>
-        <button className={cn(activeNav === 'groups' && 'is-active')} onClick={() => setActiveNav('groups')}><Users /><span>گروه‌ها</span></button>
+        <button className={cn(activeNav === 'groups' && 'is-active')} onClick={() => setActiveNav('groups')}>
+          <Users /><span>گروه‌ها</span>
+          {groupCount > 0 && <b>{groupCount.toLocaleString('fa-IR')}</b>}
+        </button>
         <button className={cn(activeNav === 'calls' && 'is-active')} onClick={() => setActiveNav('calls')}><PhoneCall /><span>تماس‌ها</span></button>
       </nav>
     </div>
