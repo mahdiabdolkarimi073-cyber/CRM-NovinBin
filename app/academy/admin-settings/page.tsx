@@ -9,7 +9,7 @@ import {
 
 const navItems = [
   { label: 'داشبورد', icon: BookOpen, href: '/academy/admin-dashboard' },
-  { label: 'مدیریت هنرجوان', icon: Users, href: '/academy/admin-students' },
+  { label: 'مدیریت هنرجویان', icon: Users, href: '/academy/admin-students' },
   { label: 'مدرس‌ها', icon: Users, href: '/academy/teachers' },
   { label: 'آموزش', icon: ClipboardList, href: '/academy/education' },
   { label: 'مالی', icon: Wallet, href: '/academy/finance-management' },
@@ -73,7 +73,8 @@ export default function AdminSettingsPage() {
       <div className="academy-admin-overlay" onClick={() => document.querySelector('.academy-admin-sidebar')?.classList.remove('open')} />
       <aside className="academy-admin-sidebar">
         <div className="academy-admin-sidebar-inner">
-          <div className="academy-admin-sidebar-brand"><span className="academy-admin-sidebar-logo">دنیای</span><span className="academy-admin-sidebar-logo-alt"> الگوریتم</span></div>
+          <div className="academy-admin-sidebar-brand"> <img src="/images/cropped-algorithm-logo-design-12.png" alt="لوگو دنیای الگوریتم" className="academy-admin-sidebar-brand-logo" /> <div>   <strong>دنیای الگوریتم</strong>   <small>درکی عمیق از دنیای دیجیتال</small> </div>
+          </div>
           <nav className="academy-admin-sidebar-nav">
             {navItems.map((item) => (
               <button key={item.label} type="button" className={item.active ? 'active' : ''} onClick={() => router.push(item.href)}>

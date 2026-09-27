@@ -59,7 +59,7 @@ const teacherNavItems = [
   { label: 'داشبورد', icon: BookOpen, href: '/academy/dashboard', active: false },
   { label: 'کلاس‌های من', icon: BookOpen, href: '/academy/teacher-classes', active: true },
   { label: 'حضور و غیاب', icon: CheckSquare, href: '/academy/teacher-attendance', active: false },
-  { label: 'نمرات هنرجوان', icon: GraduationCap, href: '/academy/teacher-grades', active: false },
+  { label: 'نمرات هنرجویان', icon: GraduationCap, href: '/academy/teacher-grades', active: false },
   { label: 'ارزیابی مدرس', icon: ClipboardList, href: '/academy/teacher-evaluation', active: false },
   { label: 'پرداخت‌ها', icon: Wallet, href: '/academy/teacher-finance', active: false },
   { label: 'پروفایل', icon: UserRound, href: '/academy/teacher-profile', active: false },
@@ -123,7 +123,7 @@ export default function TeacherClassesPage() {
 
   const statCards = [
     { icon: BookOpen, value: stats.totalClasses, label: 'تعداد کلاس‌ها', color: '#10B981' },
-    { icon: Users, value: stats.totalStudents, label: 'کل هنرجوان', color: '#2563EB' },
+    { icon: Users, value: stats.totalStudents, label: 'کل هنرجویان', color: '#2563EB' },
     { icon: CalendarDays, value: stats.totalSessions, label: 'کل جلسات', color: '#F59E0B' },
     { icon: CheckCircle2, value: stats.avgAttendance, label: 'میانگین حضور', color: '#8B5CF6', suffix: '٪' },
   ];
@@ -134,8 +134,11 @@ export default function TeacherClassesPage() {
       <aside className={`teacher-dashboard-sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="teacher-sidebar-inner">
           <div className="teacher-sidebar-brand">
-            <span className="teacher-sidebar-logo">دنیای</span>
-            <span className="teacher-sidebar-logo-alt"> الگوریتم</span>
+            <img src="/images/cropped-algorithm-logo-design-12.png" alt="لوگو دنیای الگوریتم" className="teacher-sidebar-brand-logo" />
+            <div>
+              <strong>دنیای الگوریتم</strong>
+              <small>درکی عمیق از دنیای دیجیتال</small>
+            </div>
           </div>
           <nav className="teacher-sidebar-nav">
             {teacherNavItems.map((item) => (
@@ -176,7 +179,7 @@ export default function TeacherClassesPage() {
           <section className="teacher-tc-hero">
             <div>
               <h2>کلاس‌های من</h2>
-              <p>مدیریت کلاس‌ها، هنرجوان و حضور و غیاب</p>
+              <p>مدیریت کلاس‌ها، هنرجویان و حضور و غیاب</p>
             </div>
             <div className="teacher-tc-search">
               <Search />
@@ -267,7 +270,7 @@ export default function TeacherClassesPage() {
 
                           <div className="teacher-tc-students-section">
                             <div className="teacher-tc-students-heading">
-                              <h4>هنرجوان</h4>
+                              <h4>هنرجویان</h4>
                               <span>{faNum(cls.students.length)} نفر</span>
                             </div>
                             {cls.students.length === 0 ? (

@@ -73,7 +73,7 @@ const teacherNavItems = [
   { label: 'داشبورد', icon: BookOpen, href: '/academy/dashboard', active: false },
   { label: 'کلاس‌های من', icon: BookOpen, href: '/academy/teacher-classes', active: false },
   { label: 'حضور و غیاب', icon: CheckSquare, href: '/academy/teacher-attendance', active: true },
-  { label: 'نمرات هنرجوان', icon: GraduationCap, href: '/academy/teacher-grades', active: false },
+  { label: 'نمرات هنرجویان', icon: GraduationCap, href: '/academy/teacher-grades', active: false },
   { label: 'ارزیابی مدرس', icon: ClipboardList, href: '/academy/teacher-evaluation', active: false },
   { label: 'پرداخت‌ها', icon: Wallet, href: '/academy/teacher-finance', active: false },
   { label: 'پروفایل', icon: UserRound, href: '/academy/teacher-profile', active: false },
@@ -258,8 +258,11 @@ export default function TeacherAttendancePage() {
       <aside className={`teacher-dashboard-sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="teacher-sidebar-inner">
           <div className="teacher-sidebar-brand">
-            <span className="teacher-sidebar-logo">دنیای</span>
-            <span className="teacher-sidebar-logo-alt"> الگوریتم</span>
+            <img src="/images/cropped-algorithm-logo-design-12.png" alt="لوگو دنیای الگوریتم" className="teacher-sidebar-brand-logo" />
+            <div>
+              <strong>دنیای الگوریتم</strong>
+              <small>درکی عمیق از دنیای دیجیتال</small>
+            </div>
           </div>
           <nav className="teacher-sidebar-nav">
             {teacherNavItems.map((item) => (
@@ -300,7 +303,7 @@ export default function TeacherAttendancePage() {
           <section className="teacher-ta-hero">
             <div>
               <h2>حضور و غیاب</h2>
-              <p>ثبت و مدیریت وضعیت حضور هنرجوان در جلسات</p>
+              <p>ثبت و مدیریت وضعیت حضور هنرجویان در جلسات</p>
             </div>
           </section>
 

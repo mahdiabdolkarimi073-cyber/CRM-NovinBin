@@ -15,7 +15,7 @@ type Student = {
 
 const navItems = [
   { label: 'داشبورد', icon: BookOpen, href: '/academy/admin-dashboard' },
-  { label: 'مدیریت هنرجوان', icon: Users, href: '/academy/admin-students', active: true },
+  { label: 'مدیریت هنرجویان', icon: Users, href: '/academy/admin-students', active: true },
   { label: 'مدرس‌ها', icon: Users, href: '/academy/teachers' },
   { label: 'آموزش', icon: ClipboardList, href: '/academy/education' },
   { label: 'مالی', icon: Wallet, href: '/academy/finance-management' },
@@ -143,8 +143,8 @@ export default function StudentsPage() {
         <div className="academy-admin-scroll">
           <div className="academy-admin-page-hero">
             <div>
-              <h2>مدیریت هنرجوان</h2>
-              <p>ایجاد، ویرایش و غیرفعال کردن هنرجوان آموزشگاه</p>
+              <h2>مدیریت هنرجویان</h2>
+              <p>ایجاد، ویرایش و غیرفعال کردن هنرجویان آموزشگاه</p>
             </div>
             <div className="academy-admin-tc-search">
               <Search />

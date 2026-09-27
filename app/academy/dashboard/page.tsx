@@ -328,7 +328,7 @@ const teacherNavItems = [
   { label: 'داشبورد', icon: BookOpen, href: '/academy/dashboard', active: true },
   { label: 'کلاس‌های من', icon: BookOpen, href: '/academy/teacher-classes', active: false },
   { label: 'حضور و غیاب', icon: CheckSquare, href: '/academy/teacher-attendance', active: false },
-  { label: 'نمرات هنرجوان', icon: GraduationCap, href: '/academy/teacher-grades', active: false },
+  { label: 'نمرات هنرجویان', icon: GraduationCap, href: '/academy/teacher-grades', active: false },
   { label: 'ارزیابی مدرس', icon: ClipboardList, href: '/academy/teacher-evaluation', active: false },
   { label: 'پرداخت‌ها', icon: Wallet, href: '/academy/teacher-finance', active: false },
   { label: 'پروفایل', icon: UserRound, href: '/academy/teacher-profile', active: false },
@@ -363,7 +363,7 @@ function TeacherDashboard({
 
   const statCards = [
     { icon: BookOpen, value: stats.todayClasses, label: 'کلاس‌های امروز', color: '#10B981' },
-    { icon: Users, value: stats.studentCount, label: 'تعداد هنرجوان', color: '#2563EB' },
+    { icon: Users, value: stats.studentCount, label: 'تعداد هنرجویان', color: '#2563EB' },
     { icon: AlertTriangle, value: stats.recentAbsences, label: 'غیبت‌های اخیر', color: '#EF4444' },
     { icon: ClipboardList, value: stats.pendingTasks, label: 'کارهای انجام‌نشده', color: '#F59E0B' },
   ];
@@ -374,8 +374,11 @@ function TeacherDashboard({
       <aside className={`teacher-dashboard-sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="teacher-sidebar-inner">
           <div className="teacher-sidebar-brand">
-            <span className="teacher-sidebar-logo">دنیای</span>
-            <span className="teacher-sidebar-logo-alt"> الگوریتم</span>
+            <img src="/images/cropped-algorithm-logo-design-12.png" alt="لوگو دنیای الگوریتم" className="teacher-sidebar-brand-logo" />
+            <div>
+              <strong>دنیای الگوریتم</strong>
+              <small>درکی عمیق از دنیای دیجیتال</small>
+            </div>
           </div>
           <nav className="teacher-sidebar-nav">
             {teacherNavItems.map((item) => (

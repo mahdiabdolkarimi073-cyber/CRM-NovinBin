@@ -59,10 +59,10 @@ export function StudentShell({
       <aside className={`student-shell-sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="student-shell-inner">
           <div className="student-shell-brand">
-            <div className="student-shell-brand-mark"><GraduationCap /></div>
+            <img src="/images/cropped-algorithm-logo-design-12.png" alt="لوگو دنیای الگوریتم" className="student-shell-brand-logo" />
             <div>
               <strong>دنیای الگوریتم</strong>
-              <small>آموزش برای ساختن آینده</small>
+              <small>درکی عمیق از دنیای دیجیتال</small>
             </div>
           </div>
 
