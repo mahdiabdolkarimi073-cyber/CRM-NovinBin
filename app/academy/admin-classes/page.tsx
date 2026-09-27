@@ -185,7 +185,6 @@ export default function AdminClassesPage() {
               <h2>مدیریت کلاس‌ها</h2>
               <p>برنامه هفتگی کلاس‌ها، ظرفیت و ثبت‌نام‌ها</p>
             </div>
-            <button type="button" className="academy-admin-btn-primary" onClick={openCreate}><Plus /> کلاس جدید</button>
           </div>
 
           <section className="academy-admin-stat-grid">
