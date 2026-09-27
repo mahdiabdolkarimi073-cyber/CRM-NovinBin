@@ -188,7 +188,7 @@ function StudentDashboard({
         ))}
       </section>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+      <div className="academy-grid-2col mb">
         <section className="student-page-panel" style={{ marginBottom: 0 }}>
           <div className="student-page-panel-heading">
             <div><h3>جلسات آتی</h3><p>کلاس‌ها و برنامه پیش‌روی شما</p></div>
@@ -245,7 +245,7 @@ function StudentDashboard({
         </section>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div className="academy-grid-2col">
         <section className="student-page-panel" style={{ marginBottom: 0 }}>
           <div className="student-page-panel-heading">
             <div><h3>فعالیت‌های اخیر</h3><p>آخرین فعالیت‌های ثبت‌شده شما</p></div>

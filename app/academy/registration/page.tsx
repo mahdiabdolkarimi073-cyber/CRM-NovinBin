@@ -298,7 +298,7 @@ export default function RegistrationPage() {
               <div className="student-page-panel-heading">
                 <div><h3>کلاس‌های دارای ظرفیت</h3></div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(340px,1fr))', gap: 16 }}>
+              <div className="academy-grid-auto-340">
                 {renewalClasses.map((cls) => (
                   <article
                     key={cls.id}
@@ -338,7 +338,7 @@ export default function RegistrationPage() {
               <div className="student-page-panel-heading">
                 <div><h3>کلاس‌های تکمیل‌ظرفیت</h3><p>قابل ثبت در لیست انتظار</p></div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(340px,1fr))', gap: 16 }}>
+              <div className="academy-grid-auto-340">
                 {fullClasses.map((cls) => (
                   <article
                     key={cls.id}

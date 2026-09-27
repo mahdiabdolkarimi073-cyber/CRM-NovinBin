@@ -6143,6 +6143,38 @@
   .student-page-table th,.student-page-table td{padding:10px 10px;font-size:12px}
 }
 
+/* ===== Academy Responsive Grid Helpers ===== */
+.academy-grid-2col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.academy-grid-2col.mb{margin-bottom:24px}
+.academy-grid-4col{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.academy-grid-6col{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.academy-grid-auto-340{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
+.academy-grid-auto-300{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.academy-grid-2col-24{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:center}
+
+@media(max-width:1279px){
+  .academy-grid-6col{grid-template-columns:repeat(4,1fr)}
+  .academy-grid-auto-340{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+  .academy-grid-auto-300{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+}
+@media(max-width:1023px){
+  .academy-grid-2col{grid-template-columns:1fr}
+  .academy-grid-2col.mb{margin-bottom:16px}
+  .academy-grid-4col{grid-template-columns:repeat(2,1fr)}
+  .academy-grid-6col{grid-template-columns:repeat(3,1fr)}
+  .academy-grid-auto-340{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+  .academy-grid-auto-300{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+  .academy-grid-2col-24{grid-template-columns:1fr;gap:16px}
+}
+@media(max-width:767px){
+  .academy-grid-2col{grid-template-columns:1fr;gap:12px}
+  .academy-grid-4col{grid-template-columns:1fr;gap:12px}
+  .academy-grid-6col{grid-template-columns:repeat(2,1fr);gap:8px}
+  .academy-grid-auto-340{grid-template-columns:1fr;gap:14px}
+  .academy-grid-auto-300{grid-template-columns:1fr;gap:14px}
+  .academy-grid-2col-24{grid-template-columns:1fr;gap:16px}
+}
+
 /* ===== Teacher Classes Page ===== */
 .teacher-tc-hero{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px;flex-wrap:wrap}
 .teacher-tc-hero h2{font-size:20px;font-weight:700;color:#1E293B;margin:0}
@@ -6393,7 +6425,13 @@
 .academy-admin-sidebar-support button svg{width:16px;height:16px}
 
 .academy-admin-main{display:flex;flex-direction:column;min-width:0}
-.academy-admin-header{display:flex;align-items:center;justify-content:space-between;height:80px;padding:0 24px;background:#fff;border-bottom:1px solid #E2E8F0;flex-shrink:0}
+.academy-admin-header{display:flex;align-items:center;justify-content:space-between;min-height:80px;padding:0 24px;background:#fff;border-bottom:1px solid #E2E8F0;flex-shrink:0;overflow:hidden}
+.academy-admin-header-right{flex-shrink:0}
+.academy-admin-header-left{flex-shrink:1;min-width:0;overflow:hidden}
+.academy-admin-header-profile{min-width:0;overflow:hidden}
+.academy-admin-header-profile>div{min-width:0;overflow:hidden}
+.academy-admin-header-profile strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.academy-admin-header-profile small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .academy-admin-header-right{display:flex;align-items:center;gap:16px}
 .academy-admin-burger{display:none;align-items:center;justify-content:center;width:40px;height:40px;border:1px solid #E2E8F0;border-radius:8px;background:#fff;color:#475569;cursor:pointer}
 .academy-admin-date-box{display:flex;align-items:center;height:50px;padding:0 16px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;font-size:14px;color:#475569}
@@ -6451,7 +6489,8 @@
   .academy-admin-layout{grid-template-columns:1fr}
   .academy-admin-sidebar{position:fixed;z-index:1000;top:0;right:0;width:280px;transform:translateX(100%);transition:transform .25s ease}
   .academy-admin-sidebar.open{transform:translateX(0)}
-  .academy-admin-overlay{display:block;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.4)}
+  .academy-admin-overlay{display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.4)}
+  .academy-admin-layout:has(.academy-admin-sidebar.open) .academy-admin-overlay{display:block}
   .academy-admin-burger{display:flex}
   .academy-admin-stat-grid{grid-template-columns:repeat(2,1fr)}
   .academy-admin-list-grid{grid-template-columns:1fr}
@@ -6463,7 +6502,12 @@
 /* Mobile: <768px */
 @media(max-width:767px){
   .academy-admin-scroll{padding:16px}
-  .academy-admin-header{height:64px;padding:0 16px}
+  .academy-admin-header{min-height:64px;padding:0 12px;gap:8px}
+  .academy-admin-header-right{gap:8px}
+  .academy-admin-header-left{gap:6px}
+  .academy-admin-date-box{display:none}
+  .academy-admin-header-profile>div{display:none}
+  .academy-admin-header-profile>button{margin-right:0}
   .academy-admin-date-box{font-size:12px;padding:0 12px;height:42px}
   .academy-admin-header-avatar{width:40px;height:40px;font-size:14px}
   .academy-admin-header-profile strong{font-size:14px}
@@ -8680,7 +8724,7 @@
   .student-shell-header,
   .teacher-dashboard-header,
   .academy-admin-header {
-    height: 64px !important;
-    padding: 0 16px !important;
+    min-height: 64px !important;
+    padding: 0 12px !important;
   }
 }

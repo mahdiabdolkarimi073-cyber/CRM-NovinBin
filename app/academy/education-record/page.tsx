@@ -137,7 +137,7 @@ export default function EducationRecordPage() {
         </div>
       </section>
 
-      <section className="student-page-stats" style={{gridTemplateColumns:'repeat(4,1fr)'}}>
+      <section className="student-page-stats academy-grid-4col">
         {levelCards.map((card, i) => (
           <div key={i} className="student-page-stat-card" style={{flexDirection:'column',alignItems:'flex-start',gap:4}}>
             <span className="student-page-stat-label">{card.label}</span>
@@ -159,7 +159,7 @@ export default function EducationRecordPage() {
         </div>
       </section>
 
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:24}}>
+      <div className="academy-grid-2col mb">
         <section className="student-page-panel" style={{marginBottom:0}}>
           <div className="student-page-panel-heading"><div><h3>نمرات من</h3></div></div>
           {gradesRows.length > 0 ? (
@@ -212,7 +212,7 @@ export default function EducationRecordPage() {
       {nextCourseTitle && (
         <section className="student-page-panel">
           <div className="student-page-panel-heading"><div><h3>پیشنهاد دوره بعد</h3><p>{nextCourseTitle}</p></div></div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24,alignItems:'center'}}>
+          <div className="academy-grid-2col-24">
             <ul style={{listStyle:'none',padding:0,margin:0,display:'flex',flexDirection:'column',gap:8}}>
               {nextReasons.map((reason, i) => (
                 <li key={i} style={{display:'flex',alignItems:'center',gap:8,fontSize:13,color:'#475569'}}>

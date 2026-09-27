@@ -142,7 +142,7 @@ export default function MyClassesPage() {
             {classes.length === 0 ? (
               <div className="student-page-empty"><BookOpen /><p>هنوز در کلاسی ثبت‌نام نکرده‌اید.</p></div>
             ) : (
-              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(340px,1fr))',gap:16}}>
+              <div className="academy-grid-auto-340">
               {classes.map((cls) => (
                 <article key={cls.id} style={{background:'#F8FAFC',border:'1px solid #E2E8F0',borderRadius:12,padding:18,display:'flex',flexDirection:'column',gap:10}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
@@ -181,7 +181,7 @@ export default function MyClassesPage() {
 
           <section className="student-page-panel">
             <div className="student-page-panel-heading"><div><h3>برنامه هفتگی من</h3><p>برنامه کلاس‌های شما در طول هفته</p></div></div>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:10}}>
+            <div className="academy-grid-6col">
               {weekDays.slice(0, 6).map((day) => {
                 const items = weeklyByDay.get(day) || [];
                 const isToday = day === today;

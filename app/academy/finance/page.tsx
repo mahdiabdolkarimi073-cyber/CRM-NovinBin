@@ -203,7 +203,7 @@ export default function FinancePage() {
         )}
       </section>
 
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+      <div className="academy-grid-2col">
         <section className="student-page-panel">
           <div className="student-page-panel-heading"><div><h3>فاکتورها</h3><p>لیست فاکتورهای ثبت‌شده</p></div><FileText /></div>
           {invoices.length === 0 ? (

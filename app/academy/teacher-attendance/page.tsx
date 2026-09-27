@@ -304,7 +304,7 @@ export default function TeacherAttendancePage() {
             </div>
           </section>
 
-          <section className="teacher-stat-grid" style={{ gridTemplateColumns: 'repeat(6,1fr)' }}>
+          <section className="teacher-stat-grid academy-grid-6col">
             {statCards.map((card) => (
               <div key={card.label} className="teacher-stat-card">
                 <span className="teacher-stat-icon" style={{ background: `${card.color}1A`, color: card.color }}><card.icon /></span>

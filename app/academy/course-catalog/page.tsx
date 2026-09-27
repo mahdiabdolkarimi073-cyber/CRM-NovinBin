@@ -158,7 +158,7 @@ export default function CourseCatalogPage() {
           <p>دوره‌ای یافت نشد.</p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
+        <div className="academy-grid-auto-300">
           {filtered.map((c) => (
             <div key={c.id} className="student-course-card" style={{ background: '#fff', borderRadius: 14, overflow: 'hidden', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
               <div style={{ position: 'relative', height: 160, background: '#f1f5f9', overflow: 'hidden' }}>
