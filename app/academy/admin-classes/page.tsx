@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback } from 'react';
 import {
   CalendarDays, Loader2, LogOut, Bell, Menu, LifeBuoy, Settings, ClipboardList, Wallet,
   BookOpen, Users, Plus, X, Edit2, Trash2, CalendarClock, UserCheck, DoorOpen, GraduationCap, MapPin, Clock, User,
+  Key,
 } from 'lucide-react';
 
 const navItems = [
@@ -15,6 +16,7 @@ const navItems = [
   { label: 'مالی', icon: Wallet, href: '/academy/finance-management' },
   { label: 'ثبت‌نام‌ها', icon: ClipboardList, href: '/academy/admin-registration' },
   { label: 'کلاس‌ها', icon: CalendarDays, href: '/academy/admin-classes', active: true },
+  { label: 'API آموزشگاه', icon: Key, href: '/academy/admin-api' },
   { label: 'تنظیمات', icon: Settings, href: '/academy/admin-settings' },
 ];
 

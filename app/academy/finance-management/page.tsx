@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback } from 'react';
 import {
   Users, Loader2, LogOut, Bell, Menu, LifeBuoy, Settings, ClipboardList, Wallet,
   CalendarDays, BookOpen, Plus, X, Trash2, DollarSign, FileText, Receipt, Percent, CreditCard, TrendingDown, UserCheck, CheckCircle,
+  Key,
 } from 'lucide-react';
 
 type TabKey = 'tuition' | 'discount' | 'installment' | 'payment' | 'debt' | 'invoice' | 'receipt' | 'teacherShare' | 'teacherSettlement';
@@ -29,6 +30,7 @@ const navItems = [
   { label: 'مالی', icon: Wallet, href: '/academy/finance-management', active: true },
   { label: 'ثبت‌نام‌ها', icon: ClipboardList, href: '/academy/admin-registration' },
   { label: 'کلاس‌ها', icon: CalendarDays, href: '/academy/admin-classes' },
+  { label: 'API آموزشگاه', icon: Key, href: '/academy/admin-api' },
   { label: 'تنظیمات', icon: Settings, href: '/academy/admin-settings' },
 ];
 

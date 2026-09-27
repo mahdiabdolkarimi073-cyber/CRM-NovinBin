@@ -1848,8 +1848,24 @@ model AcademyUser {
   teacherSettlements AcademyTeacherSettlement[] @relation("SettlementTeacher")
   weeklySchedules   AcademyWeeklySchedule[]   @relation("ScheduleTeacher")
   notes             AcademyStudentNote[]      @relation("NoteAuthor")
+  apiKeys           AcademyApiKey[]
 
   @@map("academy_users")
+}
+
+model AcademyApiKey {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  adminId     String    @db.Uuid
+  label       String    @default("افزونه")
+  apiKey      String    @unique
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  lastUsedAt  DateTime?
+
+  admin       AcademyUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@map("academy_api_keys")
 }
 
 model AcademyCourse {

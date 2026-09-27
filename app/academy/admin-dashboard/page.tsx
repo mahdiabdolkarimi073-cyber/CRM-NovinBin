@@ -21,6 +21,7 @@ import {
   GraduationCap,
   CheckCircle2,
   UserCheck,
+  Key,
 } from 'lucide-react';
 
 type User = { id: string; firstName: string; lastName: string; username: string; role: string; email?: string | null; phone?: string | null };
@@ -69,6 +70,7 @@ const adminNavItems = [
   { label: 'مالی', icon: Wallet, href: '/academy/finance-management', active: false },
   { label: 'ثبت‌نام‌ها', icon: ClipboardList, href: '/academy/admin-registration', active: false },
   { label: 'کلاس‌ها', icon: CalendarDays, href: '/academy/admin-classes', active: false },
+  { label: 'API آموزشگاه', icon: Key, href: '/academy/admin-api', active: false },
   { label: 'تنظیمات', icon: Settings, href: '/academy/admin-settings', active: false },
 ];
 
