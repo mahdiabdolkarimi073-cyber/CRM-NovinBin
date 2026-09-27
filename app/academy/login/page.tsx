@@ -32,7 +32,7 @@ export default function AcademyLoginPage() {
     <section className="academy-auth-panel">
       <div className="academy-login-card">
         <div className="academy-brand-mark">دنیای <span>الگوریتم</span></div>
-        <div className="academy-auth-heading"><h1><span>ورود</span> به پنل کاربری</h1><p>به <b>دنیای الگوریتم</b> خوش آمدید!</p></div>
+        <div className="academy-auth-heading"><h1><span>ورود</span> به پنل کاربری بامالرن</h1></div>
         <form onSubmit={handleSubmit} className="academy-form">
           <label htmlFor="academy-identifier">نام کاربری، ایمیل یا شماره موبایل</label>
           <div className="academy-input-wrap"><UserRound /><input id="academy-identifier" dir="rtl" value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder="نام کاربری، ایمیل یا شماره موبایل" autoComplete="username" required /></div>
@@ -44,8 +44,8 @@ export default function AcademyLoginPage() {
         <div className="academy-divider"><span>یا</span></div>
         <Link href="/academy/register" className="academy-outline-btn"><UserPlus /> ثبت‌نام به عنوان کاربر جدید</Link>
         <p className="academy-help-text">برای ورود به پنل خود، اطلاعات کاربری‌تان را وارد کنید</p>
-        <p className="academy-support"><Headphones /> پشتیبانی: <span dir="ltr">021-12345678</span></p>
-        <Link href="/" className="academy-back-link">بازگشت به نوین‌بین</Link>
+        <p className="academy-support"><Headphones /> پشتیبانی: <span dir="ltr">09120733094</span></p>
+        <Link href="https://www.bamalearn.com/" className="academy-back-link">رفتن به بامالرن</Link>
       </div>
     </section>
   </main>;
