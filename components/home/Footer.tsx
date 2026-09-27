@@ -14,15 +14,36 @@ export default function Footer() {
         sizes="100vw"
       />
       <div className="absolute inset-0 bg-black/60" />
-      <div className="relative z-10 mx-auto grid max-w-[1100px] gap-8 sm:grid-cols-2 lg:grid-cols-4">
-        <div>
-          <Link href="#top" className="flex items-center gap-3">
-            <Image src="/images/1.png" alt="نوین بین" width={48} height={48} className="h-12 w-12 object-contain" />
+      <div className="relative z-10 mx-auto grid max-w-[1100px] gap-8 text-right sm:grid-cols-2 lg:grid-cols-4">
+        <div dir="rtl" className="flex flex-col items-start">
+          <Link href="#top" className="group flex flex-col items-start gap-3">
+            <Image
+              src="/images/1.png"
+              alt="لوگوی نوین بین"
+              width={180}
+              height={180}
+              className="h-36 w-36 object-contain transition-transform duration-300 group-hover:scale-105 sm:h-40 sm:w-40"
+            />
             <span>
-              <b className="block text-[16px] font-bold">نوین بین</b>
-              <small className="text-[11px] font-medium text-slate-300">شرکت مهندسی نوآوران نوین بین رادان آماده ارائه خدمات در حوزه دیجیتال مارکتینگ شامل طراحی و پشتیبانی سایت، سئو سایت، برنامه نویسی، طراحی اپلیکیشن،طراحی سیستم های هوشمند،ERP،CRM ،کلیه خدمات گرافیک،  تولید محتوا شامل تولید محتوای متنی و مدیریت هدفمند شبکه های اجتماعی به تمامی شرکت ها و موسسات می باشد.</small>
+              <b className="block text-[18px] font-bold">نوین بین</b>
+              <small className="mt-1 block max-w-sm text-[11px] font-medium leading-6 text-slate-300">شرکت مهندسی نوآوران نوین بین رادان آماده ارائه خدمات در حوزه دیجیتال مارکتینگ شامل طراحی و پشتیبانی سایت، سئو سایت، برنامه نویسی، طراحی اپلیکیشن،طراحی سیستم های هوشمند،ERP،CRM ،کلیه خدمات گرافیک،  تولید محتوا شامل تولید محتوای متنی و مدیریت هدفمند شبکه های اجتماعی به تمامی شرکت ها و موسسات می باشد.</small>
             </span>
           </Link>
+          <a
+            href="https://trustseal.enamad.ir/?id=528249&Code=gs5uBc2fEAp0znFxAR9r4KqYOSLTeUzd"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="مشاهده نماد اعتماد الکترونیکی نوین بین"
+            className="mt-5 inline-flex rounded-lg bg-white/95 p-2 transition-transform duration-300 hover:scale-105"
+          >
+            <Image
+              src="/images/logo-1_(1).png"
+              alt="نماد اعتماد الکترونیکی"
+              width={120}
+              height={120}
+              className="h-24 w-24 object-contain"
+            />
+          </a>
           <p className="mt-4 text-[14px] font-medium leading-7 text-slate-300">راهکاری یکپارچه برای مدیریت هوشمند فروش، مشتریان و فرآیندهای کسب‌وکار شما.</p>
         </div>
         <div>
