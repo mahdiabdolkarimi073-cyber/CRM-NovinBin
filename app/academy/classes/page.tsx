@@ -126,7 +126,6 @@ export default function MyClassesPage() {
             </div>
             <div className="student-page-hero-right">
               <span className="student-page-hero-badge"><strong>{stats.activeClasses}</strong><span>کلاس فعال</span></span>
-              <button type="button" className="student-page-btn primary"><Plus /> کلاس جدید</button>
             </div>
           </section>
 
