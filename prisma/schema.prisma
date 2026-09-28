@@ -300,6 +300,7 @@ model Lead {
   city            String?
   industry        String?
   serviceTypes    Json     @default("[]")
+  labels          Json     @default("[]")
   source          String?
   score           Int       @default(0)
   status          String    @default("new")

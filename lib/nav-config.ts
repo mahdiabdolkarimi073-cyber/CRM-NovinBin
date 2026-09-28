@@ -29,6 +29,7 @@ export const coreItems: NavItem[] = [
   { href: '/dashboard', label: 'داشبورد', icon: LayoutDashboard },
   { href: '/dashboard/leads', label: 'سرنخ‌های فروش', icon: TrendingUp },
   { href: '/dashboard/leads/archive', label: 'آرشیو سرنخ‌ها', icon: Archive },
+  { href: '/dashboard/customer-management', label: 'مدیریت مشتریان', icon: UserPlus },
   { href: '/dashboard/demos', label: 'دموها', icon: Clock },
   { href: '/dashboard/contracts', label: 'قراردادها', icon: FileSignature },
   { href: '/dashboard/hr', label: 'منابع انسانی', icon: UserCog },
@@ -44,6 +45,9 @@ export const coreItems: NavItem[] = [
 export const cartableItems: NavItem[] = [
   { href: '/dashboard/tasks', label: 'تسک‌ها', icon: CheckSquare },
   { href: '/dashboard/meetings', label: 'جلسات', icon: Calendar },
+  { href: '/dashboard/social', label: 'شبکه اجتماعی', icon: MessagesSquare },
+  { href: '/dashboard/leads', label: 'سرنخ‌های فروش', icon: TrendingUp },
+  { href: '/dashboard/hr', label: 'منابع انسانی', icon: UserCog },
   { href: '/dashboard/meetings/archive', label: 'آرشیو جلسات', icon: Archive },
   { href: '/dashboard/meeting-sms', label: 'پنل پیامک جلسات', icon: Send },
   { href: '/dashboard/calls', label: 'مکالمات', icon: Phone },
@@ -292,6 +296,7 @@ export const availablePages = [
   { path: '/dashboard/service-purchase-invoices', label: 'فاکتور خرید خدمات' },
   { path: '/dashboard/employment-applications', label: 'درخواست‌های استخدام' },
   { path: '/dashboard/secretariat', label: 'دبیرخانه' },
+  { path: '/dashboard/customer-management', label: 'مدیریت مشتریان' },
 ];
 
 export function filterByAccess(profile: Profile | null, items: NavItem[]): NavItem[] {

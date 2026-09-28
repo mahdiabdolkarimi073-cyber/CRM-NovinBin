@@ -83,6 +83,7 @@ export interface Lead {
   city: string | null;
   industry: string | null;
   serviceTypes: string[] | null;
+  labels: string[] | null;
   status: LeadStatus;
   score: number;
   isArchived: boolean;
