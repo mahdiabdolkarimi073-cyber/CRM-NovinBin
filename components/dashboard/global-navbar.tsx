@@ -24,6 +24,7 @@ import { Logo } from '@/components/dashboard/logo';
 import { NotificationBell } from '@/components/dashboard/notification-bell';
 import { MeetingBell } from '@/components/dashboard/meeting-bell';
 import { TaskBell } from '@/components/dashboard/task-bell';
+import { SocialBell } from '@/components/dashboard/social-bell';
 import {
   coreItems, cartableItems, financeItems, inventoryItems, clubItems, adminItems,
   reportsItems, salesItems, serviceItems, isSuperAdminRole, filterByAccess,
@@ -254,6 +255,11 @@ export function GlobalNavbar({ sidebarOpen, onToggleSidebar, variant = 'dashboar
             {/* Task notifications */}
             <div className="relative">
               <TaskBell />
+            </div>
+
+            {/* Social notifications */}
+            <div className="relative">
+              <SocialBell />
             </div>
 
             {/* Notifications */}
