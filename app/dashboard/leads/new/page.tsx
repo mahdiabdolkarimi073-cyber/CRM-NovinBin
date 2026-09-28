@@ -67,6 +67,8 @@ export default function NewLeadPage() {
   const [additionalPhones, setAdditionalPhones] = useState<string[]>([]);
   const [selectedServices, setSelectedServices] = useState<Set<string>>(new Set());
   const [otherService, setOtherService] = useState('');
+  const [selectedLabels, setSelectedLabels] = useState<Set<string>>(new Set());
+  const [otherLabel, setOtherLabel] = useState('');
 
   useEffect(() => {
     setTimeout(() => nameInputRef.current?.focus(), 100);
@@ -83,7 +85,6 @@ export default function NewLeadPage() {
       }
     });
     if (!form.city.trim()) e.city = 'شهر الزامی است';
-    if (!form.industry.trim()) e.industry = 'حوزه فعالیت الزامی است';
     setErrors(e);
     return Object.keys(e).length === 0;
   }, [form, additionalPhones]);
@@ -93,6 +94,13 @@ export default function NewLeadPage() {
     if (updated.has(service)) updated.delete(service);
     else updated.add(service);
     setSelectedServices(updated);
+  };
+
+  const toggleLabel = (label: string) => {
+    const updated = new Set(selectedLabels);
+    if (updated.has(label)) updated.delete(label);
+    else updated.add(label);
+    setSelectedLabels(updated);
   };
 
   const addPhone = () => {
@@ -126,6 +134,7 @@ export default function NewLeadPage() {
     const validAdditionalPhones = additionalPhones.filter((p) => p.trim());
 
     try {
+      const finalSource = form.source === 'سایر' && form.sourceOther.trim() ? form.sourceOther.trim() : form.source;
       await createData('leads', {
         name: form.name.trim(),
         company: form.company.trim() || null,
@@ -135,7 +144,8 @@ export default function NewLeadPage() {
         city: form.city.trim() || null,
         industry: form.industry.trim() || null,
         serviceTypes: Array.from(selectedServices),
-        source: form.source || null,
+        labels: Array.from(selectedLabels),
+        source: finalSource || null,
         notes: combinedNotes || null,
         status: 'new',
         isArchived: false,
@@ -275,15 +285,98 @@ export default function NewLeadPage() {
 
               {/* Industry - full width */}
               <div className="lead-field-group lead-field-full">
-                <Label className="lead-field-label">حوزه فعالیت <span className="lead-required-star">*</span></Label>
+                <Label className="lead-field-label">حوزه فعالیت</Label>
                 <input
                   type="text"
                   value={form.industry}
                   onChange={(e) => setForm({ ...form, industry: e.target.value })}
-                  placeholder="حوزه فعالیت را وارد کنید"
-                  className={`lead-input ${errors.industry ? 'lead-input-error' : ''}`}
+                  placeholder="حوزه فعالیت را وارد کنید (اختیاری)"
+                  className="lead-input"
                 />
-                {errors.industry && <span className="lead-field-error">{errors.industry}</span>}
+              </div>
+
+              {/* Labels - full width */}
+              <div className="lead-field-group lead-field-full">
+                <Label className="lead-field-label">لیبل‌ها</Label>
+                <p className="lead-service-hint">می‌توانید چند مورد را انتخاب کنید</p>
+                <div className="lead-service-checkboxes">
+                  {LEAD_SERVICE_TYPES.map((service) => {
+                    const checked = selectedLabels.has(service);
+                    return (
+                      <label
+                        key={service}
+                        className={`lead-service-checkbox ${checked ? 'lead-service-checkbox-checked' : ''}`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleLabel(service)}
+                          className="lead-service-checkbox-input"
+                        />
+                        <span className="lead-service-checkbox-box">
+                          {checked && <Check className="h-3.5 w-3.5" />}
+                        </span>
+                        <span className="lead-service-checkbox-label">{service}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+                {selectedLabels.size > 0 && (
+                  <p className="lead-service-selected-count">
+                    {selectedLabels.size.toLocaleString('fa-IR')} مورد انتخاب شده
+                  </p>
+                )}
+              </div>
+
+              {/* Other label - full width */}
+              <div className="lead-field-group lead-field-full">
+                <Label className="lead-field-label">سایر لیبل‌ها</Label>
+                <p className="lead-service-hint">اگر لیبل مورد نظر در لیست بالا نیست، اینجا بنویسید تا به عنوان یک لیبل ذخیره شود</p>
+                <div className="lead-other-service-row">
+                  <input
+                    type="text"
+                    value={otherLabel}
+                    onChange={(e) => setOtherLabel(e.target.value)}
+                    placeholder="لیبل دیگر را وارد کنید..."
+                    className="lead-input"
+                    dir="rtl"
+                  />
+                  <button
+                    type="button"
+                    className="lead-add-service-btn"
+                    onClick={() => {
+                      const val = otherLabel.trim();
+                      if (!val) return;
+                      const updated = new Set(selectedLabels);
+                      updated.add(val);
+                      setSelectedLabels(updated);
+                      setOtherLabel('');
+                      toast.success(`«${val}» به لیبل‌های انتخاب‌شده اضافه شد`);
+                    }}
+                  >
+                    <Plus className="h-4 w-4" />
+                    افزودن
+                  </button>
+                </div>
+                {selectedLabels.size > 0 && (
+                  <div className="lead-other-service-tags">
+                    {Array.from(selectedLabels).filter((s) => !LEAD_SERVICE_TYPES.includes(s)).map((s) => (
+                      <span key={s} className="lead-other-service-tag">
+                        {s}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = new Set(selectedLabels);
+                            updated.delete(s);
+                            setSelectedLabels(updated);
+                          }}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Service Types - checkboxes */}
@@ -379,9 +472,23 @@ export default function NewLeadPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {LEAD_SOURCES.map((src) => <SelectItem key={src} value={src}>{src}</SelectItem>)}
+                    <SelectItem value="سایر">سایر</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+              {form.source === 'سایر' && (
+                <div className="lead-field-group lead-field-full">
+                  <Label className="lead-field-label">منبع جذب (سایر)</Label>
+                  <input
+                    type="text"
+                    value={form.sourceOther || ''}
+                    onChange={(e) => setForm({ ...form, sourceOther: e.target.value })}
+                    placeholder="نوع منبع جذب را وارد کنید..."
+                    className="lead-input"
+                    dir="rtl"
+                  />
+                </div>
+              )}
 
               {/* Notes - full width */}
               <div className="lead-field-group lead-field-full">
