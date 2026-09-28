@@ -176,10 +176,6 @@ export default function CustomerManagementPage() {
   };
 
   const handleCreate = async () => {
-    if (!isSuperAdmin) {
-      toast.error('فقط سوپرادمین می‌تواند مشتری ایجاد کند');
-      return;
-    }
     if (createForm.customerType === 'individual' && !createForm.fullName.trim()) {
       toast.error('نام و نام خانوادگی الزامی است');
       return;
@@ -228,12 +224,10 @@ export default function CustomerManagementPage() {
         title="مدیریت مشتریان"
         description="ثبت‌نام، ویرایش و مدیریت حساب‌های مشتری"
         action={
-          isSuperAdmin ? (
-            <Button size="sm" onClick={() => setCreateDialog(true)}>
-              <UserPlus className="h-4 w-4" />
-              ثبت مشتری جدید
-            </Button>
-          ) : undefined
+          <Button size="sm" onClick={() => setCreateDialog(true)}>
+            <UserPlus className="h-4 w-4" />
+            ثبت مشتری جدید
+          </Button>
         }
       />
 
@@ -454,9 +448,8 @@ export default function CustomerManagementPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Create Dialog - super admin only */}
-      {isSuperAdmin && (
-        <Dialog open={createDialog} onOpenChange={setCreateDialog}>
+      {/* Create Dialog */}
+      <Dialog open={createDialog} onOpenChange={setCreateDialog}>
           <DialogContent className="max-w-md" dir="rtl">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
@@ -559,8 +552,7 @@ export default function CustomerManagementPage() {
               </DialogFooter>
             </div>
           </DialogContent>
-        </Dialog>
-      )}
+      </Dialog>
     </div>
   );
 }

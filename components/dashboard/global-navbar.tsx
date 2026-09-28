@@ -22,6 +22,8 @@ import { ThemeToggle } from '@/components/dashboard/theme-toggle';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/dashboard/logo';
 import { NotificationBell } from '@/components/dashboard/notification-bell';
+import { MeetingBell } from '@/components/dashboard/meeting-bell';
+import { TaskBell } from '@/components/dashboard/task-bell';
 import {
   coreItems, cartableItems, financeItems, inventoryItems, clubItems, adminItems,
   reportsItems, salesItems, serviceItems, isSuperAdminRole, filterByAccess,
@@ -243,6 +245,16 @@ export function GlobalNavbar({ sidebarOpen, onToggleSidebar, variant = 'dashboar
           <div className="flex items-center gap-2.5">
             {/* Theme toggle */}
             <ThemeToggle />
+
+            {/* Meeting notifications */}
+            <div className="relative">
+              <MeetingBell />
+            </div>
+
+            {/* Task notifications */}
+            <div className="relative">
+              <TaskBell />
+            </div>
 
             {/* Notifications */}
             <div className="relative">

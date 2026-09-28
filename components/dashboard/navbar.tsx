@@ -21,6 +21,8 @@ import {
   reportsItems, salesItems, isSuperAdminRole, filterByAccess, type NavItem, type NavGroup,
 } from '@/lib/nav-config';
 import { NotificationBell } from '@/components/dashboard/notification-bell';
+import { MeetingBell } from '@/components/dashboard/meeting-bell';
+import { TaskBell } from '@/components/dashboard/task-bell';
 
 function matches(pathname: string, href: string) {
   return pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
@@ -257,6 +259,16 @@ export function DashboardNavbar() {
           <div className="flex items-center gap-2.5 lg:gap-3">
             {/* Theme toggle */}
             <ThemeToggle />
+
+            {/* Meeting notifications */}
+            <div className="relative">
+              <MeetingBell />
+            </div>
+
+            {/* Task notifications */}
+            <div className="relative">
+              <TaskBell />
+            </div>
 
             {/* Notifications */}
             <div className="relative">

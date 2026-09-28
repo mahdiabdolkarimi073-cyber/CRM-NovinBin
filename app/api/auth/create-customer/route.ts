@@ -24,8 +24,8 @@ export async function POST(req: NextRequest) {
       where: { id: auth.userId },
       select: { role: true },
     });
-    if (!actor || (actor.role !== 'super_admin' && actor.role !== 'owner')) {
-      return NextResponse.json({ error: 'فقط سوپرادمین می‌تواند مشتری ایجاد کند' }, { status: 403 });
+    if (!actor || !['super_admin', 'owner', 'admin', 'personnel'].includes(actor.role)) {
+      return NextResponse.json({ error: 'دسترسی غیرمجاز' }, { status: 403 });
     }
 
     const body = await req.json();
