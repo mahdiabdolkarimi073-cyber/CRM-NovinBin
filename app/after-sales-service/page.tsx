@@ -1,13 +1,13 @@
-import Navbar from '@/components/home/Navbar';
-import Footer from '@/components/home/Footer';
-import AfterSalesHero from '@/components/after-sales/Hero';
-import AfterSalesIntro from '@/components/after-sales/Intro';
-import AfterSalesFeatures from '@/components/after-sales/Features';
-import AfterSalesProcess from '@/components/after-sales/Process';
-import AfterSalesBenefits from '@/components/after-sales/Benefits';
-import AfterSalesStats from '@/components/after-sales/Stats';
-import AfterSalesFAQ from '@/components/after-sales/FAQ';
-import AfterSalesCTA from '@/components/after-sales/CTA';
+import Navbar from '@/components/landing/home/Navbar';
+import Footer from '@/components/landing/home/Footer';
+import AfterSalesHero from '@/components/landing/after-sales/Hero';
+import AfterSalesIntro from '@/components/landing/after-sales/Intro';
+import AfterSalesFeatures from '@/components/landing/after-sales/Features';
+import AfterSalesProcess from '@/components/landing/after-sales/Process';
+import AfterSalesBenefits from '@/components/landing/after-sales/Benefits';
+import AfterSalesStats from '@/components/landing/after-sales/Stats';
+import AfterSalesFAQ from '@/components/landing/after-sales/FAQ';
+import AfterSalesCTA from '@/components/landing/after-sales/CTA';
 
 export const metadata = {
   title: 'خدمات پس از فروش | مدیریت درخواست‌ها و رضایت مشتریان | نوین بین',

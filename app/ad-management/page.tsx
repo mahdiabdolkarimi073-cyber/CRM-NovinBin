@@ -1,13 +1,13 @@
-import Navbar from '@/components/home/Navbar';
-import Footer from '@/components/home/Footer';
-import AdManagementHero from '@/components/ad-management/Hero';
-import AdManagementIntro from '@/components/ad-management/Intro';
-import AdManagementFeatures from '@/components/ad-management/Features';
-import AdManagementProcess from '@/components/ad-management/Process';
-import AdManagementBenefits from '@/components/ad-management/Benefits';
-import AdManagementStats from '@/components/ad-management/Stats';
-import AdManagementFAQ from '@/components/ad-management/FAQ';
-import AdManagementCTA from '@/components/ad-management/CTA';
+import Navbar from '@/components/landing/home/Navbar';
+import Footer from '@/components/landing/home/Footer';
+import AdManagementHero from '@/components/landing/ad-management/Hero';
+import AdManagementIntro from '@/components/landing/ad-management/Intro';
+import AdManagementFeatures from '@/components/landing/ad-management/Features';
+import AdManagementProcess from '@/components/landing/ad-management/Process';
+import AdManagementBenefits from '@/components/landing/ad-management/Benefits';
+import AdManagementStats from '@/components/landing/ad-management/Stats';
+import AdManagementFAQ from '@/components/landing/ad-management/FAQ';
+import AdManagementCTA from '@/components/landing/ad-management/CTA';
 
 export const metadata = {
   title: 'مدیریت تبلیغات | افزایش جذب مشتری و بهینه‌سازی کمپین‌ها | نوین بین',
