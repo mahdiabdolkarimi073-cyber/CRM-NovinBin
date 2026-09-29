@@ -270,7 +270,7 @@ export function GlobalNavbar({ sidebarOpen, onToggleSidebar, variant = 'dashboar
             {/* Profile dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 rounded-xl p-1 transition-colors hover:bg-white/10">
+                <button className="flex items-center gap-2 rounded-xl p-1 transition-colors nb-hover">
                   <Avatar className="h-10 w-10 border-2 border-[#2DD4BF]/40">
                     <AvatarImage src={profile?.avatarUrl || undefined} alt={displayName} />
                     <AvatarFallback className="bg-[#2DD4BF] text-xs font-bold text-[#0A2A2A]">{initials}</AvatarFallback>

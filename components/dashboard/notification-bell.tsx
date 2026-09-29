@@ -60,7 +60,7 @@ export function NotificationBell({ variant = 'default' }: { variant?: 'default' 
       className={cn(
         'relative flex h-10 w-10 items-center justify-center rounded-xl transition-colors',
         isSuperAdmin
-          ? 'text-white/90 hover:bg-white/10'
+          ? 'nb-btn-icon'
           : 'border border-border text-muted-foreground hover:bg-muted hover:text-accent'
       )}
     >

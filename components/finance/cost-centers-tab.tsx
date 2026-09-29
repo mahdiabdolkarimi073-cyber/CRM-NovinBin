@@ -31,7 +31,7 @@ export function CostCentersTab({ costCenters, loading, onCreate, onDelete }: Cos
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2 mobile:gap-3 tablet:mb-5">
         <div className="flex items-center gap-2 mobile:gap-2.5">
           <span className="h-[26px] w-[4px] rounded-[4px] bg-[#F97316] mobile:h-[30px] mobile:w-[5px]" />
-          <h2 className="text-[18px] font-bold text-[#0F172A] mobile:text-[20px]">مراکز هزینه</h2>
+          <h2 className="text-[18px] font-bold text-foreground mobile:text-[20px]">مراکز هزینه</h2>
         </div>
         <Link href="/dashboard/accounting/cost-centers/new">
           <Button className="h-9 rounded-[10px] bg-[#3155E7] px-3 text-xs font-semibold text-white shadow-sm hover:bg-[#2445C7] mobile:h-[42px] mobile:px-[18px] mobile:text-sm">
@@ -43,27 +43,27 @@ export function CostCentersTab({ costCenters, loading, onCreate, onDelete }: Cos
       {loading ? (
         <div className="flex items-center justify-center h-40"><div className="animate-spin w-8 h-8 border-[3px] border-[#2563EB] border-t-transparent rounded-full" /></div>
       ) : costCenters.length === 0 ? (
-        <Card><CardContent className="p-8 text-center text-[#98A2B3]"><Building2 className="w-8 h-8 mx-auto mb-2" /><div>مرکز هزینه‌ای تعریف نشده</div></CardContent></Card>
+        <Card><CardContent className="p-8 text-center text-muted-foreground"><Building2 className="w-8 h-8 mx-auto mb-2" /><div>مرکز هزینه‌ای تعریف نشده</div></CardContent></Card>
       ) : (
-        <Card className="overflow-hidden rounded-[14px] border-[#E7ECF3] shadow-[0_3px_14px_rgba(20,40,80,.05)]">
+        <Card className="overflow-hidden rounded-[14px] border-border shadow-[0_3px_14px_rgba(20,40,80,.05)]">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[400px]">
-              <thead><tr className="border-b bg-[#F8FAFD] text-[#667085] text-xs">
+              <thead><tr className="border-b bg-muted/50 text-muted-foreground text-xs">
                 <th className="text-right p-2 mobile:p-3 font-medium">کد</th>
                 <th className="text-right p-2 mobile:p-3 font-medium">نام</th>
                 <th className="text-center p-2 mobile:p-3 font-medium">عملیات</th>
               </tr></thead>
-              <tbody className="divide-y divide-[#F1F5F9]">
+              <tbody className="divide-y divide-border">
                 {flatList.map(({ cc, level }) => (
-                  <tr key={cc.id} className="hover:bg-[#F8FAFD] transition-colors">
-                    <td className="p-3 font-mono text-[#667085]" dir="ltr" style={{ paddingRight: `${level * 20 + 12}px` }}>{cc.code}</td>
+                  <tr key={cc.id} className="hover:bg-muted/50 transition-colors">
+                    <td className="p-3 font-mono text-muted-foreground" dir="ltr" style={{ paddingRight: `${level * 20 + 12}px` }}>{cc.code}</td>
                     <td className="p-3 font-medium">
-                      <span className={level > 0 ? 'text-[#667085]' : 'text-[#1D2939]'}>{cc.name}</span>
+                      <span className={level > 0 ? 'text-muted-foreground' : 'text-foreground'}>{cc.name}</span>
                       {!cc.active && <Badge variant="secondary" className="text-xs mr-2">غیرفعال</Badge>}
                     </td>
                     <td className="p-3 text-center">
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-red-50" onClick={() => onDelete(cc.id)}><Trash2 className="w-4 h-4 text-red-500" /></Button>
+                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-red-500/10" onClick={() => onDelete(cc.id)}><Trash2 className="w-4 h-4 text-red-500" /></Button>
                     </td>
                   </tr>
                 ))}

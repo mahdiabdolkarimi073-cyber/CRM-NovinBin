@@ -155,7 +155,7 @@ export function DashboardSidebar({ open, onToggle }: SidebarProps) {
             {visibleCore.map((item) => renderNavLink(item))}
           </div>
 
-          <div className="my-3 h-px bg-white/5" />
+          <div className="my-3 h-px bg-border/40" />
 
           {/* Collapsible groups */}
           {groups.filter((g) => g.items.length > 0).map((g) => renderGroup(g))}
@@ -163,7 +163,7 @@ export function DashboardSidebar({ open, onToggle }: SidebarProps) {
           {/* Admin group */}
           {visibleAdmin.length > 0 && (
             <>
-              <div className="my-3 h-px bg-white/5" />
+              <div className="my-3 h-px bg-border/40" />
               {renderGroup({ label: 'مدیریت', icon: Shield, items: visibleAdmin })}
             </>
           )}

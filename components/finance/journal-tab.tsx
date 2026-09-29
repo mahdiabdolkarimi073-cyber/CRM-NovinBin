@@ -40,7 +40,7 @@ export function JournalTab({ entries, accounts, costCenters, loading, onCreate, 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2 mobile:gap-3 tablet:mb-5">
         <div className="flex items-center gap-2 mobile:gap-2.5">
           <span className="h-[26px] w-[4px] rounded-[4px] bg-[#F97316] mobile:h-[30px] mobile:w-[5px]" />
-          <h2 className="text-[18px] font-bold text-[#0F172A] mobile:text-[20px]">اسناد حسابداری</h2>
+          <h2 className="text-[18px] font-bold text-foreground mobile:text-[20px]">اسناد حسابداری</h2>
         </div>
         <Link href="/dashboard/accounting/journal/new">
           <Button className="h-9 rounded-[10px] bg-[#3155E7] px-3 text-xs font-semibold text-white shadow-sm hover:bg-[#2445C7] mobile:h-[42px] mobile:px-[18px] mobile:text-sm">
@@ -52,7 +52,7 @@ export function JournalTab({ entries, accounts, costCenters, loading, onCreate, 
       {loading ? (
         <div className="flex items-center justify-center h-40"><div className="animate-spin w-8 h-8 border-[3px] border-[#2563EB] border-t-transparent rounded-full" /></div>
       ) : entries.length === 0 ? (
-        <Card><CardContent className="p-8 text-center text-[#98A2B3]"><FileText className="w-8 h-8 mx-auto mb-2" /><div>سندی ثبت نشده. اولین سند حسابداری را ثبت کنید.</div></CardContent></Card>
+        <Card><CardContent className="p-8 text-center text-muted-foreground"><FileText className="w-8 h-8 mx-auto mb-2" /><div>سندی ثبت نشده. اولین سند حسابداری را ثبت کنید.</div></CardContent></Card>
       ) : (
         <div className="space-y-3">
           {entries.map((je) => {
@@ -60,13 +60,13 @@ export function JournalTab({ entries, accounts, costCenters, loading, onCreate, 
             const isReversed = je.status === 'reversed';
             const isReversal = je.referenceType === 'reversal';
             return (
-              <Card key={je.id} className={`rounded-[14px] border-[#E7ECF3] shadow-[0_3px_14px_rgba(20,40,80,.05)] ${isReversed ? 'opacity-60' : ''}`}>
+              <Card key={je.id} className={`rounded-[14px] border-border shadow-[0_3px_14px_rgba(20,40,80,.05)] ${isReversed ? 'opacity-60' : ''}`}>
                 <CardContent className="p-3 mobile:p-4">
                   <div className="flex items-start justify-between mb-3 gap-2 flex-wrap">
                     <div className="flex items-center gap-2 mobile:gap-3">
-                      <div className="w-8 h-8 mobile:w-9 mobile:h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center flex-shrink-0"><FileText className="w-4 h-4" /></div>
+                      <div className="w-8 h-8 mobile:w-9 mobile:h-9 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center flex-shrink-0"><FileText className="w-4 h-4" /></div>
                       <div className="min-w-0">
-                        <div className="font-medium text-[#1D2939] flex items-center gap-1 mobile:gap-2 flex-wrap text-sm mobile:text-base">
+                        <div className="font-medium text-foreground flex items-center gap-1 mobile:gap-2 flex-wrap text-sm mobile:text-base">
                           سند {je.number}
                           {isReversed && <Badge variant="destructive" className="text-xs">برگشت‌خورده</Badge>}
                           {isReversal && <Badge variant="secondary" className="text-xs">سند برگشتی</Badge>}
@@ -74,27 +74,27 @@ export function JournalTab({ entries, accounts, costCenters, loading, onCreate, 
                             <Badge variant="outline" className="text-xs">{je.referenceType}</Badge>
                           )}
                         </div>
-                        <div className="text-xs text-[#98A2B3]">{formatJalali(je.date)} - {je.description || 'بدون توضیحات'}</div>
+                        <div className="text-xs text-muted-foreground">{formatJalali(je.date)} - {je.description || 'بدون توضیحات'}</div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 mobile:gap-3">
                       <div className="text-left">
-                        <div className="text-xs mobile:text-sm font-bold text-[#1D2939]">{formatToman(total)} ت</div>
+                        <div className="text-xs mobile:text-sm font-bold text-foreground">{formatToman(total)} ت</div>
                         <Badge variant={je.status === 'posted' ? 'default' : 'secondary'} className="text-xs">{je.status === 'posted' ? 'ثبت شده' : je.status === 'reversed' ? 'برگشت‌خورده' : 'پیش‌نویس'}</Badge>
                       </div>
                       {je.status === 'posted' && !isReversal && (
-                        <Button size="sm" variant="ghost" className="h-8 text-xs text-amber-600 hover:bg-amber-50" onClick={() => { setReverseId(je.id); setReverseDialog(true); }}>
+                        <Button size="sm" variant="ghost" className="h-8 text-xs text-amber-600 hover:bg-amber-500/10" onClick={() => { setReverseId(je.id); setReverseDialog(true); }}>
                           <Undo2 className="w-3 h-3" /> برگشت
                         </Button>
                       )}
                     </div>
                   </div>
-                  <div className="divide-y divide-[#F1F5F9] border border-[#E7ECF3] rounded-lg overflow-x-auto">
+                  <div className="divide-y divide-border border border-border rounded-lg overflow-x-auto">
                     {je.journalLines?.map((l: any) => {
                       const acc = accounts.find((a) => a.id === l.accountId);
                       return (
                         <div key={l.id} className="flex items-center justify-between p-2 text-xs mobile:text-sm gap-2">
-                          <span className="text-[#667085] truncate">{acc ? `${acc.code} - ${acc.name}` : '—'}</span>
+                          <span className="text-muted-foreground truncate">{acc ? `${acc.code} - ${acc.name}` : '—'}</span>
                           <div className="flex items-center gap-2 mobile:gap-4 flex-shrink-0">
                             <span className="w-20 mobile:w-28 text-left font-medium text-sky-600">{Number(l.debit) > 0 ? formatToman(Number(l.debit)) : '—'}</span>
                             <span className="w-20 mobile:w-28 text-left font-medium text-red-600">{Number(l.credit) > 0 ? formatToman(Number(l.credit)) : '—'}</span>
@@ -114,7 +114,7 @@ export function JournalTab({ entries, accounts, costCenters, loading, onCreate, 
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>برگشت سند</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-[#667085]">سند برگشتی با مبالغ معکوس ثبت خواهد شد و سند اصلی به وضعیت «برگشت‌خورده» تغییر می‌کند.</p>
+            <p className="text-sm text-muted-foreground">سند برگشتی با مبالغ معکوس ثبت خواهد شد و سند اصلی به وضعیت «برگشت‌خورده» تغییر می‌کند.</p>
             <div className="space-y-2"><Label>دلیل برگشت</Label><Input value={reverseReason} onChange={(e) => setReverseReason(e.target.value)} placeholder="مثلاً: اشتباه در ثبت" /></div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setReverseDialog(false)}>انصراف</Button>

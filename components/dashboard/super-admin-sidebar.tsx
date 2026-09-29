@@ -52,7 +52,7 @@ export function SuperAdminSidebar({ open, onToggle }: SuperAdminSidebarProps) {
                     'flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors',
                     active
                       ? 'bg-accent/10 text-accent font-semibold'
-                      : 'text-sidebar-muted-foreground hover:text-sidebar-foreground hover:bg-white/5'
+                      : 'text-sidebar-muted-foreground hover:text-sidebar-foreground hover:bg-muted/50'
                   )}
                 >
                   <item.icon className="h-[18px] w-[18px] shrink-0" />
@@ -62,7 +62,7 @@ export function SuperAdminSidebar({ open, onToggle }: SuperAdminSidebarProps) {
             })}
           </div>
 
-          <div className="my-3 h-px bg-white/5" />
+          <div className="my-3 h-px bg-border/40" />
 
           <Link
             href="/dashboard"

@@ -68,13 +68,13 @@ export function TaskBell() {
     <Link
       href="/dashboard/tasks"
       onClick={handleClick}
-      className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-white/20 text-white/90 transition-colors hover:bg-white/10"
+      className="relative flex h-10 w-10 items-center justify-center rounded-xl border nb-btn-icon transition-colors"
     >
       <CheckSquare className="h-[18px] w-[18px]" />
       {unreadCount > 0 && (
         <span
           className={cn(
-            'absolute -top-1.5 -left-1.5 flex min-w-[20px] h-5 items-center justify-center rounded-full bg-violet-500 px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-[#0A2A2A] animate-in fade-in zoom-in duration-300'
+            'absolute -top-1.5 -left-1.5 flex min-w-[20px] h-5 items-center justify-center rounded-full bg-violet-500 px-1 text-[10px] font-bold text-white shadow-sm ring-2 bell-ring animate-in fade-in zoom-in duration-300'
           )}
         >
           {displayCount}
