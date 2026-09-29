@@ -16,10 +16,6 @@ export async function POST(req: NextRequest) {
     if (!password) {
       return NextResponse.json({ error: 'رمز عبور الزامی است' }, { status: 400 });
     }
-    if (!email && !phone) {
-      return NextResponse.json({ error: 'ایمیل یا شماره موبایل الزامی است' }, { status: 400 });
-    }
-
     if (String(password).length < 6) {
       return NextResponse.json({ error: 'رمز عبور باید حداقل ۶ کاراکتر باشد' }, { status: 400 });
     }

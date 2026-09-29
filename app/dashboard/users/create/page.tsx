@@ -88,13 +88,13 @@ export default function CreateUserPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: form.email,
+          email: form.email || undefined,
+          phone: form.phone || undefined,
           password: form.password,
           firstName: form.firstName,
           lastName: form.lastName,
           role: form.role,
           userType: 'staff',
-          phone: form.phone || undefined,
           assignedPages: form.assignedPages,
         }),
       });
@@ -149,11 +149,11 @@ export default function CreateUserPage() {
               <Field label="نام خانوادگی" icon={<UserRound size={16} />}>
                 <Input value={form.lastName} onChange={(e) => update('lastName', e.target.value)} placeholder="نام خانوادگی را وارد کنید" required />
               </Field>
-              <Field label="ایمیل" icon={<Mail size={16} />}>
-                <Input type="email" dir="ltr" value={form.email} onChange={(e) => update('email', e.target.value)} placeholder="ایمیل کاربر را وارد کنید" required />
+              <Field label="ایمیل (اختیاری)" icon={<Mail size={16} />}>
+                <Input type="email" dir="ltr" value={form.email} onChange={(e) => update('email', e.target.value)} placeholder="email@example.com" />
               </Field>
-              <Field label="تلفن همراه" icon={<Phone size={16} />}>
-                <Input dir="ltr" value={form.phone} onChange={(e) => update('phone', e.target.value)} placeholder="شماره موبایل را وارد کنید" />
+              <Field label="تلفن همراه (اختیاری)" icon={<Phone size={16} />}>
+                <Input dir="ltr" value={form.phone} onChange={(e) => update('phone', e.target.value)} placeholder="09123456789" />
               </Field>
               <Field label="رمز عبور" icon={<LockKeyhole size={16} />}>
                 <PasswordInput dir="ltr" value={form.password} onChange={(e) => update('password', e.target.value)} placeholder="رمز عبور را وارد کنید" required />

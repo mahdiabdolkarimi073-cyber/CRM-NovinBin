@@ -29,9 +29,14 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { phone, password, customerType, fullName, companyName, email } = body;
+    const {
+      mobile, phone, password,
+      customerType, fullName, companyName, email,
+      city, address, activityType, serviceTypes,
+      additionalPhones, level, notes,
+    } = body;
 
-    if (!phone || !password) {
+    if (!mobile || !password) {
       return NextResponse.json({ error: 'شماره موبایل و رمز عبور الزامی است' }, { status: 400 });
     }
     if (String(password).length < 6) {
@@ -44,10 +49,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'نام و نام خانوادگی الزامی است' }, { status: 400 });
     }
 
-    const normalizedPhone = String(phone).trim();
+    const normalizedMobile = String(mobile).trim();
     const normalizedEmail = email ? String(email).toLowerCase() : null;
 
-    const existing = await prisma.user.findFirst({ where: { phone: normalizedPhone } });
+    const existing = await prisma.user.findFirst({ where: { phone: normalizedMobile } });
     if (existing) {
       return NextResponse.json({ error: 'کاربری با این شماره موبایل قبلاً ثبت شده است' }, { status: 409 });
     }
@@ -84,11 +89,18 @@ export async function POST(req: NextRequest) {
         lastName: parsedLastName,
         companyName: customerType === 'company' ? companyName : null,
         email: normalizedEmail || null,
-        phone: normalizedPhone,
-        level: 'bronze',
+        mobile: normalizedMobile,
+        phone: phone ? String(phone).trim() : null,
+        address: address || null,
+        city: city || null,
+        activityType: activityType || null,
+        serviceTypes: Array.isArray(serviceTypes) ? serviceTypes : [],
+        additionalPhones: Array.isArray(additionalPhones) ? additionalPhones.filter((p: string) => p.trim()) : [],
+        level: level || 'bronze',
         score: 0,
         walletBalance: BigInt(0),
         loyaltyPoints: 0,
+        notes: notes || null,
         createdBy: auth.userId,
       },
     });
@@ -96,7 +108,7 @@ export async function POST(req: NextRequest) {
     const user = await prisma.user.create({
       data: {
         email: normalizedEmail || undefined,
-        phone: normalizedPhone,
+        phone: normalizedMobile,
         passwordHash,
         profile: {
           create: {
@@ -108,7 +120,7 @@ export async function POST(req: NextRequest) {
             lastName: parsedLastName,
             fullName: parsedFullName,
             companyName: customerType === 'company' ? companyName : null,
-            phone: normalizedPhone,
+            phone: normalizedMobile,
             customerId: customer.id,
             active: true,
             orgId: org?.id || null,

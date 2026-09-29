@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { CUSTOMER_LEVELS, SERVICE_TYPES, ACTIVITY_TYPES } from '@/lib/constants';
 import { toast } from 'sonner';
+import { PasswordInput } from '@/components/ui/password-input';
 
 const guideItems = [
   { icon: User, title: 'نام کامل مشتری', desc: 'نام و نام خانوادگی مشتری را در یک فیلد وارد کنید.' },
@@ -45,6 +46,8 @@ export default function NewCustomerPage() {
   });
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [additionalPhones, setAdditionalPhones] = useState<string[]>([]);
+  const [createAccount, setCreateAccount] = useState(true);
+  const [password, setPassword] = useState('');
 
   const toggleService = (service: string) => {
     setSelectedServices((prev) =>
@@ -77,24 +80,60 @@ export default function NewCustomerPage() {
       const lastName = nameParts.slice(1).join(' ') || null;
       const phones = additionalPhones.filter((p) => p.trim() !== '');
 
-      await createData('customers', {
-        type: form.type,
-        firstName,
-        lastName,
-        companyName: form.companyName || null,
-        email: form.email || null,
-        mobile: form.mobile || null,
-        phone: form.phone || null,
-        address: form.address || null,
-        city: form.city || null,
-        activityType: form.activityType || null,
-        serviceTypes: selectedServices,
-        additionalPhones: phones,
-        level: form.level,
-        notes: form.notes || null,
-        createdBy: profile.id,
-      });
-      toast.success('مشتری با موفقیت ایجاد شد');
+      if (createAccount) {
+        if (!form.mobile) {
+          toast.error('برای ساخت حساب کاربری، شماره موبایل الزامی است');
+          setSubmitting(false);
+          return;
+        }
+        if (password.length < 6) {
+          toast.error('رمز عبور باید حداقل ۶ کاراکتر باشد');
+          setSubmitting(false);
+          return;
+        }
+        const res = await fetch('/api/auth/create-customer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mobile: form.mobile,
+            phone: form.phone || undefined,
+            password,
+            customerType: form.type,
+            fullName: form.fullName,
+            companyName: form.companyName || undefined,
+            email: form.email || undefined,
+            city: form.city || undefined,
+            address: form.address || undefined,
+            activityType: form.activityType || undefined,
+            serviceTypes: selectedServices,
+            additionalPhones: phones,
+            level: form.level,
+            notes: form.notes || undefined,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'خطا');
+        toast.success('مشتری با حساب کاربری ایجاد شد');
+      } else {
+        await createData('customers', {
+          type: form.type,
+          firstName,
+          lastName,
+          companyName: form.companyName || null,
+          email: form.email || null,
+          mobile: form.mobile || null,
+          phone: form.phone || null,
+          address: form.address || null,
+          city: form.city || null,
+          activityType: form.activityType || null,
+          serviceTypes: selectedServices,
+          additionalPhones: phones,
+          level: form.level,
+          notes: form.notes || null,
+          createdBy: profile.id,
+        });
+        toast.success('مشتری با موفقیت ایجاد شد');
+      }
       router.push('/dashboard/customers');
     } catch (error: any) {
       toast.error('ایجاد مشتری ناموفق: ' + error.message);
@@ -346,6 +385,32 @@ export default function NewCustomerPage() {
                   placeholder="یادداشت‌های داخلی درباره مشتری..."
                   className="task-textarea"
                 />
+              </div>
+
+              {/* Create account toggle */}
+              <div className="field-group">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={createAccount}
+                    onChange={(e) => setCreateAccount(e.target.checked)}
+                    className="w-4 h-4 rounded border-slate-300"
+                  />
+                  <span className="text-sm font-medium text-slate-700">ساخت حساب کاربری برای ورود مشتری</span>
+                </label>
+                {createAccount && (
+                  <div className="mt-3 space-y-2">
+                    <Label className="field-label">رمز عبور</Label>
+                    <PasswordInput
+                      dir="ltr"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="حداقل ۶ کاراکتر"
+                      className="task-input"
+                    />
+                    <p className="text-xs text-slate-400">مشتری می‌تواند با شماره موبایل و این رمز وارد پورتال شود.</p>
+                  </div>
+                )}
               </div>
             </div>
 

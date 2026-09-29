@@ -8,7 +8,7 @@ import {
   UserCheck, ClipboardList, Network, Contact, Megaphone, Wallet,
   FileCheck, Banknote, CreditCard, ArrowRightLeft, Sparkles,
   ClipboardCheck, FileSearch, ArrowUpFromLine, Undo2, Percent, Server, Fingerprint, BriefcaseBusiness,
-  Palette, Archive, FolderTree, Mailbox, Smartphone,
+  Palette, Archive, FolderTree, Mailbox, Smartphone, KeyRound,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { Profile } from '@/lib/types';
@@ -29,7 +29,6 @@ export const coreItems: NavItem[] = [
   { href: '/dashboard', label: 'داشبورد', icon: LayoutDashboard },
   { href: '/dashboard/leads', label: 'سرنخ‌های فروش', icon: TrendingUp },
   { href: '/dashboard/leads/archive', label: 'آرشیو سرنخ‌ها', icon: Archive },
-  { href: '/dashboard/customer-management', label: 'مدیریت مشتریان', icon: UserPlus },
   { href: '/dashboard/demos', label: 'دموها', icon: Clock },
   { href: '/dashboard/contracts', label: 'قراردادها', icon: FileSignature },
   { href: '/dashboard/hr', label: 'منابع انسانی', icon: UserCog },
@@ -130,6 +129,7 @@ export const clubItems: NavItem[] = [
 
 export const adminItems: NavItem[] = [
   { href: '/dashboard/users', label: 'کاربران', icon: UserCog },
+  { href: '/dashboard/credentials-archive', label: 'آرشیو نام‌های کاربری', icon: KeyRound },
   { href: '/dashboard/registration-approval', label: 'تأیید ثبت‌نام', icon: UserPlus },
   { href: '/dashboard/customer-assignment', label: 'تخصیص مشتری', icon: HandHeart },
   { href: '/dashboard/employment-applications', label: 'درخواست‌های استخدام', icon: BriefcaseBusiness },
@@ -276,6 +276,7 @@ export const availablePages = [
   { path: '/dashboard/registration-approval', label: 'تأیید ثبت‌نام' },
   { path: '/dashboard/customer-assignment', label: 'تخصیص مشتری' },
   { path: '/dashboard/users', label: 'مدیریت کاربران' },
+  { path: '/dashboard/credentials-archive', label: 'آرشیو نام‌های کاربری' },
   { path: '/dashboard/site-verifications', label: 'تاییدیه‌های سایت' },
   { path: '/dashboard/host-domains', label: 'ثبت هاست و دامنه' },
   { path: '/dashboard/irnic', label: 'مدیریت شناسه ایرنیک' },
@@ -292,7 +293,6 @@ export const availablePages = [
   { path: '/dashboard/service-purchase-invoices', label: 'فاکتور خرید خدمات' },
   { path: '/dashboard/employment-applications', label: 'درخواست‌های استخدام' },
   { path: '/dashboard/secretariat', label: 'دبیرخانه' },
-  { path: '/dashboard/customer-management', label: 'مدیریت مشتریان' },
 ];
 
 export function filterByAccess(profile: Profile | null, items: NavItem[]): NavItem[] {

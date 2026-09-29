@@ -114,6 +114,7 @@ export const LEAD_SERVICE_TYPES = [
   'برنامه نویسی',
   'برنامه نویسی اپلیکیشن',
   'کارت ویزیت',
+  'لیبل',
 ];
 
 export const VERIFICATION_CATEGORIES = [

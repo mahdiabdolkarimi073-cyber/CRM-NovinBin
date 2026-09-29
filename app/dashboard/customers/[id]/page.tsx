@@ -13,8 +13,14 @@ import { Separator } from '@/components/ui/separator';
 import {
   Building2, User, Phone, Mail, MapPin, ArrowRight,
   ShoppingCart, FileText, CheckSquare, Calendar, MessageSquare,
-  Award, Activity, Edit, Star
+  Award, Activity, Edit, Star, KeyRound, Loader2
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
+} from '@/components/ui/dialog';
+import { toast } from 'sonner';
 import { useAuth } from '@/components/providers/auth-provider';
 import { formatToman, formatJalali, relativeTime } from '@/lib/format';
 import { fullName, CUSTOMER_LEVELS, ORDER_STATUSES, INVOICE_STATUSES, TASK_STATUSES, TASK_PRIORITIES, TICKET_STATUSES } from '@/lib/constants';
@@ -37,6 +43,9 @@ export default function CustomerDetailPage() {
   const [meetings, setMeetings] = useState<any[]>([]);
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pwDialogOpen, setPwDialogOpen] = useState(false);
+  const [pwSaving, setPwSaving] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -122,10 +131,16 @@ export default function CustomerDetailPage() {
                 </div>
               </div>
             </div>
-            <Button variant="outline" size="sm">
-              <Edit className="w-4 h-4" />
-              ویرایش
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => { setNewPassword(''); setPwDialogOpen(true); }}>
+                <KeyRound className="w-4 h-4" />
+                تعیین رمز عبور
+              </Button>
+              <Button variant="outline" size="sm">
+                <Edit className="w-4 h-4" />
+                ویرایش
+              </Button>
+            </div>
           </div>
 
           {/* Quick stats */}
@@ -428,6 +443,59 @@ export default function CustomerDetailPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Set Password Dialog */}
+      <Dialog open={pwDialogOpen} onOpenChange={setPwDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>تعیین رمز عبور مشتری</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-slate-500">
+            رمز عبور جدید برای حساب کاربری این مشتری (شماره موبایل) تنظیم می‌شود. حداقل ۶ کاراکتر.
+          </p>
+          <div className="space-y-2">
+            <Label>رمز عبور جدید</Label>
+            <Input
+              dir="ltr"
+              type="text"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="••••••••"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPwDialogOpen(false)} disabled={pwSaving}>انصراف</Button>
+            <Button
+              onClick={async () => {
+                if (newPassword.length < 6) {
+                  toast.error('رمز عبور باید حداقل ۶ کاراکتر باشد');
+                  return;
+                }
+                setPwSaving(true);
+                try {
+                  const res = await fetch('/api/auth/set-customer-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ customerId, password: newPassword }),
+                  });
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data.error || 'خطا');
+                  toast.success('رمز عبور مشتری با موفقیت تنظیم شد');
+                  setPwDialogOpen(false);
+                  setNewPassword('');
+                } catch (err: any) {
+                  toast.error(err.message || 'تنظیم رمز عبور ناموفق');
+                } finally {
+                  setPwSaving(false);
+                }
+              }}
+              disabled={pwSaving}
+            >
+              {pwSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'ذخیره رمز'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
