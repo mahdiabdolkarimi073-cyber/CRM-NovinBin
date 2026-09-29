@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { fetchData, updateData, deleteData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
 import { PageHeader } from '@/components/dashboard/page-header';
@@ -17,14 +18,16 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
 } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users, Plus, Search, Building2, User, Phone, Mail, MapPin, Briefcase, Award, Check, X } from 'lucide-react';
+import { Users, Plus, Search, Building2, User, Phone, Mail, MapPin, Briefcase, Award, Check, X, KeyRound } from 'lucide-react';
 import { relativeTime } from '@/lib/format';
 import { fullName, CUSTOMER_LEVELS, SERVICE_TYPES, ACTIVITY_TYPES } from '@/lib/constants';
 import { toast } from 'sonner';
+import { PasswordInput } from '@/components/ui/password-input';
 import type { Customer } from '@/lib/types';
 
 export default function CustomersPage() {
   const { profile } = useAuth();
+  const searchParams = useSearchParams();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -49,6 +52,8 @@ export default function CustomersPage() {
   });
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [additionalPhones, setAdditionalPhones] = useState<string[]>([]);
+  const [createAccount, setCreateAccount] = useState(false);
+  const [password, setPassword] = useState('');
 
   const isSuperAdmin = profile?.role === 'super_admin' || profile?.role === 'owner';
 
@@ -79,6 +84,14 @@ export default function CustomersPage() {
     loadCustomers();
   }, [loadCustomers]);
 
+  useEffect(() => {
+    const editId = searchParams.get('edit');
+    if (editId && !loading && customers.length > 0) {
+      const c = customers.find((x) => x.id === editId);
+      if (c) openEdit(c);
+    }
+  }, [searchParams, loading, customers]);
+
   const openEdit = (c: Customer) => {
     setEditingCustomer(c);
     const name = c.firstName && c.lastName ? `${c.firstName} ${c.lastName}` : (c.firstName || c.lastName || '');
@@ -97,6 +110,8 @@ export default function CustomersPage() {
     });
     setSelectedServices(c.serviceTypes || []);
     setAdditionalPhones(c.additionalPhones || []);
+    setCreateAccount(false);
+    setPassword('');
     setEditDialogOpen(true);
   };
 
@@ -142,9 +157,27 @@ export default function CustomersPage() {
         level: form.level,
         notes: form.notes || null,
       });
+
+      if (createAccount && password) {
+        if (password.length < 6) {
+          toast.error('رمز عبور باید حداقل ۶ کاراکتر باشد');
+          setSaving(false);
+          return;
+        }
+        const pwRes = await fetch('/api/auth/set-customer-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ customerId: editingCustomer.id, password }),
+        });
+        const pwData = await pwRes.json();
+        if (!pwRes.ok) throw new Error(pwData.error || 'خطا در تنظیم رمز عبور');
+      }
+
       toast.success('مشتری ویرایش شد');
       setEditDialogOpen(false);
       setEditingCustomer(null);
+      setCreateAccount(false);
+      setPassword('');
       loadCustomers();
     } catch (error: any) {
       toast.error('ویرایش ناموفق: ' + error.message);
@@ -499,6 +532,32 @@ export default function CustomersPage() {
             <div className="space-y-2">
               <Label>یادداشت</Label>
               <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+            </div>
+            <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={createAccount}
+                  onChange={(e) => setCreateAccount(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-300"
+                />
+                <span className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
+                  <KeyRound className="w-4 h-4" />
+                  تنظیم / تغییر رمز عبور مشتری
+                </span>
+              </label>
+              {createAccount && (
+                <div className="mt-2 space-y-2">
+                  <Label>رمز عبور</Label>
+                  <PasswordInput
+                    dir="ltr"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="حداقل ۶ کاراکتر"
+                  />
+                  <p className="text-xs text-slate-400">مشتری می‌تواند با شماره موبایل و این رمز وارد پورتال شود.</p>
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>انصراف</Button>

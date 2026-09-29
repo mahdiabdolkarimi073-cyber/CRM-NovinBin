@@ -10,9 +10,12 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { PasswordInput } from '@/components/ui/password-input';
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
 } from '@/components/ui/dialog';
-import { Search, KeyRound, Mail, Phone, Eye, EyeOff, Loader2, Archive } from 'lucide-react';
+import { Search, KeyRound, Mail, Phone, Eye, EyeOff, Loader2, Archive, UserPlus, Link as LinkIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 type CredentialRow = {
@@ -24,6 +27,7 @@ type CredentialRow = {
   role: string;
   email: string | null;
   phone: string | null;
+  link: string | null;
   active: boolean;
   createdAt: string;
 };
@@ -36,6 +40,13 @@ const roleLabels: Record<string, string> = {
   academy_admin: 'ادمین آموزشگاه',
 };
 
+const roleOptions = [
+  { value: 'personnel', label: 'پرسنل' },
+  { value: 'admin', label: 'مدیر' },
+  { value: 'super_admin', label: 'سوپر ادمین' },
+  { value: 'owner', label: 'مدیر سازمان' },
+];
+
 export default function CredentialsArchivePage() {
   const { profile } = useAuth();
   const [rows, setRows] = useState<CredentialRow[]>([]);
@@ -45,10 +56,21 @@ export default function CredentialsArchivePage() {
   const [editTarget, setEditTarget] = useState<CredentialRow | null>(null);
   const [editEmail, setEditEmail] = useState('');
   const [editPhone, setEditPhone] = useState('');
+  const [editLink, setEditLink] = useState('');
   const [editPassword, setEditPassword] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const canManage = profile?.role === 'super_admin' || profile?.role === 'owner' || profile?.role === 'admin';
+  // Create dialog state
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createName, setCreateName] = useState('');
+  const [createEmail, setCreateEmail] = useState('');
+  const [createPhone, setCreatePhone] = useState('');
+  const [createLink, setCreateLink] = useState('');
+  const [createPassword, setCreatePassword] = useState('');
+  const [createRole, setCreateRole] = useState('personnel');
+  const [creating, setCreating] = useState(false);
+
+  const canManage = !!profile;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -69,13 +91,14 @@ export default function CredentialsArchivePage() {
     const q = search.trim().toLowerCase();
     if (!q) return true;
     const name = `${r.firstName || ''} ${r.lastName || ''} ${r.fullName || ''}`.toLowerCase();
-    return name.includes(q) || (r.email || '').toLowerCase().includes(q) || (r.phone || '').includes(q);
+    return name.includes(q) || (r.email || '').toLowerCase().includes(q) || (r.phone || '').includes(q) || (r.link || '').toLowerCase().includes(q);
   });
 
   const openEdit = (row: CredentialRow) => {
     setEditTarget(row);
     setEditEmail(row.email || '');
     setEditPhone(row.phone || '');
+    setEditLink(row.link || '');
     setEditPassword('');
   };
 
@@ -90,12 +113,13 @@ export default function CredentialsArchivePage() {
           userId: editTarget.id,
           email: editEmail || null,
           phone: editPhone || null,
+          link: editLink || null,
           password: editPassword || undefined,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'خطا');
-      toast.success('اطلاعات حساب کاربری با موفقیت ذخیره شد');
+      toast.success('اطلاعات با موفقیت ذخیره شد');
       setEditTarget(null);
       load();
     } catch (err: any) {
@@ -104,13 +128,53 @@ export default function CredentialsArchivePage() {
     setSaving(false);
   };
 
+  const handleCreate = async () => {
+    if (!createName.trim()) {
+      toast.error('نام الزامی است');
+      return;
+    }
+    if (createPassword.length < 6) {
+      toast.error('رمز عبور باید حداقل ۶ کاراکتر باشد');
+      return;
+    }
+    setCreating(true);
+    try {
+      const res = await fetch('/api/auth/credentials-archive', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName: createName.trim(),
+          email: createEmail || undefined,
+          phone: createPhone || undefined,
+          link: createLink || undefined,
+          password: createPassword,
+          role: createRole,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'خطا');
+      toast.success('رکورد جدید با موفقیت ایجاد شد');
+      setCreateOpen(false);
+      setCreateName('');
+      setCreateEmail('');
+      setCreatePhone('');
+      setCreateLink('');
+      setCreatePassword('');
+      setCreateRole('personnel');
+      load();
+    } catch (err: any) {
+      toast.error(err.message || 'ایجاد ناموفق');
+    }
+    setCreating(false);
+  };
+
   if (!canManage) {
     return (
       <div>
-        <PageHeader title="آرشیو نام‌های کاربری و رمز عبور" />
+        <PageHeader title="آرشیو نام‌های کاربری و رمز عبور شبکه اجتماعی" />
         <Card className="p-8 text-center">
           <Archive className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-          <p className="text-slate-500">این بخش فقط برای مدیران قابل دسترسی است</p>
+          <p className="text-slate-500">شما به این بخش دسترسی ندارید</p>
         </Card>
       </div>
     );
@@ -119,20 +183,24 @@ export default function CredentialsArchivePage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="آرشیو نام‌های کاربری و رمز عبور"
-        description="مشاهده و مدیریت ایمیل، شماره موبایل و رمز عبور کاربران سازمان"
+        title="آرشیو نام‌های کاربری و رمز عبور شبکه اجتماعی"
+        description="مدیریت نام کاربری، رمز عبور، ایمیل، شماره و لینک حساب‌های شبکه اجتماعی"
       />
 
-      <div className="flex items-center gap-3 mb-4">
+      <div className="flex items-center justify-between gap-3 mb-4">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input
-            placeholder="جستجو بر اساس نام، ایمیل یا شماره..."
+            placeholder="جستجو بر اساس نام، ایمیل، شماره یا لینک..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pr-10"
           />
         </div>
+        <Button onClick={() => setCreateOpen(true)}>
+          <UserPlus className="w-4 h-4" />
+          افزودن رکورد جدید
+        </Button>
       </div>
 
       {loading ? (
@@ -142,7 +210,7 @@ export default function CredentialsArchivePage() {
       ) : filtered.length === 0 ? (
         <Card className="p-12 text-center">
           <Archive className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-          <p className="text-slate-500">کاربری یافت نشد</p>
+          <p className="text-slate-500">رکوردی یافت نشد</p>
         </Card>
       ) : (
         <Card className="overflow-hidden">
@@ -150,10 +218,11 @@ export default function CredentialsArchivePage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-slate-50 text-xs text-slate-500">
-                  <th className="px-4 py-3 text-right font-medium">نام کاربر</th>
+                  <th className="px-4 py-3 text-right font-medium">نام</th>
                   <th className="px-4 py-3 text-right font-medium">نقش</th>
-                  <th className="px-4 py-3 text-right font-medium">ایمیل (نام کاربری)</th>
-                  <th className="px-4 py-3 text-right font-medium">شماره موبایل</th>
+                  <th className="px-4 py-3 text-right font-medium">ایمیل</th>
+                  <th className="px-4 py-3 text-right font-medium">شماره</th>
+                  <th className="px-4 py-3 text-right font-medium">لینک</th>
                   <th className="px-4 py-3 text-right font-medium">رمز عبور</th>
                   <th className="px-4 py-3 text-right font-medium">وضعیت</th>
                   <th className="px-4 py-3 text-center font-medium">عملیات</th>
@@ -177,6 +246,14 @@ export default function CredentialsArchivePage() {
                       <td className="px-4 py-3 text-slate-600" dir="ltr">
                         {row.phone ? (
                           <span className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-slate-400" />{row.phone}</span>
+                        ) : <span className="text-slate-300">—</span>}
+                      </td>
+                      <td className="px-4 py-3 text-slate-600" dir="ltr">
+                        {row.link ? (
+                          <a href={row.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sky-600 hover:underline">
+                            <LinkIcon className="w-3.5 h-3.5 text-slate-400" />
+                            <span className="max-w-[160px] truncate">{row.link}</span>
+                          </a>
                         ) : <span className="text-slate-300">—</span>}
                       </td>
                       <td className="px-4 py-3">
@@ -218,38 +295,93 @@ export default function CredentialsArchivePage() {
         </Card>
       )}
 
+      {/* Edit Dialog */}
       <Dialog open={!!editTarget} onOpenChange={(open) => { if (!open) setEditTarget(null); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>ویرایش اطلاعات حساب کاربری</DialogTitle>
+            <DialogTitle>ویرایش اطلاعات</DialogTitle>
           </DialogHeader>
           {editTarget && (
             <div className="space-y-4">
               <div className="text-sm text-slate-500">
-                کاربر: {editTarget.fullName || `${editTarget.firstName || ''} ${editTarget.lastName || ''}`}
+                نام: {editTarget.fullName || `${editTarget.firstName || ''} ${editTarget.lastName || ''}`}
               </div>
               <div className="space-y-2">
-                <Label>ایمیل (نام کاربری) — اختیاری</Label>
+                <Label>ایمیل — اختیاری</Label>
                 <Input dir="ltr" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} placeholder="email@example.com" />
               </div>
               <div className="space-y-2">
-                <Label>شماره موبایل — اختیاری</Label>
+                <Label>شماره — اختیاری</Label>
                 <Input dir="ltr" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="09123456789" />
+              </div>
+              <div className="space-y-2">
+                <Label>لینک — اختیاری</Label>
+                <Input dir="ltr" value={editLink} onChange={(e) => setEditLink(e.target.value)} placeholder="https://..." />
               </div>
               <div className="space-y-2">
                 <Label>رمز عبور جدید — اختیاری</Label>
                 <PasswordInput dir="ltr" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} placeholder="برای تغییر، رمز جدید وارد کنید" />
                 <p className="text-xs text-slate-400">حداقل ۶ کاراکتر. اگر خالی بگذارید، رمز قبلی حفظ می‌شود.</p>
               </div>
-              <p className="text-xs text-slate-400 bg-amber-50 rounded-lg p-3">
-                کاربر می‌تواند با ایمیل یا شماره موبایل (هر کدام که ثبت شده) و رمز عبور وارد شود. حداقل یکی از دو فیلد باید پر باشد.
-              </p>
             </div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditTarget(null)} disabled={saving}>انصراف</Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'ذخیره'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Dialog */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>افزودن رکورد جدید</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>نام — الزامی</Label>
+              <Input value={createName} onChange={(e) => setCreateName(e.target.value)} placeholder="مثال: علی محمدی" />
+            </div>
+            <div className="space-y-2">
+              <Label>رمز عبور — الزامی</Label>
+              <PasswordInput dir="ltr" value={createPassword} onChange={(e) => setCreatePassword(e.target.value)} placeholder="حداقل ۶ کاراکتر" />
+            </div>
+            <div className="space-y-2">
+              <Label>ایمیل — اختیاری</Label>
+              <Input dir="ltr" value={createEmail} onChange={(e) => setCreateEmail(e.target.value)} placeholder="email@example.com" />
+            </div>
+            <div className="space-y-2">
+              <Label>شماره — اختیاری</Label>
+              <Input dir="ltr" value={createPhone} onChange={(e) => setCreatePhone(e.target.value)} placeholder="09123456789" />
+            </div>
+            <div className="space-y-2">
+              <Label>لینک — اختیاری</Label>
+              <Input dir="ltr" value={createLink} onChange={(e) => setCreateLink(e.target.value)} placeholder="https://..." />
+            </div>
+            <div className="space-y-2">
+              <Label>نقش</Label>
+              <Select value={createRole} onValueChange={setCreateRole}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {roleOptions.map((r) => (
+                    <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="text-xs text-slate-400 bg-amber-50 rounded-lg p-3">
+              فقط نام و رمز عبور الزامی هستند. سایر فیلدها اختیاری.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={creating}>انصراف</Button>
+            <Button onClick={handleCreate} disabled={creating}>
+              {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'ایجاد رکورد'}
             </Button>
           </DialogFooter>
         </DialogContent>

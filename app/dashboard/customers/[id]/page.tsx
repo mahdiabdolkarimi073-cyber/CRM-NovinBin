@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PasswordInput } from '@/components/ui/password-input';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
 } from '@/components/ui/dialog';
@@ -46,6 +47,10 @@ export default function CustomerDetailPage() {
   const [pwDialogOpen, setPwDialogOpen] = useState(false);
   const [pwSaving, setPwSaving] = useState(false);
   const [newPassword, setNewPassword] = useState('');
+  const [acctDialogOpen, setAcctDialogOpen] = useState(false);
+  const [acctSaving, setAcctSaving] = useState(false);
+  const [acctPhone, setAcctPhone] = useState('');
+  const [acctPassword, setAcctPassword] = useState('');
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -136,9 +141,15 @@ export default function CustomerDetailPage() {
                 <KeyRound className="w-4 h-4" />
                 تعیین رمز عبور
               </Button>
-              <Button variant="outline" size="sm">
-                <Edit className="w-4 h-4" />
-                ویرایش
+              <Button variant="outline" size="sm" onClick={() => { setAcctPhone(customer.mobile || customer.phone || ''); setAcctPassword(''); setAcctDialogOpen(true); }}>
+                <User className="w-4 h-4" />
+                ساخت حساب کاربری
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link href={`/dashboard/customers?edit=${customerId}`}>
+                  <Edit className="w-4 h-4" />
+                  ویرایش
+                </Link>
               </Button>
             </div>
           </div>
@@ -492,6 +503,76 @@ export default function CustomerDetailPage() {
               disabled={pwSaving}
             >
               {pwSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'ذخیره رمز'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Account Dialog */}
+      <Dialog open={acctDialogOpen} onOpenChange={setAcctDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>ساخت حساب کاربری برای ورود مشتری</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-slate-500">
+            با ساخت حساب کاربری، مشتری می‌تواند با شماره موبایل و رمز عبور وارد پورتال شود.
+          </p>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label>شماره موبایل (الزامی)</Label>
+              <Input
+                dir="ltr"
+                value={acctPhone}
+                onChange={(e) => setAcctPhone(e.target.value)}
+                placeholder="0912xxxxxxx"
+              />
+              <p className="text-xs text-slate-400">این شماره به عنوان نام کاربری مشتری استفاده می‌شود.</p>
+            </div>
+            <div className="space-y-2">
+              <Label>رمز عبور (الزامی)</Label>
+              <PasswordInput
+                dir="ltr"
+                value={acctPassword}
+                onChange={(e) => setAcctPassword(e.target.value)}
+                placeholder="حداقل ۶ کاراکتر"
+              />
+              <p className="text-xs text-slate-400">حداقل ۶ کاراکتر.</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAcctDialogOpen(false)} disabled={acctSaving}>انصراف</Button>
+            <Button
+              onClick={async () => {
+                if (!acctPhone.trim()) {
+                  toast.error('شماره موبایل الزامی است');
+                  return;
+                }
+                if (acctPassword.length < 6) {
+                  toast.error('رمز عبور باید حداقل ۶ کاراکتر باشد');
+                  return;
+                }
+                setAcctSaving(true);
+                try {
+                  const res = await fetch('/api/auth/set-customer-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ customerId, password: acctPassword, phone: acctPhone.trim() }),
+                  });
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data.error || 'خطا');
+                  toast.success('حساب کاربری مشتری با موفقیت ایجاد شد');
+                  setAcctDialogOpen(false);
+                  setAcctPassword('');
+                  loadData();
+                } catch (err: any) {
+                  toast.error(err.message || 'ایجاد حساب کاربری ناموفق');
+                } finally {
+                  setAcctSaving(false);
+                }
+              }}
+              disabled={acctSaving}
+            >
+              {acctSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'ساخت حساب'}
             </Button>
           </DialogFooter>
         </DialogContent>

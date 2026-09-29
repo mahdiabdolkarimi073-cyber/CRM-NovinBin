@@ -18,6 +18,7 @@ model User {
   email        String?   @unique
   phone        String?   @unique
   passwordHash String
+  link         String?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @default(now())
   profile      Profile?

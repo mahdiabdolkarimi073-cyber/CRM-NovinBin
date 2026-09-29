@@ -129,7 +129,7 @@ export const clubItems: NavItem[] = [
 
 export const adminItems: NavItem[] = [
   { href: '/dashboard/users', label: 'کاربران', icon: UserCog },
-  { href: '/dashboard/credentials-archive', label: 'آرشیو نام‌های کاربری', icon: KeyRound },
+  { href: '/dashboard/credentials-archive', label: 'آرشیو نام‌های کاربری و رمز عبور شبکه اجتماعی', icon: KeyRound },
   { href: '/dashboard/registration-approval', label: 'تأیید ثبت‌نام', icon: UserPlus },
   { href: '/dashboard/customer-assignment', label: 'تخصیص مشتری', icon: HandHeart },
   { href: '/dashboard/employment-applications', label: 'درخواست‌های استخدام', icon: BriefcaseBusiness },
@@ -276,7 +276,7 @@ export const availablePages = [
   { path: '/dashboard/registration-approval', label: 'تأیید ثبت‌نام' },
   { path: '/dashboard/customer-assignment', label: 'تخصیص مشتری' },
   { path: '/dashboard/users', label: 'مدیریت کاربران' },
-  { path: '/dashboard/credentials-archive', label: 'آرشیو نام‌های کاربری' },
+  { path: '/dashboard/credentials-archive', label: 'آرشیو نام‌های کاربری و رمز عبور شبکه اجتماعی' },
   { path: '/dashboard/site-verifications', label: 'تاییدیه‌های سایت' },
   { path: '/dashboard/host-domains', label: 'ثبت هاست و دامنه' },
   { path: '/dashboard/irnic', label: 'مدیریت شناسه ایرنیک' },

@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { customerId, password } = body;
+    const { customerId, password, phone } = body;
 
     if (!customerId) {
       return NextResponse.json({ error: 'شناسه مشتری الزامی است' }, { status: 400 });
@@ -40,27 +40,74 @@ export async function POST(req: NextRequest) {
 
     const customer = await prisma.customer.findUnique({
       where: { id: customerId },
-      select: { id: true, phone: true, mobile: true },
+      select: { id: true, phone: true, mobile: true, firstName: true, lastName: true, companyName: true, type: true, email: true },
     });
     if (!customer) {
       return NextResponse.json({ error: 'مشتری یافت نشد' }, { status: 404 });
     }
 
-    const phone = customer.phone || customer.mobile;
-    if (!phone) {
+    const resolvedPhone = phone ? String(phone).trim() : (customer.phone || customer.mobile);
+    if (!resolvedPhone) {
       return NextResponse.json({ error: 'شماره موبایل مشتری ثبت نشده است' }, { status: 400 });
     }
 
-    const user = await prisma.user.findFirst({ where: { phone } });
-    if (!user) {
-      return NextResponse.json({ error: 'حساب کاربری این مشتری یافت نشد' }, { status: 404 });
-    }
-
     const passwordHash = bcrypt.hashSync(String(password), 10);
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { passwordHash },
-    });
+
+    let user = await prisma.user.findFirst({ where: { phone: resolvedPhone } });
+
+    if (user) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { passwordHash },
+      });
+    } else {
+      const normalizedEmail = customer.email ? String(customer.email).toLowerCase() : undefined;
+
+      let parsedFirstName: string | null = null;
+      let parsedLastName: string | null = null;
+      let parsedFullName: string | null = null;
+
+      if (customer.type === 'company') {
+        parsedFullName = customer.companyName;
+      } else {
+        parsedFullName = [customer.firstName, customer.lastName].filter(Boolean).join(' ') || null;
+        parsedFirstName = customer.firstName;
+        parsedLastName = customer.lastName;
+      }
+
+      const org = await prisma.organization.findFirst({ where: { active: true } });
+
+      user = await prisma.user.create({
+        data: {
+          email: normalizedEmail,
+          phone: resolvedPhone,
+          passwordHash,
+          profile: {
+            create: {
+              id: undefined,
+              userType: 'customer',
+              role: 'personnel',
+              customerType: customer.type === 'company' ? 'company' : 'individual',
+              firstName: parsedFirstName,
+              lastName: parsedLastName,
+              fullName: parsedFullName,
+              companyName: customer.type === 'company' ? customer.companyName : null,
+              phone: resolvedPhone,
+              customerId: customer.id,
+              active: true,
+              orgId: org?.id || null,
+            },
+          },
+        },
+      });
+
+      if (!customer.mobile) {
+        await prisma.customer.update({
+          where: { id: customerId },
+          data: { mobile: resolvedPhone },
+        });
+      }
+    }
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
