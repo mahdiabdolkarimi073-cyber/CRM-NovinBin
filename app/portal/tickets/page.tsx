@@ -17,7 +17,8 @@ import {
 import { formatJalali, formatFileSize, relativeTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import type { Ticket, TicketMessage } from '@/lib/types';
+import type { Ticket, TicketMessage, TicketDepartment } from '@/lib/types';
+import { Headset } from 'lucide-react';
 
 const statusLabels: Record<string, string> = {
   open: 'باز', in_progress: 'در حال انجام', pending: 'در انتظار پاسخ',
@@ -35,10 +36,11 @@ type Attachment = { url: string; name: string; type: string; size: number };
 export default function PortalTicketsPage() {
   const { profile } = useAuth();
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [departments, setDepartments] = useState<TicketDepartment[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState({ subject: '', description: '', priority: 'medium' });
+  const [form, setForm] = useState({ subject: '', description: '', priority: 'medium', departmentId: '' });
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [statusFilter, setStatusFilter] = useState('all');
 
@@ -46,11 +48,18 @@ export default function PortalTicketsPage() {
     if (!profile?.customerId) { setLoading(false); return; }
     setLoading(true);
     try {
-      const data = await fetchData<Ticket>('tickets', {
-        where: { customerId: profile.customerId },
-        orderBy: { createdAt: 'desc' },
-      });
+      const [data, depts] = await Promise.all([
+        fetchData<Ticket>('tickets', {
+          where: { customerId: profile.customerId },
+          orderBy: { createdAt: 'desc' },
+        }),
+        fetchData<TicketDepartment>('ticket_departments', {
+          where: { active: true },
+          orderBy: { name: 'asc' },
+        }),
+      ]);
       setTickets(data || []);
+      setDepartments(depts || []);
     } catch {
       setTickets([]);
     }
@@ -58,6 +67,8 @@ export default function PortalTicketsPage() {
   }, [profile?.customerId]);
 
   useEffect(() => { load(); }, [load]);
+
+  const deptMap = new Map(departments.map((d) => [d.id, d]));
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,6 +82,7 @@ export default function PortalTicketsPage() {
         subject: form.subject.trim(),
         description: form.description.trim() || null,
         customerId: profile.customerId,
+        departmentId: form.departmentId || null,
         priority: form.priority,
         status: 'open',
         createdBy: profile.id,
@@ -78,7 +90,7 @@ export default function PortalTicketsPage() {
       });
       toast.success('تیکت شما ثبت شد و در سیستم پشتیبانی نمایش داده می‌شود');
       setDialogOpen(false);
-      setForm({ subject: '', description: '', priority: 'medium' });
+      setForm({ subject: '', description: '', priority: 'medium', departmentId: '' });
       load();
     } catch (e: any) {
       toast.error('ثبت ناموفق: ' + (e.message || ''));
@@ -228,6 +240,12 @@ export default function PortalTicketsPage() {
                   <p className="mb-3 line-clamp-2 text-xs text-slate-500 mobile:text-sm">{t.description}</p>
                 )}
                 <div className="mt-auto flex items-center gap-2 pt-3 border-t border-slate-50">
+                  {deptMap.get(t.departmentId || '') && (
+                    <Badge className="text-xs font-semibold" style={{ backgroundColor: '#f0f4ff', color: '#3158dd' }}>
+                      <Headset className="ml-1 h-3 w-3" />
+                      {deptMap.get(t.departmentId || '')?.name}
+                    </Badge>
+                  )}
                   <Badge
                     className="text-xs font-semibold"
                     style={{ backgroundColor: statusColors[t.status] + '20', color: statusColors[t.status] }}
@@ -277,6 +295,18 @@ export default function PortalTicketsPage() {
                 rows={4}
                 className="resize-none"
               />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-bold text-slate-700">دپارتمان *</Label>
+              <Select value={form.departmentId || 'none'} onValueChange={(v) => setForm({ ...form, departmentId: v === 'none' ? '' : v })}>
+                <SelectTrigger className="h-11"><span className="flex items-center gap-2"><Headset className="h-4 w-4 text-slate-400" /><SelectValue placeholder="انتخاب دپارتمان..." /></span></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">بدون دپارتمان</SelectItem>
+                  {departments.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-bold text-slate-700">اولویت</Label>
@@ -412,7 +442,13 @@ function TicketChat({
             </div>
             <div className="min-w-0">
               <h3 className="truncate font-bold text-slate-800">{ticket.subject}</h3>
-              <div className="mt-1 flex items-center gap-2">
+              <div className="mt-1 flex items-center gap-2 flex-wrap">
+                {deptMap.get(ticket.departmentId || '') && (
+                  <Badge className="text-xs" style={{ backgroundColor: '#f0f4ff', color: '#3158dd' }}>
+                    <Headset className="ml-1 h-3 w-3" />
+                    {deptMap.get(ticket.departmentId || '')?.name}
+                  </Badge>
+                )}
                 <Badge
                   className="text-xs"
                   style={{ backgroundColor: statusColors[ticket.status] + '20', color: statusColors[ticket.status] }}

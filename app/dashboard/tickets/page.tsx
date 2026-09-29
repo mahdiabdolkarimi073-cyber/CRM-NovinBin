@@ -475,6 +475,8 @@ function TicketChat({
       }
       await createData('ticket_messages', {
         ticketId: ticket.id,
+        senderType: 'staff',
+        senderId: profile?.id || null,
         content: text.trim() || null,
         attachmentUrl: uploaded?.url || null,
         attachmentName: uploaded?.name || null,

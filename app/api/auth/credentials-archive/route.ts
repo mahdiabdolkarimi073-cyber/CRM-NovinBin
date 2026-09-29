@@ -42,10 +42,7 @@ export async function GET(req: NextRequest) {
         profile: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
             fullName: true,
-            role: true,
             phone: true,
             active: true,
             createdAt: true,
@@ -60,10 +57,7 @@ export async function GET(req: NextRequest) {
       .map((u) => ({
         id: u.id,
         profileId: u.profile!.id,
-        firstName: u.profile!.firstName,
-        lastName: u.profile!.lastName,
         fullName: u.profile!.fullName,
-        role: u.profile!.role,
         email: u.email,
         phone: u.phone || u.profile!.phone,
         link: u.link,
@@ -88,10 +82,10 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { fullName, email, phone, password, role, link } = body;
+    const { fullName, email, phone, password, link } = body;
 
     if (!fullName || !String(fullName).trim()) {
-      return NextResponse.json({ error: 'نام الزامی است' }, { status: 400 });
+      return NextResponse.json({ error: 'نام شبکه اجتماعی الزامی است' }, { status: 400 });
     }
     if (!password || String(password).length < 6) {
       return NextResponse.json({ error: 'رمز عبور باید حداقل ۶ کاراکتر باشد' }, { status: 400 });
@@ -116,17 +110,6 @@ export async function POST(req: NextRequest) {
 
     const passwordHash = bcrypt.hashSync(String(password), 10);
 
-    let parsedFirstName: string | null = null;
-    let parsedLastName: string | null = null;
-    let parsedFullName: string | null = null;
-
-    if (fullName) {
-      const parts = String(fullName).trim().split(/\s+/);
-      parsedFirstName = parts[0] || null;
-      parsedLastName = parts.slice(1).join(' ') || null;
-      parsedFullName = String(fullName).trim();
-    }
-
     const org = await prisma.organization.findFirst({ where: { active: true } });
 
     const user = await prisma.user.create({
@@ -137,12 +120,8 @@ export async function POST(req: NextRequest) {
         link: normalizedLink,
         profile: {
           create: {
-            id: undefined,
             userType: 'staff',
-            role: role || 'personnel',
-            firstName: parsedFirstName,
-            lastName: parsedLastName,
-            fullName: parsedFullName,
+            fullName: String(fullName).trim(),
             phone: normalizedPhone,
             active: true,
             orgId: org?.id || null,
@@ -209,7 +188,6 @@ export async function PUT(req: NextRequest) {
       if (String(password).length < 6) {
         return NextResponse.json({ error: 'رمز عبور باید حداقل ۶ کاراکتر باشد' }, { status: 400 });
       }
-      const bcrypt = await import('bcryptjs');
       data.passwordHash = bcrypt.hashSync(String(password), 10);
     }
 

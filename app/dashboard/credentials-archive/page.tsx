@@ -7,11 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { PasswordInput } from '@/components/ui/password-input';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
 } from '@/components/ui/dialog';
@@ -21,31 +17,13 @@ import { toast } from 'sonner';
 type CredentialRow = {
   id: string;
   profileId: string;
-  firstName: string | null;
-  lastName: string | null;
   fullName: string | null;
-  role: string;
   email: string | null;
   phone: string | null;
   link: string | null;
   active: boolean;
   createdAt: string;
 };
-
-const roleLabels: Record<string, string> = {
-  owner: 'مدیر سازمان',
-  super_admin: 'سوپر ادمین',
-  admin: 'مدیر',
-  personnel: 'پرسنل',
-  academy_admin: 'ادمین آموزشگاه',
-};
-
-const roleOptions = [
-  { value: 'personnel', label: 'پرسنل' },
-  { value: 'admin', label: 'مدیر' },
-  { value: 'super_admin', label: 'سوپر ادمین' },
-  { value: 'owner', label: 'مدیر سازمان' },
-];
 
 export default function CredentialsArchivePage() {
   const { profile } = useAuth();
@@ -67,7 +45,6 @@ export default function CredentialsArchivePage() {
   const [createPhone, setCreatePhone] = useState('');
   const [createLink, setCreateLink] = useState('');
   const [createPassword, setCreatePassword] = useState('');
-  const [createRole, setCreateRole] = useState('personnel');
   const [creating, setCreating] = useState(false);
 
   const canManage = !!profile;
@@ -90,8 +67,7 @@ export default function CredentialsArchivePage() {
   const filtered = rows.filter((r) => {
     const q = search.trim().toLowerCase();
     if (!q) return true;
-    const name = `${r.firstName || ''} ${r.lastName || ''} ${r.fullName || ''}`.toLowerCase();
-    return name.includes(q) || (r.email || '').toLowerCase().includes(q) || (r.phone || '').includes(q) || (r.link || '').toLowerCase().includes(q);
+    return (r.fullName || '').toLowerCase().includes(q) || (r.email || '').toLowerCase().includes(q) || (r.phone || '').includes(q) || (r.link || '').toLowerCase().includes(q);
   });
 
   const openEdit = (row: CredentialRow) => {
@@ -130,7 +106,7 @@ export default function CredentialsArchivePage() {
 
   const handleCreate = async () => {
     if (!createName.trim()) {
-      toast.error('نام الزامی است');
+      toast.error('نام شبکه اجتماعی الزامی است');
       return;
     }
     if (createPassword.length < 6) {
@@ -148,7 +124,6 @@ export default function CredentialsArchivePage() {
           phone: createPhone || undefined,
           link: createLink || undefined,
           password: createPassword,
-          role: createRole,
         }),
       });
       const data = await res.json();
@@ -160,7 +135,6 @@ export default function CredentialsArchivePage() {
       setCreatePhone('');
       setCreateLink('');
       setCreatePassword('');
-      setCreateRole('personnel');
       load();
     } catch (err: any) {
       toast.error(err.message || 'ایجاد ناموفق');
@@ -191,7 +165,7 @@ export default function CredentialsArchivePage() {
         <div className="relative flex-1 max-w-md">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input
-            placeholder="جستجو بر اساس نام، ایمیل، شماره یا لینک..."
+            placeholder="جستجو بر اساس نام شبکه اجتماعی، ایمیل، شماره یا لینک..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pr-10"
@@ -218,8 +192,7 @@ export default function CredentialsArchivePage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-slate-50 text-xs text-slate-500">
-                  <th className="px-4 py-3 text-right font-medium">نام</th>
-                  <th className="px-4 py-3 text-right font-medium">نقش</th>
+                  <th className="px-4 py-3 text-right font-medium">نام شبکه اجتماعی</th>
                   <th className="px-4 py-3 text-right font-medium">ایمیل</th>
                   <th className="px-4 py-3 text-right font-medium">شماره</th>
                   <th className="px-4 py-3 text-right font-medium">لینک</th>
@@ -230,14 +203,10 @@ export default function CredentialsArchivePage() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filtered.map((row) => {
-                  const displayName = row.fullName || `${row.firstName || ''} ${row.lastName || ''}`.trim() || '—';
                   const showPw = showPasswords[row.id];
                   return (
                     <tr key={row.id} className="hover:bg-slate-50 transition-smooth">
-                      <td className="px-4 py-3 font-medium text-slate-800">{displayName}</td>
-                      <td className="px-4 py-3">
-                        <Badge variant="outline">{roleLabels[row.role] || row.role}</Badge>
-                      </td>
+                      <td className="px-4 py-3 font-medium text-slate-800">{row.fullName || '—'}</td>
                       <td className="px-4 py-3 text-slate-600" dir="ltr">
                         {row.email ? (
                           <span className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-slate-400" />{row.email}</span>
@@ -259,7 +228,7 @@ export default function CredentialsArchivePage() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <span className="text-slate-400 tracking-widest font-mono">
-                            {showPw ? '••••••••' : '••••••••'}
+                            ••••••••
                           </span>
                           <button
                             onClick={() => setShowPasswords((prev) => ({ ...prev, [row.id]: !prev[row.id] }))}
@@ -304,7 +273,7 @@ export default function CredentialsArchivePage() {
           {editTarget && (
             <div className="space-y-4">
               <div className="text-sm text-slate-500">
-                نام: {editTarget.fullName || `${editTarget.firstName || ''} ${editTarget.lastName || ''}`}
+                نام شبکه اجتماعی: {editTarget.fullName}
               </div>
               <div className="space-y-2">
                 <Label>ایمیل — اختیاری</Label>
@@ -342,8 +311,8 @@ export default function CredentialsArchivePage() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>نام — الزامی</Label>
-              <Input value={createName} onChange={(e) => setCreateName(e.target.value)} placeholder="مثال: علی محمدی" />
+              <Label>نام شبکه اجتماعی — الزامی</Label>
+              <Input value={createName} onChange={(e) => setCreateName(e.target.value)} placeholder="مثال: اینستاگرام نوین بین" />
             </div>
             <div className="space-y-2">
               <Label>رمز عبور — الزامی</Label>
@@ -361,21 +330,8 @@ export default function CredentialsArchivePage() {
               <Label>لینک — اختیاری</Label>
               <Input dir="ltr" value={createLink} onChange={(e) => setCreateLink(e.target.value)} placeholder="https://..." />
             </div>
-            <div className="space-y-2">
-              <Label>نقش</Label>
-              <Select value={createRole} onValueChange={setCreateRole}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {roleOptions.map((r) => (
-                    <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
             <p className="text-xs text-slate-400 bg-amber-50 rounded-lg p-3">
-              فقط نام و رمز عبور الزامی هستند. سایر فیلدها اختیاری.
+              فقط نام شبکه اجتماعی و رمز عبور الزامی هستند. سایر فیلدها اختیاری.
             </p>
           </div>
           <DialogFooter>
