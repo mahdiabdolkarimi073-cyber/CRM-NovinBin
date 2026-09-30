@@ -355,7 +355,7 @@ export default function CustomersPage() {
                   <Badge variant="outline" className="text-xs mt-1" style={{ color: getLevelInfo(viewCustomer.level).color, borderColor: getLevelInfo(viewCustomer.level).color + '40' }}>{getLevelInfo(viewCustomer.level).label}</Badge>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                 {viewCustomer.firstName && <div><span className="text-slate-400">نام:</span> <span className="font-medium">{viewCustomer.firstName}</span></div>}
                 {viewCustomer.lastName && <div><span className="text-slate-400">نام خانوادگی:</span> <span className="font-medium">{viewCustomer.lastName}</span></div>}
                 {viewCustomer.activityType && <div><span className="text-slate-400">نوع فعالیت:</span> <span className="font-medium">{viewCustomer.activityType}</span></div>}
@@ -430,7 +430,7 @@ export default function CustomersPage() {
                 <Input value={form.companyName} onChange={(e) => setForm({ ...form, companyName: e.target.value })} />
               </div>
             )}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>نوع فعالیت</Label>
                 <Select value={form.activityType || 'none'} onValueChange={(v) => setForm({ ...form, activityType: v === 'none' ? '' : v })}>
@@ -474,7 +474,7 @@ export default function CustomersPage() {
                 })}
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>موبایل</Label>
                 <Input dir="ltr" value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })} />
@@ -515,7 +515,7 @@ export default function CustomersPage() {
                 </button>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>ایمیل</Label>
                 <Input type="email" dir="ltr" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />

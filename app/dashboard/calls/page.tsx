@@ -224,6 +224,7 @@ export default function CallsPage() {
       ) : (
         <Card>
           <CardContent className="p-0">
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -316,6 +317,7 @@ export default function CallsPage() {
                 })}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -326,7 +328,7 @@ export default function CallsPage() {
           <DialogHeader><DialogTitle>مشاهده تماس</DialogTitle></DialogHeader>
           {viewCall && (
             <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                 <div><span className="text-slate-400">منبع:</span> <span className="font-medium">{SOURCE_INFO[viewCall.source]?.label}</span></div>
                 <div><span className="text-slate-400">نوع:</span> <span className="font-medium">{viewCall.callType === 'video' ? 'تصویری' : 'صوتی'}</span></div>
                 <div><span className="text-slate-400">جهت:</span> <span className="font-medium">{DIRECTION_INFO[viewCall.direction]?.label}</span></div>

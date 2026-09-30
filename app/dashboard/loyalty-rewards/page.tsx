@@ -501,6 +501,7 @@ export default function LoyaltyRewardsPage() {
           ) : (
             <Card>
               <CardContent className="p-0">
+                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -566,6 +567,7 @@ export default function LoyaltyRewardsPage() {
                     })}
                   </TableBody>
                 </Table>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -596,7 +598,7 @@ export default function LoyaltyRewardsPage() {
                 placeholder="توضیح کوتاه (اختیاری)"
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>نوع جایزه</Label>
                 <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v as RewardType })}>
@@ -620,7 +622,7 @@ export default function LoyaltyRewardsPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>ارزش ریالی (تومان)</Label>
                 <Input

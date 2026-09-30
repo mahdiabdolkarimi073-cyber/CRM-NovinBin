@@ -295,7 +295,7 @@ export default function GraphicWorksPage() {
         }
       />
 
-      <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-6">
+      <div className="grid grid-cols-1 gap-3 mobile:grid-cols-3 sm:gap-4 mb-6">
         {stats.map((stat) => (
           <Card key={stat.label}>
             <CardContent className="p-4">

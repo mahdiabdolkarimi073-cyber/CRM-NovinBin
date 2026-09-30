@@ -179,6 +179,7 @@ export default function WorkReportsPage() {
           ) : (
             <Card>
               <CardContent className="p-0">
+                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -211,6 +212,7 @@ export default function WorkReportsPage() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -222,6 +224,7 @@ export default function WorkReportsPage() {
           ) : (
             <Card>
               <CardContent className="p-0">
+                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -278,6 +281,7 @@ export default function WorkReportsPage() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -306,7 +310,7 @@ export default function WorkReportsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="p-3 rounded-lg border bg-white">
                   <div className="text-xs text-slate-400 mb-1">تاریخ شروع</div>
                   <div className="text-sm font-medium text-slate-700">{formatJalali(viewReport.startDate)}</div>

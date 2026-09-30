@@ -188,6 +188,7 @@ export default function ContractsPage() {
       ) : (
         <Card>
           <CardContent className="p-0">
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -256,6 +257,7 @@ export default function ContractsPage() {
                 })}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -267,7 +269,7 @@ export default function ContractsPage() {
           {viewContract && (
             <div className="space-y-3">
               <div className="font-bold text-slate-900">{viewContract.fullName}</div>
-              <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                 <div><span className="text-slate-400">نوع:</span> <span className="font-medium">{contractTypeLabel(viewContract.contractType)}</span></div>
                 <div><span className="text-slate-400">حقوق:</span> <span className="font-bold">{formatToman(Number(viewContract.salary))} ت</span></div>
                 <div><span className="text-slate-400">شروع:</span> <span className="font-medium">{formatJalali(viewContract.startDate)}</span></div>
@@ -295,7 +297,7 @@ export default function ContractsPage() {
                   <SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{CONTRACT_TYPES.map((t) => <SelectItem key={t.key} value={t.key}>{t.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-2"><Label>تاریخ شروع</Label><JalaliDatePicker value={editForm.startDate ? new Date(editForm.startDate) : null} onChange={(d) => setEditForm({ ...editForm, startDate: d ? toLocalDateString(d) : '' })} /></div>
                 <div className="space-y-2"><Label>تاریخ پایان</Label><JalaliDatePicker value={editForm.endDate ? new Date(editForm.endDate) : null} onChange={(d) => setEditForm({ ...editForm, endDate: d ? toLocalDateString(d) : '' })} /></div>
               </div>

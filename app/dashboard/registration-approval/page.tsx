@@ -191,6 +191,7 @@ export default function RegistrationApprovalPage() {
     return (
       <Card>
         <CardContent className="p-0">
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -285,6 +286,7 @@ export default function RegistrationApprovalPage() {
               })}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
     );
@@ -360,7 +362,7 @@ export default function RegistrationApprovalPage() {
                 </Badge>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <DetailField icon={<Mail className="w-4 h-4" />} label="ایمیل" value={viewTarget.email} ltr />
                 <DetailField icon={<Phone className="w-4 h-4" />} label="تلفن" value={viewTarget.phone || '—'} ltr />
                 <DetailField

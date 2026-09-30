@@ -716,6 +716,7 @@ export default function CustomerSegmentsPage() {
                     <p className="text-xs text-slate-400 mt-1">از افزودن خودکار یا افزودن دستی استفاده کنید</p>
                   </div>
                 ) : (
+                  <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-slate-50 hover:bg-slate-50">
@@ -768,6 +769,7 @@ export default function CustomerSegmentsPage() {
                       })}
                     </TableBody>
                   </Table>
+                  </div>
                 )}
               </div>
 

@@ -72,7 +72,7 @@ export default function ApprovalsPage() {
     <div>
       <PageHeader title="تأییدها و گردش کار" description="مدیریت درخواست‌های تأیید و approbation workflow" />
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 gap-3 mobile:grid-cols-3 mobile:gap-4 mb-6">
         <Card><CardContent className="p-4 flex items-center justify-between">
           <div><div className="text-xs text-slate-400">در انتظار تأیید</div><div className="text-2xl font-bold text-amber-600">{pending.length.toLocaleString('fa-IR')}</div></div>
           <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center"><Clock className="w-5 h-5" /></div>

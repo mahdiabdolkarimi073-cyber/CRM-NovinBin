@@ -282,6 +282,7 @@ export default function DemoActivitiesPage() {
                   <p className="text-sm text-slate-400">ابتدا از صفحه دموها یک دمو ایجاد کنید</p>
                 </div>
               ) : (
+                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -346,6 +347,7 @@ export default function DemoActivitiesPage() {
                     })}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>

@@ -405,7 +405,7 @@ export default function TasksPage() {
                 </div>
               </div>
               <Badge style={{ backgroundColor: `${st.color}15`, color: st.color }} className="rounded-full text-xs">{st.label}</Badge>
-              {assignee && <div className="hidden items-center gap-1.5 sm:flex"><Avatar className="h-6 w-6"><AvatarFallback className="bg-[#EFF4FF] text-[10px] text-[#2563EB]">{assignee[0]}</AvatarFallback></Avatar><span className="text-xs text-[#667085]">{assignee}</span></div>}
+              {assignee && <div className="hidden items-center gap-1.5 tablet:flex"><Avatar className="h-6 w-6"><AvatarFallback className="bg-[#EFF4FF] text-[10px] text-[#2563EB]">{assignee[0]}</AvatarFallback></Avatar><span className="text-xs text-[#667085]">{assignee}</span></div>}
               {canRefer && <button onClick={(e) => { e.stopPropagation(); openRefer(task.id); }} className="p-1 text-[#98A2B3] transition-colors hover:text-amber-500" title="ارجاع"><Forward className="h-4 w-4" /></button>}
               {canEdit(task) && <button onClick={(e) => { e.stopPropagation(); openEdit(task); }} className="p-1 text-[#98A2B3] transition-colors hover:text-[#2563EB]" title="ویرایش"><Edit className="h-4 w-4" /></button>}
             </div>
@@ -450,7 +450,7 @@ export default function TasksPage() {
       </div>
 
       {/* Stat cards */}
-      <div className="mb-4 mobile:mb-5 grid grid-cols-2 gap-2 mobile:gap-4 desktop:grid-cols-5">
+      <div className="mb-4 mobile:mb-5 grid grid-cols-2 gap-2 mobile:gap-3 tablet:grid-cols-3 desktop:grid-cols-5">
         {taskSummary.map((stage) => {
           const Icon = stage.key === 'completed' ? CheckCircle2 : stage.key === 'cancelled' ? XCircle : stage.key === 'in_progress' ? PlayCircle : Circle;
           return (
@@ -610,7 +610,7 @@ export default function TasksPage() {
                     {detailTask.dueDate && <span className={`flex items-center gap-1 text-xs ${overdue ? 'font-medium text-red-500' : 'text-slate-400'}`}><Calendar className="h-3 w-3" />موعد: {formatJalali(detailTask.dueDate)}</span>}
                   </div>
                   {detailTask.description && <div className="rounded-lg border border-slate-200 bg-slate-50 p-3"><p className="whitespace-pre-wrap text-sm text-slate-600">{detailTask.description}</p></div>}
-                  <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                     {assignee && <div className="flex items-center gap-2"><Avatar className="h-7 w-7"><AvatarFallback className="bg-slate-100 text-[10px] text-slate-600">{assignee[0]}</AvatarFallback></Avatar><div><div className="text-xs text-slate-400">مسئول</div><div className="text-sm text-slate-700">{assignee}</div></div></div>}
                     {creator && <div className="flex items-center gap-2"><Avatar className="h-7 w-7"><AvatarFallback className="bg-slate-100 text-[10px] text-slate-600">{creator[0]}</AvatarFallback></Avatar><div><div className="text-xs text-slate-400">ایجادکننده</div><div className="text-sm text-slate-700">{creator}</div></div></div>}
                   </div>

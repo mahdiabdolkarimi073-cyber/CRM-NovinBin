@@ -494,7 +494,7 @@ export default function DocumentIssuancePage() {
                   {detailItem.voidReason && <div className="rounded-lg bg-rose-50 p-3"><p className="text-sm text-rose-700"><strong>دلیل ابطال: </strong>{detailItem.voidReason}</p></div>}
 
                   {/* Dates */}
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="rounded-[10px] bg-[#EFF4FF] p-3"><div className="text-xs text-[#667085]">تاریخ عملیات</div><div className="mt-1 text-sm font-bold text-[#3155E7]">{formatJalali(detailItem.operationDate)}</div></div>
                     <div className="rounded-[10px] bg-[#FEF3C7] p-3"><div className="text-xs text-[#667085]">تاریخ سند</div><div className="mt-1 text-sm font-bold text-[#92400E]">{formatJalali(detailItem.documentDate)}</div></div>
                     <div className="rounded-[10px] bg-[#DCFCE7] p-3"><div className="text-xs text-[#667085]">تاریخ صدور</div><div className="mt-1 text-sm font-bold text-[#16A34A]">{formatJalali(detailItem.issueDate)}</div></div>

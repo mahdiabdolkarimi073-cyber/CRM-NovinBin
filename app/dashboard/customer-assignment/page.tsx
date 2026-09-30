@@ -206,7 +206,7 @@ export default function CustomerAssignmentPage() {
       />
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-3 mb-4">
+      <div className="grid grid-cols-1 gap-3 mobile:grid-cols-3 mb-4">
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center">
@@ -270,6 +270,7 @@ export default function CustomerAssignmentPage() {
       ) : (
         <Card>
           <CardContent className="p-0">
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -372,6 +373,7 @@ export default function CustomerAssignmentPage() {
                 })}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
       )}

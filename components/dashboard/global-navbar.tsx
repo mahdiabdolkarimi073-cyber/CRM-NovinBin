@@ -243,17 +243,17 @@ export function GlobalNavbar({ sidebarOpen, onToggleSidebar, variant = 'dashboar
           </nav>
 
           {/* Left side: notifications + profile */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-1.5 mobile:gap-2.5">
             {/* Theme toggle */}
             <ThemeToggle />
 
             {/* Meeting notifications */}
-            <div className="relative">
+            <div className="relative hidden mobile:block">
               <MeetingBell />
             </div>
 
             {/* Task notifications */}
-            <div className="relative">
+            <div className="relative hidden mobile:block">
               <TaskBell />
             </div>
 

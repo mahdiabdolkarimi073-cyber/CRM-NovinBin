@@ -240,6 +240,7 @@ export default function StockTransfersPage() {
               </Button></Link>
             </div>
           ) : (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
@@ -334,6 +335,7 @@ export default function StockTransfersPage() {
                 })}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>

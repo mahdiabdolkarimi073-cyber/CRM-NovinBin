@@ -275,7 +275,7 @@ export default function NewMeetingPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <Label className="mb-1.5 block text-sm font-medium text-slate-700">تاریخ <span className="text-red-500">*</span></Label>
                 <div className="relative">
@@ -315,7 +315,7 @@ export default function NewMeetingPage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <Label className="mb-1.5 block text-sm font-medium text-slate-700">مکان</Label>
                 <div className="relative">
@@ -344,7 +344,7 @@ export default function NewMeetingPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <Label className="mb-1.5 block text-sm font-medium text-slate-700">شماره موبایل پرسنل (برای پیامک)</Label>
                 <div className="relative">
