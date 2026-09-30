@@ -188,7 +188,7 @@ export default function NewProcessAgentPage() {
 
   return (
     <div className="w-full" dir="rtl">
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <header className="mb-6 flex flex-col gap-4 mobile:flex-row mobile:items-center mobile:justify-between">
         <div>
           <div className="flex items-center gap-3">
             <span className="h-10 w-[5px] rounded-full bg-[#FF7A00]" />
@@ -216,7 +216,7 @@ export default function NewProcessAgentPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 tablet:grid-cols-2">
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold text-[#344054]">کد عامل <span className="text-rose-500">*</span></Label>
                     <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="مثل AG-001..." className="h-[42px] rounded-[10px] border-[#DCE3EE]" />
@@ -285,7 +285,7 @@ export default function NewProcessAgentPage() {
                           <span className="text-xs font-bold text-[#667085]">نقش {toEnglishDigits(String(i + 1))}</span>
                           <button type="button" onClick={() => removeRole(i)} className="text-rose-400 hover:text-rose-600"><Trash2 className="h-4 w-4" /></button>
                         </div>
-                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                        <div className="grid grid-cols-1 gap-2 tablet:grid-cols-2 lg:grid-cols-3">
                           <Input placeholder="عنوان نقش" value={role.roleTitle} onChange={(e) => updateRole(i, 'roleTitle', e.target.value)} className="h-[38px] rounded-[8px] border-[#DCE3EE] text-sm" />
                           <Input placeholder="کد نقش" value={role.roleCode} onChange={(e) => updateRole(i, 'roleCode', e.target.value)} className="h-[38px] rounded-[8px] border-[#DCE3EE] text-sm" />
                           <select value={role.calcMethod} onChange={(e) => updateRole(i, 'calcMethod', e.target.value)} className="h-[38px] rounded-[8px] border border-[#DCE3EE] bg-white px-2 text-sm">

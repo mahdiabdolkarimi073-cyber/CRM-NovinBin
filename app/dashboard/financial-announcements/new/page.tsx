@@ -230,7 +230,7 @@ export default function NewFinancialAnnouncementPage() {
 
   return (
     <div className="w-full" dir="rtl">
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <header className="mb-6 flex flex-col gap-4 mobile:flex-row mobile:items-center mobile:justify-between">
         <div>
           <div className="flex items-center gap-3">
             <span className="h-10 w-[5px] rounded-full bg-[#FF7A00]" />
@@ -258,7 +258,7 @@ export default function NewFinancialAnnouncementPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 tablet:grid-cols-2">
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold text-[#344054]">شماره اعلامیه</Label>
                     <Input value={number} readOnly className="h-[42px] rounded-[10px] border-[#DCE3EE] bg-slate-50" />
@@ -305,7 +305,7 @@ export default function NewFinancialAnnouncementPage() {
                   )}
                 </div>
 
-                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div className="mt-4 grid grid-cols-1 gap-4 tablet:grid-cols-3">
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold text-[#344054]">دوره مالی</Label>
                     <select value={fiscalYearId} onChange={(e) => setFiscalYearId(e.target.value)} className="h-[42px] w-full rounded-[10px] border border-[#DCE3EE] bg-white px-3 text-sm text-[#344054]">
@@ -358,7 +358,7 @@ export default function NewFinancialAnnouncementPage() {
                     <p className="text-xs text-[#98A2B3]">در صورت نیاز به کنترل مالیاتی، اطلاعات را وارد کنید.</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+                <div className="grid grid-cols-1 gap-4 tablet:grid-cols-4">
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold text-[#344054]">مبلغ مشمول</Label>
                     <Input type="number" value={taxSubjectAmount} onChange={(e) => setTaxSubjectAmount(e.target.value)} placeholder="0" className="h-[42px] rounded-[10px] border-[#DCE3EE]" />
@@ -410,7 +410,7 @@ export default function NewFinancialAnnouncementPage() {
                         <span className="text-xs font-bold text-[#667085]">تخصیص {toEnglishDigits(String(i + 1))}</span>
                         {allocations.length > 1 && <button type="button" onClick={() => removeAlloc(i)} className="text-rose-400 hover:text-rose-600"><Trash2 className="h-4 w-4" /></button>}
                       </div>
-                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                      <div className="grid grid-cols-1 gap-2 tablet:grid-cols-2 lg:grid-cols-3">
                         <select value={a.allocationType} onChange={(e) => updateAlloc(i, 'allocationType', e.target.value)} className="h-[38px] rounded-[8px] border border-[#DCE3EE] bg-white px-2 text-sm">
                           {ALLOCATION_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                         </select>

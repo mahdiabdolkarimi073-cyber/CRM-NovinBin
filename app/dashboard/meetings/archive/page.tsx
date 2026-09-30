@@ -160,7 +160,7 @@ export default function MeetingsArchivePage() {
           <span className="text-sm text-slate-400">جلسات آرشیو شده اینجا نمایش داده می‌شوند</span>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2 lg:grid-cols-3">
           {filtered.map((m) => {
             const st = statusInfo(m.status);
             return (

@@ -113,7 +113,7 @@ export default function NewCardReaderPage() {
 
   return (
     <div className="w-full" dir="rtl">
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <header className="mb-6 flex flex-col gap-4 mobile:flex-row mobile:items-center mobile:justify-between">
         <div>
           <div className="flex items-center gap-3">
             <span className="h-10 w-[5px] rounded-full bg-[#FF7A00]" />
@@ -142,7 +142,7 @@ export default function NewCardReaderPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 tablet:grid-cols-2">
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold text-[#344054]">شماره داخلی</Label>
                     <Input value={number} onChange={(e) => setNumber(e.target.value)} placeholder="CR-..." className="h-[42px] rounded-[10px] border-[#DCE3EE] bg-slate-50" readOnly />

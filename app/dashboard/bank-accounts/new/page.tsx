@@ -116,7 +116,7 @@ export default function NewBankAccountPage() {
             <div className="form-card-divider" />
 
             <div className="form-fields">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 tablet:grid-cols-2">
                 <div className="field-group">
                   <Label className="field-label">شماره حساب <span className="required-star">*</span></Label>
                   <Input value={form.accountNumber} onChange={(e) => set('accountNumber', e.target.value)} placeholder="مثال: 1234567890" className="task-input" />

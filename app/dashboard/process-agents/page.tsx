@@ -198,7 +198,7 @@ export default function ProcessAgentsPage() {
 
   return (
     <div className="w-full" dir="rtl">
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <header className="mb-6 flex flex-col gap-4 mobile:flex-row mobile:items-center mobile:justify-between">
         <div>
           <div className="flex items-center gap-3">
             <span className="h-10 w-[5px] rounded-full bg-[#FF7A00]" />
@@ -232,10 +232,10 @@ export default function ProcessAgentsPage() {
         </div>
       </div>
 
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-3 mobile:flex-row mobile:items-center mobile:justify-between">
         <div className="relative">
           <Search className="absolute right-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#98A2B3]" />
-          <Input placeholder="جستجو بر اساس کد، نام یا طرف..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-[42px] w-full rounded-[10px] border-[#DCE3EE] bg-white pr-9 text-sm sm:w-[320px]" />
+          <Input placeholder="جستجو بر اساس کد، نام یا طرف..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-[42px] w-full rounded-[10px] border-[#DCE3EE] bg-white pr-9 text-sm mobile:w-[320px]" />
         </div>
         <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="h-[42px] rounded-[10px] border border-[#DCE3EE] bg-white px-3 text-sm text-[#344054]">
           <option value="all">همه وضعیت‌ها</option>
@@ -306,7 +306,7 @@ export default function ProcessAgentsPage() {
                     <Badge style={{ backgroundColor: `${stColor}20`, color: stColor }}>{PA_STATUS[detail.status]}</Badge>
                     <Badge variant="outline" className="text-[#667085]">{AGENT_TYPE[detail.agentType] || detail.agentType}</Badge>
                   </div>
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  <div className="grid grid-cols-2 gap-3 tablet:grid-cols-3">
                     <div className="rounded-[10px] bg-[#EFF4FF] p-3"><div className="text-xs text-[#667085]">کد</div><div className="mt-1 text-sm font-bold text-[#3155E7]">{detail.code}</div></div>
                     <div className="rounded-[10px] bg-[#F1F5F9] p-3"><div className="text-xs text-[#667085]">نام</div><div className="mt-1 text-sm font-bold text-[#344054]">{detail.name}</div></div>
                     <div className="rounded-[10px] bg-[#F1F5F9] p-3"><div className="text-xs text-[#667085]">طرف حساب</div><div className="mt-1 text-sm font-bold text-[#344054]">{contactName(detail.contactPartyId, detail.contactName)}</div></div>

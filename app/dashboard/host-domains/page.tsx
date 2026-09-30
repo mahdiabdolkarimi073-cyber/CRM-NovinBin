@@ -160,7 +160,7 @@ export default function HostDomainsPage() {
         </header>
 
         {/* Renewal Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+        <div className="grid grid-cols-1 tablet:grid-cols-3 gap-3 mb-4">
           {tabs.map((tab) => {
             const TabIcon = tab.icon;
             return (

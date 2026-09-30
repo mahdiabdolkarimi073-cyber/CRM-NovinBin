@@ -88,7 +88,7 @@ export default function BankAccountsPage() {
 
   return (
     <div className="w-full" dir="rtl">
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <header className="mb-6 flex flex-col gap-4 mobile:flex-row mobile:items-center mobile:justify-between">
         <div>
           <div className="flex items-center gap-3">
             <span className="h-10 w-[5px] rounded-full bg-[#FF7A00]" />
@@ -124,10 +124,10 @@ export default function BankAccountsPage() {
         </div>
       </div>
 
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-3 mobile:flex-row mobile:items-center mobile:justify-between">
         <div className="relative">
           <Search className="absolute right-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#98A2B3]" />
-          <Input placeholder="جستجوی شماره حساب، بانک، کارت..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-[42px] w-full rounded-[10px] border-[#DCE3EE] bg-white pr-9 text-sm sm:w-[320px]" />
+          <Input placeholder="جستجوی شماره حساب، بانک، کارت..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-[42px] w-full rounded-[10px] border-[#DCE3EE] bg-white pr-9 text-sm mobile:w-[320px]" />
         </div>
         <div className="flex items-center gap-2">
           <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="h-[42px] rounded-[10px] border border-[#DCE3EE] bg-white px-3 text-sm text-[#344054]">

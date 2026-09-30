@@ -167,7 +167,7 @@ export default function CallsPage() {
       />
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
+      <div className="flex flex-col mobile:flex-row gap-3 mb-4">
         <div className="relative flex-1">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input
@@ -179,7 +179,7 @@ export default function CallsPage() {
           />
         </div>
         <Select value={filterSource} onValueChange={setFilterSource}>
-          <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-full mobile:w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">همه منابع</SelectItem>
             <SelectItem value="phone">تلفنی</SelectItem>
@@ -188,7 +188,7 @@ export default function CallsPage() {
           </SelectContent>
         </Select>
         <Select value={filterDirection} onValueChange={setFilterDirection}>
-          <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-full mobile:w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">همه جهت‌ها</SelectItem>
             <SelectItem value="incoming">وارد</SelectItem>
@@ -196,7 +196,7 @@ export default function CallsPage() {
           </SelectContent>
         </Select>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-full sm:w-44"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-full mobile:w-44"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">همه وضعیت‌ها</SelectItem>
             <SelectItem value="answered">پاسخ داده شد</SelectItem>

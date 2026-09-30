@@ -239,7 +239,7 @@ export default function FinancialAnnouncementsPage() {
 
   return (
     <div className="w-full" dir="rtl">
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <header className="mb-6 flex flex-col gap-4 mobile:flex-row mobile:items-center mobile:justify-between">
         <div>
           <div className="flex items-center gap-3">
             <span className="h-10 w-[5px] rounded-full bg-[#FF7A00]" />
@@ -281,10 +281,10 @@ export default function FinancialAnnouncementsPage() {
         </div>
       </div>
 
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-3 mobile:flex-row mobile:items-center mobile:justify-between">
         <div className="relative">
           <Search className="absolute right-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#98A2B3]" />
-          <Input placeholder="جستجو بر اساس شماره یا طرف حساب..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-[42px] w-full rounded-[10px] border-[#DCE3EE] bg-white pr-9 text-sm sm:w-[320px]" />
+          <Input placeholder="جستجو بر اساس شماره یا طرف حساب..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-[42px] w-full rounded-[10px] border-[#DCE3EE] bg-white pr-9 text-sm mobile:w-[320px]" />
         </div>
         <div className="flex gap-2">
           <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="h-[42px] rounded-[10px] border border-[#DCE3EE] bg-white px-3 text-sm text-[#344054]">
@@ -367,7 +367,7 @@ export default function FinancialAnnouncementsPage() {
                     <Badge style={{ backgroundColor: `${stColor}20`, color: stColor }}>{FA_STATUS[detail.status]}</Badge>
                     {detail.sourceDocType && <Badge variant="outline" className="text-[#667085]">{SOURCE_DOC_TYPE[detail.sourceDocType] || detail.sourceDocType}</Badge>}
                   </div>
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  <div className="grid grid-cols-2 gap-3 tablet:grid-cols-3">
                     <div className="rounded-[10px] bg-[#EFF4FF] p-3"><div className="text-xs text-[#667085]">شماره</div><div className="mt-1 text-sm font-bold text-[#3155E7]">{detail.number}</div></div>
                     <div className="rounded-[10px] bg-[#F1F5F9] p-3"><div className="text-xs text-[#667085]">طرف حساب</div><div className="mt-1 text-sm font-bold text-[#344054]">{detail.contactPartyName || '—'}</div></div>
                     <div className="rounded-[10px] bg-[#DCFCE7] p-3"><div className="text-xs text-[#667085]">تاریخ عملیات</div><div className="mt-1 text-sm font-bold text-[#16A34A]">{formatJalali(detail.operationDate)}</div></div>
@@ -385,7 +385,7 @@ export default function FinancialAnnouncementsPage() {
                   {detail.description && <div className="rounded-lg border border-slate-200 bg-slate-50 p-3"><p className="whitespace-pre-wrap text-sm text-slate-600">{detail.description}</p></div>}
 
                   {detail.taxAmount > 0 && (
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <div className="grid grid-cols-2 gap-3 tablet:grid-cols-4">
                       <div className="rounded-[10px] bg-[#F1F5F9] p-3"><div className="text-xs text-[#667085]">مبلغ مشمول</div><div className="mt-1 text-sm font-bold text-[#344054]">{formatToman(Number(detail.taxSubjectAmount))}</div></div>
                       <div className="rounded-[10px] bg-[#F1F5F9] p-3"><div className="text-xs text-[#667085]">نرخ مالیات</div><div className="mt-1 text-sm font-bold text-[#344054]">{toPct(Number(detail.taxRate))}</div></div>
                       <div className="rounded-[10px] bg-rose-50 p-3"><div className="text-xs text-[#667085]">مبلغ مالیات</div><div className="mt-1 text-sm font-bold text-rose-600">{formatToman(Number(detail.taxAmount))}</div></div>

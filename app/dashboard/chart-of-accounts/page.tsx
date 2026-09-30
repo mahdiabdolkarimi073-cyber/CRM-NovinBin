@@ -144,7 +144,7 @@ export default function ChartOfAccountsPage() {
           )}
 
           {hasChildren && (
-            <span className="hidden shrink-0 items-center gap-1 text-xs text-[#98A2B3] sm:flex">
+            <span className="hidden shrink-0 items-center gap-1 text-xs text-[#98A2B3] mobile:flex">
               <Layers className="h-3.5 w-3.5" />
               {children.length.toLocaleString('fa-IR')}
             </span>
@@ -181,7 +181,7 @@ export default function ChartOfAccountsPage() {
   return (
     <div className="w-full" dir="rtl">
       {/* Header */}
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <header className="mb-6 flex flex-col gap-4 mobile:flex-row mobile:items-center mobile:justify-between">
         <div>
           <div className="flex items-center gap-3">
             <span className="h-10 w-[5px] rounded-full bg-[#FF7A00]" />
@@ -199,7 +199,7 @@ export default function ChartOfAccountsPage() {
       </header>
 
       {/* Stat cards */}
-      <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="mb-5 grid grid-cols-1 gap-4 tablet:grid-cols-3">
         <div className="flex min-h-[120px] flex-col justify-between rounded-[14px] border border-[#E7ECF3] bg-white p-5 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
           <div className="flex items-center justify-between">
             <span className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#FF7A00]/10 text-[#FF7A00]"><Network className="h-5 w-5" strokeWidth={2.5} /></span>
@@ -230,14 +230,14 @@ export default function ChartOfAccountsPage() {
       </div>
 
       {/* Main */}
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-3 mobile:flex-row mobile:items-center mobile:justify-between">
         <div className="relative">
           <Search className="absolute right-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#98A2B3]" />
           <Input
             placeholder="جستجوی حساب..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-[42px] w-full rounded-[10px] border-[#DCE3EE] bg-white pr-9 text-sm sm:w-[300px]"
+            className="h-[42px] w-full rounded-[10px] border-[#DCE3EE] bg-white pr-9 text-sm mobile:w-[300px]"
           />
         </div>
       </div>

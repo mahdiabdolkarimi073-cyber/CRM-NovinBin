@@ -192,7 +192,7 @@ export default function NewPreInvoiceSalesPage() {
 
   return (
     <div className="w-full" dir="rtl">
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <header className="mb-6 flex flex-col gap-4 mobile:flex-row mobile:items-center mobile:justify-between">
         <div>
           <div className="flex items-center gap-3">
             <span className="h-10 w-[5px] rounded-full bg-[#FF7A00]" />
@@ -220,7 +220,7 @@ export default function NewPreInvoiceSalesPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 tablet:grid-cols-2">
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold text-[#344054]">شماره پیش‌فاکتور</Label>
                     <Input value={number} readOnly className="h-[42px] rounded-[10px] border-[#DCE3EE] bg-slate-50" />
@@ -279,7 +279,7 @@ export default function NewPreInvoiceSalesPage() {
                           <span className="text-xs font-bold text-[#667085]">قلم {toEnglishDigits(String(i + 1))}</span>
                           {items.length > 1 && <button type="button" onClick={() => removeItem(i)} className="text-rose-400 hover:text-rose-600"><Trash2 className="h-4 w-4" /></button>}
                         </div>
-                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                        <div className="grid grid-cols-1 gap-2 tablet:grid-cols-2 lg:grid-cols-3">
                           <select value={item.productId} onChange={(e) => updateItem(i, 'productId', e.target.value)} className="h-[38px] rounded-[8px] border border-[#DCE3EE] bg-white px-2 text-sm">
                             <option value="">انتخاب محصول...</option>
                             {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}

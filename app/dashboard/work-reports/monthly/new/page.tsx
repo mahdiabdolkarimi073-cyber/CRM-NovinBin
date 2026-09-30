@@ -181,11 +181,11 @@ export default function NewMonthlyReportPage() {
   return (
     <div className="w-full" dir="rtl">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-4 mobile:flex-row mobile:items-start mobile:justify-between">
         <div>
           <div className="flex items-center gap-2.5">
             <div className="h-[30px] w-[5px] rounded-[4px] bg-[#F97316]" />
-            <h1 className="text-[24px] font-bold leading-tight text-[#0F172A] sm:text-[32px]">
+            <h1 className="text-[24px] font-bold leading-tight text-[#0F172A] mobile:text-[28px] tablet:text-[32px]">
               ایجاد گزارش کار ماهانه
             </h1>
           </div>
@@ -196,7 +196,7 @@ export default function NewMonthlyReportPage() {
         <Link href="/dashboard/work-reports/monthly">
           <Button
             variant="outline"
-            className="h-[52px] w-full rounded-[10px] border-[#D6E0EC] bg-white text-[#0F172A] shadow-sm sm:w-[215px]"
+            className="h-[52px] w-full rounded-[10px] border-[#D6E0EC] bg-white text-[#0F172A] shadow-sm mobile:w-[215px]"
           >
             <ArrowRight className="h-4 w-4" />
             بازگشت به گزارش‌ها
@@ -207,7 +207,7 @@ export default function NewMonthlyReportPage() {
       {/* Two-column layout */}
       <div className="mt-8 grid grid-cols-1 gap-7 lg:grid-cols-[2fr_0.9fr]">
         {/* Form column */}
-        <div className="rounded-[14px] border border-[#DCE4EF] bg-white p-5 shadow-[0_4px_18px_rgba(15,23,42,0.05)] sm:p-7">
+        <div className="rounded-[14px] border border-[#DCE4EF] bg-white p-5 shadow-[0_4px_18px_rgba(15,23,42,0.05)] mobile:p-7">
           {/* Form header */}
           <div className="mb-6">
             <div className="flex items-center gap-2">
@@ -224,7 +224,7 @@ export default function NewMonthlyReportPage() {
             </div>
 
             {/* Full Name + National ID */}
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-5 tablet:grid-cols-2">
               <div>
                 <Label className="mb-2 block text-[14px] font-semibold text-[#172033]">
                   نام و نام خانوادگی <span className="text-[#DC2626]">*</span>
@@ -253,7 +253,7 @@ export default function NewMonthlyReportPage() {
             </div>
 
             {/* Start Date + End Date */}
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-5 tablet:grid-cols-2">
               <div>
                 <Label className="mb-2 block text-[14px] font-semibold text-[#172033]">
                   تاریخ شروع <span className="text-[#DC2626]">*</span>
@@ -277,7 +277,7 @@ export default function NewMonthlyReportPage() {
             </div>
 
             {/* Report Year + Report Month */}
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-5 tablet:grid-cols-2">
               <div>
                 <Label className="mb-2 block text-[14px] font-semibold text-[#172033]">
                   سال گزارش (اختیاری)
@@ -311,7 +311,7 @@ export default function NewMonthlyReportPage() {
             </div>
 
             {/* Project + Report Date */}
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-5 tablet:grid-cols-2">
               <div>
                 <Label className="mb-2 block text-[14px] font-semibold text-[#172033]">
                   پروژه / فعالیت مرتبط (اختیاری)
@@ -449,12 +449,12 @@ export default function NewMonthlyReportPage() {
               <Button
                 type="submit"
                 disabled={saving}
-                className="h-[52px] w-[60%] rounded-[10px] bg-[#102A68] text-[14px] font-bold text-white transition-all hover:bg-[#1a3a7a] hover:shadow-md sm:w-[175px]"
+                className="h-[52px] w-[60%] rounded-[10px] bg-[#102A68] text-[14px] font-bold text-white transition-all hover:bg-[#1a3a7a] hover:shadow-md mobile:w-[175px]"
               >
                 <Save className="h-4 w-4" />
                 {saving ? 'در حال ذخیره...' : 'ذخیره گزارش'}
               </Button>
-              <Link href="/dashboard/work-reports/monthly" className="w-[40%] sm:w-[110px]">
+              <Link href="/dashboard/work-reports/monthly" className="w-[40%] mobile:w-[110px]">
                 <Button
                   type="button"
                   variant="outline"
@@ -470,7 +470,7 @@ export default function NewMonthlyReportPage() {
         {/* Guide column */}
         <div className="space-y-5">
           {/* Guide card */}
-          <div className="rounded-[14px] border border-[#DCE4EF] bg-white p-5 shadow-sm sm:p-7">
+          <div className="rounded-[14px] border border-[#DCE4EF] bg-white p-5 shadow-sm mobile:p-7">
             <div className="mb-6 flex items-center gap-2">
               <HelpCircle className="h-5 w-5 text-[#2563EB]" />
               <h3 className="text-[20px] font-bold text-[#0F172A]">راهنما و نکات</h3>
@@ -491,7 +491,7 @@ export default function NewMonthlyReportPage() {
           </div>
 
           {/* Info card */}
-          <div className="rounded-[12px] border border-[#BFDBFE] bg-[#EFF6FF] p-5 sm:p-6">
+          <div className="rounded-[12px] border border-[#BFDBFE] bg-[#EFF6FF] p-5 mobile:p-6">
             <div className="mb-3 flex items-center gap-2">
               <Info className="h-5 w-5 text-[#2563EB]" />
               <h4 className="text-[14px] font-bold text-[#2563EB]">اطلاعات مفید</h4>

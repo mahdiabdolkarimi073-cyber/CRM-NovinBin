@@ -252,7 +252,7 @@ export default function NotesPage() {
       </section>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="mobile:max-w-[500px]">
           <DialogHeader><DialogTitle>{editingNote ? 'ویرایش یادداشت' : 'یادداشت جدید'}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div><label className="mb-1.5 block text-sm font-medium">عنوان</label><Input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="عنوان یادداشت" /></div>

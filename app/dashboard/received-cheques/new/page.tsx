@@ -145,7 +145,7 @@ export default function NewReceivedChequePage() {
 
   return (
     <div className="w-full" dir="rtl">
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <header className="mb-6 flex flex-col gap-4 mobile:flex-row mobile:items-center mobile:justify-between">
         <div>
           <div className="flex items-center gap-3">
             <span className="h-10 w-[5px] rounded-full bg-[#FF7A00]" />
@@ -174,7 +174,7 @@ export default function NewReceivedChequePage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 tablet:grid-cols-2">
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold text-[#344054]">شماره چک <span className="text-rose-500">*</span></Label>
                     <div className="relative">
@@ -254,7 +254,7 @@ export default function NewReceivedChequePage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 tablet:grid-cols-2">
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold text-[#344054]">صادرکننده (طرف حساب)</Label>
                     <Select value={issuerPartyId} onValueChange={setIssuerPartyId}>
@@ -293,7 +293,7 @@ export default function NewReceivedChequePage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 tablet:grid-cols-2">
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold text-[#344054]">صندوق نقدی</Label>
                     <Select value={cashFundId || '__none__'} onValueChange={(v) => setCashFundId(v === '__none__' ? '' : v)}>

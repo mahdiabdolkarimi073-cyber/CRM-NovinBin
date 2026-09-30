@@ -129,7 +129,7 @@ export default function AccountDetailPage() {
           {isLeaf && (
             <Badge variant="outline" style={{ color: NATURE_COLORS[acc.nature], borderColor: `${NATURE_COLORS[acc.nature]}35`, backgroundColor: `${NATURE_COLORS[acc.nature]}10` }} className="shrink-0 text-xs">{NATURE_LABELS[acc.nature]}</Badge>
           )}
-          {hasChildren && <span className="hidden shrink-0 items-center gap-1 text-xs text-[#98A2B3] sm:flex"><Layers className="h-3.5 w-3.5" />{kids.length.toLocaleString('fa-IR')}</span>}
+          {hasChildren && <span className="hidden shrink-0 items-center gap-1 text-xs text-[#98A2B3] mobile:flex"><Layers className="h-3.5 w-3.5" />{kids.length.toLocaleString('fa-IR')}</span>}
           {acc.level < 3 && (
             <Link href={`/dashboard/chart-of-accounts/${acc.id}/new`} onClick={(e) => e.stopPropagation()} className="flex h-8 shrink-0 items-center gap-1 rounded-lg border border-[#DCE3EE] bg-white px-3 text-xs font-semibold text-[#344054] transition-colors hover:bg-[#FAFBFF]">
               <Plus className="h-3.5 w-3.5" /> زیرمجموعه
@@ -165,7 +165,7 @@ export default function AccountDetailPage() {
   return (
     <div className="w-full" dir="rtl">
       {/* Header */}
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <header className="mb-6 flex flex-col gap-4 mobile:flex-row mobile:items-center mobile:justify-between">
         <div>
           <div className="flex items-center gap-3">
             <span className="h-10 w-[5px] rounded-full bg-[#FF7A00]" />

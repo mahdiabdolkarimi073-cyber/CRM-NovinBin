@@ -94,23 +94,23 @@ export default function NewJournalPage() {
 
   return (
     <div className="w-full" dir="rtl">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-4 mobile:flex-row mobile:items-start mobile:justify-between">
         <div>
           <div className="flex items-center gap-2.5">
             <div className="h-[30px] w-[5px] rounded-[4px] bg-[#F97316]" />
-            <h1 className="text-[24px] font-bold leading-tight text-[#0F172A] sm:text-[32px]">ثبت سند حسابداری</h1>
+            <h1 className="text-[24px] font-bold leading-tight text-[#0F172A] mobile:text-[28px] tablet:text-[32px]">ثبت سند حسابداری</h1>
           </div>
           <p className="mt-2 text-[14px] text-[#64748B]">سند حسابداری جدید با سطرهای بدهکار و بستانکار ثبت کنید</p>
         </div>
         <Link href="/dashboard/accounting">
-          <Button variant="outline" className="h-[52px] w-full rounded-[10px] border-[#D6E0EC] bg-white text-[#0F172A] shadow-sm sm:w-[215px]">
+          <Button variant="outline" className="h-[52px] w-full rounded-[10px] border-[#D6E0EC] bg-white text-[#0F172A] shadow-sm mobile:w-[215px]">
             <ArrowRight className="h-4 w-4" /> بازگشت به حسابداری
           </Button>
         </Link>
       </div>
 
       <div className="mt-8 grid grid-cols-1 gap-7 lg:grid-cols-[2fr_0.9fr]">
-        <div className="rounded-[14px] border border-[#DCE4EF] bg-white p-5 shadow-[0_4px_18px_rgba(15,23,42,0.05)] sm:p-7">
+        <div className="rounded-[14px] border border-[#DCE4EF] bg-white p-5 shadow-[0_4px_18px_rgba(15,23,42,0.05)] mobile:p-7">
           <div className="mb-6">
             <div className="flex items-center gap-2">
               <FileText className="h-[21px] w-[21px] text-[#2563EB]" />
@@ -120,16 +120,16 @@ export default function NewJournalPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-              <div className="sm:col-span-1">
+            <div className="grid grid-cols-1 gap-5 tablet:grid-cols-3">
+              <div className="tablet:col-span-1">
                 <Label className="mb-2 block text-[14px] font-semibold text-[#172033]">توضیحات</Label>
                 <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="شرح سند..." className="h-[50px] rounded-[10px] border-[#D4DEEA] text-[14px] focus:border-[#2563EB] focus:shadow-[0_0_0_3px_rgba(37,99,235,0.10)]" />
               </div>
-              <div className="sm:col-span-1">
+              <div className="tablet:col-span-1">
                 <Label className="mb-2 block text-[14px] font-semibold text-[#172033]">تاریخ سند</Label>
                 <JalaliDatePicker value={form.date ? new Date(form.date) : null} onChange={(d) => setForm({ ...form, date: d ? toLocalDateString(d) : '' })} className="h-[50px] rounded-[10px] border-[#D4DEEA] text-[14px] focus:border-[#2563EB]" />
               </div>
-              <div className="sm:col-span-1">
+              <div className="tablet:col-span-1">
                 <Label className="mb-2 block text-[14px] font-semibold text-[#172033]">مرکز هزینه</Label>
                 <Select value={form.costCenterId || 'none'} onValueChange={(v) => setForm({ ...form, costCenterId: v === 'none' ? '' : v })}>
                   <SelectTrigger className="h-[50px] rounded-[10px] border-[#D4DEEA] text-[14px]"><SelectValue placeholder="—" /></SelectTrigger>
@@ -149,15 +149,15 @@ export default function NewJournalPage() {
               <div className="space-y-2.5">
                 {form.lines.map((line, i) => (
                   <div key={i} className="grid grid-cols-12 gap-2 items-center">
-                    <div className="col-span-12 sm:col-span-5">
+                    <div className="col-span-12 tablet:col-span-5">
                       <Select value={line.accountId} onValueChange={(v) => updateLine(i, 'accountId', v)}>
                         <SelectTrigger className="h-[42px] rounded-[10px] border-[#D4DEEA] text-[13px]"><SelectValue placeholder="انتخاب حساب..." /></SelectTrigger>
                         <SelectContent>{accounts.filter((a) => !a.isGroup).map((a) => <SelectItem key={a.id} value={a.id}>{a.code} - {a.name}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
-                    <Input className="col-span-4 sm:col-span-2 h-[42px] rounded-[10px] border-[#D4DEEA] text-left text-[13px]" dir="ltr" placeholder="بدهکار" value={line.debit} onChange={(e) => updateLine(i, 'debit', e.target.value)} />
-                    <Input className="col-span-4 sm:col-span-2 h-[42px] rounded-[10px] border-[#D4DEEA] text-left text-[13px]" dir="ltr" placeholder="بستانکار" value={line.credit} onChange={(e) => updateLine(i, 'credit', e.target.value)} />
-                    <Input className="col-span-3 sm:col-span-2 h-[42px] rounded-[10px] border-[#D4DEEA] text-[13px]" placeholder="شرح" value={line.description} onChange={(e) => updateLine(i, 'description', e.target.value)} />
+                    <Input className="col-span-4 tablet:col-span-2 h-[42px] rounded-[10px] border-[#D4DEEA] text-left text-[13px]" dir="ltr" placeholder="بدهکار" value={line.debit} onChange={(e) => updateLine(i, 'debit', e.target.value)} />
+                    <Input className="col-span-4 tablet:col-span-2 h-[42px] rounded-[10px] border-[#D4DEEA] text-left text-[13px]" dir="ltr" placeholder="بستانکار" value={line.credit} onChange={(e) => updateLine(i, 'credit', e.target.value)} />
+                    <Input className="col-span-3 tablet:col-span-2 h-[42px] rounded-[10px] border-[#D4DEEA] text-[13px]" placeholder="شرح" value={line.description} onChange={(e) => updateLine(i, 'description', e.target.value)} />
                     <Button type="button" size="sm" variant="ghost" className="col-span-1 h-[42px] hover:bg-red-50" onClick={() => removeLine(i)} disabled={form.lines.length <= 1}><Trash2 className="h-4 w-4 text-red-500" /></Button>
                   </div>
                 ))}
@@ -171,10 +171,10 @@ export default function NewJournalPage() {
             </div>
 
             <div className="flex flex-row gap-3.5 pt-2">
-              <Button type="submit" disabled={submitting} className="h-[52px] w-[60%] rounded-[10px] bg-[#102A68] text-[14px] font-bold text-white transition-all hover:bg-[#1a3a7a] hover:shadow-md sm:w-[175px]">
+              <Button type="submit" disabled={submitting} className="h-[52px] w-[60%] rounded-[10px] bg-[#102A68] text-[14px] font-bold text-white transition-all hover:bg-[#1a3a7a] hover:shadow-md mobile:w-[175px]">
                 {submitting ? (<><Loader2 className="h-4 w-4 animate-spin" /> در حال ثبت...</>) : 'ثبت سند'}
               </Button>
-              <Link href="/dashboard/accounting" className="w-[40%] sm:w-[110px]">
+              <Link href="/dashboard/accounting" className="w-[40%] mobile:w-[110px]">
                 <Button type="button" variant="outline" className="h-[52px] w-full rounded-[10px] border-[#D4DEEA] bg-white text-[14px] font-medium text-[#172033]">انصراف</Button>
               </Link>
             </div>
@@ -182,7 +182,7 @@ export default function NewJournalPage() {
         </div>
 
         <div className="space-y-5">
-          <div className="rounded-[14px] border border-[#DCE4EF] bg-white p-5 shadow-sm sm:p-7">
+          <div className="rounded-[14px] border border-[#DCE4EF] bg-white p-5 shadow-sm mobile:p-7">
             <div className="mb-6 flex items-center gap-2">
               <Lightbulb className="h-5 w-5 text-[#2563EB]" />
               <h3 className="text-[20px] font-bold text-[#0F172A]">راهنما و نکات</h3>
@@ -201,7 +201,7 @@ export default function NewJournalPage() {
               ))}
             </div>
           </div>
-          <div className="rounded-[12px] border border-[#BFDBFE] bg-[#EFF6FF] p-5 sm:p-6">
+          <div className="rounded-[12px] border border-[#BFDBFE] bg-[#EFF6FF] p-5 mobile:p-6">
             <div className="mb-3 flex items-center gap-2">
               <Info className="h-5 w-5 text-[#2563EB]" />
               <h4 className="text-[14px] font-bold text-[#2563EB]">اطلاعات مفید</h4>

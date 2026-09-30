@@ -271,7 +271,7 @@ export default function NewCardReaderSettlementPage() {
 
   return (
     <div className="w-full" dir="rtl">
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <header className="mb-6 flex flex-col gap-4 mobile:flex-row mobile:items-center mobile:justify-between">
         <div>
           <div className="flex items-center gap-3">
             <span className="h-10 w-[5px] rounded-full bg-[#FF7A00]" />
@@ -324,7 +324,7 @@ export default function NewCardReaderSettlementPage() {
                 </div>
 
                 {selectedReader && (
-                  <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  <div className="mt-4 grid grid-cols-2 gap-3 tablet:grid-cols-3">
                     <div className="rounded-[10px] bg-[#EFF4FF] p-3"><div className="text-xs text-[#667085]">بانک</div><div className="mt-1 text-sm font-bold text-[#3155E7]">{selectedReader.bankName}</div></div>
                     <div className="rounded-[10px] bg-[#F1F5F9] p-3"><div className="text-xs text-[#667085]">TID</div><div className="mt-1 text-sm font-bold text-[#344054]">{selectedReader.tid}</div></div>
                     <div className="rounded-[10px] bg-[#F1F5F9] p-3"><div className="text-xs text-[#667085]">MID</div><div className="mt-1 text-sm font-bold text-[#344054]">{selectedReader.mid}</div></div>
@@ -347,7 +347,7 @@ export default function NewCardReaderSettlementPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 tablet:grid-cols-2">
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold text-[#344054]">تاریخ تسویه <span className="text-rose-500">*</span></Label>
                     <Input type="date" value={settlementDate} onChange={(e) => setSettlementDate(e.target.value)} className="h-[42px] rounded-[10px] border-[#DCE3EE]" />
@@ -358,7 +358,7 @@ export default function NewCardReaderSettlementPage() {
                     <Input type="date" value={upToDate} onChange={(e) => setUpToDate(e.target.value)} className="h-[42px] rounded-[10px] border-[#DCE3EE]" />
                     <p className="text-[10px] text-[#98A2B3]">تراکنش‌های تا این تاریخ استخراج می‌شوند. خالی = همه.</p>
                   </div>
-                  <div className="space-y-2 sm:col-span-2">
+                  <div className="space-y-2 tablet:col-span-2">
                     <Label className="text-sm font-semibold text-[#344054]">حساب بانکی مقصد <span className="text-rose-500">*</span></Label>
                     <select value={bankAccountId} onChange={(e) => setBankAccountId(e.target.value)} className="h-[42px] w-full rounded-[10px] border border-[#DCE3EE] bg-white px-3 text-sm text-[#344054]">
                       <option value="">انتخاب حساب...</option>
@@ -440,7 +440,7 @@ export default function NewCardReaderSettlementPage() {
                     </div>
 
                     {/* Totals */}
-                    <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <div className="mt-4 grid grid-cols-2 gap-3 tablet:grid-cols-4">
                       <div className="rounded-[10px] bg-[#EFF4FF] p-3"><div className="text-xs text-[#667085]">تعداد انتخاب‌شده</div><div className="mt-1 text-sm font-bold text-[#3155E7]">{totals.count.toLocaleString('fa-IR')}</div></div>
                       <div className="rounded-[10px] bg-[#FEF3C7] p-3"><div className="text-xs text-[#667085]">ناخالص</div><div className="mt-1 text-sm font-bold text-[#92400E]">{formatToman(totals.gross)}</div></div>
                       <div className="rounded-[10px] bg-[#F1F5F9] p-3"><div className="text-xs text-[#667085]">کسورات</div><div className="mt-1 text-sm font-bold text-[#344054]">{formatToman(totals.commission + totals.deductions)}</div></div>

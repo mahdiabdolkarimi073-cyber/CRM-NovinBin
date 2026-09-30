@@ -253,7 +253,7 @@ export default function NewDocumentIssuancePage() {
 
   return (
     <div className="w-full" dir="rtl">
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <header className="mb-6 flex flex-col gap-4 mobile:flex-row mobile:items-center mobile:justify-between">
         <div>
           <div className="flex items-center gap-3">
             <span className="h-10 w-[5px] rounded-full bg-[#FF7A00]" />
@@ -283,7 +283,7 @@ export default function NewDocumentIssuancePage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 tablet:grid-cols-2">
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold text-[#344054]">نوع سند مبنا <span className="text-rose-500">*</span></Label>
                     <Select value={referenceType} onValueChange={setReferenceType}>
@@ -333,7 +333,7 @@ export default function NewDocumentIssuancePage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 tablet:grid-cols-2">
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold text-[#344054]">تاریخ عملیات <span className="text-rose-500">*</span></Label>
                     <div className="flex h-[42px] items-center gap-2 rounded-[10px] border border-[#DCE3EE] bg-white px-3">
@@ -412,7 +412,7 @@ export default function NewDocumentIssuancePage() {
                         <span className="flex items-center gap-1 text-xs font-semibold text-[#98A2B3]"><Hash className="h-3 w-3" /> ردیف {(idx + 1).toLocaleString('fa-IR')}</span>
                         <button type="button" onClick={() => removeLine(idx)} className="text-[#98A2B3] transition-colors hover:text-rose-500"><Trash2 className="h-4 w-4" /></button>
                       </div>
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                      <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2 lg:grid-cols-4">
                         <div className="space-y-1">
                           <Label className="text-[11px] text-[#98A2B3]">حساب</Label>
                           <Select value={line.accountId} onValueChange={(v) => updateLine(idx, 'accountId', v)}>

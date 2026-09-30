@@ -53,7 +53,7 @@ const textQuestions = [
 const ratingLabels: Record<number, string> = { 1: 'خیلی زیاد', 2: 'زیاد', 3: 'متوسط', 4: 'کم', 5: 'خیلی کم' };
 
 function InfoCard({ title, children }: { title: string; children: React.ReactNode }) {
-  return <Card className="border-[#E7ECF3] shadow-[0_3px_14px_rgba(20,40,80,.05)]"><CardContent className="p-5 sm:p-7"><div className="mb-5 flex items-center gap-3 border-b border-slate-100 pb-4"><h2 className="text-lg font-bold text-[#101828]">{title}</h2></div>{children}</CardContent></Card>;
+  return <Card className="border-[#E7ECF3] shadow-[0_3px_14px_rgba(20,40,80,.05)]"><CardContent className="p-5 mobile:p-7"><div className="mb-5 flex items-center gap-3 border-b border-slate-100 pb-4"><h2 className="text-lg font-bold text-[#101828]">{title}</h2></div>{children}</CardContent></Card>;
 }
 
 function InfoRow({ label, value }: { label: string; value?: string | null }) {
@@ -97,7 +97,7 @@ export default function EmploymentApplicationDetailPage() {
       <div className="space-y-5">
         {/* Step 1: Personal Info */}
         <InfoCard title="اطلاعات شخصی (مرحله اول)">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 tablet:grid-cols-2 lg:grid-cols-3">
             <InfoRow label="نام و نام خانوادگی" value={d.fullName} />
             <InfoRow label="نام پدر" value={d.fatherName} />
             <InfoRow label="شماره ملی" value={d.nationalId} />

@@ -422,7 +422,7 @@ export default function MeetingDetailPage() {
                 <span className="text-xs text-slate-300">می‌توانید چند تصویر را همزمان انتخاب کنید</span>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div className="grid grid-cols-2 gap-3 tablet:grid-cols-3">
                 {images.map((img) => (
                   <div
                     key={img.id}

@@ -243,7 +243,7 @@ export default function MyCustomersPage() {
       />
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
+      <div className="flex flex-col mobile:flex-row gap-3 mb-4">
         <div className="relative flex-1">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input
@@ -255,7 +255,7 @@ export default function MyCustomersPage() {
         </div>
         {isSuperAdmin && (
           <Select value={filterUser} onValueChange={setFilterUser}>
-            <SelectTrigger className="w-full sm:w-48">
+            <SelectTrigger className="w-full mobile:w-48">
               <SelectValue placeholder="همه کاربران" />
             </SelectTrigger>
             <SelectContent>
