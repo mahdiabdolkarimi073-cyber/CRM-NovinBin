@@ -24,6 +24,8 @@ import {
 import { formatToman, relativeTime } from '@/lib/format';
 import { fullName, CUSTOMER_LEVELS, tomanShort } from '@/lib/constants';
 import { toast } from 'sonner';
+import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 import type { Customer, LoyaltyTransaction } from '@/lib/types';
 
 interface LoyaltyReward {
@@ -195,7 +197,12 @@ export default function LoyaltyPage() {
 
   return (
     <div>
-      <PageHeader title="باشگاه مشتریان" description="مدیریت امتیازات، سطح مشتریان، کیف پول و جوایز" />
+      <PageHeader title="باشگاه مشتریان" description="مدیریت امتیازات، سطح مشتریان، کیف پول و جوایز" action={
+        <Link href="/dashboard" className="social-back-to-crm">
+          <ArrowRight className="h-4 w-4" />
+          بازگشت به داشبورد
+        </Link>
+      } />
 
       {/* Summary */}
       <div className="grid grid-cols-2 mobile:grid-cols-2 tablet:grid-cols-4 gap-3 mobile:gap-4 mb-6">

@@ -38,7 +38,7 @@ function formatRecordTime(s: number) {
 export default function PortalSocialPage() {
   const { profile } = useAuth();
   const { startCall: startCallFromHook } = useCall();
-  const [tab, setTab] = useState<Tab>('dm');
+  const [tab, setTab] = useState<Tab>('folders');
 
   const [folders, setFolders] = useState<CustomerSocialFolder[]>([]);
   const [folderStaffMap, setFolderStaffMap] = useState<Record<string, Profile[]>>({});
@@ -79,7 +79,7 @@ export default function PortalSocialPage() {
     return ((u.firstName?.[0] || '') + (u.lastName?.[0] || '')).toUpperCase() || '؟';
   }, []);
 
-  // Load ALL folders and ALL staff — customer sees every folder and every staff member
+  // Load all folders and their staff — customer sees folders instead of a flat member list
   const loadFoldersAndStaff = useCallback(async () => {
     if (!profile) return;
     try {
