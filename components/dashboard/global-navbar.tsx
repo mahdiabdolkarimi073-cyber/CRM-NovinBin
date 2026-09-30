@@ -136,20 +136,20 @@ export function GlobalNavbar({ sidebarOpen, onToggleSidebar, variant = 'dashboar
           borderRadius: '0 0 12px 12px',
         }}
       >
-        <div className="flex items-center justify-between gap-2 px-3 mobile:gap-3 tablet:px-4 laptop:px-5 desktop:px-8" style={{ height: '64px' }}>
+        <div className="flex items-center justify-between gap-1 px-2 mobile:gap-2 tablet:px-4 laptop:px-5 desktop:px-8" style={{ height: '64px' }}>
           {/* Right side: toggle + logo */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 tablet:gap-3">
             {/* Sidebar toggle button */}
             <button
               onClick={onToggleSidebar}
-              className="flex h-10 w-10 items-center justify-center rounded-xl border nb-btn-icon"
+              className="flex h-9 w-9 tablet:h-10 tablet:w-10 items-center justify-center rounded-xl border nb-btn-icon"
               aria-label={sidebarOpen ? 'بستن منو' : 'باز کردن منو'}
             >
               {sidebarOpen ? <PanelRightClose className="h-5 w-5" /> : <PanelRightOpen className="h-5 w-5" />}
             </button>
 
             <Link href={logoHref} className="flex items-center transition-transform hover:scale-105">
-              <Logo size={88} withText textClassName="hidden tablet:block [&_div]:!text-[var(--nav-text)] [&_.text-muted-foreground]:!text-[var(--nav-text-muted)]" />
+              <Logo size={72} withText textClassName="hidden tablet:block [&_div]:!text-[var(--nav-text)] [&_.text-muted-foreground]:!text-[var(--nav-text-muted)]" />
             </Link>
             {variant === 'super-admin' && (
               <Link
@@ -177,7 +177,7 @@ export function GlobalNavbar({ sidebarOpen, onToggleSidebar, variant = 'dashboar
           {/* Mobile search icon */}
           <button
             onClick={() => setSearchOpen(true)}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border nb-btn-icon tablet:hidden"
+            className="flex h-9 w-9 tablet:h-10 tablet:w-10 items-center justify-center rounded-xl border nb-btn-icon tablet:hidden"
           >
             <Search className="h-5 w-5" />
           </button>
@@ -243,22 +243,22 @@ export function GlobalNavbar({ sidebarOpen, onToggleSidebar, variant = 'dashboar
           </nav>
 
           {/* Left side: notifications + profile */}
-          <div className="flex items-center gap-1.5 mobile:gap-2.5">
+          <div className="flex items-center gap-1 tablet:gap-2.5">
             {/* Theme toggle */}
             <ThemeToggle />
 
             {/* Meeting notifications */}
-            <div className="relative hidden mobile:block">
+            <div className="relative hidden tablet:block">
               <MeetingBell />
             </div>
 
             {/* Task notifications */}
-            <div className="relative hidden mobile:block">
+            <div className="relative hidden tablet:block">
               <TaskBell />
             </div>
 
             {/* Social notifications */}
-            <div className="relative">
+            <div className="relative hidden mobile:block">
               <SocialBell />
             </div>
 
@@ -271,9 +271,9 @@ export function GlobalNavbar({ sidebarOpen, onToggleSidebar, variant = 'dashboar
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2 rounded-xl p-1 transition-colors nb-hover">
-                  <Avatar className="h-10 w-10 border-2 border-[#2DD4BF]/40">
+                  <Avatar className="h-8 w-8 tablet:h-10 tablet:w-10 border-2 border-[#2DD4BF]/40">
                     <AvatarImage src={profile?.avatarUrl || undefined} alt={displayName} />
-                    <AvatarFallback className="bg-[#2DD4BF] text-xs font-bold text-[#0A2A2A]">{initials}</AvatarFallback>
+                    <AvatarFallback className="bg-[#2DD4BF] text-[10px] tablet:text-xs font-bold text-[#0A2A2A]">{initials}</AvatarFallback>
                   </Avatar>
                   <div className="hidden text-right laptop:block">
                     <div className="text-xs font-bold nb-text">{displayName}</div>

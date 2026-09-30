@@ -13,7 +13,6 @@ import { hasPageAccess } from '@/lib/nav-config';
 import { cn } from '@/lib/utils';
 
 const PUBLIC_DASHBOARD_PATHS = ['/dashboard'];
-const SIDEBAR_WIDTH = 272;
 const STORAGE_KEY = 'sb-open';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -71,7 +70,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <main
           className={cn(
             'mx-auto transition-all duration-300 ease-in-out',
-            'px-3 pb-8 pt-4 mobile:px-4 tablet:px-5 laptop:px-6 desktop:px-8',
+            'px-2 pb-8 pt-4 mobile:px-3 tablet:px-5 laptop:px-6 desktop:px-8',
             isDashboardHome ? 'max-w-full desktop:max-w-[1470px]' : 'max-w-full desktop:max-w-[1280px]',
             sidebarOpen
               ? 'laptop:pr-[280px] desktop:pr-[280px]'

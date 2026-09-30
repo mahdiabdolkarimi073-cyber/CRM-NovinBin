@@ -126,7 +126,7 @@ export default function SettingsPage() {
     <div>
       <PageHeader title="تنظیمات" description="مدیریت سازمان، پروفایل و کاربران" />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-4 mobile:gap-6 tablet:grid-cols-2">
         {/* Organization */}
         <Card>
           <CardHeader>
@@ -142,7 +142,7 @@ export default function SettingsPage() {
               <Input value={orgForm.code} disabled className="bg-slate-50" dir="ltr" />
               <p className="text-xs text-slate-400">کد سازمان قابل تغییر نیست</p>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 mobile:grid-cols-2">
               <div className="p-3 rounded-lg bg-slate-50">
                 <div className="text-xs text-slate-400 mb-1">پلن فعلی</div>
                 <Badge className="bg-sky-100 text-sky-700">{PLAN_LABELS[org?.plan || 'starter']}</Badge>
@@ -162,7 +162,7 @@ export default function SettingsPage() {
             <CardTitle className="text-base flex items-center gap-2"><Users className="w-5 h-5 text-sky-500" /> پروفایل من</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 mobile:grid-cols-2">
               <div className="space-y-2">
                 <Label>نام</Label>
                 <Input value={profileForm.firstName} onChange={(e) => setProfileForm({ ...profileForm, firstName: e.target.value })} />
@@ -172,7 +172,7 @@ export default function SettingsPage() {
                 <Input value={profileForm.lastName} onChange={(e) => setProfileForm({ ...profileForm, lastName: e.target.value })} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 mobile:grid-cols-2">
               <div className="space-y-2">
                 <Label>تلفن</Label>
                 <Input dir="ltr" value={profileForm.phone} onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })} />
@@ -212,7 +212,7 @@ export default function SettingsPage() {
         </Card>
 
         {/* Staff list */}
-        <Card className="lg:col-span-2">
+        <Card className="tablet:col-span-2">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2"><Shield className="w-5 h-5 text-sky-500" /> کاربران سازمان</CardTitle>
           </CardHeader>

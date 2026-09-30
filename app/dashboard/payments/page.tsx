@@ -152,8 +152,8 @@ export default function PaymentsPage() {
       />
 
       {/* Search bar */}
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex h-10 items-center gap-2 rounded-xl border-2 border-border bg-muted/40 px-3.5 transition-all focus-within:border-sky-500 focus-within:bg-card min-w-[240px]">
+      <div className="flex flex-col gap-3 mobile:flex-row mobile:items-center mobile:justify-between mb-5">
+        <div className="flex h-10 items-center gap-2 rounded-xl border-2 border-border bg-muted/40 px-3.5 transition-all focus-within:border-sky-500 focus-within:bg-card flex-1 mobile:min-w-[240px]">
           <svg className="h-4 w-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 10a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
           <input
             type="text"
@@ -163,16 +163,16 @@ export default function PaymentsPage() {
             className="w-full bg-transparent text-sm font-medium outline-none placeholder:text-muted-foreground/60"
           />
         </div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground shrink-0">
           <span className="font-bold text-foreground">{payments.length.toLocaleString('fa-IR')}</span>
           <span>پرداخت</span>
         </div>
       </div>
 
       {/* Kanban board */}
-      <div className="flex gap-4 overflow-x-auto pb-4">
+      <div className="grid grid-cols-1 gap-3 mobile:gap-4 tablet:grid-cols-2 desktop:grid-cols-4 pb-4">
         {columns.map((col) => (
-          <div key={col.key} className="flex w-[280px] shrink-0 flex-col rounded-2xl border border-border bg-muted/30">
+          <div key={col.key} className="flex flex-col rounded-2xl border border-border bg-muted/30">
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
               <div className="flex items-center gap-2">
                 <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: col.color }} />
