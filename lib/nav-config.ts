@@ -260,7 +260,6 @@ export const availablePages = [
   { path: '/dashboard/work-reports/daily', label: 'گزارش روزانه' },
   { path: '/dashboard/work-reports/monthly', label: 'گزارش ماهانه' },
   { path: '/dashboard/finance-academy', label: 'مالی آموزشگاه' },
-  { path: '/dashboard/customer-interactions', label: 'تعاملات مشتری' },
   { path: '/dashboard/customer-segments', label: 'بخش‌بندی مشتریان' },
   { path: '/dashboard/loyalty', label: 'امتیاز و وفاداری' },
   { path: '/dashboard/loyalty-rewards', label: 'جوایز باشگاه' },
@@ -271,8 +270,7 @@ export const availablePages = [
   { path: '/dashboard/documents', label: 'اسناد' },
   { path: '/dashboard/knowledge', label: 'پایگاه دانش' },
   { path: '/dashboard/performance', label: 'عملکرد' },
-  { path: '/dashboard/workboard', label: 'تخته کار' },
-  { path: '/dashboard/organization', label: 'سازمان' },
+
   { path: '/dashboard/registration-approval', label: 'تأیید ثبت‌نام' },
   { path: '/dashboard/customer-assignment', label: 'تخصیص مشتری' },
   { path: '/dashboard/users', label: 'مدیریت کاربران' },

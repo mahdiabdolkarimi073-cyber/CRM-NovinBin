@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, ImagePlus, LockKeyhole, Mail, Phone, UserRound, Upload } from 'lucide-react';
+import { ArrowRight, ImagePlus, LockKeyhole, Mail, Phone, UserRound, Upload, Search } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createData, fetchData } from '@/lib/data-client';
 import { availablePages } from '@/lib/nav-config';
@@ -47,6 +47,7 @@ export default function CreateUserPage() {
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [avatarPreview, setAvatarPreview] = useState('');
   const [creating, setCreating] = useState(false);
+  const [pageSearch, setPageSearch] = useState('');
 
   useEffect(() => {
     if (!profile) return;
@@ -70,6 +71,12 @@ export default function CreateUserPage() {
 
   const selectAll = () => update('assignedPages', availablePages.map((p) => p.path));
   const clearAll = () => update('assignedPages', []);
+
+  const filteredPages = useMemo(() => {
+    const q = pageSearch.trim().toLowerCase();
+    if (!q) return availablePages;
+    return availablePages.filter((p) => p.label.toLowerCase().includes(q));
+  }, [pageSearch]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -198,13 +205,28 @@ export default function CreateUserPage() {
               <button type="button" className="perm-action select-all" onClick={selectAll}>انتخاب همه</button>
               <button type="button" className="perm-action clear-all" onClick={clearAll}>پاک کردن</button>
             </div>
+            <div className="permissions-search">
+              <div className="relative">
+                <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]" />
+                <input
+                  type="text"
+                  placeholder="جستجوی صفحه..."
+                  value={pageSearch}
+                  onChange={(e) => setPageSearch(e.target.value)}
+                  className="h-9 w-full rounded-[10px] border border-[#DCE3F0] bg-white pr-10 pl-4 text-sm text-[#111827] outline-none transition-colors focus:border-[#FF7A00]"
+                />
+              </div>
+            </div>
             <div className="permissions-list">
-              {availablePages.map((page) => (
+              {filteredPages.map((page) => (
                 <label key={page.path} className="permission-item">
                   <Checkbox checked={selectedLabels.has(page.path)} onCheckedChange={() => togglePage(page.path)} />
                   <span>{page.label}</span>
                 </label>
               ))}
+              {filteredPages.length === 0 && (
+                <div className="py-4 text-center text-sm text-[#94A3B8]">صفحه‌ای یافت نشد</div>
+              )}
             </div>
           </div>
           <div className="settings-panel">

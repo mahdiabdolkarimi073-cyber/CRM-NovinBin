@@ -847,6 +847,9 @@
   gap: 8px;
   margin-bottom: 12px;
 }
+.permissions-search {
+  margin-bottom: 12px;
+}
 .perm-action {
   padding: 6px 14px;
   border-radius: 7px;
