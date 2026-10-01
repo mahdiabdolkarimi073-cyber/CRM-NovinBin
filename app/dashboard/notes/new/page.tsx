@@ -1,16 +1,14 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { createData } from '@/lib/data-client';
-import { useAuth } from '@/components/providers/auth-provider';
-import { Label } from '@/components/ui/label';
 import {
-  ArrowRight, Check, Hash, Palette, Save, StickyNote, Tag, X, Lightbulb, FileText, Sparkles,
+  ArrowRight, Check, Hash, Palette, Save, Tag, X,
+  Sparkles, Clock,
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { toPersianDigits } from '@/lib/format';
+import RichTextEditor from '@/components/notes/RichTextEditor';
 
 const NOTE_COLORS = [
   { value: 'default', label: 'پیش‌فرض', accent: '#64748b' },
@@ -26,205 +24,147 @@ const NOTE_COLORS = [
   { value: 'slate', label: 'خاکستری', accent: '#64748b' },
 ] as const;
 
-const guideCards = [
-  { icon: Lightbulb, title: 'عنوان واضح', desc: 'عنوانی کوتاه و گویا انتخاب کنید تا یادداشت سریع پیدا شود.', color: '#2563EB', bg: '#EFF6FF' },
-  { icon: FileText, title: 'محتوای کامل', desc: 'هر چیزی که می‌خواهید به یاد بسپارید را با جزئیات بنویسید.', color: '#16B981', bg: '#F0FDF4' },
-  { icon: Tag, title: 'برچسب‌گذاری', desc: 'با برچسب، یادداشت‌ها را دسته‌بندی و فیلتر کنید.', color: '#FF7200', bg: '#FFF7ED' },
-  { icon: Palette, title: 'رنگ‌بندی', desc: 'با رنگ، یادداشت‌های مهم را از هم متمایز کنید.', color: '#8B5CF6', bg: '#F5F3FF' },
-];
-
 export default function NewNotePage() {
-  const { profile } = useAuth();
   const router = useRouter();
-  const [submitting, setSubmitting] = useState(false);
-  const titleInputRef = useRef<HTMLInputElement>(null);
+  const titleRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({ title: '', content: '', color: 'default' });
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    setTimeout(() => titleInputRef.current?.focus(), 100);
+    setTimeout(() => titleRef.current?.focus(), 100);
   }, []);
 
-  const addTag = () => {
+  const addTag = useCallback(() => {
     const trimmed = tagInput.trim();
     if (trimmed && !tags.includes(trimmed)) {
       setTags([...tags, trimmed]);
       setTagInput('');
     }
-  };
+  }, [tagInput, tags]);
 
   const removeTag = (tag: string) => setTags(tags.filter((t) => t !== tag));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title.trim()) { setError('عنوان یادداشت الزامی است'); return; }
-    if (!profile) { toast.error('اطلاعات کاربر بارگذاری نشده'); return; }
-    setSubmitting(true);
-    try {
-      await createData('personal_notes', {
-        title: form.title.trim(),
-        content: form.content.trim() || null,
-        color: form.color,
-        tags,
-      });
-      toast.success('یادداشت با موفقیت ایجاد شد');
+    setSaving(true);
+    // Static mock — API will be connected later
+    setTimeout(() => {
+      setSaving(false);
       router.push('/dashboard/notes');
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'ایجاد یادداشت ناموفق بود');
-    } finally {
-      setSubmitting(false);
-    }
+    }, 500);
   };
 
-  const wordCount = form.content.trim() ? form.content.trim().split(/\s+/).length : 0;
-  const charCount = form.content.length;
-
   return (
-    <div className="new-note-page" dir="rtl">
-      <div className="new-note-container">
-        {/* Header */}
-        <header className="new-note-header">
-          <div>
-            <div className="new-note-title-row">
-              <span className="new-note-title-accent" />
-              <h1>ایجاد یادداشت جدید</h1>
-            </div>
-            <div className="new-note-breadcrumb">
-              داشبورد <b>←</b> یادداشت‌ها <b>←</b> ایجاد یادداشت جدید
-            </div>
-          </div>
-          <Link href="/dashboard/notes" className="new-note-back-button">
+    <div className="nb-editor-page" dir="rtl">
+      {/* Top bar */}
+      <header className="nb-editor-topbar">
+        <div className="nb-editor-topbar-left">
+          <Link href="/dashboard/notes" className="nb-editor-back">
             <ArrowRight className="h-4 w-4" />
-            بازگشت به یادداشت‌ها
+            <span>بازگشت</span>
           </Link>
-        </header>
+          <div className="nb-editor-breadcrumb">
+            یادداشت‌ها <b>←</b> یادداشت جدید
+          </div>
+        </div>
+        <div className="nb-editor-topbar-right">
+          <span className="nb-editor-status">
+            <Clock className="h-3.5 w-3.5" />
+            ایجاد یادداشت جدید
+          </span>
+          <button type="button" className="nb-editor-discard" onClick={() => router.push('/dashboard/notes')}>
+            انصراف
+          </button>
+          <button type="submit" form="note-form" className="nb-editor-save-btn" disabled={saving}>
+            {saving ? <Sparkles className="h-4 w-4 animate-pulse" /> : <Save className="h-4 w-4" />}
+            {saving ? 'در حال ذخیره...' : 'ذخیره'}
+          </button>
+        </div>
+      </header>
 
-        {/* Main grid */}
-        <div className="new-note-grid">
-          {/* Form card */}
-          <form className="note-form-card" onSubmit={handleSubmit}>
-            <div className="note-form-header">
-              <h2>محتوای یادداشت</h2>
-              <p>یادداشت شخصی خود را بنویسید و سازماندهی کنید.</p>
-            </div>
-            <div className="note-form-divider" />
+      {/* Main editor area */}
+      <form id="note-form" onSubmit={handleSubmit} className="nb-editor-main">
+        <div className="nb-editor-canvas">
+          {/* Title */}
+          <input
+            ref={titleRef}
+            type="text"
+            value={form.title}
+            onChange={(e) => { setForm({ ...form, title: e.target.value }); setError(''); }}
+            placeholder="عنوان یادداشت..."
+            className={`nb-editor-title-input ${error ? 'has-error' : ''}`}
+          />
+          {error && <span className="nb-editor-error">{error}</span>}
 
-            <div className="note-form-fields">
-              {/* Title */}
-              <div className="note-field-group">
-                <Label className="note-field-label">عنوان <span className="note-required-star">*</span></Label>
+          <div className="nb-editor-meta-row">
+            <span className="nb-editor-date">
+              <Clock className="h-3.5 w-3.5" />
+              همین الان
+            </span>
+          </div>
+
+          {/* Rich text editor */}
+          <RichTextEditor
+            initialContent={form.content}
+            onChange={(content) => setForm({ ...form, content })}
+            placeholder="محتوای یادداشت را اینجا بنویسید..."
+          />
+
+          {/* Bottom section: tags + color */}
+          <div className="nb-editor-bottom">
+            {/* Tags */}
+            <div className="nb-editor-field-group">
+              <label className="nb-editor-label">
+                <Tag className="h-4 w-4" />
+                برچسب‌ها
+              </label>
+              <div className="nb-tags-input">
+                {tags.map((tag) => (
+                  <span key={tag} className="nb-tag-chip">
+                    <Hash className="h-3 w-3" />
+                    {tag}
+                    <button type="button" onClick={() => removeTag(tag)}><X className="h-3 w-3" /></button>
+                  </span>
+                ))}
                 <input
-                  ref={titleInputRef}
-                  type="text"
-                  value={form.title}
-                  onChange={(e) => { setForm({ ...form, title: e.target.value }); setError(''); }}
-                  placeholder="عنوان یادداشت"
-                  className={`note-input ${error ? 'note-input-error' : ''}`}
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
+                  placeholder="افزودن برچسب..."
+                  className="nb-tag-field"
                 />
-                {error && <span className="note-field-error">{error}</span>}
-              </div>
-
-              {/* Content */}
-              <div className="note-field-group">
-                <Label className="note-field-label">محتوا</Label>
-                <textarea
-                  value={form.content}
-                  onChange={(e) => setForm({ ...form, content: e.target.value })}
-                  placeholder="محتوای یادداشت را اینجا بنویسید..."
-                  className="note-textarea"
-                  rows={10}
-                />
-                <div className="note-content-meta">
-                  <span>{toPersianDigits(wordCount)} کلمه</span>
-                  <span>{toPersianDigits(charCount)} کاراکتر</span>
-                </div>
-              </div>
-
-              {/* Tags */}
-              <div className="note-field-group">
-                <Label className="note-field-label">
-                  <Tag className="h-4 w-4" />
-                  برچسب‌ها
-                </Label>
-                <div className="note-tags-input-wrap">
-                  {tags.map((tag) => (
-                    <span key={tag} className="note-tag-chip">
-                      <Hash className="h-3 w-3" />
-                      {tag}
-                      <button type="button" onClick={() => removeTag(tag)}><X className="h-3 w-3" /></button>
-                    </span>
-                  ))}
-                  <input
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
-                    placeholder="افزودن برچسب..."
-                    className="note-tag-input"
-                  />
-                </div>
-              </div>
-
-              {/* Color */}
-              <div className="note-field-group">
-                <Label className="note-field-label">
-                  <Palette className="h-4 w-4" />
-                  رنگ یادداشت
-                </Label>
-                <div className="note-color-palette">
-                  {NOTE_COLORS.map((color) => (
-                    <button
-                      key={color.value}
-                      type="button"
-                      onClick={() => setForm({ ...form, color: color.value })}
-                      className={`note-color-swatch ${form.color === color.value ? 'is-selected' : ''}`}
-                      style={{ background: color.accent }}
-                      title={color.label}
-                      aria-label={color.label}
-                    >
-                      {form.color === color.value && <Check className="h-3.5 w-3.5 text-white" />}
-                    </button>
-                  ))}
-                </div>
               </div>
             </div>
 
-            <div className="note-form-divider" />
-            <div className="note-form-footer">
-              <Link href="/dashboard/notes" className="note-cancel-btn">انصراف</Link>
-              <button type="submit" className="note-submit-btn" disabled={submitting}>
-                {submitting ? <Sparkles className="h-4 w-4 animate-pulse" /> : <Save className="h-4 w-4" />}
-                {submitting ? 'در حال ذخیره...' : 'ایجاد یادداشت'}
-              </button>
-            </div>
-          </form>
-
-          {/* Sidebar guide */}
-          <aside className="note-sidebar">
-            <div className="note-sidebar-card">
-              <div className="note-sidebar-header">
-                <StickyNote className="h-5 w-5" />
-                <span>راهنمای یادداشت</span>
-              </div>
-              <p className="note-sidebar-desc">یادداشت‌های شخصی فقط برای شما قابل مشاهده هستند و به شما کمک می‌کنند اطلاعات مهم را سریع ذخیره و بازیابی کنید.</p>
-              <div className="note-guide-list">
-                {guideCards.map((card) => (
-                  <div className="note-guide-item" key={card.title}>
-                    <div className="note-guide-icon" style={{ background: card.bg, color: card.color }}>
-                      <card.icon className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <strong>{card.title}</strong>
-                      <p>{card.desc}</p>
-                    </div>
-                  </div>
+            {/* Color */}
+            <div className="nb-editor-field-group">
+              <label className="nb-editor-label">
+                <Palette className="h-4 w-4" />
+                رنگ یادداشت
+              </label>
+              <div className="nb-color-row">
+                {NOTE_COLORS.map((color) => (
+                  <button
+                    key={color.value}
+                    type="button"
+                    onClick={() => setForm({ ...form, color: color.value })}
+                    className={`nb-color-swatch ${form.color === color.value ? 'is-selected' : ''}`}
+                    style={{ background: color.accent }}
+                    title={color.label}
+                    aria-label={color.label}
+                  >
+                    {form.color === color.value && <Check className="h-3.5 w-3.5 text-white" />}
+                  </button>
                 ))}
               </div>
             </div>
-          </aside>
+          </div>
         </div>
-      </div>
+      </form>
     </div>
   );
 }
