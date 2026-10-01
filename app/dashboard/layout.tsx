@@ -31,13 +31,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [profile, loading, router]);
 
-  // Restore sidebar preference from localStorage
   useEffect(() => {
     const stored = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
     if (stored !== null) setSidebarOpen(stored === 'true');
   }, []);
 
-  // Persist sidebar preference
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEY, String(sidebarOpen));
@@ -60,25 +58,36 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isPublicPath = PUBLIC_DASHBOARD_PATHS.includes(pathname);
   const needsGuard = !isPublicPath;
   const hasAccess = hasPageAccess(profile, pathname);
-  const isDashboardHome = pathname === '/dashboard';
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300" dir="rtl">
       <CallProvider modes={['social', 'customer']}>
         <GlobalNavbar sidebarOpen={sidebarOpen} onToggleSidebar={toggleSidebar} />
         <DashboardSidebar open={sidebarOpen} onToggle={toggleSidebar} />
-        <main
+
+        {/* wrapper: فضای سایدبار رو از راست کم می‌کنه */}
+        <div
           className={cn(
-            'mx-auto transition-all duration-300 ease-in-out',
-            'px-2 pb-8 pt-4 mobile:px-3 tablet:px-5 laptop:px-6 desktop:px-8',
-            isDashboardHome ? 'max-w-full desktop:max-w-[1470px]' : 'max-w-full desktop:max-w-[1280px]',
+            'w-full transition-all duration-300 ease-in-out',
             sidebarOpen
               ? 'laptop:pr-[280px] desktop:pr-[280px]'
-              : 'laptop:pr-6 desktop:pr-8'
+              : 'pr-0'
           )}
         >
-          {needsGuard && !hasAccess ? <PageGuard href={pathname}>{children}</PageGuard> : children}
-        </main>
+          <main
+            className={cn(
+              'box-border mx-auto transition-all duration-300 ease-in-out',
+              // عرض دقیق main (شامل padding داخلی)
+              sidebarOpen
+                ? 'laptop:w-[1360px] desktop:w-[1360px]'
+                : 'laptop:w-[1550px] desktop:w-[1550px]',
+              // پدینگ داخلی
+              'px-2 pb-8 pt-4 mobile:px-3 tablet:px-5 laptop:px-6 desktop:px-8'
+            )}
+          >
+            {needsGuard && !hasAccess ? <PageGuard href={pathname}>{children}</PageGuard> : children}
+          </main>
+        </div>
       </CallProvider>
     </div>
   );
