@@ -797,6 +797,9 @@ export default function PortalSocialPage() {
 
         <aside className={cn('social-network-users', isUsersOpen && 'is-open')}>
           <div className="staff-chat-users-toolbar">
+            <Link href="/portal" className="social-desktop-back" aria-label="بازگشت به باشگاه">
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
             <button className="social-desktop-hamburger" aria-label="منو" onClick={() => setTab(tab === 'dm' ? 'folders' : 'dm')}>
               <Menu style={{ width: 20, height: 20 }} />
             </button>

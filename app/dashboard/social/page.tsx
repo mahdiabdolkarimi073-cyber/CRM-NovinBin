@@ -944,6 +944,9 @@ function SocialNetworkDesktop({ chat }: { chat: ReturnType<typeof useSocialChat>
 
         <aside className={cn('social-network-users', isUsersOpen && 'is-open')}>
           <div className="staff-chat-users-toolbar">
+            <Link href="/dashboard" className="social-desktop-back" aria-label="بازگشت به داشبورد">
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
             <div className="staff-chat-search">
               <Search />
               <input placeholder="جستجو..." value={search} onChange={(e) => setSearch(e.target.value)} />

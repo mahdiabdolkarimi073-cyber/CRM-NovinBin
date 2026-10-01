@@ -64,3 +64,15 @@ When working on a task, you MUST:
 ## Summary
 
 When you finish a task, ALWAYS provide a short plain-language summary of what you built or changed and anything the user must know or do next. Never end your turn with silence.
+
+## Scope Discipline — Only Touch What Is Requested
+
+You MUST ONLY modify, edit, or add the specific features, files, and changes that the user explicitly asks for. Do NOT:
+- Modify unrelated files or sections of code.
+- Refactor, rename, or "clean up" code that was not mentioned.
+- Add features, improvements, or fixes beyond what was requested.
+- Touch any other part of the app that the user did not ask about.
+
+If the user asks to fix a button on page X, only edit the files related to that button on page X. Do not change anything on page Y or in shared components unless those changes are strictly necessary for the requested fix.
+
+This rule applies to EVERY request, EVERY conversation, and EVERY message — including when the user says "ادامه بده و تکمیلش کن" (continue and complete it). The scope of work never expands beyond what was originally requested.

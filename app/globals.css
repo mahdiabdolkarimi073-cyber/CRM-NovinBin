@@ -1150,7 +1150,7 @@
 .staff-chat-attachment-preview svg { width: 18px; height: 18px; }
 .staff-chat-loading { display: flex; align-items: center; justify-content: center; height: 400px; }
 .staff-chat-loading span { width: 32px; height: 32px; border: 3px solid rgba(255,255,255,.15); border-top-color: #F97316; border-radius: 50%; animation: staffChatSpin .8s linear infinite; }
-.staff-chat-overlay, .mobile-only, .mobile-user-trigger { display: none; }
+.staff-chat-overlay, .mobile-only, .mobile-user-trigger, .social-desktop-back { display: none; }
 .staff-chat-message-search { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-bottom: 1px solid #E9EDF3; background: #FAFBFD; }
 .staff-chat-message-search > svg { width: 16px; height: 16px; color: #94A3B8; flex: 0 0 auto; }
 .staff-chat-message-search input { min-width: 0; flex: 1; height: 38px; padding: 0 12px; border: 1px solid #DCE3ED; border-radius: 10px; outline: none; color: #24324A; font: inherit; font-size: 12px; }
@@ -7119,6 +7119,7 @@
     min-height: 0;
     overflow-y: auto;
   }
+  .social-network-page .social-desktop-back { display: none; }
 }
 
 /* ===== Messages screen — mobile messenger layout ===== */
@@ -7693,6 +7694,24 @@
   .social-network-page .staff-chat-search svg { color: #9AAEC3; width: 18px; height: 18px; }
 
   /* Hamburger + avatar in sidebar header */
+  .social-network-page .social-desktop-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 auto;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: #52677D;
+    cursor: pointer;
+    transition: background .15s ease;
+    text-decoration: none;
+  }
+  .social-network-page .social-desktop-back:hover { background: #F0F4F9; color: #2995F5; }
+  .social-network-page .social-desktop-back svg { width: 20px; height: 20px; }
+  .social-network-page .social-desktop-back { display: inline-flex; }
   .social-network-page .social-desktop-hamburger {
     display: inline-flex;
     align-items: center;
