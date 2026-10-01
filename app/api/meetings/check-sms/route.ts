@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
     });
 
     const results: any[] = [];
+    console.log('[SESSION SMS] تعداد جلسات امروز برای یادآوری:', todayMeetings.length);
 
     for (const meeting of todayMeetings) {
       let staffSent = false;
@@ -52,13 +53,17 @@ export async function POST(req: NextRequest) {
 
       if (meeting.staffPhone && normalizeMobile(meeting.staffPhone)) {
         const message = `یادآوری جلسه: جلسه${meeting.topic ? ` با موضوع «${meeting.topic}»` : ''} در تاریخ امروز برگزار می‌شود. شرکت مهندسان نوین بین`;
+        console.log('[SESSION SMS] شروع ارسال یادآوری به کارمند', { meetingId: meeting.id, staffPhone: meeting.staffPhone });
         const result = await sendSms(meeting.staffPhone, message, 'meeting_reminder_staff', meeting.id);
+        console.log('[SESSION SMS] نتیجه ارسال به کارمند:', result);
         staffSent = result.success;
       }
 
       if (meeting.customerPhone && normalizeMobile(meeting.customerPhone)) {
         const message = `یادآوری جلسه: جلسه${meeting.topic ? ` با موضوع «${meeting.topic}»` : ''} در تاریخ امروز برگزار می‌شود. شرکت مهندسان نوین بین`;
+        console.log('[SESSION SMS] شروع ارسال یادآوری به مشتری', { meetingId: meeting.id, customerPhone: meeting.customerPhone });
         const result = await sendSms(meeting.customerPhone, message, 'meeting_reminder_customer', meeting.id);
+        console.log('[SESSION SMS] نتیجه ارسال به مشتری:', result);
         customerSent = result.success;
       }
 

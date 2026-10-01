@@ -30,7 +30,9 @@ export async function POST(req: NextRequest) {
       if (!trimmedMobile || !trimmedMessage) {
         return NextResponse.json({ error: 'شماره موبایل و متن پیامک الزامی است' }, { status: 400 });
       }
+      console.log('[SMS] ارسال تکی:', { mobile: trimmedMobile, messageLength: trimmedMessage.length });
       const result = await sendSms(trimmedMobile, trimmedMessage, 'manual');
+      console.log('[SMS] نتیجه ارسال تکی:', result);
       return NextResponse.json(result);
     }
 
@@ -43,7 +45,9 @@ export async function POST(req: NextRequest) {
       if (!hd) {
         return NextResponse.json({ error: 'هاست/دامنه یافت نشد' }, { status: 404 });
       }
+      console.log('[RENEWAL SMS] اطلاعات سرویس:', { serviceId: hd.id, userId: hd.id, expiryDate: hd.expiryDate });
       const result = await sendExpiryReminder(hd.id, hd.phoneNumber, hd.firstName, hd.lastName);
+      console.log('[RENEWAL SMS] نتیجه ارسال:', result);
       if (result.success) {
         await prisma.hostDomain.update({
           where: { id: hd.id },
@@ -62,9 +66,13 @@ export async function POST(req: NextRequest) {
           expiryDate: { lte: oneWeekLater, gte: now },
         },
       });
+      console.log('[RENEWAL SMS] تعداد هاست/دامنه‌های نیازمند تمدید:', due.length);
       const results: any[] = [];
       for (const hd of due) {
+        console.log('[RENEWAL SMS] اطلاعات سرویس:', { serviceId: hd.id, userId: hd.id, expiryDate: hd.expiryDate });
+        console.log('[RENEWAL SMS] در حال فراخوانی سرویس پیامک...');
         const result = await sendExpiryReminder(hd.id, hd.phoneNumber, hd.firstName, hd.lastName);
+        console.log('[RENEWAL SMS] نتیجه ارسال:', result);
         if (result.success) {
           await prisma.hostDomain.update({
             where: { id: hd.id },
