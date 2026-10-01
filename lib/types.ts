@@ -875,7 +875,11 @@ export interface PersonalNote {
   title: string;
   content: string | null;
   color: string;
+  tags: string[];
   pinned: boolean;
+  isArchived: boolean;
+  isTrashed: boolean;
+  trashedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }

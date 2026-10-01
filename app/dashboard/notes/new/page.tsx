@@ -1,174 +1,226 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { ArrowRight, StickyNote, Type, AlignRight, Palette, Lightbulb, Info, Loader2 } from 'lucide-react';
+import {
+  ArrowRight, Check, Hash, Palette, Save, StickyNote, Tag, X, Lightbulb, FileText, Sparkles,
+} from 'lucide-react';
 import { toast } from 'sonner';
+import { toPersianDigits } from '@/lib/format';
 
-const colorOptions = [
-  { value: 'default', label: 'پیش‌فرض', bg: 'bg-white', border: 'border-slate-200' },
-  { value: 'yellow', label: 'زرد', bg: 'bg-amber-50', border: 'border-amber-200' },
-  { value: 'green', label: 'سبز', bg: 'bg-emerald-50', border: 'border-emerald-200' },
-  { value: 'blue', label: 'آبی', bg: 'bg-sky-50', border: 'border-sky-200' },
-  { value: 'pink', label: 'صورتی', bg: 'bg-pink-50', border: 'border-pink-200' },
-  { value: 'purple', label: 'بنفش', bg: 'bg-violet-50', border: 'border-violet-200' },
-];
+const NOTE_COLORS = [
+  { value: 'default', label: 'پیش‌فرض', accent: '#64748b' },
+  { value: 'amber', label: 'کهربایی', accent: '#f59e0b' },
+  { value: 'rose', label: 'صورتی', accent: '#f43f5e' },
+  { value: 'orange', label: 'نارنجی', accent: '#f97316' },
+  { value: 'emerald', label: 'سبز', accent: '#10b981' },
+  { value: 'teal', label: 'فیروزه‌ای', accent: '#14b8a6' },
+  { value: 'sky', label: 'آبی آسمانی', accent: '#0ea5e9' },
+  { value: 'blue', label: 'آبی', accent: '#3b82f6' },
+  { value: 'violet', label: 'بنفش', accent: '#8b5cf6' },
+  { value: 'fuchsia', label: 'سرخابی', accent: '#d946ef' },
+  { value: 'slate', label: 'خاکستری', accent: '#64748b' },
+] as const;
 
-const guideItems = [
-  { icon: Type, title: 'عنوان واضح', desc: 'عنوانی کوتاه و گویا برای یادداشت بنویسید.' },
-  { icon: AlignRight, title: 'محتوای کامل', desc: 'محتوای یادداشت را با جزئیات وارد کنید.' },
-  { icon: Palette, title: 'انتخاب رنگ', desc: 'رنگ مناسب به دسته‌بندی بصری کمک می‌کند.' },
+const guideCards = [
+  { icon: Lightbulb, title: 'عنوان واضح', desc: 'عنوانی کوتاه و گویا انتخاب کنید تا یادداشت سریع پیدا شود.', color: '#2563EB', bg: '#EFF6FF' },
+  { icon: FileText, title: 'محتوای کامل', desc: 'هر چیزی که می‌خواهید به یاد بسپارید را با جزئیات بنویسید.', color: '#16B981', bg: '#F0FDF4' },
+  { icon: Tag, title: 'برچسب‌گذاری', desc: 'با برچسب، یادداشت‌ها را دسته‌بندی و فیلتر کنید.', color: '#FF7200', bg: '#FFF7ED' },
+  { icon: Palette, title: 'رنگ‌بندی', desc: 'با رنگ، یادداشت‌های مهم را از هم متمایز کنید.', color: '#8B5CF6', bg: '#F5F3FF' },
 ];
 
 export default function NewNotePage() {
   const { profile } = useAuth();
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const titleInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({ title: '', content: '', color: 'default' });
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState('');
+  const [error, setError] = useState('');
 
-  const validate = () => {
-    const e: Record<string, string> = {};
-    if (!form.title.trim()) e.title = 'عنوان یادداشت الزامی است';
-    setErrors(e);
-    return Object.keys(e).length === 0;
+  useEffect(() => {
+    setTimeout(() => titleInputRef.current?.focus(), 100);
+  }, []);
+
+  const addTag = () => {
+    const trimmed = tagInput.trim();
+    if (trimmed && !tags.includes(trimmed)) {
+      setTags([...tags, trimmed]);
+      setTagInput('');
+    }
   };
+
+  const removeTag = (tag: string) => setTags(tags.filter((t) => t !== tag));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return;
+    if (!form.title.trim()) { setError('عنوان یادداشت الزامی است'); return; }
+    if (!profile) { toast.error('اطلاعات کاربر بارگذاری نشده'); return; }
     setSubmitting(true);
     try {
       await createData('personal_notes', {
-        title: form.title,
-        content: form.content || null,
+        title: form.title.trim(),
+        content: form.content.trim() || null,
         color: form.color,
+        tags,
       });
       toast.success('یادداشت با موفقیت ایجاد شد');
       router.push('/dashboard/notes');
-    } catch (error: any) {
-      toast.error('ایجاد یادداشت ناموفق: ' + (error?.message || 'خطا'));
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'ایجاد یادداشت ناموفق بود');
     } finally {
       setSubmitting(false);
     }
   };
 
+  const wordCount = form.content.trim() ? form.content.trim().split(/\s+/).length : 0;
+  const charCount = form.content.length;
+
   return (
-    <div className="create-task-page" dir="rtl">
-      <div className="create-task-container">
-        <header className="create-task-header">
+    <div className="new-note-page" dir="rtl">
+      <div className="new-note-container">
+        {/* Header */}
+        <header className="new-note-header">
           <div>
-            <div className="create-task-title">
-              <span className="title-accent-bar" />
+            <div className="new-note-title-row">
+              <span className="new-note-title-accent" />
               <h1>ایجاد یادداشت جدید</h1>
             </div>
-            <div className="create-task-breadcrumb">
-              داشبورد <b>←</b> یادداشت‌ها <b>←</b> ایجاد یادداشت
+            <div className="new-note-breadcrumb">
+              داشبورد <b>←</b> یادداشت‌ها <b>←</b> ایجاد یادداشت جدید
             </div>
           </div>
-          <Link href="/dashboard/notes" className="back-button">
+          <Link href="/dashboard/notes" className="new-note-back-button">
             <ArrowRight className="h-4 w-4" />
             بازگشت به یادداشت‌ها
           </Link>
         </header>
 
-        <div className="create-task-grid">
-          <form className="task-form-card" onSubmit={handleSubmit}>
-            <div className="form-card-header">
-              <div className="form-card-title">
-                <span className="form-card-icon">
-                  <StickyNote className="h-5 w-5" />
-                </span>
-                <div>
-                  <h2>اطلاعات یادداشت</h2>
-                  <p>یادداشت شخصی خود را ایجاد کنید. فیلدهای ستاره‌دار الزامی هستند.</p>
-                </div>
-              </div>
+        {/* Main grid */}
+        <div className="new-note-grid">
+          {/* Form card */}
+          <form className="note-form-card" onSubmit={handleSubmit}>
+            <div className="note-form-header">
+              <h2>محتوای یادداشت</h2>
+              <p>یادداشت شخصی خود را بنویسید و سازماندهی کنید.</p>
             </div>
-            <div className="form-card-divider" />
+            <div className="note-form-divider" />
 
-            <div className="form-fields">
-              <div className="field-group">
-                <Label className="field-label">عنوان <span className="required-star">*</span></Label>
-                <Input
+            <div className="note-form-fields">
+              {/* Title */}
+              <div className="note-field-group">
+                <Label className="note-field-label">عنوان <span className="note-required-star">*</span></Label>
+                <input
+                  ref={titleInputRef}
+                  type="text"
                   value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  onChange={(e) => { setForm({ ...form, title: e.target.value }); setError(''); }}
                   placeholder="عنوان یادداشت"
-                  className="task-input"
+                  className={`note-input ${error ? 'note-input-error' : ''}`}
                 />
-                {errors.title && <span className="field-error">{errors.title}</span>}
+                {error && <span className="note-field-error">{error}</span>}
               </div>
 
-              <div className="field-group">
-                <Label className="field-label">متن</Label>
-                <Textarea
+              {/* Content */}
+              <div className="note-field-group">
+                <Label className="note-field-label">محتوا</Label>
+                <textarea
                   value={form.content}
                   onChange={(e) => setForm({ ...form, content: e.target.value })}
-                  placeholder="محتوای یادداشت..."
-                  className="task-textarea"
+                  placeholder="محتوای یادداشت را اینجا بنویسید..."
+                  className="note-textarea"
+                  rows={10}
                 />
+                <div className="note-content-meta">
+                  <span>{toPersianDigits(wordCount)} کلمه</span>
+                  <span>{toPersianDigits(charCount)} کاراکتر</span>
+                </div>
               </div>
 
-              <div className="field-group">
-                <Label className="field-label">رنگ</Label>
-                <div className="flex flex-wrap gap-2">
-                  {colorOptions.map((color) => (
+              {/* Tags */}
+              <div className="note-field-group">
+                <Label className="note-field-label">
+                  <Tag className="h-4 w-4" />
+                  برچسب‌ها
+                </Label>
+                <div className="note-tags-input-wrap">
+                  {tags.map((tag) => (
+                    <span key={tag} className="note-tag-chip">
+                      <Hash className="h-3 w-3" />
+                      {tag}
+                      <button type="button" onClick={() => removeTag(tag)}><X className="h-3 w-3" /></button>
+                    </span>
+                  ))}
+                  <input
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
+                    placeholder="افزودن برچسب..."
+                    className="note-tag-input"
+                  />
+                </div>
+              </div>
+
+              {/* Color */}
+              <div className="note-field-group">
+                <Label className="note-field-label">
+                  <Palette className="h-4 w-4" />
+                  رنگ یادداشت
+                </Label>
+                <div className="note-color-palette">
+                  {NOTE_COLORS.map((color) => (
                     <button
                       key={color.value}
                       type="button"
                       onClick={() => setForm({ ...form, color: color.value })}
-                      className={`h-10 w-10 rounded-lg border-2 ${color.bg} ${color.border} ${form.color === color.value ? 'ring-2 ring-sky-500 ring-offset-1' : ''}`}
+                      className={`note-color-swatch ${form.color === color.value ? 'is-selected' : ''}`}
+                      style={{ background: color.accent }}
                       title={color.label}
-                    />
+                      aria-label={color.label}
+                    >
+                      {form.color === color.value && <Check className="h-3.5 w-3.5 text-white" />}
+                    </button>
                   ))}
                 </div>
               </div>
             </div>
 
-            <div className="form-actions-row">
-              <button type="button" className="cancel-btn" onClick={() => router.push('/dashboard/notes')} disabled={submitting}>
-                انصراف
-              </button>
-              <button type="submit" className="submit-btn" disabled={submitting}>
-                {submitting ? (<><Loader2 className="h-4 w-4 animate-spin" /> در حال ایجاد...</>) : 'ایجاد یادداشت'}
+            <div className="note-form-divider" />
+            <div className="note-form-footer">
+              <Link href="/dashboard/notes" className="note-cancel-btn">انصراف</Link>
+              <button type="submit" className="note-submit-btn" disabled={submitting}>
+                {submitting ? <Sparkles className="h-4 w-4 animate-pulse" /> : <Save className="h-4 w-4" />}
+                {submitting ? 'در حال ذخیره...' : 'ایجاد یادداشت'}
               </button>
             </div>
           </form>
 
-          <aside className="task-sidebar">
-            <div className="guide-card">
-              <div className="guide-card-header">
-                <span className="guide-card-icon"><Lightbulb className="h-5 w-5" /></span>
-                <h2>راهنما و نکات</h2>
+          {/* Sidebar guide */}
+          <aside className="note-sidebar">
+            <div className="note-sidebar-card">
+              <div className="note-sidebar-header">
+                <StickyNote className="h-5 w-5" />
+                <span>راهنمای یادداشت</span>
               </div>
-              <div className="guide-items">
-                {guideItems.map((item, i) => (
-                  <div key={i}>
-                    <div className="guide-item">
-                      <span className="guide-item-icon"><item.icon className="h-5 w-5" /></span>
-                      <div className="guide-item-text">
-                        <strong>{item.title}</strong>
-                        <p>{item.desc}</p>
-                      </div>
+              <p className="note-sidebar-desc">یادداشت‌های شخصی فقط برای شما قابل مشاهده هستند و به شما کمک می‌کنند اطلاعات مهم را سریع ذخیره و بازیابی کنید.</p>
+              <div className="note-guide-list">
+                {guideCards.map((card) => (
+                  <div className="note-guide-item" key={card.title}>
+                    <div className="note-guide-icon" style={{ background: card.bg, color: card.color }}>
+                      <card.icon className="h-4 w-4" />
                     </div>
-                    {i < guideItems.length - 1 && <div className="guide-item-divider" />}
+                    <div>
+                      <strong>{card.title}</strong>
+                      <p>{card.desc}</p>
+                    </div>
                   </div>
                 ))}
               </div>
-            </div>
-
-            <div className="info-card">
-              <div className="info-card-header">
-                <span className="info-card-icon"><Info className="h-5 w-5" /></span>
-                <h2>اطلاعات مفید</h2>
-              </div>
-              <p>یادداشت‌های ایجاد شده در بخش «یادداشت‌ها» قابل مشاهده، ویرایش و حذف هستند. می‌توانید آن‌ها را پین کنید یا دسته‌بندی کنید.</p>
             </div>
           </aside>
         </div>

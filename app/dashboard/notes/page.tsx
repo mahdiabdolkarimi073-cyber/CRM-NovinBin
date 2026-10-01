@@ -1,95 +1,86 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { fetchData, createData, updateData, deleteData } from '@/lib/data-client';
+import { useRouter } from 'next/navigation';
+import { fetchData, updateData, deleteData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
 import { EmptyState } from '@/components/dashboard/empty-state';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
+import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import {
-  BriefcaseBusiness,
-  ChevronLeft,
-  ChevronRight,
-  CircleDollarSign,
+  Archive,
+  ArchiveRestore,
+  ChevronDown,
+  Clock,
   FileText,
-  Filter,
-  FolderKanban,
-  Heart,
-  Lightbulb,
+  Hash,
+  LayoutGrid,
+  List,
   MoreVertical,
-  Pencil,
+  Palette,
   Pin,
   PinOff,
   Plus,
   Search,
-  Settings,
+  Settings2,
+  Sparkles,
   StickyNote,
+  Tag,
   Trash2,
-  Users,
+  X,
 } from 'lucide-react';
-import Link from 'next/link';
-import { relativeTime } from '@/lib/format';
+import { relativeTime, toPersianDigits } from '@/lib/format';
 import { toast } from 'sonner';
 import type { PersonalNote } from '@/lib/types';
 
-const colorOptions = [
-  { value: 'default', label: 'پیش‌فرض', bg: 'bg-white', border: 'border-slate-200' },
-  { value: 'yellow', label: 'زرد', bg: 'bg-amber-50', border: 'border-amber-200' },
-  { value: 'green', label: 'سبز', bg: 'bg-emerald-50', border: 'border-emerald-200' },
-  { value: 'blue', label: 'آبی', bg: 'bg-sky-50', border: 'border-sky-200' },
-  { value: 'pink', label: 'صورتی', bg: 'bg-pink-50', border: 'border-pink-200' },
-  { value: 'purple', label: 'بنفش', bg: 'bg-violet-50', border: 'border-violet-200' },
-];
+type ViewMode = 'grid' | 'list' | 'masonry';
+type SortMode = 'newest' | 'oldest' | 'title' | 'color';
+type Section = 'all' | 'pinned' | 'archived' | 'trash';
 
-const categories = [
-  { id: 'all', label: 'همه یادداشت‌ها', icon: StickyNote, color: 'text-blue-600', bg: 'bg-blue-50' },
-  { id: 'customers', label: 'مشتریان', icon: Users, color: 'text-violet-600', bg: 'bg-violet-50' },
-  { id: 'ideas', label: 'ایده‌ها', icon: Lightbulb, color: 'text-orange-600', bg: 'bg-orange-50' },
-  { id: 'projects', label: 'کار و پروژه‌ها', icon: BriefcaseBusiness, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-  { id: 'general', label: 'عمومی', icon: FileText, color: 'text-sky-600', bg: 'bg-sky-50' },
-  { id: 'finance', label: 'مالی', icon: CircleDollarSign, color: 'text-amber-600', bg: 'bg-amber-50' },
+const NOTE_COLORS = [
+  { value: 'default', label: 'پیش‌فرض', light: 'bg-white dark:bg-slate-800/50', border: 'border-slate-200 dark:border-slate-700', accent: '#64748b', dot: 'bg-slate-400' },
+  { value: 'amber',   label: 'کهربایی',  light: 'bg-amber-50 dark:bg-amber-950/30', border: 'border-amber-200 dark:border-amber-800/50', accent: '#f59e0b', dot: 'bg-amber-400' },
+  { value: 'rose',    label: 'صورتی',    light: 'bg-rose-50 dark:bg-rose-950/30', border: 'border-rose-200 dark:border-rose-800/50', accent: '#f43f5e', dot: 'bg-rose-400' },
+  { value: 'orange',  label: 'نارنجی',   light: 'bg-orange-50 dark:bg-orange-950/30', border: 'border-orange-200 dark:border-orange-800/50', accent: '#f97316', dot: 'bg-orange-400' },
+  { value: 'emerald', label: 'سبز',      light: 'bg-emerald-50 dark:bg-emerald-950/30', border: 'border-emerald-200 dark:border-emerald-800/50', accent: '#10b981', dot: 'bg-emerald-400' },
+  { value: 'teal',    label: 'فیروزه‌ای', light: 'bg-teal-50 dark:bg-teal-950/30', border: 'border-teal-200 dark:border-teal-800/50', accent: '#14b8a6', dot: 'bg-teal-400' },
+  { value: 'sky',     label: 'آبی آسمانی', light: 'bg-sky-50 dark:bg-sky-950/30', border: 'border-sky-200 dark:border-sky-800/50', accent: '#0ea5e9', dot: 'bg-sky-400' },
+  { value: 'blue',    label: 'آبی',      light: 'bg-blue-50 dark:bg-blue-950/30', border: 'border-blue-200 dark:border-blue-800/50', accent: '#3b82f6', dot: 'bg-blue-400' },
+  { value: 'violet',  label: 'بنفش',    light: 'bg-violet-50 dark:bg-violet-950/30', border: 'border-violet-200 dark:border-violet-800/50', accent: '#8b5cf6', dot: 'bg-violet-400' },
+  { value: 'fuchsia', label: 'سرخابی',  light: 'bg-fuchsia-50 dark:bg-fuchsia-950/30', border: 'border-fuchsia-200 dark:border-fuchsia-800/50', accent: '#d946ef', dot: 'bg-fuchsia-400' },
+  { value: 'slate',   label: 'خاکستری',  light: 'bg-slate-50 dark:bg-slate-800/30', border: 'border-slate-200 dark:border-slate-700/50', accent: '#64748b', dot: 'bg-slate-400' },
 ] as const;
 
-type CategoryId = (typeof categories)[number]['id'];
-
-type NoteCategory = {
-  id: Exclude<CategoryId, 'all'>;
-  label: string;
-  text: string;
-  background: string;
-};
-
-function getColorClasses(color: string) {
-  return colorOptions.find((option) => option.value === color) || colorOptions[0];
+function getColorMeta(value: string) {
+  return NOTE_COLORS.find((c) => c.value === value) || NOTE_COLORS[0];
 }
 
-function getNoteCategory(note: PersonalNote): NoteCategory {
-  const categoryByColor: Record<string, NoteCategory> = {
-    purple: { id: 'customers', label: 'مشتریان', text: 'text-violet-700', background: 'bg-violet-100' },
-    pink: { id: 'ideas', label: 'ایده‌ها', text: 'text-orange-700', background: 'bg-orange-100' },
-    green: { id: 'projects', label: 'کار و پروژه‌ها', text: 'text-emerald-700', background: 'bg-emerald-100' },
-    blue: { id: 'general', label: 'عمومی', text: 'text-sky-700', background: 'bg-sky-100' },
-    yellow: { id: 'finance', label: 'مالی', text: 'text-amber-700', background: 'bg-amber-100' },
-    default: { id: 'general', label: 'عمومی', text: 'text-sky-700', background: 'bg-sky-100' },
-  };
-  return categoryByColor[note.color] || categoryByColor.default;
-}
+const SIDEBAR_ITEMS: { id: Section; label: string; icon: typeof StickyNote }[] = [
+  { id: 'all', label: 'همه یادداشت‌ها', icon: StickyNote },
+  { id: 'pinned', label: 'سنجاق‌شده', icon: Pin },
+  { id: 'archived', label: 'آرشیو', icon: Archive },
+  { id: 'trash', label: 'سطل زباله', icon: Trash2 },
+];
 
 export default function NotesPage() {
   const { profile } = useAuth();
   const [notes, setNotes] = useState<PersonalNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [category, setCategory] = useState<CategoryId>('all');
-  const [sort, setSort] = useState('newest');
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingNote, setEditingNote] = useState<PersonalNote | null>(null);
-  const [form, setForm] = useState({ title: '', content: '', color: 'default' });
-  const [saving, setSaving] = useState(false);
-  const [favorites, setFavorites] = useState<string[]>([]);
+  const [section, setSection] = useState<Section>('all');
+  const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [sort, setSort] = useState<SortMode>('newest');
+  const [view, setView] = useState<ViewMode>('grid');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const router = useRouter();
+
+  // Command palette
+  const [cmdOpen, setCmdOpen] = useState(false);
+
+  // Mobile sidebar
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!profile) return;
@@ -103,175 +94,660 @@ export default function NotesPage() {
     setLoading(false);
   }, [profile]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
-  const openNew = () => {
-    setEditingNote(null);
-    setForm({ title: '', content: '', color: 'default' });
-    setDialogOpen(true);
-  };
-
-  const openEdit = (note: PersonalNote) => {
-    setEditingNote(note);
-    setForm({ title: note.title, content: note.content || '', color: note.color });
-    setDialogOpen(true);
-  };
-
-  const handleSave = async () => {
-    if (!form.title.trim()) { toast.error('عنوان یادداشت را وارد کنید'); return; }
-    setSaving(true);
-    try {
-      if (editingNote) {
-        await updateData('personal_notes', { id: editingNote.id }, {
-          title: form.title,
-          content: form.content || null,
-          color: form.color,
-          updatedAt: new Date(),
-        });
-        toast.success('یادداشت ویرایش شد');
-      } else {
-        await createData('personal_notes', { title: form.title, content: form.content || null, color: form.color });
-        toast.success('یادداشت ایجاد شد');
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setCmdOpen((v) => !v);
       }
-      setDialogOpen(false);
-      load();
-    } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : 'ذخیره یادداشت ناموفق بود');
-    }
-    setSaving(false);
-  };
+      if (e.key === 'n' && !cmdOpen) {
+        const target = e.target as HTMLElement;
+        if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA' && !target.isContentEditable) {
+          e.preventDefault();
+          router.push('/dashboard/notes/new');
+        }
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cmdOpen, router]);
 
-  const handleDelete = async (note: PersonalNote) => {
-    if (!confirm('حذف این یادداشت؟')) return;
+  // Optimistic update helper
+  const optimisticUpdate = useCallback((id: string, patch: Partial<PersonalNote>) => {
+    setNotes((prev) => prev.map((n) => (n.id === id ? { ...n, ...patch } : n)));
+  }, []);
+
+  const openNew = useCallback(() => {
+    router.push('/dashboard/notes/new');
+  }, [router]);
+
+  const openEdit = useCallback((note: PersonalNote) => {
+    router.push(`/dashboard/notes/${note.id}/edit`);
+  }, [router]);
+
+  const togglePin = useCallback(
+    async (note: PersonalNote) => {
+      optimisticUpdate(note.id, { pinned: !note.pinned });
+      try {
+        await updateData('personal_notes', { id: note.id }, { pinned: !note.pinned, updatedAt: new Date() });
+        toast.success(note.pinned ? 'سنجاق حذف شد' : 'سنجاق شد');
+      } catch {
+        optimisticUpdate(note.id, { pinned: note.pinned });
+        toast.error('تغییر وضعیت سنجاق ناموفق بود');
+      }
+    },
+    [optimisticUpdate]
+  );
+
+  const toggleArchive = useCallback(
+    async (note: PersonalNote) => {
+      const newArchived = !note.isArchived;
+      optimisticUpdate(note.id, { isArchived: newArchived });
+      try {
+        await updateData('personal_notes', { id: note.id }, { isArchived: newArchived, updatedAt: new Date() });
+        toast.success(newArchived ? 'به آرشیو منتقل شد' : 'از آرشیو بازگردانده شد');
+      } catch {
+        optimisticUpdate(note.id, { isArchived: note.isArchived });
+        toast.error('عملیات ناموفق بود');
+      }
+    },
+    [optimisticUpdate]
+  );
+
+  const moveToTrash = useCallback(
+    async (note: PersonalNote) => {
+      optimisticUpdate(note.id, { isTrashed: true, trashedAt: new Date().toISOString() });
+      try {
+        await updateData('personal_notes', { id: note.id }, { isTrashed: true, trashedAt: new Date(), updatedAt: new Date() });
+        toast.success('یادداشت به سطل زباله منتقل شد');
+      } catch {
+        optimisticUpdate(note.id, { isTrashed: false, trashedAt: null });
+        toast.error('انتقال به سطل زباله ناموفق بود');
+      }
+    },
+    [optimisticUpdate]
+  );
+
+  const restoreFromTrash = useCallback(
+    async (note: PersonalNote) => {
+      optimisticUpdate(note.id, { isTrashed: false, trashedAt: null });
+      try {
+        await updateData('personal_notes', { id: note.id }, { isTrashed: false, trashedAt: null, updatedAt: new Date() });
+        toast.success('یادداشت بازگردانده شد');
+      } catch {
+        optimisticUpdate(note.id, { isTrashed: true });
+        toast.error('بازگردانی ناموفق بود');
+      }
+    },
+    [optimisticUpdate]
+  );
+
+  const permanentDelete = useCallback(
+    async (note: PersonalNote) => {
+      try {
+        await deleteData('personal_notes', { id: note.id });
+        setNotes((prev) => prev.filter((n) => n.id !== note.id));
+        toast.success('یادداشت برای همیشه حذف شد');
+      } catch (error: unknown) {
+        toast.error(error instanceof Error ? error.message : 'حذف ناموفق بود');
+      }
+    },
+    []
+  );
+
+  const emptyTrash = useCallback(async () => {
+    const trashed = notes.filter((n) => n.isTrashed);
+    if (trashed.length === 0) return;
     try {
-      await deleteData('personal_notes', { id: note.id });
-      toast.success('یادداشت حذف شد');
-      load();
-    } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : 'حذف یادداشت ناموفق بود');
+      await Promise.all(trashed.map((n) => deleteData('personal_notes', { id: n.id })));
+      setNotes((prev) => prev.filter((n) => !n.isTrashed));
+      toast.success('سطل زباله خالی شد');
+    } catch {
+      toast.error('خالی کردن سطل زباله ناموفق بود');
     }
-  };
+  }, [notes]);
 
-  const togglePin = async (note: PersonalNote) => {
-    try {
-      await updateData('personal_notes', { id: note.id }, { pinned: !note.pinned, updatedAt: new Date() });
-      load();
-    } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : 'تغییر وضعیت سنجاق ناموفق بود');
-    }
-  };
-
-  const toggleFavorite = (id: string) => {
-    setFavorites((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
-  };
+  // Filtering
+  const allTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    notes.forEach((n) => {
+      if (!n.isTrashed) (n.tags || []).forEach((t) => tagSet.add(t));
+    });
+    return Array.from(tagSet).sort();
+  }, [notes]);
 
   const filteredNotes = useMemo(() => {
-    const normalizedSearch = search.trim().toLowerCase();
+    const q = search.trim().toLowerCase();
     return notes
-      .filter((note) => {
-        const noteCategory = getNoteCategory(note).id;
-        const matchesCategory = category === 'all' || noteCategory === category;
-        const matchesSearch = !normalizedSearch || note.title.toLowerCase().includes(normalizedSearch) || (note.content || '').toLowerCase().includes(normalizedSearch);
-        return matchesCategory && matchesSearch;
+      .filter((n) => {
+        if (section === 'all' && n.isTrashed) return false;
+        if (section === 'all' && n.isArchived) return false;
+        if (section === 'pinned' && (!n.pinned || n.isTrashed || n.isArchived)) return false;
+        if (section === 'archived' && (!n.isArchived || n.isTrashed)) return false;
+        if (section === 'trash' && !n.isTrashed) return false;
+        if (activeTag && !(n.tags || []).includes(activeTag)) return false;
+        if (q && !n.title.toLowerCase().includes(q) && !(n.content || '').toLowerCase().includes(q)) return false;
+        return true;
       })
-      .sort((first, second) => {
-        if (sort === 'oldest') return new Date(first.createdAt).getTime() - new Date(second.createdAt).getTime();
-        if (sort === 'title') return first.title.localeCompare(second.title, 'fa');
-        return new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime();
+      .sort((a, b) => {
+        if (sort === 'oldest') return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        if (sort === 'title') return a.title.localeCompare(b.title, 'fa');
+        if (sort === 'color') return getColorMeta(a.color).value.localeCompare(getColorMeta(b.color).value);
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
-  }, [category, notes, search, sort]);
+  }, [notes, section, activeTag, search, sort]);
 
-  const stats = [
-    { label: 'کل یادداشت‌ها', value: notes.length, icon: StickyNote, iconClass: 'bg-blue-50 text-blue-600' },
-    { label: 'یادداشت‌های پین‌شده', value: notes.filter((note) => note.pinned).length, icon: Pin, iconClass: 'bg-amber-50 text-amber-600' },
-    { label: 'یادداشت‌های این ماه', value: notes.filter((note) => new Date(note.createdAt).getMonth() === new Date().getMonth()).length, icon: FolderKanban, iconClass: 'bg-emerald-50 text-emerald-600' },
-    { label: 'مورد علاقه‌ها', value: favorites.length, icon: Heart, iconClass: 'bg-orange-50 text-orange-600' },
-  ];
+  const pinnedNotes = useMemo(
+    () => filteredNotes.filter((n) => n.pinned && section === 'all'),
+    [filteredNotes, section]
+  );
+  const regularNotes = useMemo(
+    () => (section === 'all' ? filteredNotes.filter((n) => !n.pinned) : filteredNotes),
+    [filteredNotes, section]
+  );
 
-  const categoryCounts = categories.reduce<Record<string, number>>((counts, item) => {
-    counts[item.id] = item.id === 'all' ? notes.length : notes.filter((note) => getNoteCategory(note).id === item.id).length;
-    return counts;
-  }, {});
+  const stats = useMemo(
+    () => [
+      { label: 'کل یادداشت‌ها', value: notes.filter((n) => !n.isTrashed && !n.isArchived).length, icon: StickyNote, color: 'text-blue-600 bg-blue-50 dark:bg-blue-950/40 dark:text-blue-400' },
+      { label: 'سنجاق‌شده', value: notes.filter((n) => n.pinned && !n.isTrashed && !n.isArchived).length, icon: Pin, color: 'text-amber-600 bg-amber-50 dark:bg-amber-950/40 dark:text-amber-400' },
+      { label: 'آرشیو', value: notes.filter((n) => n.isArchived && !n.isTrashed).length, icon: Archive, color: 'text-slate-600 bg-slate-50 dark:bg-slate-800/40 dark:text-slate-400' },
+      { label: 'سطل زباله', value: notes.filter((n) => n.isTrashed).length, icon: Trash2, color: 'text-rose-600 bg-rose-50 dark:bg-rose-950/40 dark:text-rose-400' },
+    ],
+    [notes]
+  );
+
+  const sectionLabel = SIDEBAR_ITEMS.find((s) => s.id === section)?.label || 'یادداشت‌ها';
 
   return (
-    <div className="notes-page" dir="rtl">
-      <header className="notes-header">
-        <div>
-          <div className="notes-title-row"><span className="notes-title-marker" /><h1>یادداشت‌ها</h1></div>
-          <p>یادداشت‌های شخصی خود را مدیریت و سازماندهی کنید</p>
+    <div className="notes2-page" dir="rtl">
+      {/* Header */}
+      <header className="notes2-header">
+        <div className="notes2-header-left">
+          <button
+            className="notes2-mobile-menu-btn"
+            onClick={() => setMobileSidebarOpen(true)}
+            aria-label="منوی یادداشت‌ها"
+          >
+            <Settings2 className="h-5 w-5" />
+          </button>
+          <div>
+            <div className="notes2-title-row">
+              <span className="notes2-title-marker" />
+              <h1>یادداشت‌ها</h1>
+            </div>
+            <p>یادداشت‌های شخصی خود را مدیریت و سازماندهی کنید</p>
+          </div>
         </div>
-        <Link href="/dashboard/notes/new"><Button className="notes-new-button"><Plus className="h-[18px] w-[18px]" /> یادداشت جدید</Button></Link>
+        <div className="notes2-header-right">
+          <button className="notes2-cmd-btn" onClick={() => setCmdOpen(true)}>
+            <Search className="h-4 w-4" />
+            <span>جستجوی سریع</span>
+            <kbd>Ctrl K</kbd>
+          </button>
+          <Button className="notes2-new-btn" onClick={openNew}>
+            <Plus className="h-[18px] w-[18px]" />
+            یادداشت جدید
+          </Button>
+        </div>
       </header>
 
-      <div className="notes-search-wrap">
-        <Search className="h-[18px] w-[18px]" />
-        <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="جستجو در یادداشت‌ها..." />
-      </div>
-
-      <section className="notes-stats-grid">
+      {/* Stats */}
+      <section className="notes2-stats-grid">
         {stats.map((stat) => (
-          <div className="notes-stat-card" key={stat.label}>
-            <div className={`notes-stat-icon ${stat.iconClass}`}><stat.icon className="h-6 w-6" /></div>
-            <div><strong>{stat.value.toLocaleString('fa-IR')}</strong><span>{stat.label}</span></div>
+          <div className="notes2-stat-card" key={stat.label} onClick={() => setSection(stat.label === 'کل یادداشت‌ها' ? 'all' : stat.label === 'سنجاق‌شده' ? 'pinned' : stat.label === 'آرشیو' ? 'archived' : 'trash')}>
+            <div className={`notes2-stat-icon ${stat.color}`}>
+              <stat.icon className="h-5 w-5" />
+            </div>
+            <div>
+              <strong>{toPersianDigits(stat.value)}</strong>
+              <span>{stat.label}</span>
+            </div>
           </div>
         ))}
       </section>
 
-      <section className="notes-main-card">
-        <aside className="notes-categories">
-          <h2>دسته‌بندی‌ها</h2>
-          <div className="notes-category-list">
-            {categories.map((item) => {
-              const Icon = item.icon;
-              const active = category === item.id;
-              return <button key={item.id} type="button" onClick={() => setCategory(item.id)} className={`notes-category-item ${active ? 'is-active' : ''}`}>
-                <span className={`notes-category-icon ${item.bg} ${item.color}`}><Icon className="h-[17px] w-[17px]" /></span><span>{item.label}</span><b>{categoryCounts[item.id]}</b>
-              </button>;
-            })}
+      {/* Main layout */}
+      <div className="notes2-body">
+        {/* Desktop sidebar */}
+        <aside className={`notes2-sidebar ${!sidebarOpen ? 'is-collapsed' : ''}`}>
+          <div className="notes2-sidebar-header">
+            <span>بخش‌ها</span>
+            <button onClick={() => setSidebarOpen(!sidebarOpen)} aria-label="جمع کردن سایدبار">
+              <ChevronDown className={`h-4 w-4 transition-transform ${sidebarOpen ? '' : 'rotate-180'}`} />
+            </button>
           </div>
-          <button type="button" className="notes-manage-categories"><Settings className="h-4 w-4" /> مدیریت دسته‌بندی‌ها</button>
+          <nav className="notes2-sidebar-nav">
+            {SIDEBAR_ITEMS.map((item) => {
+              const Icon = item.icon;
+              const count =
+                item.id === 'all' ? notes.filter((n) => !n.isTrashed && !n.isArchived).length :
+                item.id === 'pinned' ? notes.filter((n) => n.pinned && !n.isTrashed && !n.isArchived).length :
+                item.id === 'archived' ? notes.filter((n) => n.isArchived && !n.isTrashed).length :
+                notes.filter((n) => n.isTrashed).length;
+              return (
+                <button
+                  key={item.id}
+                  className={`notes2-sidebar-item ${section === item.id ? 'is-active' : ''}`}
+                  onClick={() => { setSection(item.id); setActiveTag(null); }}
+                >
+                  <Icon className="h-[18px] w-[18px]" />
+                  <span>{item.label}</span>
+                  <b>{toPersianDigits(count)}</b>
+                </button>
+              );
+            })}
+          </nav>
+
+          {allTags.length > 0 && (
+            <>
+              <div className="notes2-sidebar-header" style={{ marginTop: '12px' }}>
+                <span>برچسب‌ها</span>
+                <Tag className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <nav className="notes2-sidebar-nav">
+                {allTags.map((tag) => (
+                  <button
+                    key={tag}
+                    className={`notes2-sidebar-item ${activeTag === tag ? 'is-active' : ''}`}
+                    onClick={() => setActiveTag(activeTag === tag ? null : tag)}
+                  >
+                    <Hash className="h-[16px] w-[16px]" />
+                    <span>{tag}</span>
+                    <b>{toPersianDigits(notes.filter((n) => (n.tags || []).includes(tag) && !n.isTrashed && !n.isArchived).length)}</b>
+                  </button>
+                ))}
+              </nav>
+            </>
+          )}
+
+          {section === 'trash' && notes.filter((n) => n.isTrashed).length > 0 && (
+            <button className="notes2-empty-trash-btn" onClick={emptyTrash}>
+              <Trash2 className="h-4 w-4" />
+              خالی کردن سطل زباله
+            </button>
+          )}
         </aside>
 
-        <div className="notes-list-section">
-          <div className="notes-toolbar">
-            <h2>یادداشت‌ها <span>{filteredNotes.length.toLocaleString('fa-IR')} مورد</span></h2>
-            <div className="notes-toolbar-controls">
-              <select value={category} onChange={(event) => setCategory(event.target.value as CategoryId)} aria-label="فیلتر دسته‌بندی"><option value="all">همه دسته‌ها</option>{categories.slice(1).map((item) => <option value={item.id} key={item.id}>{item.label}</option>)}</select>
-              <select value={sort} onChange={(event) => setSort(event.target.value)} aria-label="مرتب‌سازی"><option value="newest">جدیدترین</option><option value="oldest">قدیمی‌ترین</option><option value="title">بر اساس عنوان</option></select>
-              <button type="button" className="notes-filter-button"><Filter className="h-4 w-4" /> فیلتر</button>
+        {/* Main content */}
+        <div className="notes2-main">
+          {/* Toolbar */}
+          <div className="notes2-toolbar">
+            <div className="notes2-toolbar-left">
+              <h2>{sectionLabel}</h2>
+              <span className="notes2-count-badge">{toPersianDigits(filteredNotes.length)} مورد</span>
+              {activeTag && (
+                <span className="notes2-active-tag-chip">
+                  <Hash className="h-3 w-3" />
+                  {activeTag}
+                  <button onClick={() => setActiveTag(null)}><X className="h-3 w-3" /></button>
+                </span>
+              )}
+            </div>
+            <div className="notes2-toolbar-right">
+              <div className="notes2-search-box">
+                <Search className="h-4 w-4" />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="جستجو در یادداشت‌ها..."
+                />
+                {search && (
+                  <button onClick={() => setSearch('')}><X className="h-3.5 w-3.5" /></button>
+                )}
+              </div>
+              <div className="notes2-sort-wrap">
+                <select value={sort} onChange={(e) => setSort(e.target.value as SortMode)} aria-label="مرتب‌سازی">
+                  <option value="newest">جدیدترین</option>
+                  <option value="oldest">قدیمی‌ترین</option>
+                  <option value="title">عنوان</option>
+                  <option value="color">رنگ</option>
+                </select>
+                <ChevronDown className="h-3.5 w-3.5" />
+              </div>
+              <div className="notes2-view-toggle">
+                <button className={view === 'grid' ? 'is-active' : ''} onClick={() => setView('grid')} aria-label="نمایش شبکه‌ای">
+                  <LayoutGrid className="h-4 w-4" />
+                </button>
+                <button className={view === 'list' ? 'is-active' : ''} onClick={() => setView('list')} aria-label="نمایش لیستی">
+                  <List className="h-4 w-4" />
+                </button>
+                <button className={view === 'masonry' ? 'is-active' : ''} onClick={() => setView('masonry')} aria-label="نمایش آجری">
+                  <Sparkles className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           </div>
 
-          {loading ? <div className="notes-loading"><span /></div> : notes.length === 0 ? <div className="notes-empty"><EmptyState icon={<StickyNote className="h-8 w-8" />} title="هیچ یادداشتی وجود ندارد" description="یادداشت‌های شخصی خود را اینجا ذخیره کنید" action={<Link href="/dashboard/notes/new"><Button size="sm"><Plus className="h-4 w-4" /> یادداشت جدید</Button></Link>} /></div> : filteredNotes.length === 0 ? <div className="notes-empty"><StickyNote className="h-10 w-10 text-slate-300" /><p>یادداشتی با این جستجو پیدا نشد.</p></div> : <>
-            <div className="notes-grid">
-              {filteredNotes.map((note) => <NoteCard key={note.id} note={note} favorite={favorites.includes(note.id)} onFavorite={toggleFavorite} onEdit={openEdit} onDelete={handleDelete} onPin={togglePin} />)}
+          {/* Content */}
+          {loading ? (
+            <div className="notes2-loading">
+              <span />
+              <p>در حال بارگذاری...</p>
             </div>
-            <div className="notes-pagination"><button type="button" aria-label="صفحه قبل"><ChevronRight className="h-4 w-4" /></button><button type="button" className="is-current">۱</button><button type="button">۲</button><button type="button">۳</button><span>...</span><button type="button">۵</button><button type="button" aria-label="صفحه بعد"><ChevronLeft className="h-4 w-4" /></button></div>
-          </>}
+          ) : filteredNotes.length === 0 ? (
+            <div className="notes2-empty-state">
+              <EmptyState
+                icon={
+                  section === 'trash' ? <Trash2 className="h-8 w-8" /> :
+                  section === 'archived' ? <Archive className="h-8 w-8" /> :
+                  section === 'pinned' ? <Pin className="h-8 w-8" /> :
+                  <StickyNote className="h-8 w-8" />
+                }
+                title={
+                  section === 'trash' ? 'سطل زباله خالی است' :
+                  section === 'archived' ? 'هیچ یادداشتی آرشیو نشده' :
+                  section === 'pinned' ? 'هیچ یادداشتی سنجاق نشده' :
+                  'هنوز یادداشتی نساخته‌اید'
+                }
+                description={
+                  section === 'trash' ? 'یادداشت‌های حذف‌شده اینجا نمایش داده می‌شوند' :
+                  section === 'archived' ? 'یادداشت‌های آرشیو‌شده اینجا نمایش داده می‌شوند' :
+                  section === 'pinned' ? 'یادداشت‌های سنجاق‌شده در بالا نمایش داده می‌شوند' :
+                  'یادداشت‌های شخصی خود را اینجا ذخیره و مدیریت کنید'
+                }
+                action={
+                  section === 'all' || section === 'pinned' ? (
+                    <Button size="sm" onClick={openNew}>
+                      <Plus className="h-4 w-4" />
+                      یادداشت جدید
+                    </Button>
+                  ) : undefined
+                }
+              />
+            </div>
+          ) : (
+            <>
+              {/* Pinned section */}
+              {pinnedNotes.length > 0 && (
+                <div className="notes2-pinned-section">
+                  <div className="notes2-pinned-header">
+                    <Pin className="h-4 w-4" />
+                    <span>سنجاق‌شده</span>
+                  </div>
+                  <div className={`notes2-grid notes2-grid-${view}`}>
+                    {pinnedNotes.map((note) => (
+                      <NoteCard
+                        key={note.id}
+                        note={note}
+                        view={view}
+                        section={section}
+                        onEdit={openEdit}
+                        onPin={togglePin}
+                        onArchive={toggleArchive}
+                        onTrash={moveToTrash}
+                        onRestore={restoreFromTrash}
+                        onDelete={permanentDelete}
+                        onColorChange={async (id, color) => {
+                          optimisticUpdate(id, { color });
+                          try { await updateData('personal_notes', { id }, { color, updatedAt: new Date() }); } catch {}
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Regular notes */}
+              {regularNotes.length > 0 && (
+                <div className={`notes2-grid notes2-grid-${view}`}>
+                  {regularNotes.map((note) => (
+                    <NoteCard
+                      key={note.id}
+                      note={note}
+                      view={view}
+                      section={section}
+                      onEdit={openEdit}
+                      onPin={togglePin}
+                      onArchive={toggleArchive}
+                      onTrash={moveToTrash}
+                      onRestore={restoreFromTrash}
+                      onDelete={permanentDelete}
+                      onColorChange={async (id, color) => {
+                        optimisticUpdate(id, { color });
+                        try { await updateData('personal_notes', { id }, { color, updatedAt: new Date() }); } catch {}
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
         </div>
-      </section>
+      </div>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="mobile:max-w-[500px]">
-          <DialogHeader><DialogTitle>{editingNote ? 'ویرایش یادداشت' : 'یادداشت جدید'}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div><label className="mb-1.5 block text-sm font-medium">عنوان</label><Input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="عنوان یادداشت" /></div>
-            <div><label className="mb-1.5 block text-sm font-medium">متن</label><Textarea value={form.content} onChange={(event) => setForm({ ...form, content: event.target.value })} placeholder="محتوای یادداشت..." rows={6} /></div>
-            <div><label className="mb-1.5 block text-sm font-medium">رنگ</label><div className="flex flex-wrap gap-2">{colorOptions.map((color) => <button key={color.value} type="button" onClick={() => setForm({ ...form, color: color.value })} className={`h-10 w-10 rounded-lg border-2 ${color.bg} ${color.border} ${form.color === color.value ? 'ring-2 ring-sky-500 ring-offset-1' : ''}`} title={color.label} />)}</div></div>
+      {/* Mobile FAB */}
+      <button className="notes2-fab" onClick={openNew} aria-label="یادداشت جدید">
+        <Plus className="h-6 w-6" />
+      </button>
+
+      {/* Mobile sidebar drawer */}
+      <Drawer open={mobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
+        <DrawerContent className="notes2-mobile-drawer">
+          <DrawerHeader>
+            <DrawerTitle>بخش‌ها</DrawerTitle>
+          </DrawerHeader>
+          <div className="px-4 pb-6">
+            {SIDEBAR_ITEMS.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  className={`notes2-sidebar-item ${section === item.id ? 'is-active' : ''}`}
+                  onClick={() => { setSection(item.id); setActiveTag(null); setMobileSidebarOpen(false); }}
+                >
+                  <Icon className="h-[18px] w-[18px]" />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+            {allTags.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-border">
+                <p className="text-sm font-semibold mb-2">برچسب‌ها</p>
+                {allTags.map((tag) => (
+                  <button
+                    key={tag}
+                    className={`notes2-sidebar-item ${activeTag === tag ? 'is-active' : ''}`}
+                    onClick={() => { setActiveTag(activeTag === tag ? null : tag); setMobileSidebarOpen(false); }}
+                  >
+                    <Hash className="h-4 w-4" />
+                    <span>{tag}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setDialogOpen(false)}>انصراف</Button><Button onClick={handleSave} disabled={saving}>{saving ? 'در حال ذخیره...' : 'ذخیره'}</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </DrawerContent>
+      </Drawer>
+
+      {/* Command Palette */}
+      <CommandDialog open={cmdOpen} onOpenChange={setCmdOpen}>
+        <CommandInput placeholder="جستجو یا دستور..." />
+        <CommandList>
+          <CommandEmpty>نتیجه‌ای یافت نشد</CommandEmpty>
+          <CommandGroup heading="دستورات">
+            <CommandItem onSelect={() => { setCmdOpen(false); openNew(); }}>
+              <Plus className="h-4 w-4" />
+              یادداشت جدید
+            </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); setSection('all'); setActiveTag(null); }}>
+              <StickyNote className="h-4 w-4" />
+              نمایش همه یادداشت‌ها
+            </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); setSection('pinned'); }}>
+              <Pin className="h-4 w-4" />
+              نمایش سنجاق‌شده‌ها
+            </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); setSection('archived'); }}>
+              <Archive className="h-4 w-4" />
+              نمایش آرشیو
+            </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); setSection('trash'); }}>
+              <Trash2 className="h-4 w-4" />
+              نمایش سطل زباله
+            </CommandItem>
+          </CommandGroup>
+          {notes.filter((n) => !n.isTrashed && !n.isArchived).length > 0 && (
+            <CommandGroup heading="یادداشت‌ها">
+              {notes
+                .filter((n) => !n.isTrashed && !n.isArchived)
+                .slice(0, 8)
+                .map((note) => (
+                  <CommandItem
+                    key={note.id}
+                    onSelect={() => { setCmdOpen(false); openEdit(note); }}
+                  >
+                    <FileText className="h-4 w-4" />
+                    {note.title}
+                  </CommandItem>
+                ))}
+            </CommandGroup>
+          )}
+          {allTags.length > 0 && (
+            <CommandGroup heading="برچسب‌ها">
+              {allTags.map((tag) => (
+                <CommandItem
+                  key={tag}
+                  onSelect={() => { setCmdOpen(false); setSection('all'); setActiveTag(tag); }}
+                >
+                  <Hash className="h-4 w-4" />
+                  {tag}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+        </CommandList>
+      </CommandDialog>
     </div>
   );
 }
 
-function NoteCard({ note, favorite, onFavorite, onEdit, onDelete, onPin }: { note: PersonalNote; favorite: boolean; onFavorite: (id: string) => void; onEdit: (note: PersonalNote) => void; onDelete: (note: PersonalNote) => void; onPin: (note: PersonalNote) => void }) {
-  const category = getNoteCategory(note);
-  const colorClass = getColorClasses(note.color);
-  return <article className={`notes-note-card ${colorClass.bg}`}>
-    <div className="notes-note-top"><span className={`notes-note-tag ${category.background} ${category.text}`}>{category.label}</span><DropdownMenu><DropdownMenuTrigger asChild><button type="button" className="notes-more-button" aria-label="گزینه‌های یادداشت"><MoreVertical className="h-[18px] w-[18px]" /></button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => onPin(note)}>{note.pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}{note.pinned ? 'حذف پین' : 'پین کردن'}</DropdownMenuItem><DropdownMenuItem onClick={() => onEdit(note)}><Pencil className="h-4 w-4" /> ویرایش</DropdownMenuItem><DropdownMenuItem onClick={() => onDelete(note)} className="text-red-600"><Trash2 className="h-4 w-4" /> حذف</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div>
-    <h3>{note.title}</h3><p className="notes-note-content">{note.content || 'متنی برای این یادداشت ثبت نشده است.'}</p>
-    <div className="notes-note-footer"><span>{relativeTime(note.createdAt)}</span><div><button type="button" onClick={() => onFavorite(note.id)} className={favorite ? 'is-favorite' : ''} aria-label="مورد علاقه"><Heart className="h-[17px] w-[17px]" fill={favorite ? 'currentColor' : 'none'} /></button><button type="button" onClick={() => onPin(note)} className={note.pinned ? 'is-pinned' : ''} aria-label="پین"><Pin className="h-[17px] w-[17px]" /></button></div></div>
-  </article>;
+// ===== Note Card =====
+function NoteCard({
+  note, view, section, onEdit, onPin, onArchive, onTrash, onRestore, onDelete, onColorChange,
+}: {
+  note: PersonalNote;
+  view: ViewMode;
+  section: Section;
+  onEdit: (n: PersonalNote) => void;
+  onPin: (n: PersonalNote) => void;
+  onArchive: (n: PersonalNote) => void;
+  onTrash: (n: PersonalNote) => void;
+  onRestore: (n: PersonalNote) => void;
+  onDelete: (n: PersonalNote) => void;
+  onColorChange: (id: string, color: string) => void;
+}) {
+  const colorMeta = getColorMeta(note.color);
+  const [showColorPicker, setShowColorPicker] = useState(false);
+
+  return (
+    <article
+      className={`notes2-card notes2-card-${view} ${colorMeta.light} ${colorMeta.border}`}
+      style={{ borderLeftWidth: '4px', borderLeftColor: colorMeta.accent }}
+      onClick={() => onEdit(note)}
+    >
+      {/* Top row */}
+      <div className="notes2-card-top">
+        <div className="notes2-card-tags">
+          {(note.tags || []).slice(0, 3).map((tag) => (
+            <span key={tag} className="notes2-card-tag">
+              <Hash className="h-2.5 w-2.5" />
+              {tag}
+            </span>
+          ))}
+          {(note.tags || []).length > 3 && (
+            <span className="notes2-card-tag">+{toPersianDigits(note.tags.length - 3)}</span>
+          )}
+        </div>
+        <div className="notes2-card-actions" onClick={(e) => e.stopPropagation()}>
+          {note.pinned && <Pin className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="notes2-card-more" aria-label="گزینه‌ها">
+                <MoreVertical className="h-4 w-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {section !== 'trash' && (
+                <>
+                  <DropdownMenuItem onClick={() => onPin(note)}>
+                    {note.pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+                    {note.pinned ? 'حذف سنجاق' : 'سنجاق کردن'}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onArchive(note)}>
+                    {note.isArchived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
+                    {note.isArchived ? 'خروج از آرشیو' : 'آرشیو'}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowColorPicker(!showColorPicker)}>
+                    <Palette className="h-4 w-4" />
+                    تغییر رنگ
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => onTrash(note)} className="text-rose-600">
+                    <Trash2 className="h-4 w-4" />
+                    حذف
+                  </DropdownMenuItem>
+                </>
+              )}
+              {section === 'trash' && (
+                <>
+                  <DropdownMenuItem onClick={() => onRestore(note)}>
+                    <ArchiveRestore className="h-4 w-4" />
+                    بازگردانی
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => onDelete(note)} className="text-rose-600">
+                    <Trash2 className="h-4 w-4" />
+                    حذف دائمی
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
+      {/* Color picker popover */}
+      {showColorPicker && (
+        <div className="notes2-card-color-popover" onClick={(e) => e.stopPropagation()}>
+          {NOTE_COLORS.map((c) => (
+            <button
+              key={c.value}
+              className="notes2-color-swatch-sm"
+              style={{ background: c.accent }}
+              onClick={() => { onColorChange(note.id, c.value); setShowColorPicker(false); }}
+              aria-label={c.label}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Content */}
+      <h3 className="notes2-card-title">{note.title}</h3>
+      <p className="notes2-card-content">{note.content || 'بدون محتوا'}</p>
+
+      {/* Footer */}
+      <div className="notes2-card-footer">
+        <span className="notes2-card-date">
+          <Clock className="h-3 w-3" />
+          {relativeTime(note.updatedAt)}
+        </span>
+        {section !== 'trash' && (
+          <div className="notes2-card-quick-actions" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => onPin(note)} aria-label="سنجاق" className={note.pinned ? 'is-active' : ''}>
+              <Pin className="h-3.5 w-3.5" fill={note.pinned ? 'currentColor' : 'none'} />
+            </button>
+            <button onClick={() => onArchive(note)} aria-label="آرشیو">
+              <Archive className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
+      </div>
+    </article>
+  );
 }

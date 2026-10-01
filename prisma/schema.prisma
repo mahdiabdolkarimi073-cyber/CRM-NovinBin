@@ -1773,15 +1773,20 @@ model KpiRecord {
 // ============ PERSONAL NOTES & STAFF CHAT ============
 
 model PersonalNote {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  profileId String   @db.Uuid
-  title     String
-  content   String?
-  color     String   @default("default")
-  pinned    Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now())
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileId  String   @db.Uuid
+  title      String
+  content    String?
+  color      String   @default("default")
+  tags       String[] @default([])
+  pinned     Boolean  @default(false)
+  isArchived Boolean  @default(false)
+  isTrashed  Boolean  @default(false)
+  trashedAt  DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now())
 
+  @@index([profileId, isTrashed])
   @@map("personal_notes")
 }
 
