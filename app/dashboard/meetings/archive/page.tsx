@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/select';
 import {
   Calendar, Archive, Loader2, Search, Trash2, RotateCcw, Eye,
-  Clock, UserRound, MapPin,
+  Clock, UserRound, MapPin, CheckCircle2, X,
 } from 'lucide-react';
 import { formatJalaliDateTime } from '@/lib/format';
 import { MEETING_STATUSES } from '@/lib/constants';
@@ -102,79 +102,114 @@ export default function MeetingsArchivePage() {
 
   if (!isSuperAdmin) {
     return (
-      <div className="flex h-[60vh] flex-col items-center justify-center" dir="rtl">
-        <Archive className="h-10 w-10 text-slate-300" />
-        <strong className="mt-3 text-slate-700">دسترسی محدود</strong>
-        <span className="text-sm text-slate-400">این صفحه فقط برای مدیران ارشد قابل دسترس است.</span>
-        <Link href="/dashboard/meetings" className="mt-4 text-sm text-sky-600 hover:underline">بازگشت به جلسات</Link>
+      <div className="nb-empty" dir="rtl" style={{ minHeight: '60vh' }}>
+        <div className="sb-empty-icon">
+          <Archive className="h-12 w-12 text-muted-foreground/30" />
+        </div>
+        <h3>دسترسی محدود</h3>
+        <p>این صفحه فقط برای مدیران ارشد قابل دسترس است.</p>
+        <Link href="/dashboard/meetings" className="nb-editor-back" style={{ marginTop: 12 }}>بازگشت به جلسات</Link>
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+      <div className="nb-page" dir="rtl">
+        <div className="nb-empty">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
+          <p>در حال بارگذاری آرشیو...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-7xl p-4 md:p-6" dir="rtl">
-      <header className="mb-6 flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="h-7 w-1.5 rounded-full bg-slate-400" />
-            <h1 className="text-2xl font-bold text-slate-900">آرشیو جلسات</h1>
+    <div className="nb-page" dir="rtl">
+      <header className="nb-hero">
+        <div className="nb-hero-left">
+          <div>
+            <div className="nb-hero-title-row">
+              <span className="nb-hero-marker" style={{ background: 'linear-gradient(180deg,#64748B,#475569)' }} />
+              <h1>آرشیو جلسات</h1>
+            </div>
+            <p>جلسات آرشیو شده ({meetings.length.toLocaleString('fa-IR')})</p>
           </div>
-          <p className="mt-1 text-sm text-slate-500">جلسات آرشیو شده ({meetings.length.toLocaleString('fa-IR')})</p>
         </div>
-        <Link href="/dashboard/meetings" className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50">
-          <Calendar className="h-4 w-4" />
-          بازگشت به جلسات
-        </Link>
+        <div className="nb-hero-right">
+          <Link href="/dashboard/meetings" className="nb-editor-back">
+            <Calendar className="h-4 w-4" />
+            بازگشت به جلسات
+          </Link>
+        </div>
       </header>
 
-      <div className="mb-5 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-3">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="جستجو در آرشیو..." className="pr-9" />
+      <div className="nb-toolbar">
+        <div className="nb-toolbar-left">
+          <h2>جلسات آرشیو شده</h2>
+          <span className="nb-count-badge">{filtered.length.toLocaleString('fa-IR')} مورد</span>
         </div>
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="وضعیت" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">همه وضعیت‌ها</SelectItem>
-            {MEETING_STATUSES.map((s) => (
-              <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="nb-toolbar-right">
+          <div className="nb-search-box">
+            <Search className="h-4 w-4" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="جستجو در آرشیو..."
+            />
+            {search && (
+              <button onClick={() => setSearch('')}><X className="h-3.5 w-3.5" /></button>
+            )}
+          </div>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="h-10 w-[150px]">
+              <SelectValue placeholder="وضعیت" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">همه وضعیت‌ها</SelectItem>
+              {MEETING_STATUSES.map((s) => (
+                <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white py-16">
-          <Archive className="h-10 w-10 text-slate-300" />
-          <strong className="mt-3 text-slate-700">جلسه‌ای در آرشیو وجود ندارد</strong>
-          <span className="text-sm text-slate-400">جلسات آرشیو شده اینجا نمایش داده می‌شوند</span>
+        <div className="nb-empty">
+          <div className="sb-empty-icon">
+            <Archive className="h-12 w-12 text-muted-foreground/30" />
+          </div>
+          <h3>جلسه‌ای در آرشیو وجود ندارد</h3>
+          <p>جلسات آرشیو شده اینجا نمایش داده می‌شوند</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2 lg:grid-cols-3">
+        <div className="nb-grid nb-grid-grid">
           {filtered.map((m) => {
             const st = statusInfo(m.status);
             return (
-              <article key={m.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="mb-3 flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <h3 className="truncate text-sm font-bold text-slate-900">{m.contact_name || m.title}</h3>
-                    {m.topic && <p className="mt-0.5 truncate text-xs text-slate-400">{m.topic}</p>}
+              <article
+                key={m.id}
+                className="nb-card"
+                style={{ borderBottomColor: st.color, borderBottomWidth: 3, opacity: 0.85 }}
+              >
+                <div className="nb-card-top">
+                  <div className="nb-card-tags">
+                    <span className="nb-card-tag" style={{ background: `${st.color}15`, color: st.color }}>
+                      {st.label}
+                    </span>
                   </div>
-                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ background: `${st.color}15`, color: st.color }}>
-                    {st.label}
-                  </span>
+                  <div className="nb-card-actions">
+                    <Link href={`/dashboard/meetings/${m.id}`} className="nb-card-more" onClick={(e) => e.stopPropagation()}>
+                      <Eye className="h-4 w-4" />
+                    </Link>
+                  </div>
                 </div>
-                <div className="space-y-1.5 text-xs text-slate-500">
+
+                <h3 className="nb-card-title">{m.contact_name || m.title}</h3>
+                {m.topic && <p className="nb-card-excerpt" style={{ WebkitLineClamp: 1 }}>{m.topic}</p>}
+
+                <div className="space-y-1.5 text-xs text-slate-500 dark:text-slate-400">
                   <div className="flex items-center gap-1.5">
                     <Clock className="h-3.5 w-3.5 shrink-0 text-slate-400" />
                     <span>{formatJalaliDateTime(m.date)}</span>
@@ -192,21 +227,25 @@ export default function MeetingsArchivePage() {
                     </div>
                   )}
                 </div>
+
                 {m.outcome && (
-                  <div className="mt-2 rounded-lg bg-emerald-50/50 p-2 text-xs text-emerald-700">
+                  <div className="mt-2 rounded-lg bg-emerald-50/50 p-2 text-xs text-emerald-700 dark:bg-emerald-900/10 dark:text-emerald-400">
                     <p className="line-clamp-2">{m.outcome}</p>
                   </div>
                 )}
-                <div className="mt-3 flex items-center gap-1.5 border-t border-slate-100 pt-3">
-                  <Link href={`/dashboard/meetings/${m.id}`} className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100">
-                    <Eye className="h-3.5 w-3.5" /> مشاهده
-                  </Link>
-                  <button className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-sky-600 transition hover:bg-sky-50" onClick={() => handleUnarchive(m)}>
-                    <RotateCcw className="h-3.5 w-3.5" /> بازگردانی
-                  </button>
-                  <button className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-50 hover:text-red-600" onClick={() => handleDelete(m)}>
-                    <Trash2 className="h-3.5 w-3.5" /> حذف
-                  </button>
+
+                <div className="nb-card-footer">
+                  <div className="nb-card-quick">
+                    <Link href={`/dashboard/meetings/${m.id}`} onClick={(e) => e.stopPropagation()}>
+                      <Eye className="h-3.5 w-3.5" />
+                    </Link>
+                    <button className="is-active" onClick={(e) => { e.stopPropagation(); handleUnarchive(m); }} title="بازگردانی">
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); handleDelete(m); }} title="حذف قطعی">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </div>
               </article>
             );

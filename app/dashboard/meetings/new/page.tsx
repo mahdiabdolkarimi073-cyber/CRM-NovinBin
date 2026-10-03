@@ -13,8 +13,9 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
-  ArrowRight, Calendar, Clock, MapPin, Video, Lightbulb, Info,
+  ArrowRight, Calendar, Clock, MapPin, Video,
   UserCheck, FileText, Link2, ClipboardList, Loader2, Phone, Check,
+  Lightbulb, Info,
 } from 'lucide-react';
 import { fullName } from '@/lib/constants';
 import { formatJalaliDateTime, toLocalDateString } from '@/lib/format';
@@ -189,237 +190,228 @@ export default function NewMeetingPage() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl p-4 md:p-6" dir="rtl">
-      <header className="mb-6 flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="h-7 w-1.5 rounded-full bg-sky-500" />
-            <h1 className="text-2xl font-bold text-slate-900">ایجاد جلسه جدید</h1>
-          </div>
-          <div className="mt-1 text-sm text-slate-400">
-            داشبورد <b>←</b> جلسات <b>←</b> ایجاد جلسه
-          </div>
+    <div className="nb-editor-page" dir="rtl">
+      <div className="nb-editor-topbar">
+        <div className="nb-editor-topbar-left">
+          <Link href="/dashboard/meetings" className="nb-editor-back">
+            <ArrowRight className="h-4 w-4" />
+            بازگشت به جلسات
+          </Link>
+          <span className="nb-editor-breadcrumb">داشبورد <b>←</b> جلسات <b>←</b> ایجاد جلسه</span>
         </div>
-        <Link href="/dashboard/meetings" className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50">
-          <ArrowRight className="h-4 w-4" />
-          بازگشت به جلسات
-        </Link>
-      </header>
+        <div className="nb-editor-topbar-right">
+          <button type="button" className="nb-editor-discard" onClick={() => router.push('/dashboard/meetings')} disabled={submitting}>
+            انصراف
+          </button>
+          <button type="submit" form="meeting-form" className="nb-editor-save-btn" disabled={submitting}>
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+            {submitting ? 'در حال ایجاد...' : 'ایجاد جلسه'}
+          </button>
+        </div>
+      </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <form className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-6" onSubmit={handleSubmit}>
-          <div className="mb-5 flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-50 text-sky-600">
-              <Calendar className="h-5 w-5" />
-            </span>
-            <div>
-              <h2 className="font-bold text-slate-900">اطلاعات جلسه</h2>
-              <p className="text-sm text-slate-400">لطفاً اطلاعات مربوط به جلسه جدید را وارد کنید.</p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <Label className="mb-1.5 block text-sm font-medium text-slate-700">نام هدف/مشتری/شرکت <span className="text-red-500">*</span></Label>
-              <input
-                ref={nameInputRef}
-                type="text"
-                value={form.contact_name}
-                onChange={(e) => setForm({ ...form, contact_name: e.target.value })}
-                placeholder="نام شخص یا سازمانی که این جلسه مربوط به آن است"
-                className={`flex h-10 w-full rounded-md border bg-white px-3 py-2 text-sm transition ${errors.contact_name ? 'border-red-300' : 'border-slate-200'} focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100`}
-              />
-              {errors.contact_name && <span className="mt-1 block text-xs text-red-500">{errors.contact_name}</span>}
-            </div>
-
-            <div>
-              <Label className="mb-1.5 block text-sm font-medium text-slate-700">مسئول اصلی <span className="text-red-500">*</span></Label>
-              <Select value={form.main_responsible} onValueChange={(v) => setForm({ ...form, main_responsible: v })}>
-                <SelectTrigger className={`h-10 ${errors.main_responsible ? 'border-red-300' : ''}`}>
-                  <UserCheck className="ml-1 h-4 w-4 text-slate-400" />
-                  <SelectValue placeholder="انتخاب فرد مسئول اصلی..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {staff.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {fullName(s.firstName, s.lastName)}{s.id === profile?.id ? ' (خودم)' : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {loadingStaff && <span className="mt-1 block text-xs text-slate-400">در حال بارگذاری پرسنل...</span>}
-              {errors.main_responsible && <span className="mt-1 block text-xs text-red-500">{errors.main_responsible}</span>}
-            </div>
-
-            <div>
-              <Label className="mb-1.5 block text-sm font-medium text-slate-700">شرکت‌کنندگان (اختیاری)</Label>
-              <div className="flex flex-wrap gap-2 rounded-lg border border-slate-200 bg-white p-3">
-                {loadingStaff ? (
-                  <span className="text-sm text-slate-400">در حال بارگذاری...</span>
-                ) : staff.length === 0 ? (
-                  <span className="text-sm text-slate-400">کارمندی یافت نشد</span>
-                ) : staff.map((s) => {
-                  const checked = participantIds.includes(s.id);
-                  return (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => toggleParticipant(s.id)}
-                      className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition ${checked ? 'border-sky-500 bg-sky-50 text-sky-600' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'}`}
-                    >
-                      {checked && <Check className="h-3 w-3" />}
-                      {fullName(s.firstName, s.lastName)}{s.id === profile?.id ? ' (خودم)' : ''}
-                    </button>
-                  );
-                })}
+      <div className="nb-editor-main">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <form id="meeting-form" className="lg:col-span-2 nb-editor-canvas" onSubmit={handleSubmit}>
+            <div className="nb-editor-meta-row">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-50 text-sky-600 dark:bg-sky-900/20">
+                  <Calendar className="h-5 w-5" />
+                </span>
+                <div>
+                  <h2 className="font-bold text-slate-900 dark:text-slate-100" style={{ fontSize: 20 }}>اطلاعات جلسه</h2>
+                  <p className="text-sm text-slate-400">لطفاً اطلاعات مربوط به جلسه جدید را وارد کنید.</p>
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <Label className="mb-1.5 block text-sm font-medium text-slate-700">تاریخ <span className="text-red-500">*</span></Label>
-                <div className="relative">
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"><Calendar className="h-4 w-4" /></span>
+            <div className="space-y-5">
+              <div className="nb-editor-field-group">
+                <Label className="nb-editor-label">نام هدف/مشتری/شرکت <span className="text-red-500">*</span></Label>
+                <input
+                  ref={nameInputRef}
+                  type="text"
+                  value={form.contact_name}
+                  onChange={(e) => setForm({ ...form, contact_name: e.target.value })}
+                  placeholder="نام شخص یا سازمانی که این جلسه مربوط به آن است"
+                  className={`nb-input ${errors.contact_name ? 'border-red-300' : ''}`}
+                  style={{ height: 44, borderRadius: 10, border: '1px solid #E2E8F0', padding: '0 14px', fontSize: 14, width: '100%', background: 'transparent', outline: 'none' }}
+                />
+                {errors.contact_name && <span className="nb-editor-error">{errors.contact_name}</span>}
+              </div>
+
+              <div className="nb-editor-field-group">
+                <Label className="nb-editor-label">مسئول اصلی <span className="text-red-500">*</span></Label>
+                <Select value={form.main_responsible} onValueChange={(v) => setForm({ ...form, main_responsible: v })}>
+                  <SelectTrigger className={`h-11 ${errors.main_responsible ? 'border-red-300' : ''}`}>
+                    <UserCheck className="ml-1 h-4 w-4 text-slate-400" />
+                    <SelectValue placeholder="انتخاب فرد مسئول اصلی..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {staff.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {fullName(s.firstName, s.lastName)}{s.id === profile?.id ? ' (خودم)' : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {loadingStaff && <span className="text-xs text-slate-400">در حال بارگذاری پرسنل...</span>}
+                {errors.main_responsible && <span className="nb-editor-error">{errors.main_responsible}</span>}
+              </div>
+
+              <div className="nb-editor-field-group">
+                <Label className="nb-editor-label">شرکت‌کنندگان (اختیاری)</Label>
+                <div className="flex flex-wrap gap-2 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-800">
+                  {loadingStaff ? (
+                    <span className="text-sm text-slate-400">در حال بارگذاری...</span>
+                  ) : staff.length === 0 ? (
+                    <span className="text-sm text-slate-400">کارمندی یافت نشد</span>
+                  ) : staff.map((s) => {
+                    const checked = participantIds.includes(s.id);
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => toggleParticipant(s.id)}
+                        className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition ${checked ? 'border-sky-500 bg-sky-50 text-sky-600 dark:bg-sky-900/20' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'}`}
+                      >
+                        {checked && <Check className="h-3 w-3" />}
+                        {fullName(s.firstName, s.lastName)}{s.id === profile?.id ? ' (خودم)' : ''}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">تاریخ <span className="text-red-500">*</span></Label>
                   <JalaliDatePicker
                     value={form.date ? new Date(form.date) : null}
                     onChange={(d) => setForm({ ...form, date: d ? toLocalDateString(d) : '' })}
                     placeholder="انتخاب تاریخ"
-                    className={`h-10 ${errors.date ? 'border-red-300' : ''}`}
+                    className={`h-11 ${errors.date ? 'border-red-300' : ''}`}
                   />
+                  {errors.date && <span className="nb-editor-error">{errors.date}</span>}
                 </div>
-                {errors.date && <span className="mt-1 block text-xs text-red-500">{errors.date}</span>}
-              </div>
-              <div>
-                <Label className="mb-1.5 block text-sm font-medium text-slate-700">زمان <span className="text-red-500">*</span></Label>
-                <div className="relative">
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"><Clock className="h-4 w-4" /></span>
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">زمان <span className="text-red-500">*</span></Label>
                   <input
                     type="time" dir="ltr"
                     value={form.time}
                     onChange={(e) => setForm({ ...form, time: e.target.value })}
-                    className={`flex h-10 w-full rounded-md border bg-white px-3 py-2 text-sm transition ${errors.time ? 'border-red-300' : 'border-slate-200'} focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100`}
+                    className={`nb-input ${errors.time ? 'border-red-300' : ''}`}
+                    style={{ height: 44, borderRadius: 10, border: '1px solid #E2E8F0', padding: '0 14px', fontSize: 14, width: '100%', background: 'transparent', outline: 'none' }}
                   />
+                  {errors.time && <span className="nb-editor-error">{errors.time}</span>}
                 </div>
-                {errors.time && <span className="mt-1 block text-xs text-red-500">{errors.time}</span>}
               </div>
-            </div>
 
-            <div>
-              <Label className="mb-1.5 block text-sm font-medium text-slate-700">موضوع</Label>
-              <input
-                type="text"
-                value={form.topic}
-                onChange={(e) => setForm({ ...form, topic: e.target.value })}
-                placeholder="موضوع جلسه را وارد کنید"
-                className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm transition focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-              />
-            </div>
+              <div className="nb-editor-field-group">
+                <Label className="nb-editor-label">موضوع</Label>
+                <input
+                  type="text"
+                  value={form.topic}
+                  onChange={(e) => setForm({ ...form, topic: e.target.value })}
+                  placeholder="موضوع جلسه را وارد کنید"
+                  className="nb-input"
+                  style={{ height: 44, borderRadius: 10, border: '1px solid #E2E8F0', padding: '0 14px', fontSize: 14, width: '100%', background: 'transparent', outline: 'none' }}
+                />
+              </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <Label className="mb-1.5 block text-sm font-medium text-slate-700">مکان</Label>
-                <div className="relative">
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"><MapPin className="h-4 w-4" /></span>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">مکان</Label>
                   <input
                     type="text"
                     value={form.location}
                     onChange={(e) => setForm({ ...form, location: e.target.value })}
                     placeholder="محل برگزاری جلسه"
-                    className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm transition focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                    className="nb-input"
+                    style={{ height: 44, borderRadius: 10, border: '1px solid #E2E8F0', padding: '0 14px', fontSize: 14, width: '100%', background: 'transparent', outline: 'none' }}
                   />
                 </div>
-              </div>
-              <div>
-                <Label className="mb-1.5 block text-sm font-medium text-slate-700">لینک آنلاین</Label>
-                <div className="relative">
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"><Video className="h-4 w-4" /></span>
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">لینک آنلاین</Label>
                   <input
                     type="text" dir="ltr"
                     value={form.online_link}
                     onChange={(e) => setForm({ ...form, online_link: e.target.value })}
                     placeholder="https://..."
-                    className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm transition focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                    className="nb-input"
+                    style={{ height: 44, borderRadius: 10, border: '1px solid #E2E8F0', padding: '0 14px', fontSize: 14, width: '100%', background: 'transparent', outline: 'none' }}
                   />
                 </div>
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <Label className="mb-1.5 block text-sm font-medium text-slate-700">شماره موبایل پرسنل (برای پیامک)</Label>
-                <div className="relative">
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"><Phone className="h-4 w-4" /></span>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">شماره موبایل پرسنل (برای پیامک)</Label>
                   <input
                     type="tel" dir="ltr"
                     value={form.staff_phone}
                     onChange={(e) => setForm({ ...form, staff_phone: e.target.value })}
                     placeholder="09xxxxxxxxx"
-                    className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm transition focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                    className="nb-input"
+                    style={{ height: 44, borderRadius: 10, border: '1px solid #E2E8F0', padding: '0 14px', fontSize: 14, width: '100%', background: 'transparent', outline: 'none' }}
                   />
                 </div>
-              </div>
-              <div>
-                <Label className="mb-1.5 block text-sm font-medium text-slate-700">شماره موبایل مشتری (برای پیامک)</Label>
-                <div className="relative">
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"><Phone className="h-4 w-4" /></span>
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">شماره موبایل مشتری (برای پیامک)</Label>
                   <input
                     type="tel" dir="ltr"
                     value={form.customer_phone}
                     onChange={(e) => setForm({ ...form, customer_phone: e.target.value })}
                     placeholder="09xxxxxxxxx"
-                    className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm transition focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                    className="nb-input"
+                    style={{ height: 44, borderRadius: 10, border: '1px solid #E2E8F0', padding: '0 14px', fontSize: 14, width: '100%', background: 'transparent', outline: 'none' }}
                   />
                 </div>
               </div>
-            </div>
 
-            <div>
-              <Label className="mb-1.5 block text-sm font-medium text-slate-700">دستور جلسه</Label>
-              <textarea
-                value={form.agenda}
-                onChange={(e) => setForm({ ...form, agenda: e.target.value })}
-                placeholder="دستور جلسه را بنویسید..."
-                className="min-h-[100px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm transition focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-              />
+              <div className="nb-editor-field-group">
+                <Label className="nb-editor-label">دستور جلسه</Label>
+                <textarea
+                  value={form.agenda}
+                  onChange={(e) => setForm({ ...form, agenda: e.target.value })}
+                  placeholder="دستور جلسه را بنویسید..."
+                  className="min-h-[100px] w-full rounded-lg border border-slate-200 bg-transparent px-3 py-2 text-sm transition focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100 dark:border-slate-700"
+                />
+              </div>
             </div>
-          </div>
+          </form>
 
-          <div className="mt-6 flex gap-3">
-            <button type="button" className="flex-1 rounded-lg border border-slate-200 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50" onClick={() => router.push('/dashboard/meetings')} disabled={submitting}>
-              انصراف
-            </button>
-            <button type="submit" className="flex-1 rounded-lg bg-sky-500 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-sky-600 disabled:opacity-50" disabled={submitting}>
-              {submitting ? (<span className="flex items-center justify-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> در حال ایجاد...</span>) : 'ایجاد جلسه'}
-            </button>
-          </div>
-        </form>
-
-        <aside className="space-y-4">
-          <div className="rounded-xl border border-slate-200 bg-white p-5">
-            <div className="mb-3 flex items-center gap-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-500"><Lightbulb className="h-5 w-5" /></span>
-              <h2 className="font-bold text-slate-900">راهنما و نکات</h2>
-            </div>
-            <div className="space-y-3">
-              {guideItems.map((item, i) => (
-                <div key={i} className="flex gap-2.5">
-                  <span className="mt-0.5 shrink-0 text-slate-300"><item.icon className="h-4 w-4" /></span>
-                  <div>
-                    <strong className="text-sm text-slate-700">{item.title}</strong>
-                    <p className="text-xs text-slate-400">{item.desc}</p>
+          <aside className="space-y-4">
+            <div className="nb-editor-canvas" style={{ padding: 20 }}>
+              <div className="mb-3 flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-500 dark:bg-amber-900/20">
+                  <Lightbulb className="h-5 w-5" />
+                </span>
+                <h2 className="font-bold text-slate-900 dark:text-slate-100">راهنما و نکات</h2>
+              </div>
+              <div className="space-y-3">
+                {guideItems.map((item, i) => (
+                  <div key={i} className="flex gap-2.5">
+                    <span className="mt-0.5 shrink-0 text-slate-300"><item.icon className="h-4 w-4" /></span>
+                    <div>
+                      <strong className="text-sm text-slate-700 dark:text-slate-300">{item.title}</strong>
+                      <p className="text-xs text-slate-400">{item.desc}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-          <div className="rounded-xl border border-sky-100 bg-sky-50/50 p-5">
-            <div className="mb-2 flex items-center gap-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-100 text-sky-600"><Info className="h-5 w-5" /></span>
-              <h2 className="font-bold text-slate-900">اطلاعات مفید</h2>
+            <div className="rounded-xl border border-sky-100 bg-sky-50/50 p-5 dark:border-sky-900/30 dark:bg-sky-900/10">
+              <div className="mb-2 flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-100 text-sky-600 dark:bg-sky-900/30">
+                  <Info className="h-5 w-5" />
+                </span>
+                <h2 className="font-bold text-slate-900 dark:text-slate-100">اطلاعات مفید</h2>
+              </div>
+              <p className="text-sm text-slate-500 dark:text-slate-400">پس از ایجاد جلسه می‌توانید جزئیات آن را ویرایش، تصاویر آپلود و برای پرسنل مرتبط ارسال کنید.</p>
             </div>
-            <p className="text-sm text-slate-500">پس از ایجاد جلسه می‌توانید جزئیات آن را ویرایش، تصاویر آپلود و برای پرسنل مرتبط ارسال کنید.</p>
-          </div>
-        </aside>
+          </aside>
+        </div>
       </div>
     </div>
   );

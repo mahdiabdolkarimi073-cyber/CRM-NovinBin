@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { fetchData, updateData, deleteData } from '@/lib/data-client';
+import { fetchData, updateData, deleteData, createData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -18,14 +18,12 @@ import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 import {
   Calendar, Plus, Video, MapPin, Clock, UserRound, CalendarDays,
   Eye, CheckCircle2, FileText, TimerReset, Loader2, Search, LayoutGrid,
-  List, Filter, Archive, Trash2, Forward, Check,
+  List, Filter, Archive, Trash2, Forward, X, Paperclip, Upload,
 } from 'lucide-react';
 import { formatJalaliDateTime, formatJalali, toLocalDateString, formatFileSize } from '@/lib/format';
 import { MEETING_STATUSES, fullName } from '@/lib/constants';
-import { createData } from '@/lib/data-client';
 import { toast } from 'sonner';
 import type { Meeting, MeetingImage, Profile } from '@/lib/types';
-import { Upload, Paperclip, X, Image as ImageIcon } from 'lucide-react';
 
 interface ResultFile {
   url: string;
@@ -152,6 +150,33 @@ export default function MeetingsPage() {
     ...s,
     count: filtered.filter((m) => m.status === s.key).length,
   }));
+
+  const stats = useMemo(() => [
+    {
+      label: 'کل جلسات', value: meetings.length, icon: Calendar,
+      filter: 'all',
+      gradient: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)',
+      glow: 'rgba(37,99,235,0.25)',
+    },
+    {
+      label: 'برنامه‌ریزی شده', value: meetings.filter((m) => m.status === 'scheduled').length, icon: CalendarDays,
+      filter: 'scheduled',
+      gradient: 'linear-gradient(135deg, #3b82f6 0%, #2563EB 100%)',
+      glow: 'rgba(59,130,246,0.25)',
+    },
+    {
+      label: 'در حال برگزاری', value: meetings.filter((m) => m.status === 'in_progress').length, icon: Clock,
+      filter: 'in_progress',
+      gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+      glow: 'rgba(245,158,11,0.25)',
+    },
+    {
+      label: 'تکمیل شده', value: meetings.filter((m) => m.status === 'completed').length, icon: CheckCircle2,
+      filter: 'completed',
+      gradient: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)',
+      glow: 'rgba(34,197,94,0.25)',
+    },
+  ], [meetings]);
 
   const openView = async (m: MeetingWithAssignment) => {
     setViewMeeting(m);
@@ -365,128 +390,141 @@ export default function MeetingsPage() {
     }
   };
 
+  const handleStatClick = (filter: string) => {
+    setFilterStatus(filterStatus === filter ? 'all' : filter);
+  };
+
   if (loading) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+      <div className="nb-page" dir="rtl">
+        <div className="nb-empty">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
+          <p>در حال بارگذاری جلسات...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-7xl p-3 mobile:p-4 tablet:p-6" dir="rtl">
-      {/* Header */}
-      <header className="mb-4 flex flex-col gap-3 tablet:flex-row tablet:items-center tablet:justify-between tablet:mb-6">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="h-7 w-1.5 rounded-full bg-sky-500" />
-            <h1 className="text-xl font-bold text-slate-900 mobile:text-2xl">جلسات</h1>
+    <div className="nb-page" dir="rtl">
+      <header className="nb-hero">
+        <div className="nb-hero-left">
+          <div>
+            <div className="nb-hero-title-row">
+              <span className="nb-hero-marker" />
+              <h1>جلسات</h1>
+            </div>
+            <p>مدیریت و تخصیص جلسات به پرسنل</p>
           </div>
-          <p className="mt-1 text-sm text-slate-500">مدیریت و تخصیص جلسات به پرسنل</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="nb-hero-right">
           {isSuperAdmin && (
-            <Link href="/dashboard/meetings/archive" className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs mobile:text-sm font-medium text-slate-600 transition hover:bg-slate-50">
+            <Link href="/dashboard/meetings/archive" className="nb-editor-quick-btn">
               <Archive className="h-4 w-4" />
               آرشیو
             </Link>
           )}
-          <Link href="/dashboard/meetings/new" className="inline-flex items-center gap-1.5 rounded-lg bg-sky-500 px-3 mobile:px-4 py-2 text-xs mobile:text-sm font-medium text-white shadow-sm transition hover:bg-sky-600">
-            <Plus className="h-4 w-4" />
+          <Link href="/dashboard/meetings/new" className="nb-new-btn">
+            <Plus className="h-[18px] w-[18px]" />
             جلسه جدید
           </Link>
         </div>
       </header>
 
-      {/* Status summary cards */}
-      <div className="mb-4 grid grid-cols-2 gap-2 mobile:gap-3 tablet:grid-cols-3 tablet:gap-3 desktop:grid-cols-5 tablet:mb-5">
-        {statusCounts.map((s) => (
-          <div
-            key={s.key}
-            className="cursor-pointer rounded-xl border border-slate-200 bg-white p-3 transition hover:border-slate-300 hover:shadow-sm"
-            onClick={() => setFilterStatus(filterStatus === s.key ? 'all' : s.key)}
+      <section className="nb-stats-grid-v2">
+        {stats.map((stat) => (
+          <button
+            type="button"
+            className={`nb-stat-card-v2 ${filterStatus === stat.filter ? 'is-active' : ''}`}
+            key={stat.label}
+            onClick={() => handleStatClick(stat.filter)}
+            style={{ '--stat-glow': stat.glow } as React.CSSProperties}
           >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-slate-500">{s.label}</span>
-              <span className="h-2.5 w-2.5 rounded-full" style={{ background: s.color }} />
+            <div className="nb-stat-v2-icon" style={{ background: stat.gradient }}>
+              <stat.icon className="h-[22px] w-[22px] text-white" />
             </div>
-            <div className="mt-1 text-xl font-bold text-slate-900">
-              {s.count.toLocaleString('fa-IR')}
+            <div className="nb-stat-v2-body">
+              <strong>{stat.value.toLocaleString('fa-IR')}</strong>
+              <span>{stat.label}</span>
             </div>
-          </div>
+            <div className="nb-stat-v2-spark" style={{ background: stat.gradient }} />
+          </button>
         ))}
+      </section>
+
+      <div className="nb-toolbar">
+        <div className="nb-toolbar-left">
+          <h2>همه جلسات</h2>
+          <span className="nb-count-badge">{filtered.length.toLocaleString('fa-IR')} مورد</span>
+        </div>
+        <div className="nb-toolbar-right">
+          <div className="nb-search-box">
+            <Search className="h-4 w-4" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="جستجو در جلسات..."
+            />
+            {search && (
+              <button onClick={() => setSearch('')}><X className="h-3.5 w-3.5" /></button>
+            )}
+          </div>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="h-10 w-[150px]">
+              <Filter className="ml-1 h-4 w-4 text-slate-400" />
+              <SelectValue placeholder="وضعیت" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">همه وضعیت‌ها</SelectItem>
+              {MEETING_STATUSES.map((s) => (
+                <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filterAssignee} onValueChange={setFilterAssignee}>
+            <SelectTrigger className="h-10 w-[150px]">
+              <UserRound className="ml-1 h-4 w-4 text-slate-400" />
+              <SelectValue placeholder="مسئول" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">همه مسئولین</SelectItem>
+              {staff.map((s) => (
+                <SelectItem key={s.id} value={s.id}>{fullName(s.firstName, s.lastName)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="nb-view-toggle">
+            <button className={viewMode === 'board' ? 'is-active' : ''} onClick={() => setViewMode('board')} aria-label="تخته‌ای">
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+            <button className={viewMode === 'list' ? 'is-active' : ''} onClick={() => setViewMode('list')} aria-label="لیستی">
+              <List className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Filters bar */}
-      <div className="mb-4 tablet:mb-5 flex flex-col gap-2 tablet:flex-wrap tablet:items-center tablet:gap-2 rounded-xl border border-slate-200 bg-white p-2 tablet:p-3">
-        <div className="relative flex-1 min-w-0 tablet:min-w-[200px]">
-          <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="جستجو در جلسات..."
-            className="pr-9"
-          />
-        </div>
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-full tablet:w-[160px]">
-            <Filter className="ml-1 h-4 w-4 text-slate-400" />
-            <SelectValue placeholder="وضعیت" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">همه وضعیت‌ها</SelectItem>
-            {MEETING_STATUSES.map((s) => (
-              <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={filterAssignee} onValueChange={setFilterAssignee}>
-          <SelectTrigger className="w-full tablet:w-[160px]">
-            <UserRound className="ml-1 h-4 w-4 text-slate-400" />
-            <SelectValue placeholder="مسئول" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">همه مسئولین</SelectItem>
-            {staff.map((s) => (
-              <SelectItem key={s.id} value={s.id}>{fullName(s.firstName, s.lastName)}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <div className="flex rounded-lg border border-slate-200 self-start tablet:self-auto">
-          <button
-            className={`flex items-center gap-1 px-3 py-2 text-sm transition ${viewMode === 'board' ? 'bg-sky-50 text-sky-600' : 'text-slate-500 hover:bg-slate-50'}`}
-            onClick={() => setViewMode('board')}
-          >
-            <LayoutGrid className="h-4 w-4" />
-          </button>
-          <button
-            className={`flex items-center gap-1 px-3 py-2 text-sm transition ${viewMode === 'list' ? 'bg-sky-50 text-sky-600' : 'text-slate-500 hover:bg-slate-50'}`}
-            onClick={() => setViewMode('list')}
-          >
-            <List className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* Meeting cards */}
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white py-16">
-          <Calendar className="h-10 w-10 text-slate-300" />
-          <strong className="mt-3 text-slate-700">جلسه‌ای یافت نشد</strong>
-          <span className="text-sm text-slate-400">اولین جلسه را ایجاد و به پرسنل تخصیص دهید</span>
-          <Link href="/dashboard/meetings/new" className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-sky-600">
-            <Plus className="h-4 w-4" /> ایجاد جلسه
+        <div className="nb-empty">
+          <div className="sb-empty-icon">
+            <Calendar className="h-12 w-12 text-muted-foreground/30" />
+          </div>
+          <h3>جلسه‌ای یافت نشد</h3>
+          <p>اولین جلسه را ایجاد و به پرسنل تخصیص دهید</p>
+          <Link href="/dashboard/meetings/new" className="nb-empty-new-btn">
+            <Plus className="h-4 w-4" />
+            ایجاد جلسه
           </Link>
         </div>
       ) : viewMode === 'board' ? (
         <div className="space-y-6">
           {upcoming.length > 0 && (
             <section>
-              <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-700">
+              <div className="nb-section-divider">
                 <CalendarDays className="h-4 w-4 text-sky-500" />
-                جلسات پیشرو ({upcoming.length.toLocaleString('fa-IR')})
-              </h2>
-              <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2 desktop:grid-cols-3">
+                <span>جلسات پیشرو ({upcoming.length.toLocaleString('fa-IR')})</span>
+              </div>
+              <div className="nb-grid nb-grid-grid">
                 {upcoming.map((m) => (
                   <MeetingCard
                     key={m.id}
@@ -507,11 +545,11 @@ export default function MeetingsPage() {
           )}
           {past.length > 0 && (
             <section>
-              <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-700">
+              <div className="nb-section-divider">
                 <Clock className="h-4 w-4 text-slate-400" />
-                جلسات گذشته ({past.length.toLocaleString('fa-IR')})
-              </h2>
-              <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2 desktop:grid-cols-3">
+                <span>جلسات گذشته ({past.length.toLocaleString('fa-IR')})</span>
+              </div>
+              <div className="nb-grid nb-grid-grid">
                 {past.map((m) => (
                   <MeetingCard
                     key={m.id}
@@ -531,59 +569,58 @@ export default function MeetingsPage() {
           )}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
           <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[600px]">
-            <thead className="border-b border-slate-200 bg-slate-50">
-              <tr>
-                <th className="p-2 mobile:p-3 text-right font-medium text-slate-500">عنوان</th>
-                <th className="p-2 mobile:p-3 text-right font-medium text-slate-500">تاریخ</th>
-                <th className="p-2 mobile:p-3 text-right font-medium text-slate-500">مسئول</th>
-                <th className="p-2 mobile:p-3 text-right font-medium text-slate-500">وضعیت</th>
-                <th className="p-2 mobile:p-3 text-right font-medium text-slate-500">عملیات</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filtered.map((m) => {
-                const st = statusInfo(m.status);
-                return (
-                  <tr key={m.id} className="cursor-pointer transition hover:bg-slate-50" onClick={() => openView(m)}>
-                    <td className="p-3 font-medium text-slate-900">{m.contact_name || m.title}</td>
-                    <td className="p-3 text-slate-600">{formatJalali(m.date)}</td>
-                    <td className="p-3 text-slate-600">{m.assigned_to_name || '—'}</td>
-                    <td className="p-3">
-                      <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium" style={{ background: `${st.color}15`, color: st.color }}>
-                        {st.label}
-                      </span>
-                    </td>
-                    <td className="p-3" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex gap-1">
-                        <button className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600" onClick={() => openView(m)}>
-                          <Eye className="h-4 w-4" />
-                        </button>
-                        {!isSuperAdmin && canExtendMeeting(m) && new Date(m.date) >= now && (
-                          <button className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600" onClick={() => openExtend(m)}>
-                            <TimerReset className="h-4 w-4" />
+            <table className="w-full text-sm min-w-[600px]">
+              <thead className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/50">
+                <tr>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">عنوان</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">تاریخ</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">مسئول</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">وضعیت</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">عملیات</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                {filtered.map((m) => {
+                  const st = statusInfo(m.status);
+                  return (
+                    <tr key={m.id} className="cursor-pointer transition hover:bg-slate-50 dark:hover:bg-slate-700/50" onClick={() => openView(m)}>
+                      <td className="p-3 font-medium text-slate-900 dark:text-slate-100">{m.contact_name || m.title}</td>
+                      <td className="p-3 text-slate-600 dark:text-slate-300">{formatJalali(m.date)}</td>
+                      <td className="p-3 text-slate-600 dark:text-slate-300">{m.assigned_to_name || '—'}</td>
+                      <td className="p-3">
+                        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium" style={{ background: `${st.color}15`, color: st.color }}>
+                          {st.label}
+                        </span>
+                      </td>
+                      <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex gap-1">
+                          <button className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700" onClick={() => openView(m)}>
+                            <Eye className="h-4 w-4" />
                           </button>
-                        )}
-                        <button className="rounded p-1.5 text-amber-500 hover:bg-amber-50 hover:text-amber-600" onClick={() => openRefer(m)} title="ارجاع">
-                          <Forward className="h-4 w-4" />
-                        </button>
-                        {isSuperAdmin && (
-                          <button className="rounded p-1.5 text-red-400 hover:bg-red-50 hover:text-red-600" onClick={() => handleDelete(m)}>
-                            <Trash2 className="h-4 w-4" />
+                          <button className="rounded p-1.5 text-amber-500 hover:bg-amber-50 hover:text-amber-600" onClick={() => openRefer(m)} title="ارجاع">
+                            <Forward className="h-4 w-4" />
                           </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                          {isSuperAdmin && (
+                            <button className="rounded p-1.5 text-red-400 hover:bg-red-50 hover:text-red-600" onClick={() => handleDelete(m)}>
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
+
+      <Link href="/dashboard/meetings/new" className="nb-fab" aria-label="جلسه جدید">
+        <Plus className="h-6 w-6" />
+      </Link>
 
       {/* Extend Dialog */}
       <Dialog open={extendDialogOpen} onOpenChange={setExtendDialogOpen}>
@@ -594,7 +631,7 @@ export default function MeetingsPage() {
               <div className="text-sm text-slate-500">
                 جلسه: <span className="font-bold text-slate-900">{extendMeeting.contact_name || extendMeeting.title}</span>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3 text-sm">
+              <div className="rounded-lg bg-slate-50 p-3 text-sm dark:bg-slate-800">
                 <div className="mb-1 text-slate-400">زمان فعلی پایان جلسه:</div>
                 <div className="font-medium">{formatJalaliDateTime(extendMeeting.endTime || extendMeeting.date)}</div>
                 <div className="mt-1 text-xs text-amber-600">تاریخ تمدید نمی‌تواند قبل از تاریخ ثبت اولیه ({formatJalali(extendMeeting.date)}) باشد</div>
@@ -646,7 +683,7 @@ export default function MeetingsPage() {
                 <Label>دستور جلسه</Label>
                 <Textarea value={extendForm.agenda} onChange={(e) => setExtendForm({ ...extendForm, agenda: e.target.value })} className="min-h-[80px]" />
               </div>
-              {extendError && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">{extendError}</div>}
+              {extendError && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20">{extendError}</div>}
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setExtendDialogOpen(false)}>انصراف</Button>
                 <Button onClick={handleExtend} disabled={extending || !extendDate || !extendTime}>
@@ -661,16 +698,16 @@ export default function MeetingsPage() {
 
       {/* View Dialog */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>مشاهده جلسه</DialogTitle></DialogHeader>
           {viewMeeting && (
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-50 text-sky-600 dark:bg-sky-900/20">
                   <Calendar className="h-6 w-6" />
                 </div>
                 <div>
-                  <div className="font-bold text-slate-900">{viewMeeting.contact_name || viewMeeting.title}</div>
+                  <div className="font-bold text-slate-900 dark:text-slate-100">{viewMeeting.contact_name || viewMeeting.title}</div>
                   {viewMeeting.topic && <div className="text-xs text-slate-400">{viewMeeting.topic}</div>}
                 </div>
               </div>
@@ -701,19 +738,19 @@ export default function MeetingsPage() {
                 </a>
               )}
               {viewMeeting.agenda && (
-                <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
+                <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                   <span className="mb-1 block text-slate-400">دستور جلسه:</span>
                   {viewMeeting.agenda}
                 </div>
               )}
               {viewMeeting.outcome && (
-                <div className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">
+                <div className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400">
                   <span className="mb-1 flex items-center gap-1 text-emerald-500"><CheckCircle2 className="h-4 w-4" /> نتیجه جلسه:</span>
                   {viewMeeting.outcome}
                 </div>
               )}
               {viewMeeting.minutes && (
-                <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
+                <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                   <span className="mb-1 flex items-center gap-1 text-slate-400"><FileText className="h-4 w-4" /> صورت‌جلسه:</span>
                   {viewMeeting.minutes}
                 </div>
@@ -723,7 +760,7 @@ export default function MeetingsPage() {
                   <span className="mb-2 flex items-center gap-1 text-sm text-slate-400"><FileText className="h-4 w-4" /> تصاویر جلسه:</span>
                   <div className="grid grid-cols-3 gap-2">
                     {detailImages.map((img) => (
-                      <a key={img.id} href={img.imageUrl} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-lg border border-slate-200">
+                      <a key={img.id} href={img.imageUrl} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
                         <img src={img.imageUrl} alt={img.fileName || ''} className="h-20 w-full object-cover" />
                       </a>
                     ))}
@@ -735,7 +772,7 @@ export default function MeetingsPage() {
                   <span className="mb-2 flex items-center gap-1 text-sm text-slate-400"><Paperclip className="h-4 w-4" /> فایل‌های نتیجه جلسه:</span>
                   <div className="space-y-2">
                     {detailResultFiles.map((f, i) => (
-                      <div key={i} className="flex items-center gap-2 rounded-lg border border-slate-200 p-2">
+                      <div key={i} className="flex items-center gap-2 rounded-lg border border-slate-200 p-2 dark:border-slate-700">
                         {f.type.startsWith('image/') ? (
                           <a href={f.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
                             <img src={f.url} alt={f.name} className="h-10 w-10 rounded object-cover" />
@@ -758,7 +795,7 @@ export default function MeetingsPage() {
                   <Eye className="h-3.5 w-3.5" />
                   جزئیات کامل
                 </Link>
-                <Link href={`/dashboard/meetings/${viewMeeting.id}/edit`} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50">
+                <Link href={`/dashboard/meetings/${viewMeeting.id}/edit`} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
                   <FileText className="h-3.5 w-3.5" />
                   ویرایش
                 </Link>
@@ -798,7 +835,7 @@ export default function MeetingsPage() {
               </div>
               <div className="space-y-2">
                 <Label>فایل‌ها و تصاویر (اختیاری)</Label>
-                <div className="rounded-lg border-2 border-dashed border-slate-200 p-4">
+                <div className="rounded-lg border-2 border-dashed border-slate-200 p-4 dark:border-slate-700">
                   <input
                     type="file"
                     accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
@@ -820,13 +857,13 @@ export default function MeetingsPage() {
                 {outcomeFiles.length > 0 && (
                   <div className="space-y-2">
                     {outcomeFiles.map((f, i) => (
-                      <div key={i} className="flex items-center gap-2 rounded-lg border border-slate-200 p-2">
+                      <div key={i} className="flex items-center gap-2 rounded-lg border border-slate-200 p-2 dark:border-slate-700">
                         {f.type.startsWith('image/') ? (
                           <img src={f.url} alt={f.name} className="h-10 w-10 rounded object-cover" />
                         ) : (
                           <FileText className="h-5 w-5 text-slate-400" />
                         )}
-                        <span className="flex-1 truncate text-sm text-slate-700">{f.name}</span>
+                        <span className="flex-1 truncate text-sm text-slate-700 dark:text-slate-300">{f.name}</span>
                         <span className="text-xs text-slate-400">{formatFileSize(f.size)}</span>
                         <button
                           type="button"
@@ -848,6 +885,42 @@ export default function MeetingsPage() {
               </DialogFooter>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Refer Dialog */}
+      <Dialog open={referOpen} onOpenChange={setReferOpen}>
+        <DialogContent className="max-w-md" dir="rtl">
+          <DialogHeader><DialogTitle>ارجاع جلسه</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-slate-500">جلسه را به پرسنل انتخاب‌شده ارجاع دهید. برای هر کدام اعلان درون‌سیستمی ارسال می‌شود.</p>
+            <div className="max-h-48 space-y-2 overflow-y-auto rounded-lg border border-slate-200 p-2 dark:border-slate-700">
+              {staff.map((s) => {
+                const checked = referTargetIds.includes(s.id);
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => toggleReferTarget(s.id)}
+                    className={`flex w-full items-center gap-2 rounded-lg p-2 text-right transition ${checked ? 'bg-sky-50 dark:bg-sky-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
+                  >
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sky-50 text-xs font-bold text-sky-600 dark:bg-sky-900/30">
+                      {(s.firstName?.[0] || '') + (s.lastName?.[0] || '')}
+                    </div>
+                    <span className="flex-1 text-sm text-slate-700 dark:text-slate-300">{fullName(s.firstName, s.lastName)}</span>
+                    {checked && <CheckCircle2 className="h-4 w-4 text-sky-500" />}
+                  </button>
+                );
+              })}
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setReferOpen(false)}>انصراف</Button>
+              <Button onClick={handleRefer} disabled={referring || referTargetIds.length === 0}>
+                {referring ? <Loader2 className="h-4 w-4 animate-spin" /> : <Forward className="h-4 w-4" />}
+                ارجاع
+              </Button>
+            </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
@@ -873,32 +946,37 @@ function MeetingCard({
 
   return (
     <article
-      className="group cursor-pointer rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+      className="nb-card"
       onClick={onView}
+      style={{ borderBottomColor: st.color, borderBottomWidth: 3 }}
     >
-      <div className="mb-3 flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <h3 className="truncate text-sm font-bold text-slate-900">{meeting.contact_name || meeting.title}</h3>
-          {meeting.topic && <p className="mt-0.5 truncate text-xs text-slate-400">{meeting.topic}</p>}
+      <div className="nb-card-top">
+        <div className="nb-card-tags">
+          <span className="nb-card-tag" style={{ background: `${st.color}15`, color: st.color }}>
+            {st.label}
+          </span>
+          {meeting.isExtended && (
+            <span className="nb-card-tag" style={{ background: 'rgba(245,158,11,.12)', color: '#D97706' }}>
+              <TimerReset className="h-2.5 w-2.5" /> تمدید شده
+            </span>
+          )}
+          {!upcoming && hasOutcome && (
+            <span className="nb-card-tag" style={{ background: 'rgba(34,197,94,.12)', color: '#22C55E' }}>
+              <CheckCircle2 className="h-2.5 w-2.5" /> نتیجه ثبت شده
+            </span>
+          )}
         </div>
-        <span className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ background: `${st.color}15`, color: st.color }}>
-          {st.label}
-        </span>
+        <div className="nb-card-actions">
+          <button className="nb-card-more" onClick={(e) => { e.stopPropagation(); onView(); }}>
+            <Eye className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
-      {meeting.isExtended && (
-        <span className="mb-2 inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-600">
-          <TimerReset className="h-3 w-3" /> تمدید شده
-        </span>
-      )}
+      <h3 className="nb-card-title">{meeting.contact_name || meeting.title}</h3>
+      {meeting.topic && <p className="nb-card-excerpt" style={{ WebkitLineClamp: 1 }}>{meeting.topic}</p>}
 
-      {!upcoming && hasOutcome && (
-        <div className="mb-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-600">
-          <CheckCircle2 className="h-3 w-3" /> نتیجه ثبت شده
-        </div>
-      )}
-
-      <div className="space-y-1.5 text-xs text-slate-500">
+      <div className="space-y-1.5 text-xs text-slate-500 dark:text-slate-400">
         <div className="flex items-center gap-1.5">
           <Clock className="h-3.5 w-3.5 shrink-0 text-slate-400" />
           <span>{formatJalaliDateTime(meeting.date)}</span>
@@ -906,7 +984,7 @@ function MeetingCard({
         {meeting.assigned_to_name && (
           <div className="flex items-center gap-1.5">
             <UserRound className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-            <span>تخصیص به: <strong className="font-medium text-slate-600">{meeting.assigned_to_name}</strong></span>
+            <span>تخصیص به: <strong className="font-medium text-slate-600 dark:text-slate-300">{meeting.assigned_to_name}</strong></span>
           </div>
         )}
         {meeting.location && (
@@ -926,38 +1004,40 @@ function MeetingCard({
       </div>
 
       {hasOutcome && (
-        <div className="mt-2 rounded-lg bg-emerald-50/50 p-2 text-xs text-emerald-700" onClick={(e) => e.stopPropagation()}>
+        <div className="mt-2 rounded-lg bg-emerald-50/50 p-2 text-xs text-emerald-700 dark:bg-emerald-900/10 dark:text-emerald-400" onClick={(e) => e.stopPropagation()}>
           <p className="line-clamp-2">{meeting.outcome}</p>
         </div>
       )}
 
-      <div className="mt-3 flex items-center gap-1.5 border-t border-slate-100 pt-3" onClick={(e) => e.stopPropagation()}>
-        <button className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100" onClick={onView}>
-          <Eye className="h-3.5 w-3.5" /> مشاهده
-        </button>
-        {!upcoming && (
-          <button className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${hasOutcome ? 'text-slate-500 hover:bg-slate-100' : 'text-emerald-600 hover:bg-emerald-50'}`} onClick={onOutcome}>
-            <CheckCircle2 className="h-3.5 w-3.5" /> {hasOutcome ? 'ویرایش نتیجه' : 'ثبت نتیجه'}
+      <div className="nb-card-footer">
+        <div className="nb-card-quick">
+          <button onClick={(e) => { e.stopPropagation(); onView(); }}>
+            <Eye className="h-3.5 w-3.5" />
           </button>
-        )}
-        <button className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-amber-600 transition hover:bg-amber-50" onClick={onRefer}>
-          <Forward className="h-3.5 w-3.5" /> ارجاع
-        </button>
-        {canExtend && upcoming && (
-          <button className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-amber-600 transition hover:bg-amber-50" onClick={onExtend}>
-            <TimerReset className="h-3.5 w-3.5" /> تمدید
+          {!upcoming && (
+            <button className={hasOutcome ? '' : 'is-active'} onClick={(e) => { e.stopPropagation(); onOutcome(); }}>
+              <CheckCircle2 className="h-3.5 w-3.5" />
+            </button>
+          )}
+          <button onClick={(e) => { e.stopPropagation(); onRefer(); }}>
+            <Forward className="h-3.5 w-3.5" />
           </button>
-        )}
-        {isSuperAdmin && (
-          <>
-            <button className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-400 transition hover:bg-slate-100" onClick={onArchive}>
-              <Archive className="h-3.5 w-3.5" />
+          {canExtend && upcoming && (
+            <button onClick={(e) => { e.stopPropagation(); onExtend(); }}>
+              <TimerReset className="h-3.5 w-3.5" />
             </button>
-            <button className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-50 hover:text-red-600" onClick={onDelete}>
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          </>
-        )}
+          )}
+          {isSuperAdmin && (
+            <>
+              <button onClick={(e) => { e.stopPropagation(); onArchive(); }}>
+                <Archive className="h-3.5 w-3.5" />
+              </button>
+              <button onClick={(e) => { e.stopPropagation(); onDelete(); }}>
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </article>
   );
