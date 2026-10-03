@@ -880,6 +880,9 @@ export interface PersonalNote {
   isArchived: boolean;
   isTrashed: boolean;
   trashedAt: string | null;
+  reminderAt: string | null;
+  reminderEnabled: boolean;
+  reminderDismissed: boolean;
   createdAt: string;
   updatedAt: string;
 }

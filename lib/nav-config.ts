@@ -4,7 +4,7 @@ import {
   UserPlus, HandHeart, Settings, Shield, Award, Send, MessagesSquare,
   Inbox, Receipt, FileOutput, WalletCards, BarChart3, Warehouse, Boxes,
   ShoppingBag, Landmark, FileText, ArrowDownToLine, RotateCcw,
-  GraduationCap, BadgePercent, Ticket, StickyNote,
+  GraduationCap, BadgePercent, Ticket, StickyNote, BellRing,
   UserCheck, ClipboardList, Network, Contact, Megaphone, Wallet,
   FileCheck, Banknote, CreditCard, ArrowRightLeft, Sparkles,
   ClipboardCheck, FileSearch, ArrowUpFromLine, Undo2, Percent, Server, Fingerprint, BriefcaseBusiness,
@@ -33,6 +33,7 @@ export const coreItems: NavItem[] = [
   { href: '/dashboard/contracts', label: 'قراردادها', icon: FileSignature },
   { href: '/dashboard/hr', label: 'منابع انسانی', icon: UserCog },
   { href: '/dashboard/notes', label: 'یادداشت‌ها', icon: StickyNote },
+  { href: '/dashboard/note-reminders', label: 'یادآور یادداشت‌ها', icon: BellRing },
   { href: '/dashboard/social', label: 'شبکه اجتماعی', icon: MessagesSquare },
   { href: '/dashboard/notifications', label: 'اعلان‌ها', icon: Bell },
   { href: '/dashboard/ai-assistant', label: 'دستیار', icon: Sparkles },
@@ -172,6 +173,7 @@ export function isSuperAdminRole(role?: string | null): boolean {
 export const UNIVERSAL_PAGES = new Set([
   '/dashboard',
   '/dashboard/notes',
+  '/dashboard/note-reminders',
   '/dashboard/staff-chat',
   '/dashboard/social',
   '/dashboard/customer-social',
@@ -187,6 +189,7 @@ export const UNIVERSAL_PAGES = new Set([
 // /dashboard is excluded so it doesn't open up every /dashboard/* page.
 const UNIVERSAL_PREFIXES = new Set([
   '/dashboard/notes',
+  '/dashboard/note-reminders',
   '/dashboard/staff-chat',
   '/dashboard/social',
   '/dashboard/customer-social',

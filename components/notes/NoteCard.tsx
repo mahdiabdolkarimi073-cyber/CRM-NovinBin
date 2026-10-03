@@ -2,13 +2,13 @@
 
 import { useState } from 'react';
 import {
-  Archive, ArchiveRestore, Clock, Hash, MoreVertical, Palette, Pin, PinOff,
+  Archive, ArchiveRestore, BellRing, Clock, Edit3, Hash, MoreVertical, Palette, Pin, PinOff,
   Trash2,
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { relativeTime, toPersianDigits } from '@/lib/format';
+import { relativeTime, toPersianDigits, formatJalaliDateTime } from '@/lib/format';
 import type { PersonalNote } from '@/lib/types';
 
 export const NOTE_COLORS = [
@@ -34,6 +34,7 @@ type ViewMode = 'grid' | 'list';
 type Props = {
   note: PersonalNote;
   view: ViewMode;
+  onView: (n: PersonalNote) => void;
   onEdit: (n: PersonalNote) => void;
   onPin: (n: PersonalNote) => void;
   onArchive: (n: PersonalNote) => void;
@@ -41,16 +42,19 @@ type Props = {
   onColorChange: (id: string, color: string) => void;
 };
 
-export default function NoteCard({ note, view, onEdit, onPin, onArchive, onTrash, onColorChange }: Props) {
+export default function NoteCard({ note, view, onView, onEdit, onPin, onArchive, onTrash, onColorChange }: Props) {
   const colorMeta = getColorMeta(note.color);
   const [showColors, setShowColors] = useState(false);
   const excerpt = (note.content || 'بدون محتوا').replace(/\n/g, ' ').slice(0, 160);
+
+  const isReminderDue = note.reminderEnabled && note.reminderAt && !note.reminderDismissed && new Date(note.reminderAt) <= new Date();
+  const isReminderUpcoming = note.reminderEnabled && note.reminderAt && !note.reminderDismissed && new Date(note.reminderAt) > new Date();
 
   return (
     <article
       className={`nb-card nb-card-${view} ${colorMeta.light} ${colorMeta.border}`}
       style={{ borderRightWidth: '4px', borderRightColor: colorMeta.accent }}
-      onClick={() => onEdit(note)}
+      onClick={() => onView(note)}
     >
       <div className="nb-card-top">
         <div className="nb-card-tags">
@@ -63,9 +67,24 @@ export default function NoteCard({ note, view, onEdit, onPin, onArchive, onTrash
           {(note.tags || []).length > 3 && (
             <span className="nb-card-tag">+{toPersianDigits(note.tags.length - 3)}</span>
           )}
+          {isReminderDue && (
+            <span className="nb-card-tag nb-card-tag-reminder-due">
+              <BellRing className="h-2.5 w-2.5" />
+              یادآور
+            </span>
+          )}
+          {isReminderUpcoming && (
+            <span className="nb-card-tag nb-card-tag-reminder-soon">
+              <Clock className="h-2.5 w-2.5" />
+              {formatJalaliDateTime(note.reminderAt!)}
+            </span>
+          )}
         </div>
         <div className="nb-card-actions" onClick={(e) => e.stopPropagation()}>
           {note.pinned && <Pin className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />}
+          <button className="nb-card-edit-btn" onClick={() => onEdit(note)} aria-label="ویرایش" title="ویرایش">
+            <Edit3 className="h-3.5 w-3.5" />
+          </button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="nb-card-more" aria-label="گزینه‌ها">
@@ -84,6 +103,10 @@ export default function NoteCard({ note, view, onEdit, onPin, onArchive, onTrash
               <DropdownMenuItem onClick={() => setShowColors(!showColors)}>
                 <Palette className="h-4 w-4" />
                 تغییر رنگ
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onEdit(note)}>
+                <Edit3 className="h-4 w-4" />
+                ویرایش
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => onTrash(note)} className="text-rose-600">

@@ -4,8 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  ArrowRight, Check, Hash, Palette, Save, Tag, X,
-  Sparkles, Clock,
+  ArrowRight, BellRing, Check, Hash, Palette, Save, Tag, X,
+  Sparkles, Clock, Calendar,
 } from 'lucide-react';
 import { toPersianDigits } from '@/lib/format';
 import RichTextEditor from '@/components/notes/RichTextEditor';
@@ -24,6 +24,15 @@ const NOTE_COLORS = [
   { value: 'slate', label: 'خاکستری', accent: '#64748b' },
 ] as const;
 
+function toLocalDateTimeInput(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  const h = String(date.getHours()).padStart(2, '0');
+  const min = String(date.getMinutes()).padStart(2, '0');
+  return `${y}-${m}-${d}T${h}:${min}`;
+}
+
 export default function NewNotePage() {
   const router = useRouter();
   const titleRef = useRef<HTMLInputElement>(null);
@@ -32,6 +41,8 @@ export default function NewNotePage() {
   const [tagInput, setTagInput] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [reminderAt, setReminderAt] = useState('');
 
   useEffect(() => {
     setTimeout(() => titleRef.current?.focus(), 100);
@@ -51,7 +62,6 @@ export default function NewNotePage() {
     e.preventDefault();
     if (!form.title.trim()) { setError('عنوان یادداشت الزامی است'); return; }
     setSaving(true);
-    // Static mock — API will be connected later
     setTimeout(() => {
       setSaving(false);
       router.push('/dashboard/notes');
@@ -60,7 +70,6 @@ export default function NewNotePage() {
 
   return (
     <div className="nb-editor-page" dir="rtl">
-      {/* Top bar */}
       <header className="nb-editor-topbar">
         <div className="nb-editor-topbar-left">
           <Link href="/dashboard/notes" className="nb-editor-back">
@@ -86,10 +95,8 @@ export default function NewNotePage() {
         </div>
       </header>
 
-      {/* Main editor area */}
       <form id="note-form" onSubmit={handleSubmit} className="nb-editor-main">
         <div className="nb-editor-canvas">
-          {/* Title */}
           <input
             ref={titleRef}
             type="text"
@@ -107,15 +114,55 @@ export default function NewNotePage() {
             </span>
           </div>
 
-          {/* Rich text editor */}
           <RichTextEditor
             initialContent={form.content}
             onChange={(content) => setForm({ ...form, content })}
             placeholder="محتوای یادداشت را اینجا بنویسید..."
           />
 
-          {/* Bottom section: tags + color */}
           <div className="nb-editor-bottom">
+            {/* Reminder Section */}
+            <div className="nb-editor-field-group nb-reminder-group">
+              <label className="nb-editor-label">
+                <BellRing className="h-4 w-4" />
+                یادآور
+              </label>
+              <div className="nb-reminder-toggle-row">
+                <button
+                  type="button"
+                  className={`nb-reminder-toggle ${reminderEnabled ? 'is-active' : ''}`}
+                  onClick={() => {
+                    const next = !reminderEnabled;
+                    setReminderEnabled(next);
+                    if (next && !reminderAt) {
+                      const def = new Date(Date.now() + 3600000);
+                      setReminderAt(toLocalDateTimeInput(def));
+                    }
+                  }}
+                >
+                  <BellRing className="h-4 w-4" />
+                  <span>{reminderEnabled ? 'یادآور فعال است' : 'فعال‌سازی یادآور'}</span>
+                  <span className={`nb-reminder-switch ${reminderEnabled ? 'is-on' : ''}`}>
+                    <span className="nb-reminder-switch-knob" />
+                  </span>
+                </button>
+              </div>
+              {reminderEnabled && (
+                <div className="nb-reminder-datetime">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <input
+                    type="datetime-local"
+                    value={reminderAt}
+                    onChange={(e) => setReminderAt(e.target.value)}
+                    className="nb-reminder-input"
+                  />
+                  <span className="nb-reminder-hint">
+                    در این تاریخ و زمان، هشدار یادآوری دریافت خواهید کرد
+                  </span>
+                </div>
+              )}
+            </div>
+
             {/* Tags */}
             <div className="nb-editor-field-group">
               <label className="nb-editor-label">

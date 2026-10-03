@@ -4,8 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
-  ArrowRight, Check, Hash, Palette, Save, Tag, X,
-  Pin, PinOff, Archive, ArchiveRestore, Trash2, Sparkles, Clock,
+  ArrowRight, BellRing, Check, Hash, Palette, Save, Tag, X,
+  Pin, PinOff, Archive, ArchiveRestore, Trash2, Sparkles, Clock, Calendar,
 } from 'lucide-react';
 import { relativeTime } from '@/lib/format';
 import RichTextEditor from '@/components/notes/RichTextEditor';
@@ -26,6 +26,20 @@ const NOTE_COLORS = [
   { value: 'slate', label: 'خاکستری', accent: '#64748b' },
 ] as const;
 
+function toLocalDateTimeInput(dateStr: string): string {
+  const d = new Date(dateStr);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const h = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${y}-${m}-${day}T${h}:${min}`;
+}
+
+function toLocalDateTimeInputFromDate(date: Date): string {
+  return toLocalDateTimeInput(date.toISOString());
+}
+
 export default function EditNotePage() {
   const router = useRouter();
   const params = useParams();
@@ -39,6 +53,8 @@ export default function EditNotePage() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [savingState, setSavingState] = useState<'saved' | 'editing'>('saved');
+  const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [reminderAt, setReminderAt] = useState('');
 
   useEffect(() => {
     const found = getMockNoteById(noteId);
@@ -46,19 +62,22 @@ export default function EditNotePage() {
       setNote(found);
       setForm({ title: found.title, content: found.content || '', color: found.color });
       setTags(found.tags || []);
+      setReminderEnabled(found.reminderEnabled || false);
+      setReminderAt(found.reminderAt ? toLocalDateTimeInput(found.reminderAt) : '');
       setTimeout(() => titleRef.current?.focus(), 100);
     } else {
-      // Use first mock note as fallback
-      const fallback = getMockNoteById('note-001')!;
-      setNote(fallback);
-      setForm({ title: fallback.title, content: fallback.content || '', color: fallback.color });
-      setTags(fallback.tags || []);
+      const fallback = getMockNoteById('note-001');
+      if (fallback) {
+        setNote(fallback);
+        setForm({ title: fallback.title, content: fallback.content || '', color: fallback.color });
+        setTags(fallback.tags || []);
+        setReminderEnabled(fallback.reminderEnabled || false);
+        setReminderAt(fallback.reminderAt ? toLocalDateTimeInput(fallback.reminderAt) : '');
+      }
     }
   }, [noteId]);
 
-  const markEditing = useCallback(() => {
-    setSavingState('editing');
-  }, []);
+  const markEditing = useCallback(() => setSavingState('editing'), []);
 
   const addTag = useCallback(() => {
     const trimmed = tagInput.trim();
@@ -119,7 +138,6 @@ export default function EditNotePage() {
 
   return (
     <div className="nb-editor-page" dir="rtl">
-      {/* Top bar */}
       <header className="nb-editor-topbar">
         <div className="nb-editor-topbar-left">
           <Link href="/dashboard/notes" className="nb-editor-back">
@@ -131,7 +149,6 @@ export default function EditNotePage() {
           </div>
         </div>
         <div className="nb-editor-topbar-right">
-          {/* Quick actions */}
           <button type="button" className="nb-editor-quick-btn" onClick={togglePin} title={note.pinned ? 'حذف سنجاق' : 'سنجاق'}>
             {note.pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
             {note.pinned ? 'حذف سنجاق' : 'سنجاق'}
@@ -155,10 +172,8 @@ export default function EditNotePage() {
         </div>
       </header>
 
-      {/* Main editor area */}
       <form id="note-edit-form" onSubmit={handleSubmit} className="nb-editor-main">
         <div className="nb-editor-canvas">
-          {/* Title */}
           <input
             ref={titleRef}
             type="text"
@@ -182,15 +197,56 @@ export default function EditNotePage() {
             )}
           </div>
 
-          {/* Rich text editor */}
           <RichTextEditor
             initialContent={form.content}
             onChange={(content) => { setForm({ ...form, content }); markEditing(); }}
             placeholder="محتوای یادداشت را اینجا بنویسید..."
           />
 
-          {/* Bottom section: tags + color */}
           <div className="nb-editor-bottom">
+            {/* Reminder Section */}
+            <div className="nb-editor-field-group nb-reminder-group">
+              <label className="nb-editor-label">
+                <BellRing className="h-4 w-4" />
+                یادآور
+              </label>
+              <div className="nb-reminder-toggle-row">
+                <button
+                  type="button"
+                  className={`nb-reminder-toggle ${reminderEnabled ? 'is-active' : ''}`}
+                  onClick={() => {
+                    const next = !reminderEnabled;
+                    setReminderEnabled(next);
+                    markEditing();
+                    if (next && !reminderAt) {
+                      const def = new Date(Date.now() + 3600000);
+                      setReminderAt(toLocalDateTimeInputFromDate(def));
+                    }
+                  }}
+                >
+                  <BellRing className="h-4 w-4" />
+                  <span>{reminderEnabled ? 'یادآور فعال است' : 'فعال‌سازی یادآور'}</span>
+                  <span className={`nb-reminder-switch ${reminderEnabled ? 'is-on' : ''}`}>
+                    <span className="nb-reminder-switch-knob" />
+                  </span>
+                </button>
+              </div>
+              {reminderEnabled && (
+                <div className="nb-reminder-datetime">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <input
+                    type="datetime-local"
+                    value={reminderAt}
+                    onChange={(e) => { setReminderAt(e.target.value); markEditing(); }}
+                    className="nb-reminder-input"
+                  />
+                  <span className="nb-reminder-hint">
+                    در این تاریخ و زمان، هشدار یادآوری دریافت خواهید کرد
+                  </span>
+                </div>
+              )}
+            </div>
+
             {/* Tags */}
             <div className="nb-editor-field-group">
               <label className="nb-editor-label">

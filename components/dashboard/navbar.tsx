@@ -23,6 +23,7 @@ import {
 import { NotificationBell } from '@/components/dashboard/notification-bell';
 import { MeetingBell } from '@/components/dashboard/meeting-bell';
 import { TaskBell } from '@/components/dashboard/task-bell';
+import { NoteReminderBell } from '@/components/dashboard/note-reminder-bell';
 
 function matches(pathname: string, href: string) {
   return pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
@@ -268,6 +269,11 @@ export function DashboardNavbar() {
             {/* Task notifications */}
             <div className="relative">
               <TaskBell />
+            </div>
+
+            {/* Note reminders */}
+            <div className="relative">
+              <NoteReminderBell variant="super-admin" />
             </div>
 
             {/* Notifications */}

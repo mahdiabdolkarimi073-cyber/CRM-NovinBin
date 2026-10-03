@@ -1,5 +1,12 @@
 import type { PersonalNote } from './types';
 
+const now = new Date();
+const inMinutes = (min: number) => new Date(now.getTime() + min * 60000).toISOString();
+const inHours = (h: number) => new Date(now.getTime() + h * 3600000).toISOString();
+const inDays = (d: number) => new Date(now.getTime() + d * 86400000).toISOString();
+const hoursAgo = (h: number) => new Date(now.getTime() - h * 3600000).toISOString();
+const daysAgo = (d: number) => new Date(now.getTime() - d * 86400000).toISOString();
+
 export const MOCK_NOTES: PersonalNote[] = [
   {
     id: 'note-001',
@@ -12,13 +19,16 @@ export const MOCK_NOTES: PersonalNote[] = [
     isArchived: false,
     isTrashed: false,
     trashedAt: null,
-    createdAt: '2026-09-28T10:00:00.000Z',
-    updatedAt: '2026-09-29T14:30:00.000Z',
+    reminderAt: inHours(2),
+    reminderEnabled: true,
+    reminderDismissed: false,
+    createdAt: daysAgo(3),
+    updatedAt: daysAgo(2),
   },
   {
     id: 'note-002',
     profileId: 'mock-profile',
-    title: 'アイデア: سیستم هوشمند پیشنهاد محصول',
+    title: 'ایده: سیستم هوشمند پیشنهاد محصول',
     content: 'ایده ساخت سیستمی که بر اساس تاریخچه خرید و رفتار مشتری، محصولات مرتبط را پیشنهاد دهد.\n\nالگوریتم پیشنهادی:\n- تحلیل دسته‌بندی خریدهای قبلی\n- مطالعه الگوی جستجوی کاربر\n- مقایسه با مشتریان مشابه\n- امتیازدهی به هر پیشنهاد\n\nنیاز به هماهنگی با تیم فنی برای پیاده‌سازی.',
     color: 'violet',
     tags: ['ایده', 'توسعه', 'هوش‌مصنوعی'],
@@ -26,8 +36,11 @@ export const MOCK_NOTES: PersonalNote[] = [
     isArchived: false,
     isTrashed: false,
     trashedAt: null,
-    createdAt: '2026-09-25T08:15:00.000Z',
-    updatedAt: '2026-09-27T11:20:00.000Z',
+    reminderAt: null,
+    reminderEnabled: false,
+    reminderDismissed: false,
+    createdAt: daysAgo(6),
+    updatedAt: daysAgo(4),
   },
   {
     id: 'note-003',
@@ -40,8 +53,11 @@ export const MOCK_NOTES: PersonalNote[] = [
     isArchived: false,
     isTrashed: false,
     trashedAt: null,
-    createdAt: '2026-09-30T07:00:00.000Z',
-    updatedAt: '2026-09-30T07:00:00.000Z',
+    reminderAt: inMinutes(30),
+    reminderEnabled: true,
+    reminderDismissed: false,
+    createdAt: daysAgo(1),
+    updatedAt: daysAgo(1),
   },
   {
     id: 'note-004',
@@ -54,8 +70,11 @@ export const MOCK_NOTES: PersonalNote[] = [
     isArchived: false,
     isTrashed: false,
     trashedAt: null,
-    createdAt: '2026-09-20T19:30:00.000Z',
-    updatedAt: '2026-09-22T09:15:00.000Z',
+    reminderAt: null,
+    reminderEnabled: false,
+    reminderDismissed: false,
+    createdAt: daysAgo(11),
+    updatedAt: daysAgo(9),
   },
   {
     id: 'note-005',
@@ -68,8 +87,11 @@ export const MOCK_NOTES: PersonalNote[] = [
     isArchived: false,
     isTrashed: false,
     trashedAt: null,
-    createdAt: '2026-09-18T13:45:00.000Z',
-    updatedAt: '2026-09-26T16:00:00.000Z',
+    reminderAt: inDays(1),
+    reminderEnabled: true,
+    reminderDismissed: false,
+    createdAt: daysAgo(13),
+    updatedAt: daysAgo(5),
   },
   {
     id: 'note-006',
@@ -82,8 +104,11 @@ export const MOCK_NOTES: PersonalNote[] = [
     isArchived: false,
     isTrashed: false,
     trashedAt: null,
-    createdAt: '2026-09-15T10:30:00.000Z',
-    updatedAt: '2026-09-24T12:00:00.000Z',
+    reminderAt: null,
+    reminderEnabled: false,
+    reminderDismissed: false,
+    createdAt: daysAgo(16),
+    updatedAt: daysAgo(7),
   },
   {
     id: 'note-007',
@@ -96,8 +121,11 @@ export const MOCK_NOTES: PersonalNote[] = [
     isArchived: false,
     isTrashed: false,
     trashedAt: null,
-    createdAt: '2026-09-26T15:00:00.000Z',
-    updatedAt: '2026-09-28T09:45:00.000Z',
+    reminderAt: inHours(5),
+    reminderEnabled: true,
+    reminderDismissed: false,
+    createdAt: daysAgo(5),
+    updatedAt: daysAgo(3),
   },
   {
     id: 'note-008',
@@ -110,8 +138,11 @@ export const MOCK_NOTES: PersonalNote[] = [
     isArchived: false,
     isTrashed: false,
     trashedAt: null,
-    createdAt: '2026-09-10T18:20:00.000Z',
-    updatedAt: '2026-09-12T10:00:00.000Z',
+    reminderAt: null,
+    reminderEnabled: false,
+    reminderDismissed: false,
+    createdAt: daysAgo(21),
+    updatedAt: daysAgo(19),
   },
   {
     id: 'note-009',
@@ -124,8 +155,11 @@ export const MOCK_NOTES: PersonalNote[] = [
     isArchived: false,
     isTrashed: false,
     trashedAt: null,
-    createdAt: '2026-09-05T11:00:00.000Z',
-    updatedAt: '2026-09-14T14:30:00.000Z',
+    reminderAt: null,
+    reminderEnabled: false,
+    reminderDismissed: false,
+    createdAt: daysAgo(26),
+    updatedAt: daysAgo(17),
   },
   {
     id: 'note-010',
@@ -138,8 +172,11 @@ export const MOCK_NOTES: PersonalNote[] = [
     isArchived: false,
     isTrashed: false,
     trashedAt: null,
-    createdAt: '2026-09-01T20:00:00.000Z',
-    updatedAt: '2026-09-08T21:30:00.000Z',
+    reminderAt: inDays(3),
+    reminderEnabled: true,
+    reminderDismissed: false,
+    createdAt: daysAgo(30),
+    updatedAt: daysAgo(23),
   },
   {
     id: 'note-011',
@@ -152,8 +189,11 @@ export const MOCK_NOTES: PersonalNote[] = [
     isArchived: false,
     isTrashed: false,
     trashedAt: null,
-    createdAt: '2026-08-28T16:00:00.000Z',
-    updatedAt: '2026-09-03T10:15:00.000Z',
+    reminderAt: null,
+    reminderEnabled: false,
+    reminderDismissed: false,
+    createdAt: daysAgo(34),
+    updatedAt: daysAgo(28),
   },
   {
     id: 'note-012',
@@ -166,8 +206,11 @@ export const MOCK_NOTES: PersonalNote[] = [
     isArchived: false,
     isTrashed: false,
     trashedAt: null,
-    createdAt: '2026-09-02T09:00:00.000Z',
-    updatedAt: '2026-09-05T13:45:00.000Z',
+    reminderAt: null,
+    reminderEnabled: false,
+    reminderDismissed: false,
+    createdAt: daysAgo(29),
+    updatedAt: daysAgo(26),
   },
 ];
 

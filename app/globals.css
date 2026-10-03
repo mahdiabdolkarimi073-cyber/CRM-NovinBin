@@ -1575,8 +1575,141 @@
 .dark .nb-editor-loading span{border-color:#334155;border-top-color:#2563EB}
 @keyframes nbSpin{to{transform:rotate(360deg)}}
 
+/* ===== Redesigned Stats Cards V2 ===== */
+.nb-stats-grid-v2{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.nb-stat-card-v2{position:relative;display:flex;align-items:center;gap:14px;height:100px;padding:18px 20px;background:#fff;border:1px solid #E2E8F0;border-radius:18px;box-shadow:0 1px 3px rgba(0,0,0,.04);transition:all .25s cubic-bezier(.4,0,.2,1);cursor:pointer;overflow:hidden;text-align:right;border:0}
+.dark .nb-stat-card-v2{background:#1E293B;border-color:#334155}
+.nb-stat-card-v2:hover{transform:translateY(-3px);box-shadow:0 12px 28px var(--stat-glow,rgba(0,0,0,.1))}
+.nb-stat-card-v2.is-active{box-shadow:0 0 0 2px #3b82f6,0 12px 28px var(--stat-glow,rgba(59,130,246,.2))}
+.dark .nb-stat-card-v2.is-active{box-shadow:0 0 0 2px #60A5FA,0 12px 28px var(--stat-glow,rgba(96,165,250,.2))}
+.nb-stat-v2-icon{position:relative;display:flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:14px;flex-shrink:0;box-shadow:0 4px 12px rgba(0,0,0,.1)}
+.nb-stat-v2-badge{position:absolute;top:-6px;left:-6px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:#EF4444;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #fff}
+.dark .nb-stat-v2-badge{border-color:#1E293B}
+.nb-stat-v2-body{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.nb-stat-v2-body strong{font-size:26px;font-weight:800;line-height:1.1;color:#0F172A}
+.dark .nb-stat-v2-body strong{color:#F1F5F9}
+.nb-stat-v2-body span{font-size:12px;color:#94A3B8;font-weight:500}
+.nb-stat-v2-spark{position:absolute;bottom:0;left:0;right:0;height:3px;opacity:.3}
+
+/* ===== Card edit button & reminder tags ===== */
+.nb-card-edit-btn{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;border:0;background:transparent;color:#64748B;cursor:pointer;transition:all .15s ease}
+.nb-card-edit-btn:hover{background:rgba(59,130,246,.1);color:#2563EB}
+.dark .nb-card-edit-btn:hover{background:rgba(96,165,250,.15);color:#60A5FA}
+.nb-card-tag-reminder-due{background:rgba(236,72,153,.12)!important;color:#EC4899!important;animation:nbPulse 2s ease infinite}
+.dark .nb-card-tag-reminder-due{background:rgba(236,72,153,.2)!important;color:#F472B6!important}
+.nb-card-tag-reminder-soon{background:rgba(14,165,233,.1)!important;color:#0EA5E9!important}
+.dark .nb-card-tag-reminder-soon{background:rgba(14,165,233,.18)!important;color:#38BDF8!important}
+@keyframes nbPulse{0%,100%{opacity:1}50%{opacity:.6}}
+@keyframes nbBellRing{0%,100%{transform:rotate(0)}10%,30%{transform:rotate(-12deg)}20%,40%{transform:rotate(12deg)}50%{transform:rotate(0)}}
+.animate-bell-ring{animation:nbBellRing 1s ease infinite}
+
+/* ===== Note View Page ===== */
+.nb-view-canvas{background:#fff;border-radius:16px;border:1px solid #E2E8F0;padding:32px 36px;min-height:60vh}
+.dark .nb-view-canvas{background:#1E293B;border-color:#334155}
+.nb-view-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:12px;flex-wrap:wrap}
+.nb-view-title{font-size:28px;font-weight:800;color:#0F172A;margin:0;line-height:1.3}
+.dark .nb-view-title{color:#F1F5F9}
+.nb-view-badges{display:flex;flex-wrap:wrap;gap:8px}
+.nb-view-badge{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 10px;border-radius:13px;font-size:11px;font-weight:600}
+.nb-view-badge-pin{background:rgba(245,158,11,.12);color:#D97706}
+.nb-view-badge-archive{background:rgba(100,116,139,.12);color:#64748B}
+.nb-view-badge-reminder-due{background:rgba(236,72,153,.12);color:#EC4899}
+.dark .nb-view-badge-reminder-due{background:rgba(236,72,153,.2);color:#F472B6}
+.nb-view-badge-reminder-soon{background:rgba(14,165,233,.12);color:#0EA5E9}
+.dark .nb-view-badge-reminder-soon{background:rgba(14,165,233,.2);color:#38BDF8}
+.nb-view-meta{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #E2E8F0}
+.dark .nb-view-meta{border-color:#334155}
+.nb-view-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px}
+.nb-view-reminder-box{display:flex;align-items:center;gap:14px;padding:16px 20px;border-radius:14px;background:rgba(14,165,233,.06);border:1px solid rgba(14,165,233,.15);margin-bottom:20px}
+.nb-view-reminder-box.is-due{background:rgba(236,72,153,.08);border-color:rgba(236,72,153,.2)}
+.dark .nb-view-reminder-box{background:rgba(14,165,233,.1);border-color:rgba(14,165,233,.2)}
+.dark .nb-view-reminder-box.is-due{background:rgba(236,72,153,.12);border-color:rgba(236,72,153,.25)}
+.nb-view-reminder-box div{display:flex;flex-direction:column;gap:2px}
+.nb-view-reminder-box strong{font-size:14px;font-weight:700;color:#0F172A}
+.dark .nb-view-reminder-box strong{color:#F1F5F9}
+.nb-view-reminder-box span{font-size:13px;color:#64748B}
+.dark .nb-view-reminder-box span{color:#94A3B8}
+.nb-view-content{font-size:15px;line-height:2;color:#334155;white-space:pre-wrap}
+.dark .nb-view-content{color:#CBD5E1}
+.nb-view-content p{margin:0 0 8px}
+
+/* ===== Reminder Toggle UI ===== */
+.nb-reminder-group{background:rgba(236,72,153,.03);border:1px solid rgba(236,72,153,.1);border-radius:14px;padding:16px 18px}
+.dark .nb-reminder-group{background:rgba(236,72,153,.06);border-color:rgba(236,72,153,.15)}
+.nb-reminder-toggle-row{margin-bottom:0}
+.nb-reminder-toggle{display:flex;align-items:center;gap:10px;width:100%;height:48px;padding:0 16px;border:1px solid #E2E8F0;border-radius:12px;background:#fff;color:#64748B;font:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s ease}
+.dark .nb-reminder-toggle{background:#1E293B;border-color:#334155;color:#94A3B8}
+.nb-reminder-toggle:hover{border-color:#EC4899}
+.nb-reminder-toggle.is-active{border-color:#EC4899;background:rgba(236,72,153,.05);color:#EC4899}
+.dark .nb-reminder-toggle.is-active{background:rgba(236,72,153,.1);color:#F472B6}
+.nb-reminder-toggle span:nth-child(2){flex:1;text-align:right}
+.nb-reminder-switch{position:relative;width:40px;height:22px;border-radius:11px;background:#CBD5E1;transition:background .2s ease;flex-shrink:0}
+.nb-reminder-switch.is-on{background:#EC4899}
+.nb-reminder-switch-knob{position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .2s ease}
+.nb-reminder-switch.is-on .nb-reminder-switch-knob{transform:translateX(-18px)}
+.nb-reminder-datetime{display:flex;align-items:center;gap:10px;margin-top:12px;padding:12px 14px;border-radius:10px;background:#fff;border:1px solid #E2E8F0}
+.dark .nb-reminder-datetime{background:#1E293B;border-color:#334155}
+.nb-reminder-input{border:1px solid #E2E8F0;border-radius:8px;padding:8px 12px;font:inherit;font-size:13px;color:#0F172A;background:#fff;outline:none}
+.dark .nb-reminder-input{background:#0F172A;border-color:#334155;color:#F1F5F9}
+.nb-reminder-input:focus{border-color:#EC4899;box-shadow:0 0 0 3px rgba(236,72,153,.1)}
+.nb-reminder-hint{font-size:11px;color:#94A3B8;flex:1}
+
+/* ===== Reminder Bell Popup ===== */
+.nb-reminder-popup{position:absolute;top:48px;left:0;z-index:100;width:340px;max-height:440px;display:flex;flex-direction:column;background:#fff;border:1px solid #E2E8F0;border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,.15);overflow:hidden;animation:nbPopupIn .2s ease}
+.dark .nb-reminder-popup{background:#1E293B;border-color:#334155}
+@keyframes nbPopupIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.nb-reminder-popup-header{display:flex;align-items:center;gap:8px;padding:14px 18px;border-bottom:1px solid #E2E8F0;font-size:14px;font-weight:700;color:#0F172A}
+.dark .nb-reminder-popup-header{color:#F1F5F9;border-color:#334155}
+.nb-reminder-popup-empty{display:flex;flex-direction:column;align-items:center;gap:10px;padding:40px 20px;color:#94A3B8;text-align:center}
+.nb-reminder-popup-empty p{font-size:13px;margin:0}
+.nb-reminder-popup-list{flex:1;overflow-y:auto;padding:6px}
+.nb-reminder-popup-section-label{display:flex;align-items:center;gap:6px;padding:8px 12px 4px;font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase}
+.nb-reminder-dot{width:8px;height:8px;border-radius:50%}
+.nb-reminder-dot-due{background:#EC4899}
+.nb-reminder-dot-soon{background:#0EA5E9}
+.nb-reminder-popup-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;transition:background .15s ease}
+.nb-reminder-popup-item:hover{background:#F1F5F9}
+.dark .nb-reminder-popup-item:hover{background:#334155}
+.nb-reminder-due-item{background:rgba(236,72,153,.04)}
+.dark .nb-reminder-due-item{background:rgba(236,72,153,.08)}
+.nb-reminder-popup-item-body{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.nb-reminder-popup-item-body strong{font-size:13px;font-weight:600;color:#0F172A;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dark .nb-reminder-popup-item-body strong{color:#F1F5F9}
+.nb-reminder-popup-item-body span{font-size:11px;color:#94A3B8}
+.nb-reminder-popup-footer{display:block;padding:12px 18px;border-top:1px solid #E2E8F0;text-align:center;font-size:13px;font-weight:600;color:#2563EB;transition:background .15s ease}
+.dark .nb-reminder-popup-footer{color:#60A5FA;border-color:#334155}
+.nb-reminder-popup-footer:hover{background:#F1F5F9}
+.dark .nb-reminder-popup-footer:hover{background:#334155}
+
+/* ===== Reminders Page ===== */
+.nb-reminders-main{max-width:900px;margin:0 auto}
+.nb-reminders-list{display:flex;flex-direction:column;gap:12px}
+.nb-reminder-card{position:relative;display:flex;align-items:flex-start;gap:14px;padding:18px 20px;background:#fff;border:1px solid #E2E8F0;border-radius:16px;border-right-width:4px;transition:all .2s ease;cursor:pointer}
+.dark .nb-reminder-card{background:#1E293B;border-color:#334155}
+.nb-reminder-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.08)}
+.nb-reminder-card.is-due{border-color:#EC4899;border-right-color:#EC4899!important}
+.nb-reminder-card-icon{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:12px;flex-shrink:0}
+.nb-reminder-card-body{flex:1;min-width:0}
+.nb-reminder-card-title-row{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.nb-reminder-card-title-row h3{font-size:15px;font-weight:700;color:#0F172A;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dark .nb-reminder-card-title-row h3{color:#F1F5F9}
+.nb-reminder-due-badge{display:inline-flex;align-items:center;height:22px;padding:0 10px;border-radius:11px;background:rgba(236,72,153,.12);color:#EC4899;font-size:10px;font-weight:700;flex-shrink:0}
+.dark .nb-reminder-due-badge{background:rgba(236,72,153,.2);color:#F472B6}
+.nb-reminder-card-excerpt{font-size:13px;color:#64748B;margin:0 0 8px;line-height:1.6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dark .nb-reminder-card-excerpt{color:#94A3B8}
+.nb-reminder-card-meta{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.nb-reminder-time{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:#0EA5E9}
+.nb-reminder-time.is-due{color:#EC4899}
+.nb-reminder-relative{font-size:11px;color:#94A3B8}
+.nb-reminder-card-tags{display:flex;gap:4px}
+.nb-reminder-card-edit{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;border:1px solid #E2E8F0;background:transparent;color:#64748B;cursor:pointer;transition:all .15s ease;flex-shrink:0}
+.dark .nb-reminder-card-edit{border-color:#334155;color:#94A3B8}
+.nb-reminder-card-edit:hover{background:rgba(59,130,246,.1);color:#2563EB;border-color:#2563EB}
+.dark .nb-reminder-card-edit:hover{background:rgba(96,165,250,.15);color:#60A5FA;border-color:#60A5FA}
+
 /* Responsive */
 @media(max-width:1199px){
+  .nb-stats-grid-v2{grid-template-columns:repeat(2,1fr)}
   .nb-stats-grid{grid-template-columns:repeat(2,1fr)}
   .nb-sidebar{width:200px}
   .nb-grid-grid{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
@@ -1587,6 +1720,8 @@
   .nb-hero-right{justify-content:flex-end}
   .nb-mobile-menu{display:inline-flex}
   .nb-stats-grid{grid-template-columns:repeat(2,1fr);gap:12px}
+  .nb-stats-grid-v2{grid-template-columns:repeat(2,1fr);gap:12px}
+  .nb-stat-card-v2{height:84px;padding:14px}
   .nb-stat-card{height:80px;padding:12px}
   .nb-stat-icon{width:40px;height:40px}
   .nb-sidebar{display:none}
@@ -1611,7 +1746,15 @@
   .nb-hero-title-row h1{font-size:22px}
   .nb-stats-grid{grid-template-columns:1fr}
   .nb-stat-card{height:72px}
+  .nb-stats-grid-v2{grid-template-columns:1fr}
+  .nb-stat-card-v2{height:76px;padding:12px}
+  .nb-stat-v2-icon{width:40px;height:40px}
+  .nb-stat-v2-body strong{font-size:20px}
   .nb-editor-save-btn{width:100%;justify-content:center}
+  .nb-view-canvas{padding:20px 16px}
+  .nb-view-title{font-size:22px}
+  .nb-reminder-popup{width:calc(100vw - 24px);left:-12px}
+  .nb-reminder-card{padding:14px 16px}
 }
 
 /* ===== Staff chat ===== */

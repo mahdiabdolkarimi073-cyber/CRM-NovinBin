@@ -4,7 +4,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  Archive, ChevronDown, Hash, LayoutGrid, List,
+  Archive, BellRing, ChevronDown, Hash, LayoutGrid, List,
   Pin, Plus, Search, Settings2, StickyNote, Trash2, X,
 } from 'lucide-react';
 import { toPersianDigits } from '@/lib/format';
@@ -14,11 +14,12 @@ import NoteCard from '@/components/notes/NoteCard';
 
 type ViewMode = 'grid' | 'list';
 type SortMode = 'newest' | 'oldest' | 'title';
-type Section = 'all' | 'pinned' | 'archived' | 'trash';
+type Section = 'all' | 'pinned' | 'reminders' | 'archived' | 'trash';
 
 const SIDEBAR_ITEMS: { id: Section; label: string; icon: typeof StickyNote }[] = [
   { id: 'all', label: 'همه یادداشت‌ها', icon: StickyNote },
   { id: 'pinned', label: 'سنجاق‌شده', icon: Pin },
+  { id: 'reminders', label: 'یادآورها', icon: BellRing },
   { id: 'archived', label: 'آرشیو', icon: Archive },
   { id: 'trash', label: 'سطل زباله', icon: Trash2 },
 ];
@@ -34,7 +35,7 @@ export default function NotesPage() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [notes] = useState<PersonalNote[]>(MOCK_NOTES);
 
-  const openNew = useCallback(() => router.push('/dashboard/notes/new'), [router]);
+  const openView = useCallback((note: PersonalNote) => router.push(`/dashboard/notes/${note.id}`), [router]);
   const openEdit = useCallback((note: PersonalNote) => router.push(`/dashboard/notes/${note.id}/edit`), [router]);
 
   const allTags = useMemo(() => {
@@ -52,6 +53,7 @@ export default function NotesPage() {
         if (section === 'all' && n.isTrashed) return false;
         if (section === 'all' && n.isArchived) return false;
         if (section === 'pinned' && (!n.pinned || n.isTrashed || n.isArchived)) return false;
+        if (section === 'reminders' && (!n.reminderEnabled || n.isTrashed || n.isArchived)) return false;
         if (section === 'archived' && (!n.isArchived || n.isTrashed)) return false;
         if (section === 'trash' && !n.isTrashed) return false;
         if (activeTag && !(n.tags || []).includes(activeTag)) return false;
@@ -74,26 +76,48 @@ export default function NotesPage() {
     [filteredNotes, section]
   );
 
+  const activeReminderCount = notes.filter(
+    (n) => n.reminderEnabled && n.reminderAt && !n.reminderDismissed && !n.isTrashed && !n.isArchived
+  ).length;
+  const dueReminderCount = notes.filter(
+    (n) => n.reminderEnabled && n.reminderAt && !n.reminderDismissed && !n.isTrashed && !n.isArchived && new Date(n.reminderAt!) <= new Date()
+  ).length;
+
   const stats = useMemo(
     () => [
-      { label: 'کل یادداشت‌ها', value: notes.filter((n) => !n.isTrashed && !n.isArchived).length, icon: StickyNote, color: 'text-blue-600 bg-blue-50 dark:bg-blue-950/40 dark:text-blue-400', section: 'all' as Section },
-      { label: 'سنجاق‌شده', value: notes.filter((n) => n.pinned && !n.isTrashed && !n.isArchived).length, icon: Pin, color: 'text-amber-600 bg-amber-50 dark:bg-amber-950/40 dark:text-amber-400', section: 'pinned' as Section },
-      { label: 'آرشیو', value: notes.filter((n) => n.isArchived && !n.isTrashed).length, icon: Archive, color: 'text-slate-600 bg-slate-50 dark:bg-slate-800/40 dark:text-slate-400', section: 'archived' as Section },
-      { label: 'سطل زباله', value: notes.filter((n) => n.isTrashed).length, icon: Trash2, color: 'text-rose-600 bg-rose-50 dark:bg-rose-950/40 dark:text-rose-400', section: 'trash' as Section },
+      {
+        label: 'کل یادداشت‌ها', value: notes.filter((n) => !n.isTrashed && !n.isArchived).length,
+        icon: StickyNote, section: 'all' as Section,
+        gradient: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+        glow: 'rgba(59,130,246,0.25)',
+      },
+      {
+        label: 'سنجاق‌شده', value: notes.filter((n) => n.pinned && !n.isTrashed && !n.isArchived).length,
+        icon: Pin, section: 'pinned' as Section,
+        gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+        glow: 'rgba(245,158,11,0.25)',
+      },
+      {
+        label: 'یادآورها', value: activeReminderCount,
+        icon: BellRing, section: 'reminders' as Section,
+        gradient: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)',
+        glow: 'rgba(236,72,153,0.25)',
+        badge: dueReminderCount > 0 ? toPersianDigits(dueReminderCount) : undefined,
+      },
+      {
+        label: 'آرشیو', value: notes.filter((n) => n.isArchived && !n.isTrashed).length,
+        icon: Archive, section: 'archived' as Section,
+        gradient: 'linear-gradient(135deg, #64748b 0%, #334155 100%)',
+        glow: 'rgba(100,116,139,0.2)',
+      },
     ],
-    [notes]
+    [notes, activeReminderCount, dueReminderCount]
   );
 
   const sectionLabel = SIDEBAR_ITEMS.find((s) => s.id === section)?.label || 'یادداشت‌ها';
 
-  // Static handlers — no API calls, mock data only
-  const noopAction = useCallback((_note: PersonalNote) => {
-    // Functionality will be connected later
-  }, []);
-
-  const noopColorChange = useCallback((_id: string, _color: string) => {
-    // Functionality will be connected later
-  }, []);
+  const noopAction = useCallback((_note: PersonalNote) => {}, []);
+  const noopColorChange = useCallback((_id: string, _color: string) => {}, []);
 
   const SidebarContent = () => (
     <>
@@ -109,6 +133,7 @@ export default function NotesPage() {
           const count =
             item.id === 'all' ? notes.filter((n) => !n.isTrashed && !n.isArchived).length :
             item.id === 'pinned' ? notes.filter((n) => n.pinned && !n.isTrashed && !n.isArchived).length :
+            item.id === 'reminders' ? activeReminderCount :
             item.id === 'archived' ? notes.filter((n) => n.isArchived && !n.isTrashed).length :
             notes.filter((n) => n.isTrashed).length;
           return (
@@ -151,7 +176,6 @@ export default function NotesPage() {
 
   return (
     <div className="nb-page" dir="rtl">
-      {/* Hero header */}
       <header className="nb-hero">
         <div className="nb-hero-left">
           <button className="nb-mobile-menu" onClick={() => setMobileSidebarOpen(true)} aria-label="منو">
@@ -173,33 +197,36 @@ export default function NotesPage() {
         </div>
       </header>
 
-      {/* Stats */}
-      <section className="nb-stats-grid">
+      {/* Redesigned Stats */}
+      <section className="nb-stats-grid-v2">
         {stats.map((stat) => (
-          <div
-            className="nb-stat-card"
+          <button
+            type="button"
+            className={`nb-stat-card-v2 ${section === stat.section ? 'is-active' : ''}`}
             key={stat.label}
             onClick={() => { setSection(stat.section); setActiveTag(null); }}
+            style={{ '--stat-glow': stat.glow } as React.CSSProperties}
           >
-            <div className={`nb-stat-icon ${stat.color}`}>
-              <stat.icon className="h-5 w-5" />
+            <div className="nb-stat-v2-icon" style={{ background: stat.gradient }}>
+              <stat.icon className="h-[22px] w-[22px] text-white" />
+              {stat.badge && (
+                <span className="nb-stat-v2-badge">{stat.badge}</span>
+              )}
             </div>
-            <div>
+            <div className="nb-stat-v2-body">
               <strong>{toPersianDigits(stat.value)}</strong>
               <span>{stat.label}</span>
             </div>
-          </div>
+            <div className="nb-stat-v2-spark" style={{ background: stat.gradient }} />
+          </button>
         ))}
       </section>
 
-      {/* Main layout */}
       <div className="nb-body">
-        {/* Desktop sidebar */}
         <aside className={`nb-sidebar ${!sidebarOpen ? 'is-collapsed' : ''}`}>
           <SidebarContent />
         </aside>
 
-        {/* Mobile sidebar overlay */}
         {mobileSidebarOpen && (
           <div className="nb-mobile-overlay" onClick={() => setMobileSidebarOpen(false)}>
             <div className="nb-mobile-sidebar" onClick={(e) => e.stopPropagation()}>
@@ -214,9 +241,7 @@ export default function NotesPage() {
           </div>
         )}
 
-        {/* Main content */}
         <div className="nb-main">
-          {/* Toolbar */}
           <div className="nb-toolbar">
             <div className="nb-toolbar-left">
               <h2>{sectionLabel}</h2>
@@ -260,7 +285,6 @@ export default function NotesPage() {
             </div>
           </div>
 
-          {/* Content */}
           {filteredNotes.length === 0 ? (
             <div className="nb-empty">
               <StickyNote className="h-12 w-12 text-muted-foreground/30" />
@@ -269,6 +293,7 @@ export default function NotesPage() {
                 {section === 'trash' ? 'سطل زباله خالی است' :
                  section === 'archived' ? 'هیچ یادداشتی آرشیو نشده' :
                  section === 'pinned' ? 'هیچ یادداشتی سنجاق نشده' :
+                 section === 'reminders' ? 'هیچ یادآوری تنظیم نشده' :
                  'هنوز یادداشتی نساخته‌اید'}
               </p>
               {section === 'all' && (
@@ -292,6 +317,7 @@ export default function NotesPage() {
                         key={note.id}
                         note={note}
                         view={view}
+                        onView={openView}
                         onEdit={openEdit}
                         onPin={noopAction}
                         onArchive={noopAction}
@@ -314,6 +340,7 @@ export default function NotesPage() {
                         key={note.id}
                         note={note}
                         view={view}
+                        onView={openView}
                         onEdit={openEdit}
                         onPin={noopAction}
                         onArchive={noopAction}
@@ -329,7 +356,6 @@ export default function NotesPage() {
         </div>
       </div>
 
-      {/* Mobile FAB */}
       <Link href="/dashboard/notes/new" className="nb-fab" aria-label="یادداشت جدید">
         <Plus className="h-6 w-6" />
       </Link>
