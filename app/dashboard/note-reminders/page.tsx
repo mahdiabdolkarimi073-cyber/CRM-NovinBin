@@ -1,13 +1,13 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
-  ArrowRight, BellRing, Clock, Edit3, Hash, Search, StickyNote, X,
+  ArrowRight, BellRing, Clock, Edit3, Hash, Search, StickyNote, X, Loader2,
 } from 'lucide-react';
 import { toPersianDigits, formatJalaliDateTime, relativeTime } from '@/lib/format';
-import { MOCK_NOTES } from '@/lib/notes-mock-data';
 import { getColorMeta } from '@/components/notes/NoteCard';
+import { fetchData } from '@/lib/data-client';
 import type { PersonalNote } from '@/lib/types';
 
 type ReminderTab = 'due' | 'upcoming' | 'all';
@@ -15,12 +15,29 @@ type ReminderTab = 'due' | 'upcoming' | 'all';
 export default function NoteRemindersPage() {
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState<ReminderTab>('due');
+  const [notes, setNotes] = useState<PersonalNote[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await fetchData<PersonalNote>('personal_notes', {
+          orderBy: { createdAt: 'desc' },
+        });
+        setNotes(data);
+      } catch {
+        // ignore
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   const reminderNotes = useMemo(
-    () => MOCK_NOTES.filter(
+    () => notes.filter(
       (n) => n.reminderEnabled && n.reminderAt && !n.reminderDismissed && !n.isTrashed && !n.isArchived
     ),
-    []
+    [notes]
   );
 
   const dueReminders = useMemo(
@@ -134,7 +151,12 @@ export default function NoteRemindersPage() {
           </div>
         </div>
 
-        {filteredNotes.length === 0 ? (
+        {loading ? (
+          <div className="nb-empty">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
+            <p>در حال بارگذاری...</p>
+          </div>
+        ) : filteredNotes.length === 0 ? (
           <div className="nb-empty">
             <BellRing className="h-12 w-12 text-muted-foreground/30" />
             <h3>یادآوری یافت نشد</h3>

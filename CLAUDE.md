@@ -61,9 +61,13 @@ When working on a task, you MUST:
 
 6. **This rule is NON-NEGOTIABLE.** It applies to EVERY task, EVERY conversation, EVERY request. No exceptions. No excuses. No early termination. Work until it is ALL done.
 
+## Language — Always Speak Persian (Farsi)
+
+You MUST always respond in Persian (Farsi) in the chat. Every message, summary, question, explanation, and update must be in Persian. This applies to ALL conversations and ALL requests without exception. Never respond in English unless the user explicitly asks for English.
+
 ## Summary
 
-When you finish a task, ALWAYS provide a short plain-language summary of what you built or changed and anything the user must know or do next. Never end your turn with silence.
+When you finish a task, ALWAYS provide a short plain-language summary (in Persian) of what you built or changed and anything the user must know or do next. Never end your turn with silence.
 
 ## Scope Discipline — Only Touch What Is Requested
 

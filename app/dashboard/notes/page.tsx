@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   Archive, BellRing, ChevronDown, Hash, LayoutGrid, List,
-  Pin, Plus, Search, Settings2, StickyNote, Trash2, X,
+  Pin, Plus, Search, Settings2, StickyNote, Trash2, X, Loader2,
 } from 'lucide-react';
 import { toPersianDigits } from '@/lib/format';
 import type { PersonalNote } from '@/lib/types';
-import { MOCK_NOTES } from '@/lib/notes-mock-data';
+import { useNotes } from '@/hooks/use-notes';
 import NoteCard from '@/components/notes/NoteCard';
 
 type ViewMode = 'grid' | 'list';
@@ -26,6 +26,7 @@ const SIDEBAR_ITEMS: { id: Section; label: string; icon: typeof StickyNote }[] =
 
 export default function NotesPage() {
   const router = useRouter();
+  const { notes, loading, updateNote, deleteNote } = useNotes();
   const [search, setSearch] = useState('');
   const [section, setSection] = useState<Section>('all');
   const [activeTag, setActiveTag] = useState<string | null>(null);
@@ -33,10 +34,25 @@ export default function NotesPage() {
   const [view, setView] = useState<ViewMode>('grid');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [notes] = useState<PersonalNote[]>(MOCK_NOTES);
 
   const openView = useCallback((note: PersonalNote) => router.push(`/dashboard/notes/${note.id}`), [router]);
   const openEdit = useCallback((note: PersonalNote) => router.push(`/dashboard/notes/${note.id}/edit`), [router]);
+
+  const handlePin = useCallback((note: PersonalNote) => {
+    updateNote(note.id, { pinned: !note.pinned });
+  }, [updateNote]);
+
+  const handleArchive = useCallback((note: PersonalNote) => {
+    updateNote(note.id, { isArchived: !note.isArchived });
+  }, [updateNote]);
+
+  const handleTrash = useCallback((note: PersonalNote) => {
+    updateNote(note.id, { isTrashed: true, trashedAt: new Date().toISOString() });
+  }, [updateNote]);
+
+  const handleColorChange = useCallback((id: string, color: string) => {
+    updateNote(id, { color });
+  }, [updateNote]);
 
   const allTags = useMemo(() => {
     const tagSet = new Set<string>();
@@ -115,9 +131,6 @@ export default function NotesPage() {
   );
 
   const sectionLabel = SIDEBAR_ITEMS.find((s) => s.id === section)?.label || 'یادداشت‌ها';
-
-  const noopAction = useCallback((_note: PersonalNote) => {}, []);
-  const noopColorChange = useCallback((_id: string, _color: string) => {}, []);
 
   const SidebarContent = () => (
     <>
@@ -285,7 +298,12 @@ export default function NotesPage() {
             </div>
           </div>
 
-          {filteredNotes.length === 0 ? (
+          {loading ? (
+            <div className="nb-empty">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
+              <p>در حال بارگذاری یادداشت‌ها...</p>
+            </div>
+          ) : filteredNotes.length === 0 ? (
             <div className="nb-empty">
               <StickyNote className="h-12 w-12 text-muted-foreground/30" />
               <h3>یادداشتی یافت نشد</h3>
@@ -319,10 +337,10 @@ export default function NotesPage() {
                         view={view}
                         onView={openView}
                         onEdit={openEdit}
-                        onPin={noopAction}
-                        onArchive={noopAction}
-                        onTrash={noopAction}
-                        onColorChange={noopColorChange}
+                        onPin={handlePin}
+                        onArchive={handleArchive}
+                        onTrash={handleTrash}
+                        onColorChange={handleColorChange}
                       />
                     ))}
                   </div>
@@ -342,10 +360,10 @@ export default function NotesPage() {
                         view={view}
                         onView={openView}
                         onEdit={openEdit}
-                        onPin={noopAction}
-                        onArchive={noopAction}
-                        onTrash={noopAction}
-                        onColorChange={noopColorChange}
+                        onPin={handlePin}
+                        onArchive={handleArchive}
+                        onTrash={handleTrash}
+                        onColorChange={handleColorChange}
                       />
                     ))}
                   </div>

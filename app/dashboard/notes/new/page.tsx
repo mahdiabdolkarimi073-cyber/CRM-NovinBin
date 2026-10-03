@@ -7,8 +7,10 @@ import {
   ArrowRight, BellRing, Check, Hash, Palette, Save, Tag, X,
   Sparkles, Clock, Calendar,
 } from 'lucide-react';
-import { toPersianDigits } from '@/lib/format';
 import RichTextEditor from '@/components/notes/RichTextEditor';
+import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
+import { createData } from '@/lib/data-client';
+import { toLocalDateString, toPersianDigits } from '@/lib/format';
 
 const NOTE_COLORS = [
   { value: 'default', label: 'پیش‌فرض', accent: '#64748b' },
@@ -24,15 +26,6 @@ const NOTE_COLORS = [
   { value: 'slate', label: 'خاکستری', accent: '#64748b' },
 ] as const;
 
-function toLocalDateTimeInput(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  const h = String(date.getHours()).padStart(2, '0');
-  const min = String(date.getMinutes()).padStart(2, '0');
-  return `${y}-${m}-${d}T${h}:${min}`;
-}
-
 export default function NewNotePage() {
   const router = useRouter();
   const titleRef = useRef<HTMLInputElement>(null);
@@ -42,7 +35,8 @@ export default function NewNotePage() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [reminderEnabled, setReminderEnabled] = useState(false);
-  const [reminderAt, setReminderAt] = useState('');
+  const [reminderDate, setReminderDate] = useState<Date | null>(null);
+  const [reminderTime, setReminderTime] = useState('');
 
   useEffect(() => {
     setTimeout(() => titleRef.current?.focus(), 100);
@@ -62,10 +56,25 @@ export default function NewNotePage() {
     e.preventDefault();
     if (!form.title.trim()) { setError('عنوان یادداشت الزامی است'); return; }
     setSaving(true);
-    setTimeout(() => {
-      setSaving(false);
+    try {
+      const data: Record<string, any> = {
+        title: form.title.trim(),
+        content: form.content || null,
+        color: form.color,
+        tags,
+        pinned: false,
+        isArchived: false,
+        isTrashed: false,
+        reminderEnabled,
+        reminderDismissed: false,
+        reminderAt: reminderEnabled && reminderDate && reminderTime ? new Date(`${toLocalDateString(reminderDate)}T${reminderTime}`).toISOString() : null,
+      };
+      await createData('personal_notes', data);
       router.push('/dashboard/notes');
-    }, 500);
+    } catch (err: any) {
+      setError(err.message || 'خطا در ذخیره یادداشت');
+      setSaving(false);
+    }
   };
 
   return (
@@ -134,9 +143,10 @@ export default function NewNotePage() {
                   onClick={() => {
                     const next = !reminderEnabled;
                     setReminderEnabled(next);
-                    if (next && !reminderAt) {
+                    if (next && !reminderDate) {
                       const def = new Date(Date.now() + 3600000);
-                      setReminderAt(toLocalDateTimeInput(def));
+                      setReminderDate(def);
+                      setReminderTime(`${String(def.getHours()).padStart(2, '0')}:${String(def.getMinutes()).padStart(2, '0')}`);
                     }
                   }}
                 >
@@ -149,13 +159,28 @@ export default function NewNotePage() {
               </div>
               {reminderEnabled && (
                 <div className="nb-reminder-datetime">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <input
-                    type="datetime-local"
-                    value={reminderAt}
-                    onChange={(e) => setReminderAt(e.target.value)}
-                    className="nb-reminder-input"
-                  />
+                  <div className="nb-reminder-datetime-field">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <JalaliDatePicker
+                      value={reminderDate}
+                      onChange={(d) => setReminderDate(d || null)}
+                      placeholder="انتخاب تاریخ"
+                      className="nb-reminder-input"
+                    />
+                  </div>
+                  <div className="nb-reminder-datetime-field">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <input
+                      type="time"
+                      dir="ltr"
+                      value={reminderTime}
+                      onChange={(e) => setReminderTime(e.target.value)}
+                      className="nb-reminder-input nb-reminder-time-input"
+                    />
+                    {reminderTime && (
+                      <span className="nb-reminder-time-display">{toPersianDigits(reminderTime)}</span>
+                    )}
+                  </div>
                   <span className="nb-reminder-hint">
                     در این تاریخ و زمان، هشدار یادآوری دریافت خواهید کرد
                   </span>

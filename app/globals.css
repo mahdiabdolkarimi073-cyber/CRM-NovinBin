@@ -1647,12 +1647,16 @@
 .nb-reminder-switch.is-on{background:#EC4899}
 .nb-reminder-switch-knob{position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .2s ease}
 .nb-reminder-switch.is-on .nb-reminder-switch-knob{transform:translateX(-18px)}
-.nb-reminder-datetime{display:flex;align-items:center;gap:10px;margin-top:12px;padding:12px 14px;border-radius:10px;background:#fff;border:1px solid #E2E8F0}
+.nb-reminder-datetime{display:flex;flex-direction:column;gap:10px;margin-top:12px;padding:12px 14px;border-radius:10px;background:#fff;border:1px solid #E2E8F0}
 .dark .nb-reminder-datetime{background:#1E293B;border-color:#334155}
-.nb-reminder-input{border:1px solid #E2E8F0;border-radius:8px;padding:8px 12px;font:inherit;font-size:13px;color:#0F172A;background:#fff;outline:none}
+.nb-reminder-datetime-field{display:flex;align-items:center;gap:8px}
+.nb-reminder-input{border:1px solid #E2E8F0;border-radius:8px;padding:8px 12px;font:inherit;font-size:13px;color:#0F172A;background:#fff;outline:none;flex:1}
 .dark .nb-reminder-input{background:#0F172A;border-color:#334155;color:#F1F5F9}
 .nb-reminder-input:focus{border-color:#EC4899;box-shadow:0 0 0 3px rgba(236,72,153,.1)}
-.nb-reminder-hint{font-size:11px;color:#94A3B8;flex:1}
+.nb-reminder-time-input{max-width:100px;direction:ltr;text-align:center}
+.nb-reminder-time-display{font-size:13px;font-weight:600;color:#0EA5E9;white-space:nowrap}
+.dark .nb-reminder-time-display{color:#60A5FA}
+.nb-reminder-hint{font-size:11px;color:#94A3B8}
 
 /* ===== Reminder Bell Popup ===== */
 .nb-reminder-popup{position:absolute;top:48px;left:0;z-index:100;width:340px;max-height:440px;display:flex;flex-direction:column;background:#fff;border:1px solid #E2E8F0;border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,.15);overflow:hidden;animation:nbPopupIn .2s ease}

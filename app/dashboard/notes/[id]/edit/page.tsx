@@ -5,11 +5,13 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowRight, BellRing, Check, Hash, Palette, Save, Tag, X,
-  Pin, PinOff, Archive, ArchiveRestore, Trash2, Sparkles, Clock, Calendar,
+  Pin, PinOff, Archive, ArchiveRestore, Trash2, Sparkles, Clock, Calendar, Loader2,
 } from 'lucide-react';
 import { relativeTime } from '@/lib/format';
 import RichTextEditor from '@/components/notes/RichTextEditor';
-import { getMockNoteById } from '@/lib/notes-mock-data';
+import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
+import { fetchData, updateData, deleteData } from '@/lib/data-client';
+import { toLocalDateString, toPersianDigits } from '@/lib/format';
 import type { PersonalNote } from '@/lib/types';
 
 const NOTE_COLORS = [
@@ -26,19 +28,7 @@ const NOTE_COLORS = [
   { value: 'slate', label: 'خاکستری', accent: '#64748b' },
 ] as const;
 
-function toLocalDateTimeInput(dateStr: string): string {
-  const d = new Date(dateStr);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  const h = String(d.getHours()).padStart(2, '0');
-  const min = String(d.getMinutes()).padStart(2, '0');
-  return `${y}-${m}-${day}T${h}:${min}`;
-}
 
-function toLocalDateTimeInputFromDate(date: Date): string {
-  return toLocalDateTimeInput(date.toISOString());
-}
 
 export default function EditNotePage() {
   const router = useRouter();
@@ -47,6 +37,8 @@ export default function EditNotePage() {
   const titleRef = useRef<HTMLInputElement>(null);
 
   const [note, setNote] = useState<PersonalNote | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [form, setForm] = useState({ title: '', content: '', color: 'default' });
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
@@ -54,27 +46,34 @@ export default function EditNotePage() {
   const [saving, setSaving] = useState(false);
   const [savingState, setSavingState] = useState<'saved' | 'editing'>('saved');
   const [reminderEnabled, setReminderEnabled] = useState(false);
-  const [reminderAt, setReminderAt] = useState('');
+  const [reminderDate, setReminderDate] = useState<Date | null>(null);
+  const [reminderTime, setReminderTime] = useState('');
 
   useEffect(() => {
-    const found = getMockNoteById(noteId);
-    if (found) {
-      setNote(found);
-      setForm({ title: found.title, content: found.content || '', color: found.color });
-      setTags(found.tags || []);
-      setReminderEnabled(found.reminderEnabled || false);
-      setReminderAt(found.reminderAt ? toLocalDateTimeInput(found.reminderAt) : '');
-      setTimeout(() => titleRef.current?.focus(), 100);
-    } else {
-      const fallback = getMockNoteById('note-001');
-      if (fallback) {
-        setNote(fallback);
-        setForm({ title: fallback.title, content: fallback.content || '', color: fallback.color });
-        setTags(fallback.tags || []);
-        setReminderEnabled(fallback.reminderEnabled || false);
-        setReminderAt(fallback.reminderAt ? toLocalDateTimeInput(fallback.reminderAt) : '');
+    (async () => {
+      try {
+        const data = await fetchData<PersonalNote>('personal_notes', { where: { id: noteId } });
+        if (data && data.length > 0) {
+          const found = data[0];
+          setNote(found);
+          setForm({ title: found.title, content: found.content || '', color: found.color });
+          setTags(found.tags || []);
+          setReminderEnabled(found.reminderEnabled || false);
+          if (found.reminderAt) {
+            const d = new Date(found.reminderAt);
+            setReminderDate(d);
+            setReminderTime(`${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`);
+          }
+          setTimeout(() => titleRef.current?.focus(), 100);
+        } else {
+          setNotFound(true);
+        }
+      } catch {
+        setNotFound(true);
+      } finally {
+        setLoading(false);
       }
-    }
+    })();
   }, [noteId]);
 
   const markEditing = useCallback(() => setSavingState('editing'), []);
@@ -105,32 +104,65 @@ export default function EditNotePage() {
     markEditing();
   };
 
-  const moveToTrash = () => {
+  const moveToTrash = async () => {
+    if (!note) return;
+    await updateData('personal_notes', { id: note.id }, { isTrashed: true, trashedAt: new Date().toISOString() });
     router.push('/dashboard/notes');
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
+    if (!note) return;
     if (!confirm('این یادداشت برای همیشه حذف شود؟')) return;
+    await deleteData('personal_notes', { id: note.id });
     router.push('/dashboard/notes');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title.trim()) { setError('عنوان یادداشت الزامی است'); return; }
+    if (!note) return;
     setSaving(true);
-    setTimeout(() => {
-      setSaving(false);
+    try {
+      const data: Record<string, any> = {
+        title: form.title.trim(),
+        content: form.content || null,
+        color: form.color,
+        tags,
+        pinned: note.pinned,
+        isArchived: note.isArchived,
+        reminderEnabled,
+        reminderAt: reminderEnabled && reminderDate && reminderTime ? new Date(`${toLocalDateString(reminderDate)}T${reminderTime}`).toISOString() : null,
+        updatedAt: new Date().toISOString(),
+      };
+      await updateData('personal_notes', { id: note.id }, data);
       setSavingState('saved');
       router.push('/dashboard/notes');
-    }, 500);
+    } catch (err: any) {
+      setError(err.message || 'خطا در ذخیره یادداشت');
+      setSaving(false);
+    }
   };
 
-  if (!note) {
+  if (loading) {
     return (
       <div className="nb-editor-page" dir="rtl">
         <div className="nb-editor-loading">
-          <span />
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
           <p>در حال بارگذاری...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (notFound || !note) {
+    return (
+      <div className="nb-editor-page" dir="rtl">
+        <div className="nb-editor-loading">
+          <p>یادداشت یافت نشد</p>
+          <Link href="/dashboard/notes" className="nb-editor-back" style={{ marginTop: '16px' }}>
+            <ArrowRight className="h-4 w-4" />
+            <span>بازگشت به یادداشت‌ها</span>
+          </Link>
         </div>
       </div>
     );
@@ -218,9 +250,10 @@ export default function EditNotePage() {
                     const next = !reminderEnabled;
                     setReminderEnabled(next);
                     markEditing();
-                    if (next && !reminderAt) {
+                    if (next && !reminderDate) {
                       const def = new Date(Date.now() + 3600000);
-                      setReminderAt(toLocalDateTimeInputFromDate(def));
+                      setReminderDate(def);
+                      setReminderTime(`${String(def.getHours()).padStart(2, '0')}:${String(def.getMinutes()).padStart(2, '0')}`);
                     }
                   }}
                 >
@@ -233,13 +266,28 @@ export default function EditNotePage() {
               </div>
               {reminderEnabled && (
                 <div className="nb-reminder-datetime">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <input
-                    type="datetime-local"
-                    value={reminderAt}
-                    onChange={(e) => { setReminderAt(e.target.value); markEditing(); }}
-                    className="nb-reminder-input"
-                  />
+                  <div className="nb-reminder-datetime-field">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <JalaliDatePicker
+                      value={reminderDate}
+                      onChange={(d) => { setReminderDate(d || null); markEditing(); }}
+                      placeholder="انتخاب تاریخ"
+                      className="nb-reminder-input"
+                    />
+                  </div>
+                  <div className="nb-reminder-datetime-field">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <input
+                      type="time"
+                      dir="ltr"
+                      value={reminderTime}
+                      onChange={(e) => { setReminderTime(e.target.value); markEditing(); }}
+                      className="nb-reminder-input nb-reminder-time-input"
+                    />
+                    {reminderTime && (
+                      <span className="nb-reminder-time-display">{toPersianDigits(reminderTime)}</span>
+                    )}
+                  </div>
                   <span className="nb-reminder-hint">
                     در این تاریخ و زمان، هشدار یادآوری دریافت خواهید کرد
                   </span>

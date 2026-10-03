@@ -4,11 +4,11 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  ArrowRight, BellRing, Clock, Edit3, Hash, Pin, Archive, Trash2, Calendar,
+  ArrowRight, BellRing, Clock, Edit3, Hash, Pin, Archive, Trash2, Calendar, Loader2,
 } from 'lucide-react';
 import { formatJalaliDateTime, relativeTime, toPersianDigits } from '@/lib/format';
-import { getMockNoteById } from '@/lib/notes-mock-data';
 import { getColorMeta } from '@/components/notes/NoteCard';
+import { fetchData, updateData, deleteData } from '@/lib/data-client';
 import type { PersonalNote } from '@/lib/types';
 
 export default function NoteViewPage() {
@@ -16,23 +16,59 @@ export default function NoteViewPage() {
   const params = useParams();
   const noteId = params.id as string;
   const [note, setNote] = useState<PersonalNote | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    const found = getMockNoteById(noteId);
-    if (found) {
-      setNote(found);
-    } else {
-      const fallback = getMockNoteById('note-001');
-      if (fallback) setNote(fallback);
-    }
+    (async () => {
+      try {
+        const data = await fetchData<PersonalNote>('personal_notes', { where: { id: noteId } });
+        if (data && data.length > 0) {
+          setNote(data[0]);
+        } else {
+          setNotFound(true);
+        }
+      } catch {
+        setNotFound(true);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [noteId]);
 
-  if (!note) {
+  const handleTrash = async () => {
+    if (!note) return;
+    await updateData('personal_notes', { id: note.id }, { isTrashed: true, trashedAt: new Date().toISOString() });
+    router.push('/dashboard/notes');
+  };
+
+  const handleDelete = async () => {
+    if (!note) return;
+    if (!confirm('این یادداشت برای همیشه حذف شود؟')) return;
+    await deleteData('personal_notes', { id: note.id });
+    router.push('/dashboard/notes');
+  };
+
+  if (loading) {
     return (
       <div className="nb-editor-page" dir="rtl">
         <div className="nb-editor-loading">
-          <span />
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
           <p>در حال بارگذاری...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (notFound || !note) {
+    return (
+      <div className="nb-editor-page" dir="rtl">
+        <div className="nb-editor-loading">
+          <p>یادداشت یافت نشد</p>
+          <Link href="/dashboard/notes" className="nb-editor-back" style={{ marginTop: '16px' }}>
+            <ArrowRight className="h-4 w-4" />
+            <span>بازگشت به یادداشت‌ها</span>
+          </Link>
         </div>
       </div>
     );
@@ -135,6 +171,27 @@ export default function NoteViewPage() {
               <p className="text-muted-foreground">بدون محتوا</p>
             )}
           </div>
+
+          {note.isTrashed && (
+            <div style={{ marginTop: '24px', display: 'flex', gap: '12px' }}>
+              <button
+                type="button"
+                className="nb-editor-quick-btn"
+                onClick={() => router.push(`/dashboard/notes/${note.id}/edit`)}
+              >
+                <Edit3 className="h-4 w-4" />
+                ویرایش
+              </button>
+              <button
+                type="button"
+                className="nb-editor-quick-btn nb-editor-danger"
+                onClick={handleDelete}
+              >
+                <Trash2 className="h-4 w-4" />
+                حذف دائمی
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

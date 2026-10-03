@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { BellRing } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { MOCK_NOTES } from '@/lib/notes-mock-data';
+import { fetchData } from '@/lib/data-client';
 import type { PersonalNote } from '@/lib/types';
 import { formatJalaliDateTime } from '@/lib/format';
 
@@ -14,24 +14,31 @@ export function NoteReminderBell({ variant = 'default' }: { variant?: 'default' 
   const [open, setOpen] = useState(false);
   const popupRef = useRef<HTMLDivElement>(null);
 
-  const checkReminders = useCallback(() => {
-    const now = new Date();
-    const due: PersonalNote[] = [];
-    const upcoming: PersonalNote[] = [];
-    MOCK_NOTES.forEach((n) => {
-      if (!n.reminderEnabled || !n.reminderAt || n.reminderDismissed || n.isTrashed || n.isArchived) return;
-      const remTime = new Date(n.reminderAt);
-      if (remTime <= now) {
-        due.push(n);
-        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-          new Notification('یادآور یادداشت', { body: n.title, icon: '/images/1.png' });
+  const checkReminders = useCallback(async () => {
+    try {
+      const notes = await fetchData<PersonalNote>('personal_notes', {
+        orderBy: { createdAt: 'desc' },
+      });
+      const now = new Date();
+      const due: PersonalNote[] = [];
+      const upcoming: PersonalNote[] = [];
+      notes.forEach((n) => {
+        if (!n.reminderEnabled || !n.reminderAt || n.reminderDismissed || n.isTrashed || n.isArchived) return;
+        const remTime = new Date(n.reminderAt);
+        if (remTime <= now) {
+          due.push(n);
+          if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+            new Notification('یادآور یادداشت', { body: n.title, icon: '/images/1.png' });
+          }
+        } else if (remTime.getTime() - now.getTime() < 3600000) {
+          upcoming.push(n);
         }
-      } else if (remTime.getTime() - now.getTime() < 3600000) {
-        upcoming.push(n);
-      }
-    });
-    setDueReminders(due);
-    setUpcomingReminders(upcoming);
+      });
+      setDueReminders(due);
+      setUpcomingReminders(upcoming);
+    } catch {
+      // ignore — user may not be logged in
+    }
   }, []);
 
   useEffect(() => {
