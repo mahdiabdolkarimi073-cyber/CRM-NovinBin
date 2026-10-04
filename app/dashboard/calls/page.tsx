@@ -3,22 +3,16 @@
 import { useEffect, useState, useCallback } from 'react';
 import { fetchData, deleteData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
-import { PageHeader } from '@/components/dashboard/page-header';
-import { EmptyState } from '@/components/dashboard/empty-state';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
-import { Phone, PhoneIncoming, PhoneOutgoing, PhoneMissed, Search, Play, Clock, Eye, Trash2, Video, MessageCircle } from 'lucide-react';
-import { SuperAdminActions } from '@/components/dashboard/super-admin-actions';
-import { Button } from '@/components/ui/button';
+import { Phone, PhoneIncoming, PhoneOutgoing, Search, Play, Clock, Eye, Trash2, Video, MessageCircle, Loader2, X } from 'lucide-react';
+import { formatJalaliDateTime } from '@/lib/format';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
-import { formatJalaliDateTime } from '@/lib/format';
 import { toast } from 'sonner';
 
 type CallLog = {
@@ -58,7 +52,7 @@ const STATUS_INFO: Record<string, { label: string; color: string }> = {
   answered: { label: 'پاسخ داده شد', color: '#10b981' },
   missed: { label: 'رد شده', color: '#ef4444' },
   rejected: { label: 'رد کرد', color: '#f59e0b' },
-  voicemail: { label: 'پیام صوتی', color: '#8b5cf6' },
+  voicemail: { label: 'پیام صوتی', color: '#0EA5E9' },
 };
 
 const SOURCE_INFO: Record<string, { label: string; color: string; icon: typeof Phone }> = {
@@ -160,71 +154,83 @@ export default function CallsPage() {
     : calls;
 
   return (
-    <div>
-      <PageHeader
-        title="تماس‌ها"
-        description="ثبت و پیگیری تماس‌های تلفنی، شبکه اجتماعی و مشتریان"
-      />
-
-      {/* Filters */}
-      <div className="flex flex-col mobile:flex-row gap-3 mb-4">
-        <div className="relative flex-1">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <Input
-            placeholder="جستجو بر اساس شماره یا نام..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pr-10"
-            dir="ltr"
-          />
+    <div className="nb-page" dir="rtl">
+      <header className="nb-hero">
+        <div className="nb-hero-left">
+          <div>
+            <div className="nb-hero-title-row">
+              <span className="nb-hero-marker" />
+              <h1>تماس‌ها</h1>
+            </div>
+            <p>ثبت و پیگیری تماس‌های تلفنی، شبکه اجتماعی و مشتریان</p>
+          </div>
         </div>
-        <Select value={filterSource} onValueChange={setFilterSource}>
-          <SelectTrigger className="w-full mobile:w-40"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">همه منابع</SelectItem>
-            <SelectItem value="phone">تلفنی</SelectItem>
-            <SelectItem value="social">شبکه اجتماعی</SelectItem>
-            <SelectItem value="customer">تماس مشتری</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={filterDirection} onValueChange={setFilterDirection}>
-          <SelectTrigger className="w-full mobile:w-40"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">همه جهت‌ها</SelectItem>
-            <SelectItem value="incoming">وارد</SelectItem>
-            <SelectItem value="outgoing">خارج</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-full mobile:w-44"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">همه وضعیت‌ها</SelectItem>
-            <SelectItem value="answered">پاسخ داده شد</SelectItem>
-            <SelectItem value="missed">رد شده</SelectItem>
-            <SelectItem value="rejected">رد کرد</SelectItem>
-            <SelectItem value="voicemail">پیام صوتی</SelectItem>
-          </SelectContent>
-        </Select>
+      </header>
+
+      <div className="nb-toolbar">
+        <div className="nb-toolbar-left">
+          <h2>تماس‌ها</h2>
+          <span className="nb-count-badge">{filtered.length.toLocaleString('fa-IR')} مورد</span>
+        </div>
+        <div className="nb-toolbar-right">
+          <div className="nb-search-box">
+            <Search className="h-4 w-4" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="جستجو بر اساس شماره یا نام..."
+              dir="ltr"
+            />
+            {search && (
+              <button onClick={() => setSearch('')}><X className="h-3.5 w-3.5" /></button>
+            )}
+          </div>
+          <Select value={filterSource} onValueChange={setFilterSource}>
+            <SelectTrigger className="h-10 w-[140px]"><SelectValue placeholder="منبع" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">همه منابع</SelectItem>
+              <SelectItem value="phone">تلفنی</SelectItem>
+              <SelectItem value="social">شبکه اجتماعی</SelectItem>
+              <SelectItem value="customer">تماس مشتری</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filterDirection} onValueChange={setFilterDirection}>
+            <SelectTrigger className="h-10 w-[140px]"><SelectValue placeholder="جهت" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">همه جهت‌ها</SelectItem>
+              <SelectItem value="incoming">وارد</SelectItem>
+              <SelectItem value="outgoing">خارج</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="h-10 w-[140px]"><SelectValue placeholder="وضعیت" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">همه وضعیت‌ها</SelectItem>
+              <SelectItem value="answered">پاسخ داده شد</SelectItem>
+              <SelectItem value="missed">رد شده</SelectItem>
+              <SelectItem value="rejected">رد کرد</SelectItem>
+              <SelectItem value="voicemail">پیام صوتی</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin w-8 h-8 border-3 border-sky-500 border-t-transparent rounded-full" />
+        <div className="nb-empty">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
+          <p>در حال بارگذاری تماس‌ها...</p>
         </div>
       ) : filtered.length === 0 ? (
-        <Card>
-          <CardContent>
-            <EmptyState
-              icon={<Phone className="w-8 h-8" />}
-              title="تماسی ثبت نشده"
-              description="تماس‌های تلفنی و شبکه اجتماعی در اینجا نمایش داده می‌شوند"
-            />
-          </CardContent>
-        </Card>
+        <div className="nb-empty">
+          <div className="sb-empty-icon">
+            <Phone className="h-12 w-12 text-muted-foreground/30" />
+          </div>
+          <h3>تماسی ثبت نشده</h3>
+          <p>تماس‌های تلفنی و شبکه اجتماعی در اینجا نمایش داده می‌شوند</p>
+        </div>
       ) : (
-        <Card>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+          <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -275,13 +281,9 @@ export default function CallsPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant="outline"
-                          style={{ color: st.color, borderColor: st.color + '40' }}
-                          className="text-xs"
-                        >
+                        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium" style={{ background: `${st.color}15`, color: st.color }}>
                           {st.label}
-                        </Badge>
+                        </span>
                       </TableCell>
                       <TableCell>
                         {call.durationSeconds > 0 ? (
@@ -318,8 +320,7 @@ export default function CallsPage() {
               </TableBody>
             </Table>
             </div>
-          </CardContent>
-        </Card>
+          </div>
       )}
 
       {/* View Dialog */}

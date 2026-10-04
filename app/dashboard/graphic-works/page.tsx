@@ -2,8 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/components/providers/auth-provider';
-import { PageHeader } from '@/components/dashboard/page-header';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -269,68 +267,69 @@ export default function GraphicWorksPage() {
 
   if (accessDenied) {
     return (
-      <div>
-        <PageHeader title="کارهای گرافیک" description="مدیریت فایل‌ها و تصاویر گرافیکی" />
-        <Card>
-          <CardContent className="py-16 text-center">
-            <Palette className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-            <p className="text-slate-500 mb-2">شما به این بخش دسترسی ندارید</p>
-            <p className="text-sm text-slate-400">برای دریافت دسترسی با مدیر سیستم تماس بگیرید</p>
-          </CardContent>
-        </Card>
+      <div className="nb-empty" dir="rtl" style={{ minHeight: '60vh' }}>
+        <div className="sb-empty-icon">
+          <Palette className="h-12 w-12 text-muted-foreground/30" />
+        </div>
+        <h3>دسترسی محدود</h3>
+        <p>شما به این بخش دسترسی ندارید — برای دریافت دسترسی با مدیر سیستم تماس بگیرید</p>
       </div>
     );
   }
 
   return (
-    <div>
-      <PageHeader
-        title="کارهای گرافیک"
-        description="مدیریت فایل‌ها، تصاویر و متن‌های گرافیکی"
-        action={
-          <Button onClick={openNew}>
-            <Plus className="h-4 w-4" />
+    <div className="nb-page" dir="rtl">
+      <header className="nb-hero">
+        <div className="nb-hero-left">
+          <div>
+            <div className="nb-hero-title-row">
+              <span className="nb-hero-marker" />
+              <h1>کارهای گرافیک</h1>
+            </div>
+            <p>مدیریت فایل‌ها، تصاویر و متن‌های گرافیکی</p>
+          </div>
+        </div>
+        <div className="nb-hero-right">
+          <Button onClick={openNew} className="nb-new-btn">
+            <Plus className="h-[18px] w-[18px]" />
             کار جدید
           </Button>
-        }
-      />
+        </div>
+      </header>
 
-      <div className="grid grid-cols-1 gap-3 mobile:grid-cols-3 sm:gap-4 mb-6">
+      <section className="nb-stats-grid-v2" style={{ gridTemplateColumns: 'repeat(3,1fr)' }}>
         {stats.map((stat) => (
-          <Card key={stat.label}>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl ${stat.color} flex items-center justify-center`}>
-                  <stat.icon className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-slate-900 tnum">{stat.value.toLocaleString('fa-IR')}</div>
-                  <div className="text-xs text-slate-500">{stat.label}</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <div key={stat.label} className="nb-stat-card-v2" style={{ cursor: 'default' }}>
+            <div className="nb-stat-v2-icon" style={{ background: stat.color.includes('sky') ? 'linear-gradient(135deg,#0EA5E9,#0284C7)' : stat.color.includes('emerald') ? 'linear-gradient(135deg,#10B981,#059669)' : 'linear-gradient(135deg,#F59E0B,#D97706)' }}>
+              <stat.icon className="h-[22px] w-[22px] text-white" />
+            </div>
+            <div className="nb-stat-v2-body">
+              <strong>{stat.value.toLocaleString('fa-IR')}</strong>
+              <span>{stat.label}</span>
+            </div>
+            <div className="nb-stat-v2-spark" style={{ background: stat.color.includes('sky') ? 'linear-gradient(135deg,#0EA5E9,#0284C7)' : stat.color.includes('emerald') ? 'linear-gradient(135deg,#10B981,#059669)' : 'linear-gradient(135deg,#F59E0B,#D97706)' }} />
+          </div>
         ))}
-      </div>
+      </section>
 
       {works.length === 0 ? (
-        <Card>
-          <CardContent className="py-16 text-center">
-            <Palette className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-            <p className="text-slate-500 mb-2">هنوز کاری ثبت نشده است</p>
-            <Button onClick={openNew} className="mt-2">
-              <Plus className="h-4 w-4" />
-              اولین کار را شروع کنید
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="nb-empty">
+          <div className="sb-empty-icon">
+            <Palette className="h-12 w-12 text-muted-foreground/30" />
+          </div>
+          <h3>هنوز کاری ثبت نشده است</h3>
+          <p>اولین کار گرافیک را ایجاد کنید</p>
+          <Button onClick={openNew} className="nb-empty-new-btn">
+            <Plus className="h-4 w-4" />
+            اولین کار را شروع کنید
+          </Button>
+        </div>
       ) : (
         <div className="space-y-4">
           {works.map((work) => (
-            <Card key={work.id} className="overflow-hidden">
-              <CardContent className="p-4 sm:p-5">
+            <div key={work.id} className="nb-editor-canvas" style={{ padding: '20px' }}>
                 <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2 text-xs text-slate-400">
+                  <div className="flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500">
                     <Palette className="h-4 w-4 text-sky-500" />
                     <span>{relativeTime(work.createdAt)}</span>
                     {work.updatedAt !== work.createdAt && (
@@ -371,7 +370,7 @@ export default function GraphicWorksPage() {
                       <ImageIcon className="h-3.5 w-3.5" />
                       تصاویر ({work.images.length.toLocaleString('fa-IR')})
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                    <div className="grid grid-cols-2 mobile:grid-cols-3 tablet:grid-cols-4 laptop:grid-cols-5 desktop:grid-cols-6 gap-2">
                       {work.images.map((img) => (
                         <div key={img.id} className="group relative aspect-square rounded-lg overflow-hidden border border-slate-200">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -446,8 +445,8 @@ export default function GraphicWorksPage() {
                     </div>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))}
         </div>
       )}
