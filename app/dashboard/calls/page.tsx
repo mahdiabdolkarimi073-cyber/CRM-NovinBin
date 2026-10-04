@@ -186,7 +186,7 @@ export default function CallsPage() {
             )}
           </div>
           <Select value={filterSource} onValueChange={setFilterSource}>
-            <SelectTrigger className="h-10 w-[140px]"><SelectValue placeholder="منبع" /></SelectTrigger>
+            <SelectTrigger className="nb-select-filter h-10 w-[140px]"><SelectValue placeholder="منبع" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">همه منابع</SelectItem>
               <SelectItem value="phone">تلفنی</SelectItem>
@@ -195,7 +195,7 @@ export default function CallsPage() {
             </SelectContent>
           </Select>
           <Select value={filterDirection} onValueChange={setFilterDirection}>
-            <SelectTrigger className="h-10 w-[140px]"><SelectValue placeholder="جهت" /></SelectTrigger>
+            <SelectTrigger className="nb-select-filter h-10 w-[140px]"><SelectValue placeholder="جهت" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">همه جهت‌ها</SelectItem>
               <SelectItem value="incoming">وارد</SelectItem>
@@ -203,7 +203,7 @@ export default function CallsPage() {
             </SelectContent>
           </Select>
           <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="h-10 w-[140px]"><SelectValue placeholder="وضعیت" /></SelectTrigger>
+            <SelectTrigger className="nb-select-filter h-10 w-[140px]"><SelectValue placeholder="وضعیت" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">همه وضعیت‌ها</SelectItem>
               <SelectItem value="answered">پاسخ داده شد</SelectItem>

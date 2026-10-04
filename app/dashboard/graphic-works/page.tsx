@@ -297,7 +297,7 @@ export default function GraphicWorksPage() {
         </div>
       </header>
 
-      <section className="nb-stats-grid-v2" style={{ gridTemplateColumns: 'repeat(3,1fr)' }}>
+      <section className="nb-stats-grid-v2 nb-stats-grid-v2--3">
         {stats.map((stat) => (
           <div key={stat.label} className="nb-stat-card-v2" style={{ cursor: 'default' }}>
             <div className="nb-stat-v2-icon" style={{ background: stat.color.includes('sky') ? 'linear-gradient(135deg,#0EA5E9,#0284C7)' : stat.color.includes('emerald') ? 'linear-gradient(135deg,#10B981,#059669)' : 'linear-gradient(135deg,#F59E0B,#D97706)' }}>
@@ -446,7 +446,6 @@ export default function GraphicWorksPage() {
                   </div>
                 )}
               </div>
-            </div>
           ))}
         </div>
       )}

@@ -470,7 +470,7 @@ export default function MeetingsPage() {
             )}
           </div>
           <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="h-10 w-[150px]">
+            <SelectTrigger className="nb-select-filter h-10 w-[150px]">
               <Filter className="ml-1 h-4 w-4 text-slate-400" />
               <SelectValue placeholder="وضعیت" />
             </SelectTrigger>
@@ -482,7 +482,7 @@ export default function MeetingsPage() {
             </SelectContent>
           </Select>
           <Select value={filterAssignee} onValueChange={setFilterAssignee}>
-            <SelectTrigger className="h-10 w-[150px]">
+            <SelectTrigger className="nb-select-filter h-10 w-[150px]">
               <UserRound className="ml-1 h-4 w-4 text-slate-400" />
               <SelectValue placeholder="مسئول" />
             </SelectTrigger>
@@ -644,7 +644,7 @@ export default function MeetingsPage() {
                 <Label>موضوع</Label>
                 <Input value={extendForm.topic} onChange={(e) => setExtendForm({ ...extendForm, topic: e.target.value })} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>تاریخ پایان جدید</Label>
                   <JalaliDatePicker
@@ -659,7 +659,7 @@ export default function MeetingsPage() {
                   <input type="time" dir="ltr" value={extendTime} onChange={(e) => setExtendTime(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>مکان</Label>
                   <Input value={extendForm.location} onChange={(e) => setExtendForm({ ...extendForm, location: e.target.value })} />
@@ -669,7 +669,7 @@ export default function MeetingsPage() {
                   <Input value={extendForm.onlineLink} onChange={(e) => setExtendForm({ ...extendForm, onlineLink: e.target.value })} dir="ltr" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>شماره پرسنل</Label>
                   <Input value={extendForm.staffPhone} onChange={(e) => setExtendForm({ ...extendForm, staffPhone: e.target.value })} dir="ltr" />
@@ -711,7 +711,7 @@ export default function MeetingsPage() {
                   {viewMeeting.topic && <div className="text-xs text-slate-400">{viewMeeting.topic}</div>}
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                 <div><span className="text-slate-400">زمان:</span> <span className="font-medium">{formatJalaliDateTime(viewMeeting.date)}</span></div>
                 {viewMeeting.endTime && (
                   <div>
@@ -758,7 +758,7 @@ export default function MeetingsPage() {
               {detailImages.length > 0 && (
                 <div>
                   <span className="mb-2 flex items-center gap-1 text-sm text-slate-400"><FileText className="h-4 w-4" /> تصاویر جلسه:</span>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {detailImages.map((img) => (
                       <a key={img.id} href={img.imageUrl} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
                         <img src={img.imageUrl} alt={img.fileName || ''} className="h-20 w-full object-cover" />

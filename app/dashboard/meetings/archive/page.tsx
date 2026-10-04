@@ -162,7 +162,7 @@ export default function MeetingsArchivePage() {
             )}
           </div>
           <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="h-10 w-[150px]">
+            <SelectTrigger className="nb-select-filter h-10 w-[150px]">
               <SelectValue placeholder="وضعیت" />
             </SelectTrigger>
             <SelectContent>

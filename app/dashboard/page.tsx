@@ -170,20 +170,20 @@ function KpiCard({ data, index }: { data: KpiData; index: number }) {
   const isUp = data.trend >= 0;
   return (
     <div
-      className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl animate-fade-in"
+      className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card p-4 mobile:p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl animate-fade-in"
       style={{ animationDelay: `${index * 80}ms` }}
     >
       <div className={cn('absolute inset-x-0 top-0 h-1 bg-gradient-to-l opacity-80', tc.gradient)} />
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-sm font-medium text-muted-foreground">{data.title}</p>
-          <div className="mt-2 text-3xl font-bold tracking-tight text-foreground">
+          <p className="text-xs mobile:text-sm font-medium text-muted-foreground">{data.title}</p>
+          <div className="mt-2 text-2xl mobile:text-3xl font-bold tracking-tight text-foreground">
             <CountUp value={data.value} />
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">{data.subtitle}</p>
+          <p className="mt-1 text-[11px] mobile:text-xs text-muted-foreground">{data.subtitle}</p>
         </div>
-        <div className={cn('flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110', tc.bg, tc.text)}>
-          <data.icon className="h-6 w-6" />
+        <div className={cn('flex h-10 w-10 mobile:h-12 mobile:w-12 shrink-0 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110', tc.bg, tc.text)}>
+          <data.icon className="h-5 w-5 mobile:h-6 mobile:w-6" />
         </div>
       </div>
       <div className="mt-3 flex items-end justify-between">
@@ -192,7 +192,7 @@ function KpiCard({ data, index }: { data: KpiData; index: number }) {
             {isUp ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
             {faNum(Math.abs(data.trend))}٪
           </span>
-          <span className="text-[11px] text-muted-foreground">{data.trendLabel}</span>
+          <span className="text-[10px] mobile:text-[11px] text-muted-foreground">{data.trendLabel}</span>
         </div>
         <Sparkline data={data.spark} color={tc.stroke} width={80} height={24} />
       </div>
@@ -222,10 +222,10 @@ function SectionCard({ title, icon: Icon, action, children, className }: {
   title: string; icon: React.ElementType; action?: React.ReactNode; children: React.ReactNode; className?: string;
 }) {
   return (
-    <div className={cn('rounded-2xl border border-border/60 bg-card p-5 shadow-sm transition-shadow duration-300 hover:shadow-md animate-fade-in', className)}>
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="flex items-center gap-2 text-base font-bold text-foreground">
-          <Icon className="h-5 w-5 text-primary" />
+    <div className={cn('rounded-2xl border border-border/60 bg-card p-4 mobile:p-5 shadow-sm transition-shadow duration-300 hover:shadow-md animate-fade-in', className)}>
+      <div className="mb-3 mobile:mb-4 flex items-center justify-between">
+        <h2 className="flex items-center gap-2 text-sm mobile:text-base font-bold text-foreground">
+          <Icon className="h-4 w-4 mobile:h-5 mobile:w-5 text-primary" />
           {title}
         </h2>
         {action}
@@ -316,28 +316,28 @@ export default function DashboardPage() {
     <div className="space-y-5" dir="rtl">
 
       {/* === HERO HEADER === */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-l from-primary via-primary to-primary-light p-6 shadow-lg animate-fade-in">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-l from-primary via-primary to-primary-light p-5 mobile:p-6 shadow-lg animate-fade-in">
         <div className="absolute -left-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
         <div className="absolute -right-5 bottom-0 h-32 w-32 rounded-full bg-accent/20 blur-2xl" />
         <div className="relative flex flex-col gap-4 mobile:flex-row mobile:items-center mobile:justify-between">
-          <div className="flex items-center gap-4">
-            <div className="h-12 w-1.5 rounded-full bg-accent shadow-lg" />
+          <div className="flex items-center gap-3 mobile:gap-4">
+            <div className="h-10 w-1.5 mobile:h-12 mobile:w-1.5 rounded-full bg-accent shadow-lg" />
             <div>
-              <h1 className="text-2xl font-bold text-primary-foreground mobile:text-3xl">
+              <h1 className="text-xl mobile:text-2xl tablet:text-3xl font-bold text-primary-foreground">
                 خوش آمدید، {profile?.firstName || 'مهدی'}
               </h1>
-              <p className="mt-1.5 text-sm text-primary-foreground/70">
+              <p className="mt-1 text-xs mobile:mt-1.5 mobile:text-sm text-primary-foreground/70">
                 امروز: {formatJalali(new Date())} — خلاصه عملکرد شما آماده است
               </p>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button className="flex h-10 items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 text-sm font-medium text-primary-foreground backdrop-blur-sm transition hover:bg-white/20">
+            <button className="flex h-9 mobile:h-10 items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-3 mobile:px-4 text-xs mobile:text-sm font-medium text-primary-foreground backdrop-blur-sm transition hover:bg-white/20">
               <ChevronDown className="h-4 w-4" />
               بازه زمانی: این ماه
               <CalendarDays className="h-4 w-4" />
             </button>
-            <button className="flex h-10 items-center gap-2 rounded-xl bg-accent px-4 text-sm font-semibold text-accent-foreground shadow-lg transition hover:scale-105 hover:bg-accent-light">
+            <button className="flex h-9 mobile:h-10 items-center gap-2 rounded-xl bg-accent px-3 mobile:px-4 text-xs mobile:text-sm font-semibold text-accent-foreground shadow-lg transition hover:scale-105 hover:bg-accent-light">
               <Filter className="h-4 w-4" />
               سفارشی
             </button>
@@ -346,19 +346,19 @@ export default function DashboardPage() {
       </div>
 
       {/* === KPI STRIP === */}
-      <div className="grid grid-cols-1 gap-4 mobile:grid-cols-2 tablet:grid-cols-3 desktop:grid-cols-6">
+      <div className="grid grid-cols-1 gap-4 mobile:grid-cols-2 tablet:grid-cols-3 laptop:grid-cols-4 desktop:grid-cols-6">
         {kpiCards.map((kpi, i) => (
           <KpiCard key={kpi.title} data={kpi} index={i} />
         ))}
       </div>
 
       {/* === MAIN ANALYTICS === */}
-      <div className="grid grid-cols-1 gap-5 tablet:grid-cols-2 desktop:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 tablet:grid-cols-2 laptop:grid-cols-2 desktop:grid-cols-3">
         {/* Primary chart — takes 2 cols on desktop */}
         <SectionCard
           title="نمودار فعالیت‌ها"
           icon={TrendingUp}
-          className="tablet:col-span-2"
+          className="tablet:col-span-2 laptop:col-span-2 desktop:col-span-2"
           action={
             <div className="flex gap-1 rounded-lg bg-muted p-1">
               {(['daily', 'weekly', 'monthly'] as const).map((p) => (
@@ -380,7 +380,7 @@ export default function DashboardPage() {
             <span className="flex items-center gap-1.5"><i className="inline-block h-2.5 w-2.5 rounded-full bg-blue-500" />گزارش‌های روزانه</span>
             <span className="flex items-center gap-1.5"><i className="inline-block h-2.5 w-2.5 rounded-full bg-orange-500" />گزارش‌های ماهانه</span>
           </div>
-          <ResponsiveContainer width="100%" height={260}>
+          <ResponsiveContainer width="100%" height={220} mobile:height={260}>
             <AreaChart data={chartData} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}>
               <defs>
                 <linearGradient id="gDaily" x1="0" y1="0" x2="0" y2="1">
@@ -405,7 +405,7 @@ export default function DashboardPage() {
         {/* Donut chart */}
         <SectionCard title="بخش‌بندی مشتریان" icon={Users}>
           <div className="relative">
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={180} mobile:height={200}>
               <PieChart>
                 <Pie data={segmentData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={3}>
                   {segmentData.map((entry, i) => (
@@ -435,7 +435,7 @@ export default function DashboardPage() {
       </div>
 
       {/* === PIPELINE + ACTIVITY + QUICK ACTIONS === */}
-      <div className="grid grid-cols-1 gap-5 tablet:grid-cols-2 desktop:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 tablet:grid-cols-2 laptop:grid-cols-2 desktop:grid-cols-3">
         {/* Pipeline funnel */}
         <SectionCard title="قیف فروش" icon={BarChart3}>
           <div className="space-y-3">
@@ -523,7 +523,7 @@ export default function DashboardPage() {
         icon={ClipboardList}
         action={<span className="text-xs text-muted-foreground">{faNum(cartableItems.length)} آیتم</span>}
       >
-        <div className="grid grid-cols-1 gap-2.5 mobile:grid-cols-2 tablet:grid-cols-3 laptop:grid-cols-4">
+        <div className="grid grid-cols-1 gap-2.5 mobile:grid-cols-2 tablet:grid-cols-3 laptop:grid-cols-4 desktop:grid-cols-5">
           {cartableItems.map((item, i) => {
             const tones: Tone[] = ['blue', 'green', 'orange', 'purple', 'amber', 'rose'];
             const tone = tones[i % tones.length];
@@ -548,10 +548,10 @@ export default function DashboardPage() {
       </SectionCard>
 
       {/* === PERFORMANCE & GOALS === */}
-      <div className="grid grid-cols-1 gap-5 tablet:grid-cols-2 desktop:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 tablet:grid-cols-2 laptop:grid-cols-2 desktop:grid-cols-3">
         {/* Performance rings */}
         <SectionCard title="پیشرفت اهداف" icon={Gauge}>
-          <div className="flex items-center justify-around">
+          <div className="flex flex-col items-center gap-4 mobile:flex-row mobile:items-center mobile:justify-around">
             <div className="flex flex-col items-center gap-2">
               <ProgressRing value={76} label="پیشرفت کلی" color="#2563EB" size={110} />
             </div>
@@ -606,7 +606,7 @@ export default function DashboardPage() {
 
         {/* Revenue bar chart */}
         <SectionCard title="قیف مراحل فروش" icon={BarChart3}>
-          <ResponsiveContainer width="100%" height={220}>
+          <ResponsiveContainer width="100%" height={180} mobile:height={220}>
             <BarChart data={pipelineStages} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
               <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="stage" tick={{ fontFamily: 'Vazirmatn', fontSize: 9, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} interval={0} angle={-15} textAnchor="end" height={50} />
@@ -623,7 +623,7 @@ export default function DashboardPage() {
       </div>
 
       {/* === QUICK ACCESS & SHORTCUTS === */}
-      <div className="grid grid-cols-1 gap-5 tablet:grid-cols-2 desktop:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 tablet:grid-cols-2 laptop:grid-cols-2 desktop:grid-cols-3">
         {/* Recent records */}
         <SectionCard title="رکوردهای اخیر" icon={Clock}>
           <div className="space-y-2">
