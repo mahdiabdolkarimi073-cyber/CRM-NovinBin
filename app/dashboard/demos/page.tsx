@@ -1,11 +1,8 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { fetchData, createData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
-import { PageHeader } from '@/components/dashboard/page-header';
-import { EmptyState } from '@/components/dashboard/empty-state';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
@@ -17,8 +14,11 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
-import { Plus, FlaskConical, Search, Calendar, Clock, CheckCircle, Link2, Copy, Eye, EyeOff, KeyRound } from 'lucide-react';
+import {
+  Plus, FlaskConical, Search, Calendar, Clock, CheckCircle, Link2, Copy, Eye, EyeOff, KeyRound,
+  Loader2, LayoutGrid, List, X, AlertTriangle, TrendingUp, Sparkles, Zap,
+} from 'lucide-react';
+import Link from 'next/link';
 import { formatJalali, toLocalDateString } from '@/lib/format';
 import { PLAN_LABELS } from '@/lib/constants';
 import { toast } from 'sonner';
@@ -47,6 +47,8 @@ const STATUS_INFO: Record<string, { label: string; color: string }> = {
   converted: { label: 'تبدیل شده', color: '#3b82f6' },
 };
 
+const PAGE_SIZE = 12;
+
 function generateUsername(name: string): string {
   const slug = name.trim().toLowerCase().replace(/\s+/g, '.').replace(/[^\w.]/g, '').slice(0, 20);
   const rand = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
@@ -66,6 +68,9 @@ export default function DemosPage() {
   const [accessMap, setAccessMap] = useState<Record<string, AccessInfo>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
+  const [page, setPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [accessDemo, setAccessDemo] = useState<{ demo: Demo; info: AccessInfo } | null>(null);
@@ -109,12 +114,59 @@ export default function DemosPage() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => { setPage(1); }, [filterStatus, search]);
 
-  const filtered = search
-    ? demos.filter((d) => d.name.toLowerCase().includes(search.toLowerCase()))
-    : demos;
+  const filtered = useMemo(() => {
+    let result = demos;
+    if (search) {
+      const q = search.toLowerCase();
+      result = result.filter((d) => d.name.toLowerCase().includes(q) || (d.companyName || '').toLowerCase().includes(q));
+    }
+    if (filterStatus !== 'all') result = result.filter((d) => d.status === filterStatus);
+    return result;
+  }, [demos, search, filterStatus]);
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const currentPage = Math.min(page, Math.max(1, totalPages));
+  const pagedDemos = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const today = toLocalDateString(new Date());
+
+  const daysRemaining = (expiryDate: string): number => {
+    const diff = Math.ceil((new Date(expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    return diff > 0 ? diff : 0;
+  };
+
+  const stats = useMemo(() => [
+    {
+      label: 'کل دموها', value: demos.length, icon: FlaskConical,
+      filter: 'all',
+      gradient: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)',
+      glow: 'rgba(37,99,235,0.25)',
+    },
+    {
+      label: 'فعال', value: demos.filter((d) => d.status === 'active').length, icon: Zap,
+      filter: 'active',
+      gradient: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)',
+      glow: 'rgba(34,197,94,0.25)',
+    },
+    {
+      label: 'منقضی شده', value: demos.filter((d) => d.status === 'expired').length, icon: AlertTriangle,
+      filter: 'expired',
+      gradient: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+      glow: 'rgba(239,68,68,0.25)',
+    },
+    {
+      label: 'تبدیل شده', value: demos.filter((d) => d.status === 'converted').length, icon: CheckCircle,
+      filter: 'converted',
+      gradient: 'linear-gradient(135deg, #3b82f6 0%, #2563EB 100%)',
+      glow: 'rgba(59,130,246,0.25)',
+    },
+  ], [demos]);
+
+  const handleStatClick = (f: string) => {
+    setFilterStatus(filterStatus === f ? 'all' : f);
+  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -179,170 +231,253 @@ export default function DemosPage() {
     toast.success('اطلاعات کامل کپی شد');
   };
 
-  const daysRemaining = (expiryDate: string): number => {
-    const diff = Math.ceil((new Date(expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-    return diff > 0 ? diff : 0;
-  };
+  if (loading) {
+    return (
+      <div className="nb-page" dir="rtl">
+        <div className="nb-empty">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
+          <p>در حال بارگذاری دموها...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <PageHeader
-        title="دموها"
-        description="مدیریت نسخه‌های دموی ۱۵ روزه با لینک اختصاصی برای هر مشتری"
-        action={
+    <div className="nb-page" dir="rtl">
+      <header className="nb-hero">
+        <div className="nb-hero-left">
+          <div>
+            <div className="nb-hero-title-row">
+              <span className="nb-hero-marker" style={{ background: 'linear-gradient(180deg,#3B82F6,#2563EB)', boxShadow: '0 0 12px rgba(37,99,235,.25)' }} />
+              <h1>دموها</h1>
+            </div>
+            <p>مدیریت نسخه‌های دموی ۱۵ روزه با لینک اختصاصی برای هر مشتری</p>
+          </div>
+        </div>
+        <div className="nb-hero-right">
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="sm"><Plus className="w-4 h-4" /> دموی جدید</Button>
+              <button className="nb-new-btn" onClick={() => setDialogOpen(true)}>
+                <Plus className="h-[18px] w-[18px]" />
+                دموی جدید
+              </button>
             </DialogTrigger>
-            <DialogContent className="max-w-lg">
-              <DialogHeader><DialogTitle>ایجاد دموی ۱۵ روزه</DialogTitle></DialogHeader>
-              <form onSubmit={handleCreate} className="space-y-4">
-                <div className="space-y-2">
-                  <Label>نام *</Label>
-                  <Input
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    placeholder="نام شخص یا شرکت"
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>ایمیل</Label>
-                    <Input
-                      type="email"
-                      dir="ltr"
-                      value={form.email}
-                      onChange={(e) => setForm({ ...form, email: e.target.value })}
-                      placeholder="email@example.com"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>تلفن</Label>
-                    <Input
-                      dir="ltr"
-                      value={form.phone}
-                      onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                      placeholder="09123456789"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>نام شرکت</Label>
-                  <Input
-                    value={form.companyName}
-                    onChange={(e) => setForm({ ...form, companyName: e.target.value })}
-                    placeholder="نام شرکت (اختیاری)"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>پلن</Label>
-                    <Select value={form.plan} onValueChange={(v) => setForm({ ...form, plan: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(PLAN_LABELS).map(([key, label]) => (
-                          <SelectItem key={key} value={key}>{label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>تاریخ شروع</Label>
-                    <JalaliDatePicker
-                      value={form.startDate ? new Date(form.startDate) : null}
-                      onChange={(d) => setForm({ ...form, startDate: d ? toLocalDateString(d) : '' })}
-                    />
-                    <p className="text-xs text-slate-400">در صورت خالی بودن، امروز در نظر گرفته می‌شود</p>
-                  </div>
-                </div>
-                <div className="rounded-lg bg-sky-50 border border-sky-100 px-4 py-3 text-sm text-sky-700 flex items-start gap-2">
-                  <KeyRound className="w-4 h-4 mt-0.5 shrink-0" />
-                  <span>پس از ایجاد دمو، یک نام کاربری و رمز عبور اختصاصی برای مشتری ساخته می‌شود تا از طریق لینک اختصاصی وارد پنل خود شود.</span>
-                </div>
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>انصراف</Button>
-                  <Button type="submit" disabled={creating}>{creating ? 'در حال ایجاد...' : 'ایجاد دمو'}</Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
           </Dialog>
-        }
-      />
+        </div>
+      </header>
 
-      <div className="relative mb-4 max-w-sm">
-        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-        <Input
-          placeholder="جستجوی نام..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pr-10"
-        />
+      {/* Stats */}
+      <section className="nb-stats-grid-v2">
+        {stats.map((stat) => (
+          <button
+            type="button"
+            className={`nb-stat-card-v2 ${filterStatus === stat.filter ? 'is-active' : ''}`}
+            key={stat.label}
+            onClick={() => handleStatClick(stat.filter)}
+            style={{ '--stat-glow': stat.glow } as React.CSSProperties}
+          >
+            <div className="nb-stat-v2-icon" style={{ background: stat.gradient }}>
+              <stat.icon className="h-[22px] w-[22px] text-white" />
+            </div>
+            <div className="nb-stat-v2-body">
+              <strong>{stat.value.toLocaleString('fa-IR')}</strong>
+              <span>{stat.label}</span>
+            </div>
+            <div className="nb-stat-v2-spark" style={{ background: stat.gradient }} />
+          </button>
+        ))}
+      </section>
+
+      {/* Toolbar */}
+      <div className="nb-toolbar">
+        <div className="nb-toolbar-left">
+          <h2>همه دموها</h2>
+          <span className="nb-count-badge">{filtered.length.toLocaleString('fa-IR')} مورد</span>
+        </div>
+        <div className="nb-toolbar-right">
+          <div className="nb-search-box">
+            <Search className="h-4 w-4" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="جستجو در دموها..."
+            />
+            {search && (
+              <button onClick={() => setSearch('')}><X className="h-3.5 w-3.5" /></button>
+            )}
+          </div>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="nb-select-filter h-10 w-[140px]">
+              <SelectValue placeholder="وضعیت" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">همه وضعیت‌ها</SelectItem>
+              {Object.entries(STATUS_INFO).map(([key, info]) => (
+                <SelectItem key={key} value={key}>{info.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="nb-view-toggle">
+            <button className={viewMode === 'board' ? 'is-active' : ''} onClick={() => setViewMode('board')} aria-label="تخته‌ای">
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+            <button className={viewMode === 'list' ? 'is-active' : ''} onClick={() => setViewMode('list')} aria-label="لیستی">
+              <List className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
       </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin w-8 h-8 border-3 border-sky-500 border-t-transparent rounded-full" />
+      {/* Content */}
+      {filtered.length === 0 ? (
+        <div className="nb-empty">
+          <div className="sb-empty-icon">
+            <FlaskConical className="h-12 w-12 text-muted-foreground/30" />
+          </div>
+          <h3>دمویی ایجاد نشده</h3>
+          <p>اولین نسخه دموی ۱۵ روزه را ایجاد کنید</p>
+          <button className="nb-empty-new-btn" onClick={() => setDialogOpen(true)}>
+            <Plus className="h-4 w-4" />
+            افزودن دمو
+          </button>
         </div>
-      ) : filtered.length === 0 ? (
-        <Card>
-          <CardContent>
-            <EmptyState
-              icon={<FlaskConical className="w-8 h-8" />}
-              title="دمویی ایجاد نشده"
-              description="اولین نسخه دموی ۱۵ روزه را ایجاد کنید"
-              action={<Button onClick={() => setDialogOpen(true)}><Plus className="w-4 h-4" /> افزودن دمو</Button>}
-            />
-          </CardContent>
-        </Card>
+      ) : viewMode === 'board' ? (
+        <div className="nb-grid nb-grid-grid">
+          {pagedDemos.map((demo) => {
+            const st = STATUS_INFO[demo.status] || STATUS_INFO.active;
+            const remaining = daysRemaining(demo.expiryDate);
+            const info = accessMap[demo.id];
+            const isUrgent = demo.status === 'active' && remaining <= 3;
+            return (
+              <article
+                key={demo.id}
+                className="nb-card"
+                onClick={() => info ? setAccessDemo({ demo, info }) : undefined}
+                style={{ borderBottomColor: st.color, borderBottomWidth: 3 }}
+              >
+                <div className="nb-card-top">
+                  <div className="nb-card-tags">
+                    <span className="nb-card-tag" style={{ background: `${st.color}15`, color: st.color }}>
+                      {st.label}
+                    </span>
+                    <span className="nb-card-tag" style={{ background: 'rgba(37,99,235,.08)', color: '#2563EB' }}>
+                      {PLAN_LABELS[demo.plan] || demo.plan}
+                    </span>
+                    {isUrgent && (
+                      <span className="nb-card-tag" style={{ background: 'rgba(239,68,68,.12)', color: '#EF4444' }}>
+                        <AlertTriangle className="h-2.5 w-2.5" /> رو به انقضا
+                      </span>
+                    )}
+                  </div>
+                  <div className="nb-card-actions">
+                    {info && (
+                      <button className="nb-card-more" onClick={(e) => { e.stopPropagation(); setAccessDemo({ demo, info }); setShowPassword(false); }}>
+                        <Link2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <h3 className="nb-card-title">{demo.name}</h3>
+                {demo.companyName && <p className="nb-card-excerpt" style={{ WebkitLineClamp: 1 }}>{demo.companyName}</p>}
+
+                <div className="space-y-1.5 text-xs text-slate-500 dark:text-slate-400">
+                  {demo.email && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="shrink-0 text-slate-400">ایمیل:</span>
+                      <span dir="ltr" className="truncate">{demo.email}</span>
+                    </div>
+                  )}
+                  {demo.phone && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="shrink-0 text-slate-400">تلفن:</span>
+                      <span dir="ltr">{demo.phone}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                    <span>شروع: {formatJalali(demo.startDate)}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                    <span>انقضا: {formatJalali(demo.expiryDate)}</span>
+                  </div>
+                </div>
+
+                <div className="nb-card-footer" onClick={(e) => e.stopPropagation()}>
+                  <div className="nb-card-date">
+                    {demo.status === 'active' ? (
+                      <span className={remaining <= 3 ? 'text-amber-600 font-medium' : ''}>
+                        <Clock className="h-3 w-3" />
+                        {remaining.toLocaleString('fa-IR')} روز باقیمانده
+                      </span>
+                    ) : demo.status === 'converted' ? (
+                      <span className="text-sky-600">
+                        <CheckCircle className="h-3 w-3" /> تبدیل شد
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">
+                        <Clock className="h-3 w-3" /> منقضی شد
+                      </span>
+                    )}
+                  </div>
+                  <div className="nb-card-quick">
+                    {info && (
+                      <button onClick={(e) => { e.stopPropagation(); setAccessDemo({ demo, info }); setShowPassword(false); }} title="مشاهده لینک">
+                        <Link2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
       ) : (
-        <Card>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>نام</TableHead>
-                  <TableHead>شرکت</TableHead>
-                  <TableHead>پلن</TableHead>
-                  <TableHead>تاریخ شروع</TableHead>
-                  <TableHead>تاریخ انقضا</TableHead>
-                  <TableHead>روزهای باقیمانده</TableHead>
-                  <TableHead>وضعیت</TableHead>
-                  <TableHead>لینک اختصاصی</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((demo) => {
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[700px]">
+              <thead className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/50">
+                <tr>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">نام</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">شرکت</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">پلن</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">تاریخ شروع</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">تاریخ انقضا</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">روزهای باقیمانده</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">وضعیت</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">لینک اختصاصی</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                {pagedDemos.map((demo) => {
                   const st = STATUS_INFO[demo.status] || STATUS_INFO.active;
                   const remaining = daysRemaining(demo.expiryDate);
                   const info = accessMap[demo.id];
                   return (
-                    <TableRow key={demo.id}>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium text-slate-800">{demo.name}</div>
-                          {demo.email && <div className="text-xs text-slate-400" dir="ltr">{demo.email}</div>}
-                          {demo.phone && <div className="text-xs text-slate-400" dir="ltr">{demo.phone}</div>}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm text-slate-500">{demo.companyName || '—'}</TableCell>
-                      <TableCell>
+                    <tr key={demo.id} className="cursor-pointer transition hover:bg-slate-50 dark:hover:bg-slate-700/50" onClick={() => info ? setAccessDemo({ demo, info }) : undefined}>
+                      <td className="p-3">
+                        <div className="font-medium text-slate-800 dark:text-slate-100">{demo.name}</div>
+                        {demo.email && <div className="text-xs text-slate-400" dir="ltr">{demo.email}</div>}
+                        {demo.phone && <div className="text-xs text-slate-400" dir="ltr">{demo.phone}</div>}
+                      </td>
+                      <td className="p-3 text-sm text-slate-500 dark:text-slate-300">{demo.companyName || '—'}</td>
+                      <td className="p-3">
                         <Badge variant="outline" className="text-xs">{PLAN_LABELS[demo.plan] || demo.plan}</Badge>
-                      </TableCell>
-                      <TableCell>
+                      </td>
+                      <td className="p-3">
                         <span className="text-sm text-slate-500 flex items-center gap-1">
                           <Calendar className="w-3 h-3 text-slate-400" />
                           {formatJalali(demo.startDate)}
                         </span>
-                      </TableCell>
-                      <TableCell>
+                      </td>
+                      <td className="p-3">
                         <span className="text-sm text-slate-500 flex items-center gap-1">
                           <Calendar className="w-3 h-3 text-slate-400" />
                           {formatJalali(demo.expiryDate)}
                         </span>
-                      </TableCell>
-                      <TableCell>
+                      </td>
+                      <td className="p-3">
                         {demo.status === 'active' ? (
                           <span className={`text-sm flex items-center gap-1 ${remaining <= 3 ? 'text-amber-600 font-medium' : 'text-slate-500'}`}>
                             <Clock className="w-3 h-3" />
@@ -355,40 +490,118 @@ export default function DemosPage() {
                         ) : (
                           <span className="text-sm text-slate-400">—</span>
                         )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          style={{ color: st.color, borderColor: st.color + '40' }}
-                          className="text-xs"
-                        >
+                      </td>
+                      <td className="p-3">
+                        <Badge variant="outline" style={{ color: st.color, borderColor: st.color + '40' }} className="text-xs">
                           {st.label}
                         </Badge>
-                      </TableCell>
-                      <TableCell>
+                      </td>
+                      <td className="p-3" onClick={(e) => e.stopPropagation()}>
                         {info ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 text-xs gap-1"
-                            onClick={() => { setAccessDemo({ demo, info }); setShowPassword(false); }}
-                          >
+                          <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => { setAccessDemo({ demo, info }); setShowPassword(false); }}>
                             <Link2 className="w-3.5 h-3.5" />
                             مشاهده لینک
                           </Button>
                         ) : (
                           <span className="text-xs text-slate-400">—</span>
                         )}
-                      </TableCell>
-                    </TableRow>
+                      </td>
+                    </tr>
                   );
                 })}
-              </TableBody>
-            </Table>
-            </div>
-          </CardContent>
-        </Card>
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="mt-6 flex items-center justify-center gap-2">
+          <button
+            className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+            onClick={() => setPage(Math.max(1, currentPage - 1))}
+            disabled={currentPage <= 1}
+          >
+            <X className="h-4 w-4 rotate-45" />
+          </button>
+          <span className="text-sm text-slate-500">
+            صفحه {currentPage.toLocaleString('fa-IR')} از {totalPages.toLocaleString('fa-IR')}
+          </span>
+          <button
+            className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+            onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
+            disabled={currentPage >= totalPages}
+          >
+            <Plus className="h-4 w-4 rotate-45" />
+          </button>
+        </div>
+      )}
+
+      <Link href="#" onClick={(e) => { e.preventDefault(); setDialogOpen(true); }} className="nb-fab" aria-label="دموی جدید">
+        <Plus className="h-6 w-6" />
+      </Link>
+
+      {/* Create Demo Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>ایجاد دموی ۱۵ روزه</DialogTitle></DialogHeader>
+          <form onSubmit={handleCreate} className="space-y-4">
+            <div className="space-y-2">
+              <Label>نام *</Label>
+              <Input
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="نام شخص یا شرکت"
+                required
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>ایمیل</Label>
+                <Input type="email" dir="ltr" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="email@example.com" />
+              </div>
+              <div className="space-y-2">
+                <Label>تلفن</Label>
+                <Input dir="ltr" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="09123456789" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>نام شرکت</Label>
+              <Input value={form.companyName} onChange={(e) => setForm({ ...form, companyName: e.target.value })} placeholder="نام شرکت (اختیاری)" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>پلن</Label>
+                <Select value={form.plan} onValueChange={(v) => setForm({ ...form, plan: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(PLAN_LABELS).map(([key, label]) => (
+                      <SelectItem key={key} value={key}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>تاریخ شروع</Label>
+                <JalaliDatePicker
+                  value={form.startDate ? new Date(form.startDate) : null}
+                  onChange={(d) => setForm({ ...form, startDate: d ? toLocalDateString(d) : '' })}
+                />
+                <p className="text-xs text-slate-400">در صورت خالی بودن، امروز در نظر گرفته می‌شود</p>
+              </div>
+            </div>
+            <div className="rounded-lg bg-sky-50 border border-sky-100 px-4 py-3 text-sm text-sky-700 flex items-start gap-2 dark:bg-sky-900/20 dark:border-sky-800 dark:text-sky-400">
+              <KeyRound className="w-4 h-4 mt-0.5 shrink-0" />
+              <span>پس از ایجاد دمو، یک نام کاربری و رمز عبور اختصاصی برای مشتری ساخته می‌شود تا از طریق لینک اختصاصی وارد پنل خود شود.</span>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>انصراف</Button>
+              <Button type="submit" disabled={creating}>{creating ? 'در حال ایجاد...' : 'ایجاد دمو'}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Access link dialog */}
       <Dialog open={!!accessDemo} onOpenChange={(o) => !o && setAccessDemo(null)}>
@@ -401,7 +614,7 @@ export default function DemosPage() {
           </DialogHeader>
           {accessDemo && (
             <div className="space-y-4">
-              <div className="text-sm text-slate-500">
+              <div className="text-sm text-slate-500 dark:text-slate-400">
                 این لینک و اطلاعات ورود را به مشتری بدهید تا وارد پنل دموی خود شود:
               </div>
 
@@ -414,12 +627,7 @@ export default function DemosPage() {
                     value={`${typeof window !== 'undefined' ? window.location.origin : ''}/login/customer?u=${encodeURIComponent(accessDemo.info.username)}`}
                     className="text-xs"
                   />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="shrink-0"
-                    onClick={() => handleCopyLink(accessDemo.info.username)}
-                  >
+                  <Button size="sm" variant="outline" className="shrink-0" onClick={() => handleCopyLink(accessDemo.info.username)}>
                     <Copy className="w-3.5 h-3.5" />
                   </Button>
                 </div>
@@ -429,12 +637,7 @@ export default function DemosPage() {
                 <Label className="text-xs text-slate-500">نام کاربری</Label>
                 <div className="flex items-center gap-2">
                   <Input dir="ltr" readOnly value={accessDemo.info.username} />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="shrink-0"
-                    onClick={() => handleCopy(accessDemo.info.username, 'نام کاربری')}
-                  >
+                  <Button size="sm" variant="outline" className="shrink-0" onClick={() => handleCopy(accessDemo.info.username, 'نام کاربری')}>
                     <Copy className="w-3.5 h-3.5" />
                   </Button>
                 </div>
@@ -449,33 +652,20 @@ export default function DemosPage() {
                     type={showPassword ? 'text' : 'password'}
                     value={accessDemo.info.password}
                   />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="shrink-0"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
+                  <Button size="sm" variant="outline" className="shrink-0" onClick={() => setShowPassword(!showPassword)}>
                     {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="shrink-0"
-                    onClick={() => handleCopy(accessDemo.info.password, 'رمز عبور')}
-                  >
+                  <Button size="sm" variant="outline" className="shrink-0" onClick={() => handleCopy(accessDemo.info.password, 'رمز عبور')}>
                     <Copy className="w-3.5 h-3.5" />
                   </Button>
                 </div>
               </div>
 
-              <div className="rounded-lg bg-amber-50 border border-amber-100 px-4 py-3 text-xs text-amber-700">
+              <div className="rounded-lg bg-amber-50 border border-amber-100 px-4 py-3 text-xs text-amber-700 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-400">
                 این دمو تا {formatJalali(accessDemo.demo.expiryDate)} فعال است ({daysRemaining(accessDemo.demo.expiryDate).toLocaleString('fa-IR')} روز باقیمانده).
               </div>
 
-              <Button
-                className="w-full"
-                onClick={() => handleCopyAll(accessDemo.info)}
-              >
+              <Button className="w-full" onClick={() => handleCopyAll(accessDemo.info)}>
                 <Copy className="w-4 h-4" />
                 کپی کامل اطلاعات ورود
               </Button>

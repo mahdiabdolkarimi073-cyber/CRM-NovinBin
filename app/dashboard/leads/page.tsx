@@ -455,17 +455,40 @@ export default function LeadsPage() {
     if (!viewLead) return;
     setFollowUpSaving(true);
     try {
+      const interval = ALARM_INTERVALS[viewLead.status] || 3 * 24 * 60 * 60 * 1000;
+      const nextDate = new Date(Date.now() + interval);
       await updateData('leads', { id: viewLead.id }, {
         followUpResult: followUpResult || null,
-        nextFollowUp: new Date().toISOString(),
+        nextFollowUp: nextDate.toISOString(),
       });
-      toast.success('نتیجه پیگیری ثبت شد');
-      setViewLead({ ...viewLead, followUpResult });
+      const updated = new Set(dismissedAlarms);
+      updated.delete(viewLead.id);
+      setDismissedAlarms(updated);
+      toast.success(`نتیجه پیگیری ثبت شد. پیگیری بعدی: ${nextDate.toLocaleDateString('fa-IR')}`);
+      setViewLead({ ...viewLead, followUpResult, nextFollowUp: nextDate.toISOString() });
       loadLeads();
     } catch (e: any) {
       toast.error('ثبت ناموفق: ' + e.message);
     }
     setFollowUpSaving(false);
+  };
+
+  const quickFollowUp = async (lead: Lead) => {
+    const interval = ALARM_INTERVALS[lead.status] || 3 * 24 * 60 * 60 * 1000;
+    const nextDate = new Date(Date.now() + interval);
+    try {
+      await updateData('leads', { id: lead.id }, {
+        nextFollowUp: nextDate.toISOString(),
+        status: lead.status === 'new' ? 'contacted' : lead.status,
+      });
+      const updated = new Set(dismissedAlarms);
+      updated.delete(lead.id);
+      setDismissedAlarms(updated);
+      toast.success(`پیگیری ثبت شد. پیگیری بعدی: ${nextDate.toLocaleDateString('fa-IR')}`);
+      loadLeads();
+    } catch (e: any) {
+      toast.error('ثبت پیگیری ناموفق: ' + e.message);
+    }
   };
 
   const exportExcel = () => {
@@ -567,7 +590,11 @@ export default function LeadsPage() {
                   </span>
                   <button onClick={() => openView(lead)} style={{
                     fontSize: 11, color: '#2563EB', background: 'transparent', border: 'none', cursor: 'pointer', font: 'inherit', fontWeight: 600,
-                  }}>پیگیری</button>
+                  }}>مشاهده</button>
+                  <button onClick={(e) => { e.stopPropagation(); quickFollowUp(lead); }} style={{
+                    fontSize: 11, color: '#fff', background: '#2563EB', border: 'none', cursor: 'pointer', font: 'inherit', fontWeight: 600,
+                    padding: '3px 10px', borderRadius: 8,
+                  }}>پیگیری کردم</button>
                   <button onClick={() => dismissAlarm(lead.id)} style={{
                     color: '#94A3B8', background: 'transparent', border: 'none', cursor: 'pointer', padding: 2, display: 'inline-flex',
                   }}>
@@ -756,6 +783,9 @@ export default function LeadsPage() {
                     {relativeTime(lead.createdAt)}
                   </div>
                   <div className="nb-card-quick">
+                    <button onClick={(e) => { e.stopPropagation(); quickFollowUp(lead); }} title="پیگیری کردم">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                    </button>
                     <button onClick={(e) => { e.stopPropagation(); openView(lead); }} title="مشاهده">
                       <Eye className="h-3.5 w-3.5" />
                     </button>
@@ -832,6 +862,9 @@ export default function LeadsPage() {
                         <div className="flex gap-1">
                           <button className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700" onClick={() => openView(lead)}>
                             <Eye className="h-4 w-4" />
+                          </button>
+                          <button className="rounded p-1.5 text-emerald-500 hover:bg-emerald-50 hover:text-emerald-600" onClick={() => quickFollowUp(lead)} title="پیگیری کردم">
+                            <CheckCircle2 className="h-4 w-4" />
                           </button>
                           <Link href={`/dashboard/leads/${lead.id}`} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700">
                             <FileText className="h-4 w-4" />
@@ -1021,6 +1054,10 @@ export default function LeadsPage() {
                 <Button type="button" size="sm" onClick={saveFollowUpResult} disabled={followUpSaving}>
                   {followUpSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                   ثبت نتیجه پیگیری
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => quickFollowUp(viewLead)} disabled={followUpSaving}>
+                  <CheckCircle2 className="h-4 w-4" />
+                  پیگیری کردم
                 </Button>
               </div>
               {/* Referrals */}
