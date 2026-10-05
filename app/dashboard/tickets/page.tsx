@@ -12,21 +12,22 @@ import type { Customer, Profile, Ticket, TicketMessage, TicketDepartment } from 
 import {
   CalendarDays, Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Circle,
   Download, Eye, FileText, Filter, MessageCircle, MoreVertical, Paperclip, Plus,
-  Search, Send, SlidersHorizontal, Trash2, X,
+  Search, Send, SlidersHorizontal, Trash2, X, Loader2, LayoutGrid, List, Clock,
+  CheckCircle2, AlertCircle, MessageSquare,
 } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 
 const PAGE_SIZE = 10;
 const priorityLabels: Record<string, string> = { low: 'کم', medium: 'متوسط', high: 'زیاد', critical: 'فوری' };
+const priorityColors: Record<string, string> = { low: '#64748b', medium: '#f59e0b', high: '#f97316', critical: '#ef4444' };
 const statusLabels: Record<string, string> = {
   open: 'باز', in_progress: 'در حال انجام', pending: 'در انتظار پاسخ',
   resolved: 'حل شده', closed: 'بسته شده',
 };
-const priorityClasses: Record<string, string> = {
-  low: 'is-low', medium: 'is-medium', high: 'is-high', critical: 'is-critical',
-};
-const statusClasses: Record<string, string> = {
-  open: 'is-open', in_progress: 'is-progress', pending: 'is-pending',
-  resolved: 'is-resolved', closed: 'is-closed',
+const statusColors: Record<string, string> = {
+  open: '#3b82f6', in_progress: '#f59e0b', pending: '#a855f7',
+  resolved: '#22c55e', closed: '#64748b',
 };
 
 type Attachment = { url: string; name: string; type: string; size: number };
@@ -64,6 +65,7 @@ export default function TicketsPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [customerFilter, setCustomerFilter] = useState('all');
   const [assigneeFilter, setAssigneeFilter] = useState('all');
+  const [viewMode, setViewMode] = useState<'board' | 'list'>('list');
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Ticket | null>(null);
 
@@ -90,22 +92,12 @@ export default function TicketsPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  const customerMap = useMemo(
-    () => new Map(customers.map((c) => [c.id, c])),
-    [customers],
-  );
-  const staffMap = useMemo(
-    () => new Map(staff.map((s) => [s.id, s])),
-    [staff],
-  );
-  const deptMap = useMemo(
-    () => new Map(departments.map((d) => [d.id, d])),
-    [departments],
-  );
+  const customerMap = useMemo(() => new Map(customers.map((c) => [c.id, c])), [customers]);
+  const staffMap = useMemo(() => new Map(staff.map((s) => [s.id, s])), [staff]);
+  const deptMap = useMemo(() => new Map(departments.map((d) => [d.id, d])), [departments]);
 
   const filteredTickets = useMemo(() => tickets.filter((t) => {
     const customer = customerMap.get(t.customerId || '');
-    const assignee = staffMap.get(t.assignedTo || '');
     const q = search.trim().toLowerCase();
     const matchesSearch = !q
       || t.subject.toLowerCase().includes(q)
@@ -120,7 +112,6 @@ export default function TicketsPage() {
 
   const pageCount = Math.max(1, Math.ceil(filteredTickets.length / PAGE_SIZE));
   const visibleTickets = filteredTickets.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-
   useEffect(() => { if (page > pageCount) setPage(pageCount); }, [page, pageCount]);
 
   const updateStatus = async (ticket: Ticket, status: string) => {
@@ -149,194 +140,256 @@ export default function TicketsPage() {
     pending: tickets.filter((t) => t.status === 'pending').length,
   };
 
+  const stats = useMemo(() => [
+    {
+      label: 'کل تیکت‌ها', value: counts.total, icon: MessageCircle,
+      filter: 'all',
+      gradient: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)',
+      glow: 'rgba(37,99,235,0.25)',
+    },
+    {
+      label: 'باز', value: counts.open, icon: Circle,
+      filter: 'open',
+      gradient: 'linear-gradient(135deg, #3b82f6 0%, #2563EB 100%)',
+      glow: 'rgba(59,130,246,0.25)',
+    },
+    {
+      label: 'در حال انجام', value: counts.progress, icon: Clock,
+      filter: 'in_progress',
+      gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+      glow: 'rgba(245,158,11,0.25)',
+    },
+    {
+      label: 'حل شده', value: counts.resolved, icon: CheckCircle2,
+      filter: 'resolved',
+      gradient: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)',
+      glow: 'rgba(34,197,94,0.25)',
+    },
+  ], [tickets]);
+
+  const handleStatClick = (f: string) => {
+    setStatusFilter(statusFilter === f ? 'all' : f);
+    setPage(1);
+  };
+
+  if (loading) {
+    return (
+      <div className="nb-page" dir="rtl">
+        <div className="nb-empty">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
+          <p>در حال بارگذاری تیکت‌ها...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="tickets-page" dir="rtl">
-      <header className="tickets-header">
-        <div>
-          <div className="tickets-title"><span /><h1>مدیریت تیکت‌ها</h1></div>
-          <p>مدیریت و پیگیری تیکت‌های پشتیبانی</p>
-          <div className="tickets-breadcrumb">
-            داشبورد <ChevronLeft /> تیکت‌ها <ChevronLeft /> مدیریت تیکت‌ها
+    <div className="nb-page" dir="rtl">
+      <header className="nb-hero">
+        <div className="nb-hero-left">
+          <div>
+            <div className="nb-hero-title-row">
+              <span className="nb-hero-marker" style={{ background: 'linear-gradient(180deg,#3B82F6,#2563EB)', boxShadow: '0 0 12px rgba(37,99,235,.25)' }} />
+              <h1>تیکت‌ها</h1>
+            </div>
+            <p>مدیریت و پیگیری تیکت‌های پشتیبانی</p>
           </div>
         </div>
-        <Link href="/dashboard/tickets/new" className="tickets-new-button">
-          <Plus /> تیکت جدید
-        </Link>
+        <div className="nb-hero-right">
+          <Link href="/dashboard/tickets/new" className="nb-new-btn">
+            <Plus className="h-[18px] w-[18px]" />
+            تیکت جدید
+          </Link>
+        </div>
       </header>
 
-      <div className="tickets-layout">
-        <main className="tickets-main">
-          <section className="tickets-toolbar">
-            <label className="tickets-search">
-              <Search />
-              <input
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                placeholder="جستجوی تیکت..."
-              />
-            </label>
-            <FilterSelect
-              value={priorityFilter}
-              onChange={(v) => { setPriorityFilter(v); setPage(1); }}
-              placeholder="همه اولویت‌ها"
-              items={TASK_PRIORITIES.map((p) => ({ value: p.key, label: p.label }))}
-            />
-            <FilterSelect
-              value={customerFilter}
-              onChange={(v) => { setCustomerFilter(v); setPage(1); }}
-              placeholder="همه مشتریان"
-              items={customers.map((c) => ({ value: c.id, label: customerName(c) }))}
-            />
-            <button className="tickets-date-filter" type="button">
-              <CalendarDays /> بازه تاریخ <ChevronLeft />
-            </button>
-            <button className="tickets-advanced-filter" type="button">
-              <SlidersHorizontal /> فیلتر پیشرفته
-            </button>
-          </section>
+      <section className="nb-stats-grid-v2">
+        {stats.map((stat) => (
+          <button
+            type="button"
+            className={`nb-stat-card-v2 ${statusFilter === stat.filter ? 'is-active' : ''}`}
+            key={stat.label}
+            onClick={() => handleStatClick(stat.filter)}
+            style={{ '--stat-glow': stat.glow } as React.CSSProperties}
+          >
+            <div className="nb-stat-v2-icon" style={{ background: stat.gradient }}>
+              <stat.icon className="h-[22px] w-[22px] text-white" />
+            </div>
+            <div className="nb-stat-v2-body">
+              <strong>{stat.value.toLocaleString('fa-IR')}</strong>
+              <span>{stat.label}</span>
+            </div>
+            <div className="nb-stat-v2-spark" style={{ background: stat.gradient }} />
+          </button>
+        ))}
+      </section>
 
-          <section className="tickets-table-card">
-            <div className="tickets-table-scroll">
-              <table className="tickets-table">
-                <thead>
-                  <tr>
-                    <th>شناسه</th>
-                    <th className="subject-column">موضوع</th>
-                    <th>دپارتمان</th>
-                    <th>مشتری</th>
-                    <th>اولویت</th>
-                    <th>وضعیت</th>
-                    <th>مسئول رسیدگی</th>
-                    <th>تاریخ ایجاد</th>
-                    <th>آخرین بروزرسانی</th>
-                    <th>عملیات</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    <tr><td colSpan={10} className="tickets-empty">در حال بارگذاری تیکت‌ها...</td></tr>
-                  ) : visibleTickets.length === 0 ? (
-                    <tr>
-                      <td colSpan={10} className="tickets-empty">
-                        <MessageCircle /> تیکتی مطابق فیلترها پیدا نشد
+      <div className="nb-toolbar">
+        <div className="nb-toolbar-left">
+          <h2>همه تیکت‌ها</h2>
+          <span className="nb-count-badge">{filteredTickets.length.toLocaleString('fa-IR')} مورد</span>
+        </div>
+        <div className="nb-toolbar-right">
+          <div className="nb-search-box">
+            <Search className="h-4 w-4" />
+            <input
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              placeholder="جستجوی تیکت..."
+            />
+            {search && <button onClick={() => setSearch('')}><X className="h-3.5 w-3.5" /></button>}
+          </div>
+          <Select value={priorityFilter} onValueChange={(v) => { setPriorityFilter(v); setPage(1); }}>
+            <SelectTrigger className="nb-select-filter h-10 w-[140px]"><SelectValue placeholder="اولویت" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">همه اولویت‌ها</SelectItem>
+              {TASK_PRIORITIES.map((p) => <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <div className="nb-view-toggle">
+            <button className={viewMode === 'board' ? 'is-active' : ''} onClick={() => setViewMode('board')} aria-label="تخته‌ای">
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+            <button className={viewMode === 'list' ? 'is-active' : ''} onClick={() => setViewMode('list')} aria-label="لیستی">
+              <List className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {filteredTickets.length === 0 ? (
+        <div className="nb-empty">
+          <div className="sb-empty-icon"><MessageCircle className="h-12 w-12 text-muted-foreground/30" /></div>
+          <h3>تیکتی ثبت نشده</h3>
+          <p>تیکت‌های پشتیبانی در اینجا نمایش داده می‌شوند</p>
+          <Link href="/dashboard/tickets/new" className="nb-empty-new-btn"><Plus className="h-4 w-4" /> ایجاد تیکت</Link>
+        </div>
+      ) : viewMode === 'board' ? (
+        <div className="nb-grid nb-grid-grid">
+          {visibleTickets.map((t, index) => {
+            const customer = customerMap.get(t.customerId || '');
+            const assigned = staffMap.get(t.assignedTo || '');
+            const stColor = statusColors[t.status] || '#64748b';
+            const prColor = priorityColors[t.priority] || '#64748b';
+            const created = dateParts(t.createdAt);
+            return (
+              <article key={t.id} className="nb-card" style={{ borderBottomColor: stColor, borderBottomWidth: 3 }} onClick={() => setSelected(t)}>
+                <div className="nb-card-top">
+                  <div className="nb-card-tags">
+                    <span className="nb-card-tag" style={{ background: `${stColor}15`, color: stColor }}>
+                      {statusLabels[t.status] || t.status}
+                    </span>
+                    <span className="nb-card-tag" style={{ background: `${prColor}15`, color: prColor }}>
+                      {priorityLabels[t.priority] || t.priority}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400">{ticketNumber(index + 1)}</span>
+                </div>
+                <h3 className="nb-card-title">{t.subject}</h3>
+                <p className="nb-card-excerpt" style={{ WebkitLineClamp: 1 }}>{customerName(customer)}</p>
+                <div className="space-y-1.5 text-xs text-slate-500 dark:text-slate-400">
+                  {deptMap.get(t.departmentId || '')?.name && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="shrink-0 text-slate-400">دپارتمان:</span>
+                      <span>{deptMap.get(t.departmentId || '')?.name}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-1.5">
+                    <CalendarDays className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                    <span>{created.date}</span>
+                  </div>
+                </div>
+                <div className="nb-card-footer">
+                  <div className="nb-card-date">
+                    <Clock className="h-3 w-3" />
+                    {relativeTime(t.createdAt)}
+                  </div>
+                  <div className="nb-card-quick">
+                    {assigned && (
+                      <div className="flex items-center gap-1.5">
+                        <Avatar className="h-6 w-6"><AvatarFallback className="bg-sky-100 text-[10px] text-sky-700 dark:bg-sky-900/30 dark:text-sky-400">{initials(displayName(assigned))}</AvatarFallback></Avatar>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400">{displayName(assigned)}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[800px]">
+              <thead className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/50">
+                <tr>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">شناسه</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">موضوع</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">مشتری</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">اولویت</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">وضعیت</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">مسئول</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">تاریخ</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">عملیات</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                {visibleTickets.map((t, index) => {
+                  const customer = customerMap.get(t.customerId || '');
+                  const assigned = staffMap.get(t.assignedTo || '');
+                  const stColor = statusColors[t.status] || '#64748b';
+                  const prColor = priorityColors[t.priority] || '#64748b';
+                  return (
+                    <tr key={t.id} className="cursor-pointer transition hover:bg-slate-50 dark:hover:bg-slate-700/50" onClick={() => setSelected(t)}>
+                      <td className="p-3"><span className="font-mono text-xs text-slate-400">{ticketNumber(index + 1)}</span></td>
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          <MessageCircle className="h-4 w-4 text-slate-400" />
+                          <span className="font-medium text-slate-800 dark:text-slate-100">{t.subject}</span>
+                        </div>
+                      </td>
+                      <td className="p-3 text-sm text-slate-500 dark:text-slate-300">{customerName(customer)}</td>
+                      <td className="p-3"><Badge variant="outline" style={{ color: prColor, borderColor: `${prColor}35` }} className="text-xs">{priorityLabels[t.priority] || t.priority}</Badge></td>
+                      <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                        <Select value={t.status} onValueChange={(v) => updateStatus(t, v)}>
+                          <SelectTrigger className="h-8 text-xs" style={{ color: stColor }}><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(statusLabels).map(([value, label]) => (
+                              <SelectItem key={value} value={value}>{label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </td>
+                      <td className="p-3">
+                        {assigned ? <div className="flex items-center gap-1.5"><Avatar className="h-6 w-6"><AvatarFallback className="bg-sky-100 text-[10px] text-sky-700 dark:bg-sky-900/30 dark:text-sky-400">{initials(displayName(assigned))}</AvatarFallback></Avatar><span className="text-xs text-slate-500 dark:text-slate-400">{displayName(assigned)}</span></div> : <span className="text-xs text-slate-400">تخصیص داده نشده</span>}
+                      </td>
+                      <td className="p-3 text-xs text-slate-500 dark:text-slate-400">{formatJalali(t.createdAt)}</td>
+                      <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex gap-1">
+                          <button onClick={() => setSelected(t)} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700" title="مشاهده"><Eye className="h-4 w-4" /></button>
+                        </div>
                       </td>
                     </tr>
-                  ) : visibleTickets.map((t, index) => {
-                    const customer = customerMap.get(t.customerId || '');
-                    const assigned = staffMap.get(t.assignedTo || '');
-                    const created = dateParts(t.createdAt);
-                    const updated = dateParts(t.updatedAt || t.createdAt);
-                    return (
-                      <tr key={t.id}>
-                        <td><span className="ticket-id">{ticketNumber(index + 1)}</span></td>
-                        <td className="subject-cell">
-                          <MessageCircle />
-                          <span title={t.subject}>{t.subject}</span>
-                        </td>
-                        <td className="dept-cell" title={deptMap.get(t.departmentId || '')?.name || ''}>
-                          {deptMap.get(t.departmentId || '')?.name || '—'}
-                        </td>
-                        <td className="customer-cell" title={customerName(customer)}>
-                          {customerName(customer)}
-                        </td>
-                        <td>
-                          <span className={`ticket-badge priority-badge ${priorityClasses[t.priority] || 'is-medium'}`}>
-                            {priorityLabels[t.priority] || t.priority}
-                          </span>
-                        </td>
-                        <td>
-                          <Select value={t.status} onValueChange={(v) => updateStatus(t, v)}>
-                            <SelectTrigger className={`ticket-status-select ${statusClasses[t.status] || 'is-open'}`}>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {Object.entries(statusLabels).map(([value, label]) => (
-                                <SelectItem key={value} value={value}>{label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </td>
-                        <td>
-                          <div className="assignee-cell">
-                            <span className="assignee-avatar">{initials(displayName(assigned))}</span>
-                            <span>{displayName(assigned)}</span>
-                          </div>
-                        </td>
-                        <td><DateCell value={created} /></td>
-                        <td><DateCell value={updated} /></td>
-                        <td>
-                          <div className="ticket-actions">
-                            <button onClick={() => setSelected(t)} aria-label="مشاهده تیکت"><Eye /></button>
-                            <button onClick={() => toast.info('منوی عملیات به‌زودی')} aria-label="عملیات بیشتر"><MoreVertical /></button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {pageCount > 1 && (
+            <div className="flex items-center justify-center gap-2 border-t border-slate-200 py-3 dark:border-slate-700">
+              <button className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300" onClick={() => setPage(1)} disabled={page === 1}><ChevronsRight className="h-4 w-4" /></button>
+              <button className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300" onClick={() => setPage((c) => Math.max(1, c - 1))} disabled={page === 1}><ChevronRight className="h-4 w-4" /></button>
+              <span className="text-sm text-slate-500">صفحه {page.toLocaleString('fa-IR')} از {pageCount.toLocaleString('fa-IR')}</span>
+              <button className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300" onClick={() => setPage((c) => Math.min(pageCount, c + 1))} disabled={page === pageCount}><ChevronLeft className="h-4 w-4" /></button>
+              <button className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300" onClick={() => setPage(pageCount)} disabled={page === pageCount}><ChevronsLeft className="h-4 w-4" /></button>
             </div>
-            <footer className="tickets-pagination">
-              <span>
-                ۱ تا {Math.min(page * PAGE_SIZE, filteredTickets.length).toLocaleString('fa-IR')} از {filteredTickets.length.toLocaleString('fa-IR')} تیکت
-              </span>
-              <div className="pagination-buttons">
-                <button onClick={() => setPage(1)} disabled={page === 1} aria-label="اولین صفحه"><ChevronsRight /></button>
-                <button onClick={() => setPage((c) => Math.max(1, c - 1))} disabled={page === 1} aria-label="صفحه قبل"><ChevronRight /></button>
-                <button className="is-active">{page.toLocaleString('fa-IR')}</button>
-                <button onClick={() => setPage((c) => Math.min(pageCount, c + 1))} disabled={page === pageCount} aria-label="صفحه بعد"><ChevronLeft /></button>
-                <button onClick={() => setPage(pageCount)} disabled={page === pageCount} aria-label="آخرین صفحه"><ChevronsLeft /></button>
-              </div>
-              <label className="page-size-select">
-                تعداد نمایش در صفحه:
-                <select defaultValue={PAGE_SIZE}>
-                  <option value={10}>۱۰</option>
-                </select>
-              </label>
-            </footer>
-          </section>
-        </main>
+          )}
+        </div>
+      )}
 
-        <aside className="tickets-sidebar">
-          <SummaryCard counts={counts} />
-          <section className="tickets-side-card">
-            <SideTitle icon={<Filter />} title="فیلترها" />
-            <FilterSelect
-              value={statusFilter}
-              onChange={(v) => { setStatusFilter(v); setPage(1); }}
-              placeholder="همه وضعیت‌ها"
-              items={Object.entries(statusLabels).map(([value, label]) => ({ value, label }))}
-            />
-            <FilterSelect
-              value={priorityFilter}
-              onChange={(v) => { setPriorityFilter(v); setPage(1); }}
-              placeholder="همه اولویت‌ها"
-              items={TASK_PRIORITIES.map((p) => ({ value: p.key, label: p.label }))}
-            />
-            <FilterSelect
-              value={customerFilter}
-              onChange={(v) => { setCustomerFilter(v); setPage(1); }}
-              placeholder="همه مشتریان"
-              items={customers.map((c) => ({ value: c.id, label: customerName(c) }))}
-            />
-            <FilterSelect
-              value={assigneeFilter}
-              onChange={(v) => { setAssigneeFilter(v); setPage(1); }}
-              placeholder="همه کاربران"
-              items={staff.map((s) => ({ value: s.id, label: displayName(s) }))}
-            />
-            <button className="clear-filters" onClick={resetFilters}><Trash2 /> پاک کردن فیلترها</button>
-          </section>
-          <section className="tickets-side-card">
-            <SideTitle icon={<SlidersHorizontal />} title="عملیات سریع" />
-            <div className="quick-actions">
-              <Link href="/dashboard/tickets/new"><FileText /><span>تیکت جدید</span></Link>
-              <button onClick={() => toast.info('گزارش تیکت‌ها آماده می‌شود')} type="button"><SlidersHorizontal /><span>گزارش تیکت‌ها</span></button>
-              <button onClick={() => toast.info('خروجی اکسل آماده می‌شود')} type="button"><Download /><span>خروجی اکسل</span></button>
-            </div>
-          </section>
-        </aside>
-      </div>
+      <Link href="/dashboard/tickets/new" className="nb-fab" aria-label="تیکت جدید">
+        <Plus className="h-6 w-6" />
+      </Link>
 
       {selected && (
         <TicketChat
@@ -348,66 +401,6 @@ export default function TicketsPage() {
         />
       )}
     </div>
-  );
-}
-
-function FilterSelect({
-  value, onChange, placeholder, items,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  placeholder: string;
-  items: { value: string; label: string }[];
-}) {
-  return (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="ticket-filter-select">
-        <SelectValue placeholder={placeholder} />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="all">{placeholder}</SelectItem>
-        {items.map((item) => (
-          <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-}
-
-function SideTitle({ icon, title }: { icon: React.ReactNode; title: string }) {
-  return <h2 className="tickets-side-title">{title}<span>{icon}</span></h2>;
-}
-
-function DateCell({ value }: { value: { date: string; time: string } }) {
-  return (
-    <div className="ticket-date">
-      <strong>{value.date}</strong>
-      <small>{value.time}</small>
-    </div>
-  );
-}
-
-function SummaryCard({ counts }: { counts: Record<string, number> }) {
-  const items = [
-    { key: 'total', label: 'کل تیکت‌ها', className: 'summary-total' },
-    { key: 'closed', label: 'بسته شده', className: 'summary-closed' },
-    { key: 'resolved', label: 'حل شده', className: 'summary-resolved' },
-    { key: 'open', label: 'باز', className: 'summary-open' },
-    { key: 'progress', label: 'در حال انجام', className: 'summary-progress' },
-    { key: 'pending', label: 'در انتظار پاسخ', className: 'summary-pending' },
-  ];
-  return (
-    <section className="tickets-side-card">
-      <SideTitle icon={<Circle />} title="خلاصه تیکت‌ها" />
-      <div className="summary-grid">
-        {items.map((item) => (
-          <div className={`summary-item ${item.className}`} key={item.key}>
-            <strong>{counts[item.key].toLocaleString('fa-IR')}</strong>
-            <span>{item.label}</span>
-          </div>
-        ))}
-      </div>
-    </section>
   );
 }
 
@@ -497,53 +490,53 @@ function TicketChat({
   const customerLabel = customerName(customer);
 
   return (
-    <div className="ticket-chat-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <section className="ticket-chat-modal">
-        <header className="ticket-chat-header">
-          <div className="ticket-chat-heading">
-            <span className="chat-avatar">{initials(customerLabel)}</span>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <section className="flex h-[80vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-slate-800">
+        <header className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-700">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-10 w-10"><AvatarFallback className="bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400">{initials(customerLabel)}</AvatarFallback></Avatar>
             <div>
-              <strong>{ticket.subject}</strong>
-              <small>{customerLabel} · {ticket.id.slice(0, 8)}</small>
+              <strong className="text-slate-800 dark:text-slate-100">{ticket.subject}</strong>
+              <small className="block text-xs text-slate-400">{customerLabel} · {ticket.id.slice(0, 8)}</small>
             </div>
           </div>
-          <div className="ticket-chat-head-actions">
+          <div className="flex items-center gap-2">
             <Select value={ticket.status} onValueChange={onStatusChange}>
-              <SelectTrigger className="chat-status-select"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-8 w-32 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {Object.entries(statusLabels).map(([value, label]) => (
                   <SelectItem key={value} value={value}>{label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <button onClick={onClose} aria-label="بستن"><X /></button>
+            <button onClick={onClose} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700" aria-label="بستن"><X className="h-5 w-5" /></button>
           </div>
         </header>
 
-        <div className="ticket-chat-messages">
+        <div className="flex-1 overflow-y-auto space-y-3 p-5">
           {messages.length === 0 ? (
-            <div className="ticket-chat-empty">
-              <MessageCircle />
-              <p>هنوز پیامی ثبت نشده است. گفت‌وگو را شروع کنید.</p>
+            <div className="flex h-full flex-col items-center justify-center text-slate-300">
+              <MessageCircle className="h-12 w-12" />
+              <p className="mt-2 text-sm">هنوز پیامی ثبت نشده است. گفت‌وگو را شروع کنید.</p>
             </div>
           ) : (
             messages.map((msg) => {
               const mine = msg.senderId === profile?.id;
               return (
-                <div className={`ticket-message-row ${mine ? 'is-mine' : ''}`} key={msg.id}>
-                  <div className="ticket-message-bubble">
+                <div className={`flex ${mine ? 'justify-end' : 'justify-start'}`} key={msg.id}>
+                  <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${mine ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200'}`}>
                     {msg.content && <p>{msg.content}</p>}
                     {msg.attachmentUrl && (
                       msg.attachmentType?.startsWith('image/') ? (
-                        <img src={msg.attachmentUrl} alt={msg.attachmentName || 'پیوست'} />
+                        <img src={msg.attachmentUrl} alt={msg.attachmentName || 'پیوست'} className="mt-2 max-w-full rounded-lg" />
                       ) : (
-                        <a href={msg.attachmentUrl} target="_blank" rel="noreferrer">
-                          <FileText /> {msg.attachmentName || 'دانلود فایل'}{' '}
+                        <a href={msg.attachmentUrl} target="_blank" rel="noreferrer" className="mt-2 flex items-center gap-1.5 text-xs underline">
+                          <FileText className="h-3.5 w-3.5" /> {msg.attachmentName || 'دانلود فایل'}{' '}
                           {msg.attachmentSize ? `(${formatFileSize(msg.attachmentSize)})` : ''}
                         </a>
                       )
                     )}
-                    <small>{relativeTime(msg.createdAt)} {mine && <Check />}</small>
+                    <small className={`mt-1 block text-[10px] ${mine ? 'text-blue-200' : 'text-slate-400'}`}>{relativeTime(msg.createdAt)} {mine && <Check className="inline h-3 w-3" />}</small>
                   </div>
                 </div>
               );
@@ -553,16 +546,16 @@ function TicketChat({
         </div>
 
         {attachment && (
-          <div className="ticket-attachment-preview">
-            <Paperclip />
-            <span>{attachment.name}</span>
-            <button onClick={() => setAttachment(null)}><X /></button>
+          <div className="flex items-center gap-2 border-t border-slate-200 px-4 py-2 text-xs text-slate-500 dark:border-slate-700">
+            <Paperclip className="h-4 w-4" />
+            <span className="flex-1 truncate">{attachment.name}</span>
+            <button onClick={() => setAttachment(null)} className="text-red-400 hover:text-red-600"><X className="h-4 w-4" /></button>
           </div>
         )}
 
-        <footer className="ticket-chat-composer">
-          <button onClick={() => fileRef.current?.click()} aria-label="افزودن فایل" type="button">
-            <Paperclip />
+        <footer className="flex items-center gap-2 border-t border-slate-200 px-4 py-3 dark:border-slate-700">
+          <button onClick={() => fileRef.current?.click()} aria-label="افزودن فایل" type="button" className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700">
+            <Paperclip className="h-5 w-5" />
           </button>
           <input
             ref={fileRef}
@@ -581,15 +574,16 @@ function TicketChat({
               }
             }}
             placeholder="پاسخ خود را بنویسید..."
+            className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900/50"
           />
           <button
-            className="ticket-send-button"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 text-white transition hover:bg-blue-700 disabled:opacity-50"
             onClick={send}
             disabled={sending || (!text.trim() && !attachment)}
             type="button"
             aria-label="ارسال پیام"
           >
-            <Send />
+            <Send className="h-5 w-5" />
           </button>
         </footer>
       </section>

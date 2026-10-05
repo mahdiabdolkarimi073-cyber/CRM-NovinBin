@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowRight, User, Briefcase, Phone, Mail, Calendar, Award, FileText, CheckSquare, Activity, DollarSign } from 'lucide-react';
+import { ArrowRight, User, Briefcase, Phone, Mail, Calendar, Award, FileText, CheckSquare, Activity, DollarSign, Pencil } from 'lucide-react';
+import Link from 'next/link';
 import { fetchData } from '@/lib/data-client';
 import { formatToman, formatJalali, relativeTime } from '@/lib/format';
 
@@ -71,6 +72,11 @@ export default function EmployeeDetailPage() {
                 </div>
               </div>
             </div>
+            <Link href={`/dashboard/hr/${employee.id}/edit`}>
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <Pencil className="w-3.5 h-3.5" /> ویرایش
+              </Button>
+            </Link>
           </div>
         </CardContent>
       </Card>

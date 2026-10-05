@@ -141,189 +141,116 @@ export default function HostDomainsPage() {
   ];
 
   return (
-    <div className="create-task-page" dir="rtl">
-      <div className="create-task-container">
-        <header className="create-task-header">
+    <div className="nb-page" dir="rtl">
+      <header className="nb-hero">
+        <div className="nb-hero-left">
           <div>
-            <div className="create-task-title">
-              <span className="title-accent-bar" />
+            <div className="nb-hero-title-row">
+              <span className="nb-hero-marker" style={{ background: 'linear-gradient(180deg,#6366F1,#4F46E5)', boxShadow: '0 0 12px rgba(99,102,241,.25)' }} />
               <h1>هاست و دامنه</h1>
             </div>
-            <div className="create-task-breadcrumb">
-              داشبورد <b>←</b> هاست و دامنه
-            </div>
-          </div>
-          <Link href="/dashboard/host-domains/new" className="submit-btn" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-            <Plus className="h-4 w-4" />
-            ثبت هاست/دامنه جدید
-          </Link>
-        </header>
-
-        {/* Renewal Stats */}
-        <div className="grid grid-cols-1 tablet:grid-cols-3 gap-3 mb-4">
-          {tabs.map((tab) => {
-            const TabIcon = tab.icon;
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`rounded-xl border p-4 text-right transition-all ${activeTab === tab.key ? 'border-2 bg-white shadow-sm' : 'border-[#E2E8F0] bg-white hover:shadow-sm'}`}
-                style={activeTab === tab.key ? { borderColor: tab.color } : {}}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-slate-500 mb-1">{tab.label}</p>
-                    <p className="text-2xl font-bold text-slate-800">{tab.count.toLocaleString('fa-IR')}</p>
-                  </div>
-                  <div className="rounded-lg p-2.5" style={{ backgroundColor: tab.color + '15' }}>
-                    <TabIcon className="h-5 w-5" style={{ color: tab.color }} />
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Filters */}
-        <div className="flex flex-wrap gap-3 mb-4 items-center">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="جستجو با شماره مشتری، نام، دامنه یا موبایل..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-lg border border-[#E2E8F0] bg-white py-2.5 pr-10 pl-4 text-sm text-slate-700 focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/10"
-            />
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            <button
-              onClick={() => setTypeFilter('all')}
-              className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${typeFilter === 'all' ? 'bg-[#2563EB] text-white' : 'bg-white border border-[#E2E8F0] text-slate-600 hover:border-[#94A3B8]'}`}
-            >
-              همه نوع
-            </button>
-            {HOST_TYPES.map((t) => (
-              <button
-                key={t.key}
-                onClick={() => setTypeFilter(t.key)}
-                className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${typeFilter === t.key ? 'bg-[#2563EB] text-white' : 'bg-white border border-[#E2E8F0] text-slate-600 hover:border-[#94A3B8]'}`}
-              >
-                {t.label}
-              </button>
-            ))}
+            <p>مدیریت هاست‌ها و دامنه‌های ثبت شده</p>
           </div>
         </div>
+        <div className="nb-hero-right">
+          <Link href="/dashboard/host-domains/new" className="nb-new-btn"><Plus className="h-[18px] w-[18px]" /> ثبت هاست/دامنه</Link>
+        </div>
+      </header>
 
-        {/* List */}
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-[#2563EB]" />
+      <section className="nb-stats-grid-v2">
+        <div className="nb-stat-card-v2" style={{ '--stat-glow': 'rgba(37,99,235,0.25)' } as React.CSSProperties}>
+          <div className="nb-stat-v2-icon" style={{ background: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)' }}><Server className="h-[22px] w-[22px] text-white" /></div>
+          <div className="nb-stat-v2-body"><strong>{items.length.toLocaleString('fa-IR')}</strong><span>کل هاست/دامنه</span></div>
+          <div className="nb-stat-v2-spark" style={{ background: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)' }} />
+        </div>
+        <div className="nb-stat-card-v2" style={{ '--stat-glow': 'rgba(245,158,11,0.25)' } as React.CSSProperties}>
+          <div className="nb-stat-v2-icon" style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }}><AlertTriangle className="h-[22px] w-[22px] text-white" /></div>
+          <div className="nb-stat-v2-body"><strong>{expiringSoon.length.toLocaleString('fa-IR')}</strong><span>در حال انقضا</span></div>
+          <div className="nb-stat-v2-spark" style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }} />
+        </div>
+        <div className="nb-stat-card-v2" style={{ '--stat-glow': 'rgba(239,68,68,0.25)' } as React.CSSProperties}>
+          <div className="nb-stat-v2-icon" style={{ background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)' }}><CalendarX className="h-[22px] w-[22px] text-white" /></div>
+          <div className="nb-stat-v2-body"><strong>{expiredItems.length.toLocaleString('fa-IR')}</strong><span>منقضی شده</span></div>
+          <div className="nb-stat-v2-spark" style={{ background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)' }} />
+        </div>
+        <div className="nb-stat-card-v2" style={{ '--stat-glow': 'rgba(34,197,94,0.25)' } as React.CSSProperties}>
+          <div className="nb-stat-v2-icon" style={{ background: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)' }}><CheckCircle2 className="h-[22px] w-[22px] text-white" /></div>
+          <div className="nb-stat-v2-body"><strong>{items.filter(i => daysUntilExpiry(i.expiryDate) > 7).length.toLocaleString('fa-IR')}</strong><span>فعال</span></div>
+          <div className="nb-stat-v2-spark" style={{ background: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)' }} />
+        </div>
+      </section>
+
+      <div className="nb-toolbar">
+        <div className="nb-toolbar-left">
+          <h2>همه هاست/دامنه</h2>
+          <span className="nb-count-badge">{filtered.length.toLocaleString('fa-IR')} مورد</span>
+        </div>
+        <div className="nb-toolbar-right">
+          <div className="nb-search-box">
+            <Search className="h-4 w-4" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="جستجو با شماره، نام، دامنه..." />
           </div>
-        ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <Server className="h-12 w-12 text-slate-300 mb-3" />
-            <p className="text-slate-500 mb-1">
-              {activeTab === 'expiring' ? 'هیچ هاست/دامنه‌ای در حال انقضا نیست' : activeTab === 'expired' ? 'هیچ هاست/دامنه‌ای منقضی نشده است' : 'هیچ هاست/دامنه‌ای ثبت نشده است'}
-            </p>
-            <p className="text-sm text-slate-400">برای ثبت جدید روی دکمه بالا کلیک کنید</p>
-          </div>
-        ) : (
-          <div className="grid gap-3">
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="nb-empty">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
+          <p>در حال بارگذاری...</p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="nb-empty">
+          <div className="sb-empty-icon"><Server className="h-12 w-12 text-muted-foreground/30" /></div>
+          <h3>{activeTab === 'expiring' ? 'هیچ موردی در حال انقضا نیست' : activeTab === 'expired' ? 'هیچ موردی منقضی نشده است' : 'هاست/دامنه‌ای ثبت نشده'}</h3>
+          <p>برای ثبت جدید روی دکمه بالا کلیک کنید</p>
+          <Link href="/dashboard/host-domains/new" className="nb-empty-new-btn"><Plus className="h-4 w-4" /> ثبت هاست/دامنه</Link>
+        </div>
+      ) : (
+        <div className="nb-grid nb-grid-grid">
             {filtered.map((item) => {
               const expStatus = getExpiryStatus(item.expiryDate);
               const ExpIcon = expStatus.icon;
               const isExpired = daysUntilExpiry(item.expiryDate) < 0;
               const isExpiringSoon = !isExpired && daysUntilExpiry(item.expiryDate) <= 7;
               return (
-                <div key={item.id} className="rounded-xl border border-[#E2E8F0] bg-white p-4 transition-all hover:shadow-md">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className="inline-flex items-center gap-1 text-sm font-semibold text-slate-800">
-                          {item.hostType === 'domain' ? <Globe className="h-4 w-4 text-slate-400" /> : <Server className="h-4 w-4 text-slate-400" />}
-                          {fullName(item.firstName, item.lastName)}
-                        </span>
-                        <span
-                          className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium"
-                          style={{ color: expStatus.color, backgroundColor: expStatus.bg }}
-                        >
-                          <ExpIcon className="h-3 w-3" />
-                          {expStatus.label}
-                        </span>
-                        {item.smsSent && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-600">
-                            <CheckCircle2 className="h-3 w-3" />
-                            پیامک ارسال شد
-                          </span>
-                        )}
-                        {item.smsSent && item.smsSentAt && (
-                          <span className="text-[10px] text-slate-400">
-                            {formatJalaliDateTime(item.smsSentAt)}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-400">
-                        <span>مشتری: {item.customerNumber}</span>
-                        <span className="inline-flex items-center gap-1">
-                          <Phone className="h-3 w-3" />
-                          {item.phoneNumber}
-                        </span>
-                        {item.domainName && <span>دامنه: {item.domainName}</span>}
-                        <span>نوع: {getHostTypeLabel(item.hostType)}</span>
-                        <span>شروع: {formatJalali(item.startDate)}</span>
-                        <span>انقضا: {formatJalali(item.expiryDate)}</span>
-                      </div>
-                      {item.notes && (
-                        <div className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
-                          {item.notes}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex flex-col items-end gap-2 shrink-0">
-                      <div className="flex items-center gap-2">
-                        {(!item.smsSent || isExpired) && !isExpired && (
-                          <button
-                            onClick={() => handleSendSms(item.id)}
-                            disabled={sendingSms === item.id}
-                            className="inline-flex items-center gap-1 rounded-lg bg-[#2563EB] px-3 py-1.5 text-xs font-medium text-white transition-all hover:bg-[#1d4ED8] disabled:opacity-50"
-                          >
-                            {sendingSms === item.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                            ارسال پیامک تمدید
-                          </button>
-                        )}
-                        {isExpiringSoon && item.smsSent && (
-                          <button
-                            onClick={() => handleSendSms(item.id)}
-                            disabled={sendingSms === item.id}
-                            className="inline-flex items-center gap-1 rounded-lg border border-[#2563EB] px-3 py-1.5 text-xs font-medium text-[#2563EB] transition-all hover:bg-[#2563EB]/5 disabled:opacity-50"
-                          >
-                            {sendingSms === item.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-                            ارسال مجدد
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleRenew(item.id, item.expiryDate)}
-                          className="inline-flex items-center gap-1 rounded-lg border border-emerald-300 px-3 py-1.5 text-xs font-medium text-emerald-600 transition-all hover:bg-emerald-50"
-                        >
-                          <RefreshCw className="h-3.5 w-3.5" />
-                          تمدید
-                        </button>
-                        <button
-                          onClick={() => handleDelete(item.id)}
-                          className="inline-flex items-center gap-1 rounded-lg border border-[#E2E8F0] px-3 py-1.5 text-xs font-medium text-red-500 transition-all hover:border-red-300 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
+                <article key={item.id} className="nb-card" style={{ borderBottomColor: expStatus.color, borderBottomWidth: 3 }}>
+                  <div className="nb-card-top">
+                    <div className="nb-card-tags">
+                      <span className="nb-card-tag" style={{ background: expStatus.bg, color: expStatus.color }}><ExpIcon className="h-2.5 w-2.5" /> {expStatus.label}</span>
+                      {item.smsSent && <span className="nb-card-tag" style={{ background: '#DCFCE7', color: '#22C55E' }}><CheckCircle2 className="h-2.5 w-2.5" /> پیامک ارسال شد</span>}
                     </div>
                   </div>
-                </div>
+                  <h3 className="nb-card-title">{item.hostType === 'domain' ? <Globe className="h-4 w-4 text-slate-400" /> : <Server className="h-4 w-4 text-slate-400" />} {fullName(item.firstName, item.lastName)}</h3>
+                  <p className="nb-card-excerpt">{item.domainName || 'بدون دامنه'} • {getHostTypeLabel(item.hostType)}</p>
+                  <div className="space-y-1.5 text-xs text-slate-500 dark:text-slate-400">
+                    <div className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5 shrink-0 text-slate-400" /><span dir="ltr">{item.phoneNumber}</span></div>
+                    <div className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5 shrink-0 text-slate-400" /><span>انقضا: {formatJalali(item.expiryDate)}</span></div>
+                  </div>
+                  {item.notes && <div className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">{item.notes}</div>}
+                  <div className="nb-card-footer">
+                    <div className="nb-card-date"><Clock className="h-3 w-3" />{formatJalali(item.startDate)}</div>
+                    <div className="nb-card-quick">
+                      {(!item.smsSent || isExpired) && !isExpired && (
+                        <button onClick={() => handleSendSms(item.id)} disabled={sendingSms === item.id} className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-2 py-1 text-xs font-medium text-white transition hover:bg-blue-700 disabled:opacity-50">
+                          {sendingSms === item.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />} پیامک
+                        </button>
+                      )}
+                      {isExpiringSoon && item.smsSent && (
+                        <button onClick={() => handleSendSms(item.id)} disabled={sendingSms === item.id} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-blue-600 disabled:opacity-50" title="ارسال مجدد">
+                          {sendingSms === item.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                        </button>
+                      )}
+                      <button onClick={() => handleRenew(item.id, item.expiryDate)} className="rounded p-1.5 text-slate-400 hover:bg-emerald-50 hover:text-emerald-600" title="تمدید"><RefreshCw className="h-3.5 w-3.5" /></button>
+                      <button onClick={() => handleDelete(item.id)} className="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500" title="حذف"><Trash2 className="h-3.5 w-3.5" /></button>
+                    </div>
+                  </div>
+                </article>
               );
             })}
           </div>
         )}
-      </div>
+
+      <Link href="/dashboard/host-domains/new" className="nb-fab" aria-label="ثبت هاست/دامنه"><Plus className="h-6 w-6" /></Link>
     </div>
   );
 }

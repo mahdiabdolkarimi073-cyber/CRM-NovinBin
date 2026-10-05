@@ -601,18 +601,22 @@ export default function DocIssuanceWorkboardPage() {
   ];
 
   return (
-    <div className="w-full" dir="rtl">
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <span className="h-10 w-[5px] rounded-full bg-[#FF7A00]" />
-            <h1 className="text-[28px] font-bold text-[#101828]">کارتابل صدور سند</h1>
+    <div className="nb-page" dir="rtl">
+      <header className="nb-hero">
+        <div className="nb-hero-left">
+          <div>
+            <div className="nb-hero-title-row">
+              <span className="nb-hero-marker" style={{ background: 'linear-gradient(180deg,#FF7A00,#E65100)', boxShadow: '0 0 12px rgba(255,122,0,.25)' }} />
+              <h1>کارتابل صدور سند</h1>
+            </div>
+            <p>صدور و مدیریت اسناد حسابداری</p>
           </div>
-          <div className="mt-2 text-xs font-medium text-[#667085]">داشبورد <span className="mx-1.5 text-[#CBD5E1]">←</span> کارتابل <span className="mx-1.5 text-[#CBD5E1]">←</span> صدور سند حسابداری</div>
         </div>
-        <div className="flex h-[42px] items-center rounded-[10px] border border-[#DCE3EE] bg-white p-1 shadow-sm">
-          <button onClick={() => setViewMode('list')} className={`flex h-full items-center rounded-[8px] px-3 text-sm font-semibold transition-colors ${viewMode === 'list' ? 'bg-[#EFF4FF] text-[#2563EB]' : 'text-[#667085] hover:text-[#344054]'}`}><BarChart3 className="ml-1 h-4 w-4" /> لیست</button>
-          <button onClick={() => setViewMode('board')} className={`flex h-full items-center rounded-[8px] px-3 text-sm font-semibold transition-colors ${viewMode === 'board' ? 'bg-[#EFF4FF] text-[#2563EB]' : 'text-[#667085] hover:text-[#344054]'}`}><LayoutGrid className="ml-1 h-4 w-4" /> برد</button>
+        <div className="nb-hero-right">
+          <div className="nb-view-toggle">
+            <button className={viewMode === 'list' ? 'is-active' : ''} onClick={() => setViewMode('list')} aria-label="لیستی"><BarChart3 className="h-4 w-4" /></button>
+            <button className={viewMode === 'board' ? 'is-active' : ''} onClick={() => setViewMode('board')} aria-label="تخته‌ای"><LayoutGrid className="h-4 w-4" /></button>
+          </div>
         </div>
       </header>
 

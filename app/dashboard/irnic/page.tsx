@@ -2,10 +2,8 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { Eye, EyeOff, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Eye, EyeOff, Pencil, Plus, Trash2, Fingerprint, Search, X, Loader2, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 
 type Identity = { id: string; customerName: string; siteName: string; irnicId: string; password: string; assignedTo: string | null };
@@ -41,18 +39,108 @@ export default function IrnicPage() {
 
   const filtered = records.filter((record) => [record.customerName, record.siteName, record.irnicId].join(' ').toLocaleLowerCase().includes(search.toLocaleLowerCase()));
 
-  return (
-    <div className="create-task-page" dir="rtl">
-      <div className="create-task-container">
-        <header className="create-task-header">
-          <div><div className="create-task-title"><span className="title-accent-bar" /><h1>مدیریت شناسه ایرنیک</h1></div><div className="create-task-breadcrumb">داشبورد <b>←</b> مدیریت شناسه ایرنیک</div></div>
-          <Link href="/dashboard/irnic/new"><Button className="bg-[#3155E7] text-white hover:bg-[#2445C7]"><Plus className="h-4 w-4" /> افزودن شناسه جدید</Button></Link>
-        </header>
-        <Card className="border-[#E7ECF3] shadow-[0_3px_14px_rgba(20,40,80,.05)]"><CardContent className="p-5">
-          <div className="mb-5 flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-bold text-[#101828]">فهرست شناسه‌ها</h2><p className="mt-1 text-xs text-[#667085]">اطلاعات دسترسی سایت‌های مشتریان را مدیریت کنید.</p></div><Input className="h-10 max-w-xs" placeholder="جستجوی مشتری، سایت یا شناسه..." value={search} onChange={(event) => setSearch(event.target.value)} /></div>
-          {loading ? <div className="py-16 text-center text-sm text-slate-400">در حال بارگذاری...</div> : filtered.length === 0 ? <div className="py-16 text-center text-sm text-slate-400">شناسه‌ای یافت نشد.</div> : <div className="overflow-x-auto"><table className="w-full min-w-[720px] text-right"><thead><tr className="border-b border-slate-100 text-xs text-slate-500"><th className="px-4 py-4 font-semibold">نام مشتری</th><th className="px-4 py-4 font-semibold">نام سایت</th><th className="px-4 py-4 font-semibold">شناسه ایرنیک</th><th className="px-4 py-4 font-semibold">رمز عبور</th><th className="px-4 py-4 font-semibold">عملیات</th></tr></thead><tbody>{filtered.map((record) => <tr key={record.id} className="border-b border-slate-50 transition-colors hover:bg-slate-50/70"><td className="px-4 py-4 text-sm font-semibold text-[#1D2939]">{record.customerName}</td><td className="px-4 py-4 text-sm text-[#475467]">{record.siteName}</td><td className="px-4 py-4 text-sm text-[#475467]" dir="ltr">{record.irnicId}</td><td className="px-4 py-4"><button type="button" className="flex items-center gap-2 text-sm text-[#475467]" onClick={() => setVisiblePasswords((current) => ({ ...current, [record.id]: !current[record.id] }))}><span dir="ltr">{visiblePasswords[record.id] ? record.password : '••••••••'}</span>{visiblePasswords[record.id] ? <EyeOff className="h-4 w-4 text-slate-400" /> : <Eye className="h-4 w-4 text-slate-400" />}</button></td><td className="px-4 py-4"><div className="flex items-center gap-1"><Link href={`/dashboard/irnic/${record.id}/edit`}><Button size="icon" variant="ghost" className="text-slate-400 hover:text-blue-600"><Pencil className="h-4 w-4" /></Button></Link><Button size="icon" variant="ghost" className="text-slate-400 hover:text-rose-600" onClick={() => remove(record.id)}><Trash2 className="h-4 w-4" /></Button></div></td></tr>)}</tbody></table></div>}
-        </CardContent></Card>
+  if (loading) {
+    return (
+      <div className="nb-page" dir="rtl">
+        <div className="nb-empty">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
+          <p>در حال بارگذاری...</p>
+        </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="nb-page" dir="rtl">
+      <header className="nb-hero">
+        <div className="nb-hero-left">
+          <div>
+            <div className="nb-hero-title-row">
+              <span className="nb-hero-marker" style={{ background: 'linear-gradient(180deg,#8B5CF6,#7C3AED)', boxShadow: '0 0 12px rgba(139,92,246,.25)' }} />
+              <h1>شناسه ایرنیک</h1>
+            </div>
+            <p>مدیریت شناسه‌های ایرنیک مشتریان</p>
+          </div>
+        </div>
+        <div className="nb-hero-right">
+          <Link href="/dashboard/irnic/new" className="nb-new-btn"><Plus className="h-[18px] w-[18px]" /> افزودن شناسه</Link>
+        </div>
+      </header>
+
+      <section className="nb-stats-grid-v2">
+        <div className="nb-stat-card-v2" style={{ '--stat-glow': 'rgba(139,92,246,0.25)' } as React.CSSProperties}>
+          <div className="nb-stat-v2-icon" style={{ background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)' }}><Fingerprint className="h-[22px] w-[22px] text-white" /></div>
+          <div className="nb-stat-v2-body"><strong>{records.length.toLocaleString('fa-IR')}</strong><span>کل شناسه‌ها</span></div>
+          <div className="nb-stat-v2-spark" style={{ background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)' }} />
+        </div>
+        <div className="nb-stat-card-v2" style={{ '--stat-glow': 'rgba(37,99,235,0.25)' } as React.CSSProperties}>
+          <div className="nb-stat-v2-icon" style={{ background: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)' }}><Fingerprint className="h-[22px] w-[22px] text-white" /></div>
+          <div className="nb-stat-v2-body"><strong>{filtered.length.toLocaleString('fa-IR')}</strong><span>مورد نمایش</span></div>
+          <div className="nb-stat-v2-spark" style={{ background: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)' }} />
+        </div>
+      </section>
+
+      <div className="nb-toolbar">
+        <div className="nb-toolbar-left">
+          <h2>فهرست شناسه‌ها</h2>
+          <span className="nb-count-badge">{filtered.length.toLocaleString('fa-IR')} مورد</span>
+        </div>
+        <div className="nb-toolbar-right">
+          <div className="nb-search-box">
+            <Search className="h-4 w-4" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="جستجوی مشتری، سایت یا شناسه..." />
+            {search && <button onClick={() => setSearch('')}><X className="h-3.5 w-3.5" /></button>}
+          </div>
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="nb-empty">
+          <div className="sb-empty-icon"><Fingerprint className="h-12 w-12 text-muted-foreground/30" /></div>
+          <h3>شناسه‌ای یافت نشد</h3>
+          <p>برای افزودن شناسه جدید روی دکمه بالا کلیک کنید</p>
+          <Link href="/dashboard/irnic/new" className="nb-empty-new-btn"><Plus className="h-4 w-4" /> افزودن شناسه</Link>
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[700px]">
+              <thead className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/50">
+                <tr>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">نام مشتری</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">نام سایت</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">شناسه ایرنیک</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">رمز عبور</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">عملیات</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                {filtered.map((record) => (
+                  <tr key={record.id} className="transition hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                    <td className="p-3 font-medium text-slate-800 dark:text-slate-100">{record.customerName}</td>
+                    <td className="p-3 text-slate-600 dark:text-slate-300">{record.siteName}</td>
+                    <td className="p-3 text-slate-600 dark:text-slate-300" dir="ltr">{record.irnicId}</td>
+                    <td className="p-3">
+                      <button type="button" className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300" onClick={() => setVisiblePasswords((c) => ({ ...c, [record.id]: !c[record.id] }))}>
+                        <span dir="ltr">{visiblePasswords[record.id] ? record.password : '••••••••'}</span>
+                        {visiblePasswords[record.id] ? <EyeOff className="h-4 w-4 text-slate-400" /> : <Eye className="h-4 w-4 text-slate-400" />}
+                      </button>
+                    </td>
+                    <td className="p-3">
+                      <div className="flex gap-1">
+                        <Link href={`/dashboard/irnic/${record.id}/edit`} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-700" title="ویرایش"><Pencil className="h-4 w-4" /></Link>
+                        <button onClick={() => remove(record.id)} className="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500" title="حذف"><Trash2 className="h-4 w-4" /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      <Link href="/dashboard/irnic/new" className="nb-fab" aria-label="افزودن شناسه"><Plus className="h-6 w-6" /></Link>
     </div>
   );
 }

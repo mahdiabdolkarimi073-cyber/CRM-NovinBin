@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from '@/components/ui/dialog';
-import { Banknote, Plus, Search, Eye, Trash2 } from 'lucide-react';
+import { Banknote, Plus, Search, Eye, Trash2, X, Loader2, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { SuperAdminActions } from '@/components/dashboard/super-admin-actions';
 import { formatToman, formatJalali, toLocalDateString } from '@/lib/format';
@@ -176,76 +176,112 @@ export default function ReceiptsPage() {
   };
 
   return (
-    <div>
-      <PageHeader
-        title="رسیدها"
-        description="ثبت و مدیریت رسیدهای دریافتی"
-        action={
-          <Link href="/dashboard/receipts/new">
-            <Button size="sm"><Plus className="w-4 h-4" /> رسید جدید</Button>
-          </Link>
-        }
-      />
+    <div className="nb-page" dir="rtl">
+      <header className="nb-hero">
+        <div className="nb-hero-left">
+          <div>
+            <div className="nb-hero-title-row">
+              <span className="nb-hero-marker" style={{ background: 'linear-gradient(180deg,#22C55E,#16A34A)', boxShadow: '0 0 12px rgba(34,197,94,.25)' }} />
+              <h1>رسیدها</h1>
+            </div>
+            <p>ثبت و مدیریت رسیدهای دریافتی</p>
+          </div>
+        </div>
+        <div className="nb-hero-right">
+          <Link href="/dashboard/receipts/new" className="nb-new-btn"><Plus className="h-[18px] w-[18px]" /> رسید جدید</Link>
+        </div>
+      </header>
 
-      <div className="relative mb-4">
-        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-        <Input placeholder="جستجوی رسید..." value={search} onChange={(e) => setSearch(e.target.value)} className="pr-10 max-w-md" />
+      <section className="nb-stats-grid-v2">
+        <div className="nb-stat-card-v2" style={{ '--stat-glow': 'rgba(34,197,94,0.25)' } as React.CSSProperties}>
+          <div className="nb-stat-v2-icon" style={{ background: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)' }}><Banknote className="h-[22px] w-[22px] text-white" /></div>
+          <div className="nb-stat-v2-body"><strong>{receipts.length.toLocaleString('fa-IR')}</strong><span>کل رسیدها</span></div>
+          <div className="nb-stat-v2-spark" style={{ background: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)' }} />
+        </div>
+        <div className="nb-stat-card-v2" style={{ '--stat-glow': 'rgba(37,99,235,0.25)' } as React.CSSProperties}>
+          <div className="nb-stat-v2-icon" style={{ background: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)' }}><Banknote className="h-[22px] w-[22px] text-white" /></div>
+          <div className="nb-stat-v2-body"><strong>{receipts.filter(r => r.receiptType === 'cash').length.toLocaleString('fa-IR')}</strong><span>نقدی</span></div>
+          <div className="nb-stat-v2-spark" style={{ background: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)' }} />
+        </div>
+        <div className="nb-stat-card-v2" style={{ '--stat-glow': 'rgba(245,158,11,0.25)' } as React.CSSProperties}>
+          <div className="nb-stat-v2-icon" style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }}><Banknote className="h-[22px] w-[22px] text-white" /></div>
+          <div className="nb-stat-v2-body"><strong>{receipts.filter(r => r.receiptType === 'cheque').length.toLocaleString('fa-IR')}</strong><span>چکی</span></div>
+          <div className="nb-stat-v2-spark" style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }} />
+        </div>
+        <div className="nb-stat-card-v2" style={{ '--stat-glow': 'rgba(14,165,233,0.25)' } as React.CSSProperties}>
+          <div className="nb-stat-v2-icon" style={{ background: 'linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)' }}><Banknote className="h-[22px] w-[22px] text-white" /></div>
+          <div className="nb-stat-v2-body"><strong>{receipts.filter(r => r.receiptType === 'bank_transfer' || r.receiptType === 'card_to_card').length.toLocaleString('fa-IR')}</strong><span>انتقال بانکی</span></div>
+          <div className="nb-stat-v2-spark" style={{ background: 'linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)' }} />
+        </div>
+      </section>
+
+      <div className="nb-toolbar">
+        <div className="nb-toolbar-left">
+          <h2>همه رسیدها</h2>
+          <span className="nb-count-badge">{filtered.length.toLocaleString('fa-IR')} مورد</span>
+        </div>
+        <div className="nb-toolbar-right">
+          <div className="nb-search-box">
+            <Search className="h-4 w-4" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="جستجوی رسید..." />
+            {search && <button onClick={() => setSearch('')}><X className="h-3.5 w-3.5" /></button>}
+          </div>
+        </div>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin w-8 h-8 border-3 border-sky-500 border-t-transparent rounded-full" />
+        <div className="nb-empty">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
+          <p>در حال بارگذاری رسیدها...</p>
         </div>
       ) : filtered.length === 0 ? (
-        <Card>
-          <EmptyState
-            icon={<Banknote className="w-8 h-8" />}
-            title="رسیدی یافت نشد"
-            description="اولین رسید را ثبت کنید"
-            action={<Link href="/dashboard/receipts/new"><Button><Plus className="w-4 h-4" /> رسید جدید</Button></Link>}
-          />
-        </Card>
+        <div className="nb-empty">
+          <div className="sb-empty-icon"><Banknote className="h-12 w-12 text-muted-foreground/30" /></div>
+          <h3>رسیدی ثبت نشده</h3>
+          <p>رسیدهای دریافتی در اینجا نمایش داده می‌شوند</p>
+          <Link href="/dashboard/receipts/new" className="nb-empty-new-btn"><Plus className="h-4 w-4" /> ثبت رسید</Link>
+        </div>
       ) : (
-        <Card>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-slate-50 text-slate-500 text-xs">
-                    <th className="text-right p-3 font-medium">شماره</th>
-                    <th className="text-right p-3 font-medium">مبلغ</th>
-                    <th className="text-right p-3 font-medium">نوع</th>
-                    <th className="text-right p-3 font-medium">واریز به</th>
-                    <th className="text-right p-3 font-medium">پرداخت‌کننده</th>
-                    <th className="text-right p-3 font-medium">تاریخ</th>
-                    {isSuperAdmin && <th className="text-center p-3 font-medium">عملیات</th>}
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[700px]">
+              <thead className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/50">
+                <tr>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">شماره</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">مبلغ</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">نوع</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">واریز به</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">پرداخت‌کننده</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">تاریخ</th>
+                  {isSuperAdmin && <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">عملیات</th>}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                {filtered.map((r) => (
+                  <tr key={r.id} className="transition hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                    <td className="p-3"><span className="font-mono text-xs text-slate-500 dark:text-slate-400">{r.number}</span></td>
+                    <td className="p-3"><span className="text-sm font-bold text-slate-800 dark:text-slate-100">{formatToman(Number(r.amount))} ت</span></td>
+                    <td className="p-3 text-sm text-slate-600 dark:text-slate-300">{RECEIPT_TYPE_LABEL[r.receiptType] || r.receiptType}</td>
+                    <td className="p-3 text-xs text-slate-500 dark:text-slate-400">{DEPOSIT_LABEL[r.depositTo || ''] || '—'}</td>
+                    <td className="p-3 text-sm text-slate-600 dark:text-slate-300">{r.payerName || '—'}</td>
+                    <td className="p-3 text-xs text-slate-500 dark:text-slate-400">{formatJalali(r.receivedDate)}</td>
+                    {isSuperAdmin && (
+                      <td className="p-3">
+                        <div className="flex gap-1">
+                          <button onClick={() => { setViewReceipt(r); setViewDialogOpen(true); }} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700" title="مشاهده"><Eye className="h-4 w-4" /></button>
+                          <button onClick={() => handleDelete(r)} className="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500" title="حذف"><Trash2 className="h-4 w-4" /></button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {filtered.map((r) => (
-                    <tr key={r.id} className="hover:bg-slate-50 transition-smooth">
-                      <td className="p-3 font-medium text-slate-800">{r.number}</td>
-                      <td className="p-3 font-bold">{formatToman(Number(r.amount))} ت</td>
-                      <td className="p-3 text-slate-600">{RECEIPT_TYPE_LABEL[r.receiptType] || r.receiptType}</td>
-                      <td className="p-3 text-slate-500">{DEPOSIT_LABEL[r.depositTo || ''] || '—'}</td>
-                      <td className="p-3 text-slate-600">{r.payerName || '—'}</td>
-                      <td className="p-3 text-slate-500">{formatJalali(r.receivedDate)}</td>
-                      {isSuperAdmin && (
-                        <td className="p-3">
-                          <div className="flex items-center justify-center gap-1">
-                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => { setViewReceipt(r); setViewDialogOpen(true); }}><Eye className="w-4 h-4 text-sky-600" /></Button>
-                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-red-50" onClick={() => handleDelete(r)}><Trash2 className="w-4 h-4 text-red-500" /></Button>
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
+
+      <Link href="/dashboard/receipts/new" className="nb-fab" aria-label="رسید جدید"><Plus className="h-6 w-6" /></Link>
 
       {/* View Dialog */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>

@@ -6,9 +6,10 @@ import { formatJalaliDateTime } from '@/lib/format';
 import { toast } from 'sonner';
 import {
   Search, Loader2, Send, CheckCircle2, XCircle, Trash2,
-  MessageSquare, Phone,
+  MessageSquare, Phone, X, Clock,
 } from 'lucide-react';
 import type { SmsLog } from '@/lib/types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const typeLabels: Record<string, string> = {
   manual: 'دستی',
@@ -25,9 +26,7 @@ export default function SmsLogsPage() {
 
   const load = useCallback(async () => {
     try {
-      const data = await fetchData<SmsLog>('sms_logs', {
-        orderBy: { createdAt: 'desc' },
-      });
+      const data = await fetchData<SmsLog>('sms_logs', { orderBy: { createdAt: 'desc' } });
       setItems(data || []);
     } catch {
       setItems([]);
@@ -39,9 +38,7 @@ export default function SmsLogsPage() {
   useEffect(() => { load(); }, [load]);
 
   const filtered = items.filter((item) => {
-    const matchesSearch = !search ||
-      item.mobile.includes(search) ||
-      item.message.includes(search);
+    const matchesSearch = !search || item.mobile.includes(search) || item.message.includes(search);
     const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
     const matchesType = typeFilter === 'all' || item.type === typeFilter;
     return matchesSearch && matchesStatus && matchesType;
@@ -58,132 +55,117 @@ export default function SmsLogsPage() {
     }
   };
 
-  return (
-    <div className="create-task-page" dir="rtl">
-      <div className="create-task-container">
-        <header className="create-task-header">
-          <div>
-            <div className="create-task-title">
-              <span className="title-accent-bar" />
-              <h1>تاریخچه پیامک‌ها</h1>
-            </div>
-            <div className="create-task-breadcrumb">
-              داشبورد <b>←</b> پیامک‌ها
-            </div>
-          </div>
-        </header>
+  if (loading) {
+    return (
+      <div className="nb-page" dir="rtl">
+        <div className="nb-empty">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
+          <p>در حال بارگذاری پیامک‌ها...</p>
+        </div>
+      </div>
+    );
+  }
 
-        {/* Filters */}
-        <div className="flex flex-wrap gap-3 mb-4 items-center">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="جستجو در شماره یا متن پیامک..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-lg border border-[#E2E8F0] bg-white py-2.5 pr-10 pl-4 text-sm text-slate-700 focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/10"
-            />
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setStatusFilter('all')}
-              className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${statusFilter === 'all' ? 'bg-[#2563EB] text-white' : 'bg-white border border-[#E2E8F0] text-slate-600 hover:border-[#94A3B8]'}`}
-            >
-              همه
-            </button>
-            <button
-              onClick={() => setStatusFilter('sent')}
-              className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${statusFilter === 'sent' ? 'bg-emerald-500 text-white' : 'bg-white border border-[#E2E8F0] text-slate-600 hover:border-[#94A3B8]'}`}
-            >
-              موفق
-            </button>
-            <button
-              onClick={() => setStatusFilter('failed')}
-              className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${statusFilter === 'failed' ? 'bg-red-500 text-white' : 'bg-white border border-[#E2E8F0] text-slate-600 hover:border-[#94A3B8]'}`}
-            >
-              ناموفق
-            </button>
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            <button
-              onClick={() => setTypeFilter('all')}
-              className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${typeFilter === 'all' ? 'bg-slate-700 text-white' : 'bg-white border border-[#E2E8F0] text-slate-600 hover:border-[#94A3B8]'}`}
-            >
-              همه نوع
-            </button>
-            <button
-              onClick={() => setTypeFilter('meeting_reminder')}
-              className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${typeFilter === 'meeting_reminder' ? 'bg-slate-700 text-white' : 'bg-white border border-[#E2E8F0] text-slate-600 hover:border-[#94A3B8]'}`}
-            >
-              جلسات
-            </button>
-            <button
-              onClick={() => setTypeFilter('expiry_reminder')}
-              className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${typeFilter === 'expiry_reminder' ? 'bg-slate-700 text-white' : 'bg-white border border-[#E2E8F0] text-slate-600 hover:border-[#94A3B8]'}`}
-            >
-              تمدید هاست/دامنه
-            </button>
-            <button
-              onClick={() => setTypeFilter('manual')}
-              className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${typeFilter === 'manual' ? 'bg-slate-700 text-white' : 'bg-white border border-[#E2E8F0] text-slate-600 hover:border-[#94A3B8]'}`}
-            >
-              دستی
-            </button>
+  return (
+    <div className="nb-page" dir="rtl">
+      <header className="nb-hero">
+        <div className="nb-hero-left">
+          <div>
+            <div className="nb-hero-title-row">
+              <span className="nb-hero-marker" style={{ background: 'linear-gradient(180deg,#0EA5E9,#0284C7)', boxShadow: '0 0 12px rgba(14,165,233,.25)' }} />
+              <h1>پیامک‌ها</h1>
+            </div>
+            <p>تاریخچه پیامک‌های ارسالی سیستم</p>
           </div>
         </div>
+      </header>
 
-        {/* List */}
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-[#2563EB]" />
+      <section className="nb-stats-grid-v2">
+        <div className="nb-stat-card-v2" style={{ '--stat-glow': 'rgba(14,165,233,0.25)' } as React.CSSProperties}>
+          <div className="nb-stat-v2-icon" style={{ background: 'linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)' }}><Send className="h-[22px] w-[22px] text-white" /></div>
+          <div className="nb-stat-v2-body"><strong>{items.length.toLocaleString('fa-IR')}</strong><span>کل پیامک‌ها</span></div>
+          <div className="nb-stat-v2-spark" style={{ background: 'linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)' }} />
+        </div>
+        <div className="nb-stat-card-v2" style={{ '--stat-glow': 'rgba(34,197,94,0.25)' } as React.CSSProperties}>
+          <div className="nb-stat-v2-icon" style={{ background: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)' }}><CheckCircle2 className="h-[22px] w-[22px] text-white" /></div>
+          <div className="nb-stat-v2-body"><strong>{items.filter(i => i.status === 'sent').length.toLocaleString('fa-IR')}</strong><span>موفق</span></div>
+          <div className="nb-stat-v2-spark\" style={{ background: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)' }} />
+        </div>
+        <div className="nb-stat-card-v2" style={{ '--stat-glow': 'rgba(239,68,68,0.25)' } as React.CSSProperties}>
+          <div className="nb-stat-v2-icon" style={{ background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)' }}><XCircle className="h-[22px] w-[22px] text-white" /></div>
+          <div className="nb-stat-v2-body"><strong>{items.filter(i => i.status === 'failed').length.toLocaleString('fa-IR')}</strong><span>ناموفق</span></div>
+          <div className="nb-stat-v2-spark" style={{ background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)' }} />
+        </div>
+        <div className="nb-stat-card-v2" style={{ '--stat-glow': 'rgba(37,99,235,0.25)' } as React.CSSProperties}>
+          <div className="nb-stat-v2-icon" style={{ background: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)' }}><MessageSquare className="h-[22px] w-[22px] text-white" /></div>
+          <div className="nb-stat-v2-body"><strong>{filtered.length.toLocaleString('fa-IR')}</strong><span>مورد نمایش</span></div>
+          <div className="nb-stat-v2-spark" style={{ background: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)' }} />
+        </div>
+      </section>
+
+      <div className="nb-toolbar">
+        <div className="nb-toolbar-left">
+          <h2>تاریخچه پیامک‌ها</h2>
+          <span className="nb-count-badge">{filtered.length.toLocaleString('fa-IR')} مورد</span>
+        </div>
+        <div className="nb-toolbar-right">
+          <div className="nb-search-box">
+            <Search className="h-4 w-4" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="جستجو در شماره یا متن..." />
+            {search && <button onClick={() => setSearch('')}><X className="h-3.5 w-3.5" /></button>}
           </div>
-        ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <MessageSquare className="h-12 w-12 text-slate-300 mb-3" />
-            <p className="text-slate-500 mb-1">هیچ پیامکی ارسال نشده است</p>
-          </div>
-        ) : (
-          <div className="grid gap-3">
-            {filtered.map((item) => (
-              <div key={item.id} className="rounded-xl border border-[#E2E8F0] bg-white p-4 transition-all hover:shadow-md">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${item.status === 'sent' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'}`}>
-                        {item.status === 'sent' ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
-                        {item.status === 'sent' ? 'موفق' : 'ناموفق'}
-                      </span>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
-                        {typeLabels[item.type] || item.type}
-                      </span>
-                      <span className="inline-flex items-center gap-1 text-[11px] text-slate-400" dir="ltr">
-                        <Phone className="h-3 w-3" />
-                        {item.mobile}
-                      </span>
-                    </div>
-                    <p className="text-sm text-slate-700 mb-1">{item.message}</p>
-                    <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-400">
-                      <span>{formatJalaliDateTime(item.createdAt)}</span>
-                    </div>
-                    {item.status === 'failed' && item.response && (
-                      <div className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-500">
-                        {item.response.slice(0, 200)}
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => handleDelete(item.id)}
-                    className="shrink-0 inline-flex items-center gap-1 rounded-lg border border-[#E2E8F0] px-3 py-1.5 text-xs font-medium text-red-500 transition-all hover:border-red-300 hover:bg-red-50"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="nb-select-filter h-10 w-[120px]"><SelectValue placeholder="وضعیت" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">همه وضعیت‌ها</SelectItem>
+              <SelectItem value="sent">موفق</SelectItem>
+              <SelectItem value="failed">ناموفق</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="nb-select-filter h-10 w-[140px]"><SelectValue placeholder="نوع" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">همه نوع</SelectItem>
+              <SelectItem value="meeting_reminder">جلسات</SelectItem>
+              <SelectItem value="expiry_reminder">تمدید هاست/دامنه</SelectItem>
+              <SelectItem value="manual">دستی</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
+
+      {filtered.length === 0 ? (
+        <div className="nb-empty">
+          <div className="sb-empty-icon"><MessageSquare className="h-12 w-12 text-muted-foreground/30" /></div>
+          <h3>پیامکی ارسال نشده</h3>
+          <p>تاریخچه پیامک‌های ارسالی در اینجا نمایش داده می‌شود</p>
+        </div>
+      ) : (
+        <div className="nb-grid nb-grid-grid">
+          {filtered.map((item) => (
+            <article key={item.id} className="nb-card" style={{ borderBottomColor: item.status === 'sent' ? '#22C55E' : '#EF4444', borderBottomWidth: 3 }}>
+              <div className="nb-card-top">
+                <div className="nb-card-tags">
+                  <span className="nb-card-tag" style={{ background: item.status === 'sent' ? '#DCFCE7' : '#FEE2E2', color: item.status === 'sent' ? '#22C55E' : '#EF4444' }}>
+                    {item.status === 'sent' ? <CheckCircle2 className="h-2.5 w-2.5" /> : <XCircle className="h-2.5 w-2.5" />}
+                    {item.status === 'sent' ? 'موفق' : 'ناموفق'}
+                  </span>
+                  <span className="nb-card-tag" style={{ background: '#F1F5F9', color: '#64748b' }}>{typeLabels[item.type] || item.type}</span>
+                </div>
+                <button onClick={() => handleDelete(item.id)} className="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500" title="حذف"><Trash2 className="h-3.5 w-3.5" /></button>
+              </div>
+              <p className="nb-card-excerpt" style={{ WebkitLineClamp: 2 }}>{item.message}</p>
+              <div className="space-y-1.5 text-xs text-slate-500 dark:text-slate-400">
+                <div className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5 shrink-0 text-slate-400" /><span dir="ltr">{item.mobile}</span></div>
+                {item.status === 'failed' && item.response && <div className="rounded-lg bg-red-50 px-2 py-1 text-[10px] text-red-500 dark:bg-red-900/20">{item.response.slice(0, 150)}</div>}
+              </div>
+              <div className="nb-card-footer">
+                <div className="nb-card-date"><Clock className="h-3 w-3" />{formatJalaliDateTime(item.createdAt)}</div>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

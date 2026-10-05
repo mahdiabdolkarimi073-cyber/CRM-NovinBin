@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/select';
 import {
   Plus, FlaskConical, Search, Calendar, Clock, CheckCircle, Link2, Copy, Eye, EyeOff, KeyRound,
-  Loader2, LayoutGrid, List, X, AlertTriangle, TrendingUp, Sparkles, Zap,
+  Loader2, LayoutGrid, List, X, AlertTriangle, TrendingUp, Sparkles, Zap, Pencil,
 } from 'lucide-react';
 import Link from 'next/link';
 import { formatJalali, toLocalDateString } from '@/lib/format';
@@ -257,10 +257,10 @@ export default function DemosPage() {
         <div className="nb-hero-right">
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <button className="nb-new-btn" onClick={() => setDialogOpen(true)}>
+              <Link href="/dashboard/demos/new" className="nb-new-btn">
                 <Plus className="h-[18px] w-[18px]" />
                 دموی جدید
-              </button>
+              </Link>
             </DialogTrigger>
           </Dialog>
         </div>
@@ -336,10 +336,10 @@ export default function DemosPage() {
           </div>
           <h3>دمویی ایجاد نشده</h3>
           <p>اولین نسخه دموی ۱۵ روزه را ایجاد کنید</p>
-          <button className="nb-empty-new-btn" onClick={() => setDialogOpen(true)}>
+          <Link href="/dashboard/demos/new" className="nb-empty-new-btn">
             <Plus className="h-4 w-4" />
             افزودن دمو
-          </button>
+          </Link>
         </div>
       ) : viewMode === 'board' ? (
         <div className="nb-grid nb-grid-grid">
@@ -422,6 +422,9 @@ export default function DemosPage() {
                     )}
                   </div>
                   <div className="nb-card-quick">
+                    <Link href={`/dashboard/demos/${demo.id}/edit`} onClick={(e) => e.stopPropagation()} className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700" title="ویرایش">
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Link>
                     {info && (
                       <button onClick={(e) => { e.stopPropagation(); setAccessDemo({ demo, info }); setShowPassword(false); }} title="مشاهده لینک">
                         <Link2 className="h-3.5 w-3.5" />
@@ -497,6 +500,7 @@ export default function DemosPage() {
                         </Badge>
                       </td>
                       <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex gap-1">
                         {info ? (
                           <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => { setAccessDemo({ demo, info }); setShowPassword(false); }}>
                             <Link2 className="w-3.5 h-3.5" />
@@ -505,6 +509,10 @@ export default function DemosPage() {
                         ) : (
                           <span className="text-xs text-slate-400">—</span>
                         )}
+                        <Link href={`/dashboard/demos/${demo.id}/edit`} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700">
+                          <Pencil className="h-4 w-4" />
+                        </Link>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -538,7 +546,7 @@ export default function DemosPage() {
         </div>
       )}
 
-      <Link href="#" onClick={(e) => { e.preventDefault(); setDialogOpen(true); }} className="nb-fab" aria-label="دموی جدید">
+      <Link href="/dashboard/demos/new" className="nb-fab" aria-label="دموی جدید">
         <Plus className="h-6 w-6" />
       </Link>
 

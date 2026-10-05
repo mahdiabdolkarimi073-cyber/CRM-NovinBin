@@ -4,11 +4,8 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { fetchData, createData, updateData, deleteData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
-import { EmptyState } from '@/components/dashboard/empty-state';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -21,9 +18,9 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
-  CheckSquare, Plus, Search, Calendar, GripVertical, Clock, Trash2, Edit,
-  MessageSquare, Send, Forward, Inbox, BarChart3, Circle, CheckCircle2,
-  XCircle, PlayCircle, LayoutGrid, Filter, Flag, Bookmark, ChevronDown,
+  CheckSquare, Plus, Search, Calendar, Clock, Trash2, Edit,
+  MessageSquare, Send, Forward, Inbox, Circle, CheckCircle2,
+  XCircle, PlayCircle, LayoutGrid, List, Filter, Flag, X, Loader2,
 } from 'lucide-react';
 import { formatJalali, relativeTime, toLocalDateString } from '@/lib/format';
 import { TASK_STATUSES, TASK_PRIORITIES, fullName } from '@/lib/constants';
@@ -48,7 +45,6 @@ export default function TasksPage() {
   const [filterAssignee, setFilterAssignee] = useState('all');
   const [filterCreator, setFilterCreator] = useState('all');
   const [filterDueDate, setFilterDueDate] = useState('all');
-  const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(5);
   const [creating, setCreating] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -261,13 +257,42 @@ export default function TasksPage() {
   const canEdit = (task?: Task) => isSuperAdmin && (!task || task.status !== 'completed');
   const canDelete = (task?: Task) => isSuperAdmin && (!task || task.status !== 'completed');
   const canDrag = (task: Task) => {
-    // Completed tasks can only be dragged by super admin
     if (task.status === 'completed' && !isSuperAdmin) return false;
     return true;
   };
   const canRefer = referOptions.length > 0;
   const taskSummary = [...TASK_STATUSES].reverse().map((stage) => ({ ...stage, count: displayTasks.filter((task) => task.status === stage.key).length }));
-  const totalTasks = displayTasks.length;
+
+  const stats = useMemo(() => [
+    {
+      label: 'کل وظایف', value: tasks.length, icon: CheckSquare,
+      filter: 'all',
+      gradient: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)',
+      glow: 'rgba(37,99,235,0.25)',
+    },
+    {
+      label: 'در حال انجام', value: tasks.filter((t) => t.status === 'in_progress').length, icon: PlayCircle,
+      filter: 'in_progress',
+      gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+      glow: 'rgba(245,158,11,0.25)',
+    },
+    {
+      label: 'تکمیل شده', value: tasks.filter((t) => t.status === 'completed').length, icon: CheckCircle2,
+      filter: 'completed',
+      gradient: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)',
+      glow: 'rgba(34,197,94,0.25)',
+    },
+    {
+      label: 'لغو شده', value: tasks.filter((t) => t.status === 'cancelled').length, icon: XCircle,
+      filter: 'cancelled',
+      gradient: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+      glow: 'rgba(239,68,68,0.25)',
+    },
+  ], [tasks]);
+
+  const handleStatClick = (f: string) => {
+    setFilterStatus(filterStatus === f ? 'all' : f);
+  };
 
   const hasUnreadComments = (taskId: string) => {
     const count = commentCounts[taskId] || 0;
@@ -283,87 +308,78 @@ export default function TasksPage() {
     const isReferred = !!task.referredDate;
     const cCount = commentCounts[task.id] || 0;
     const unread = hasUnreadComments(task.id);
+    const stColor = statusInfo(task.status).color;
     return (
       <div draggable={canDrag(task)} onDragStart={() => canDrag(task) && setDragId(task.id)} onDragEnd={() => { setDragId(null); setDragOver(null); }} onClick={() => openDetail(task)}
-        className={`cursor-grab rounded-[11px] border bg-white p-[14px] shadow-[0_2px_8px_rgba(20,40,80,.04)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_6px_16px_rgba(20,40,80,.08)] active:cursor-grabbing ${dragId === task.id ? 'opacity-50' : ''} ${isReferred ? 'border-amber-200 bg-amber-50/30' : 'border-[#E7ECF3]'} ${unread ? 'ring-2 ring-sky-400/50' : ''}`}>
-        <div className="mb-2 flex items-start gap-2">
-          <GripVertical className="mt-1 h-4 w-4 shrink-0 text-[#98A2B3]" />
-          <div className="min-w-0 flex-1">
-            <div className="text-sm font-bold leading-7 text-[#1D2939]">{task.title}</div>
-            {task.description && <div className="mt-1 line-clamp-2 text-xs leading-5 text-[#667085]">{task.description}</div>}
+        className={`nb-card cursor-grab active:cursor-grabbing ${dragId === task.id ? 'opacity-50' : ''} ${isReferred ? 'border-amber-200' : ''} ${unread ? 'ring-2 ring-sky-400/50' : ''}`}
+        style={{ borderBottomColor: stColor, borderBottomWidth: 3 }}>
+        <div className="nb-card-top">
+          <div className="nb-card-tags">
+            <span className="nb-card-tag" style={{ background: `${pr.color}15`, color: pr.color }}>
+              {pr.label}
+            </span>
+            {isReferred && <span className="nb-card-tag" style={{ background: 'rgba(245,158,11,.12)', color: '#f59e0b' }}><Forward className="h-2.5 w-2.5" /> ارجاعی</span>}
           </div>
           {cCount > 0 && (
             <span className={`flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-full px-1 text-[10px] font-bold ${unread ? 'bg-sky-500 text-white animate-pulse' : 'bg-slate-100 text-slate-500'}`} title={unread ? 'نظرات جدید' : 'نظرات'}>
               <MessageSquare className="h-2.5 w-2.5" />{cCount.toLocaleString('fa-IR')}
             </span>
           )}
-          {isReferred && <Badge variant="outline" className="shrink-0 border-amber-300 text-[10px] text-amber-600"><Forward className="ml-1 h-3 w-3" />ارجاعی</Badge>}
-          {canEdit(task) && <button onClick={(e) => { e.stopPropagation(); openEdit(task); }} className="text-[#98A2B3] transition-colors hover:text-[#2563EB]"><Edit className="h-3.5 w-3.5" /></button>}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline" style={{ color: pr.color, borderColor: `${pr.color}35`, backgroundColor: `${pr.color}10` }} className="rounded-full border px-2 py-1 text-[10px] font-semibold">{pr.label}</Badge>
-          {task.dueDate && <span className={`flex items-center gap-1 text-[11px] ${overdue ? 'font-medium text-red-500' : 'text-[#8490A5]'}`}><Calendar className="h-3.5 w-3.5" />{formatJalali(task.dueDate)}</span>}
-          {creator && activeTab === 'referrals' && <span className="text-[11px] text-[#98A2B3]">از: {creator}</span>}
-        </div>
-        <div className="mt-2.5 flex items-center justify-between border-t border-[#EEF1F5] pt-2.5">
-          {assignee ? (
+        <h3 className="nb-card-title">{task.title}</h3>
+        {task.description && <p className="nb-card-excerpt">{task.description}</p>}
+        <div className="space-y-1.5 text-xs text-slate-500 dark:text-slate-400">
+          {task.dueDate && (
             <div className="flex items-center gap-1.5">
-              <Avatar className="h-6 w-6"><AvatarFallback className="bg-[#EFF4FF] text-[10px] text-[#2563EB]">{assignee[0]}</AvatarFallback></Avatar>
-              <span className="text-[11px] text-[#667085]">{assignee}</span>
+              <Calendar className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+              <span className={overdue ? 'font-medium text-red-500' : ''}>موعد: {formatJalali(task.dueDate)}</span>
             </div>
-          ) : <span />}
-          {unread ? <span className="flex items-center gap-1 text-[10px] font-medium text-sky-600"><span className="h-2 w-2 animate-pulse rounded-full bg-sky-500" />نظر جدید</span> : <Flag className="h-3.5 w-3.5 text-[#98A2B3]" />}
+          )}
+          {creator && activeTab === 'referrals' && (
+            <div className="flex items-center gap-1.5">
+              <span className="shrink-0 text-slate-400">از:</span>
+              <span>{creator}</span>
+            </div>
+          )}
+        </div>
+        <div className="nb-card-footer">
+          <div className="nb-card-date">
+            <Clock className="h-3 w-3" />
+            {relativeTime(task.createdAt)}
+          </div>
+          <div className="nb-card-quick">
+            {assignee ? (
+              <div className="flex items-center gap-1.5">
+                <Avatar className="h-6 w-6"><AvatarFallback className="bg-sky-100 text-[10px] text-sky-700 dark:bg-sky-900/30 dark:text-sky-400">{assignee[0]}</AvatarFallback></Avatar>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">{assignee}</span>
+              </div>
+            ) : unread ? <span className="flex items-center gap-1 text-[10px] font-medium text-sky-600"><span className="h-2 w-2 animate-pulse rounded-full bg-sky-500" />نظر جدید</span> : <Flag className="h-3.5 w-3.5 text-slate-400" />}
+            {canEdit(task) && <button onClick={(e) => { e.stopPropagation(); openEdit(task); }} className="text-slate-400 transition-colors hover:text-blue-600" title="ویرایش"><Edit className="h-3.5 w-3.5" /></button>}
+          </div>
         </div>
       </div>
     );
   };
 
-  const renderForm = (isEdit: boolean) => (
-    <form onSubmit={isEdit ? handleEdit : handleCreate} className="space-y-4">
-      <div className="space-y-2"><Label>عنوان *</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required /></div>
-      <div className="space-y-2"><Label>توضیحات</Label><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-2"><Label>مسئول انجام</Label>
-          <Select value={form.assignedTo} onValueChange={(v) => setForm({ ...form, assignedTo: v === 'none' ? '' : v })}>
-            <SelectTrigger><SelectValue placeholder="انتخاب..." /></SelectTrigger>
-            <SelectContent><SelectItem value="none">بدون تخصیص</SelectItem>{assigneeOptions.map((s) => <SelectItem key={s.id} value={s.id}>{fullName(s.firstName, s.lastName)}{s.id === profile?.id ? ' (خودم)' : ''}</SelectItem>)}</SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2"><Label>اولویت</Label>
-          <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>{TASK_PRIORITIES.map((p) => <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>)}</SelectContent>
-          </Select>
-        </div>
-      </div>
-      <div className="space-y-2"><Label>موعد انجام</Label><JalaliDatePicker value={form.dueDate ? new Date(form.dueDate) : null} onChange={(d) => setForm({ ...form, dueDate: d ? toLocalDateString(d) : '' })} /></div>
-      <DialogFooter>
-        <Button type="button" variant="outline" onClick={() => setEditingTask(null)}>انصراف</Button>
-        <Button type="submit" disabled={creating}>{isEdit ? 'ذخیره تغییرات' : creating ? 'در حال ایجاد...' : 'ایجاد'}</Button>
-      </DialogFooter>
-    </form>
-  );
-
   const renderBoard = (taskList: Task[]) => (
     <div className="w-full overflow-hidden pb-4">
-      {/* Four equal columns fill the entire available board width without horizontal scrolling. */}
       <div className="grid w-full grid-cols-1 gap-3 mobile:grid-cols-2 tablet:grid-cols-4 tablet:gap-4">
         {[...TASK_STATUSES].reverse().map((stage) => {
           const items = taskList.filter((t) => t.status === stage.key);
           const visibleItems = items.slice(0, visibleCount);
           return (
-            <div key={stage.key} className={`min-w-0 w-full overflow-hidden rounded-[14px] border border-[#E6EBF2] bg-[#F8FAFD] transition-all ${dragOver === stage.key ? 'ring-2 ring-[#2563EB]/40' : ''}`}
+            <div key={stage.key} className={`min-w-0 w-full overflow-hidden rounded-[14px] border border-slate-200 bg-slate-50 transition-all dark:border-slate-700 dark:bg-slate-800/50 ${dragOver === stage.key ? 'ring-2 ring-blue-500/40' : ''}`}
               onDragOver={(e) => { e.preventDefault(); setDragOver(stage.key); }} onDragLeave={() => setDragOver(null)} onDrop={() => handleDrop(stage.key)}>
-              <div className="flex h-[52px] items-center justify-between border-b-[3px] bg-white px-4" style={{ borderColor: stage.color }}>
-                <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: stage.color }} /><span className="text-sm font-bold text-[#1D2939]">{stage.label}</span></div>
-                <span className="rounded-full bg-[#F1F5F9] px-2 py-0.5 text-xs font-medium text-[#667085]">{items.length.toLocaleString('fa-IR')}</span>
+              <div className="flex h-[52px] items-center justify-between border-b-[3px] bg-white px-4 dark:bg-slate-800" style={{ borderColor: stage.color }}>
+                <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: stage.color }} /><span className="text-sm font-bold text-slate-800 dark:text-slate-200">{stage.label}</span></div>
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500 dark:bg-slate-700 dark:text-slate-400">{items.length.toLocaleString('fa-IR')}</span>
               </div>
               <div className="min-h-[400px] space-y-2.5 p-2.5">
                 {[...visibleItems].sort((a, b) => (hasUnreadComments(b.id) ? 1 : 0) - (hasUnreadComments(a.id) ? 1 : 0)).map((task) => <TaskCard key={task.id} task={task} />)}
-                {items.length === 0 && <div className="py-8 text-center text-xs text-[#CBD5E1]">کارت اینجا رها کنید</div>}
-                {items.length > visibleCount && <button type="button" onClick={() => setVisibleCount((count) => count + 5)} className="w-full rounded-lg py-2 text-xs font-semibold text-[#3155E7] transition-colors hover:bg-[#EFF4FF]">نمایش ۵ مورد دیگر</button>}
+                {items.length === 0 && <div className="py-8 text-center text-xs text-slate-300 dark:text-slate-600">کارت اینجا رها کنید</div>}
+                {items.length > visibleCount && <button type="button" onClick={() => setVisibleCount((count) => count + 5)} className="w-full rounded-lg py-2 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20">نمایش ۵ مورد دیگر</button>}
               </div>
-              <button className="flex h-[44px] w-full items-center justify-center gap-1 border-t border-[#E8EDF4] text-xs font-semibold text-[#64748B] transition-colors hover:bg-[#F1F5F9]"><Plus className="h-3.5 w-3.5" /> افزودن وظیفه</button>
+              <Link href="/dashboard/tasks/new" className="flex h-[44px] w-full items-center justify-center gap-1 border-t border-slate-200 text-xs font-semibold text-slate-500 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-700/50"><Plus className="h-3.5 w-3.5" /> افزودن وظیفه</Link>
             </div>
           );
         })}
@@ -380,217 +396,211 @@ export default function TasksPage() {
     });
     const visibleItems = sorted.slice(0, visibleCount);
     return (
-    <Card><CardContent className="p-0">
-      <div className="divide-y divide-[#F1F5F9]">
-        {visibleItems.map((task) => {
-          const st = statusInfo(task.status); const pr = priorityInfo(task.priority);
-          const assignee = getStaffName(task.assignedTo); const creator = getStaffName(task.createdBy || null);
-          const overdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'completed';
-          const cCount = commentCounts[task.id] || 0;
-          const unread = hasUnreadComments(task.id);
-          return (
-            <div key={task.id} className={`flex cursor-pointer items-center gap-3 p-4 transition-colors hover:bg-[#F8FAFD] ${unread ? 'bg-sky-50/40' : ''}`} onClick={() => openDetail(task)}>
-              <div className="h-10 w-2 rounded-full" style={{ backgroundColor: st.color }} />
-              {unread && <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-sky-500" title="نظر جدید" />}
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <div className="truncate text-sm font-bold text-[#1D2939]">{task.title}</div>
-                  {cCount > 0 && <span className={`flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-full px-1 text-[10px] font-bold ${unread ? 'bg-sky-500 text-white' : 'bg-slate-100 text-slate-500'}`}><MessageSquare className="h-2.5 w-2.5" />{cCount.toLocaleString('fa-IR')}</span>}
-                </div>
-                <div className="mt-1 flex items-center gap-3">
-                  <Badge variant="outline" style={{ color: pr.color, borderColor: `${pr.color}35` }} className="text-xs">{pr.label}</Badge>
-                  {task.dueDate && <span className={`flex items-center gap-1 text-xs ${overdue ? 'font-medium text-red-500' : 'text-[#98A2B3]'}`}><Clock className="h-3 w-3" />{formatJalali(task.dueDate)}</span>}
-                  <span className="text-xs text-[#98A2B3]">{relativeTime(task.createdAt)}</span>
-                  {task.referredDate && creator && <span className="text-xs text-amber-500">ارجاع از: {creator}</span>}
-                </div>
-              </div>
-              <Badge style={{ backgroundColor: `${st.color}15`, color: st.color }} className="rounded-full text-xs">{st.label}</Badge>
-              {assignee && <div className="hidden items-center gap-1.5 tablet:flex"><Avatar className="h-6 w-6"><AvatarFallback className="bg-[#EFF4FF] text-[10px] text-[#2563EB]">{assignee[0]}</AvatarFallback></Avatar><span className="text-xs text-[#667085]">{assignee}</span></div>}
-              {canRefer && <button onClick={(e) => { e.stopPropagation(); openRefer(task.id); }} className="p-1 text-[#98A2B3] transition-colors hover:text-amber-500" title="ارجاع"><Forward className="h-4 w-4" /></button>}
-              {canEdit(task) && <button onClick={(e) => { e.stopPropagation(); openEdit(task); }} className="p-1 text-[#98A2B3] transition-colors hover:text-[#2563EB]" title="ویرایش"><Edit className="h-4 w-4" /></button>}
-            </div>
-          );
-        })}
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[700px]">
+          <thead className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/50">
+            <tr>
+              <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">عنوان</th>
+              <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">اولویت</th>
+              <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">موعد</th>
+              <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">وضعیت</th>
+              <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">مسئول</th>
+              <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">عملیات</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+            {visibleItems.map((task) => {
+              const st = statusInfo(task.status); const pr = priorityInfo(task.priority);
+              const assignee = getStaffName(task.assignedTo);
+              const overdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'completed';
+              const cCount = commentCounts[task.id] || 0;
+              const unread = hasUnreadComments(task.id);
+              return (
+                <tr key={task.id} className={`cursor-pointer transition hover:bg-slate-50 dark:hover:bg-slate-700/50 ${unread ? 'bg-sky-50/40' : ''}`} onClick={() => openDetail(task)}>
+                  <td className="p-3">
+                    <div className="flex items-center gap-2">
+                      {unread && <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-sky-500" title="نظر جدید" />}
+                      <div>
+                        <div className="font-medium text-slate-800 dark:text-slate-100">{task.title}</div>
+                        {cCount > 0 && <span className={`flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[9px] font-bold ${unread ? 'bg-sky-500 text-white' : 'bg-slate-100 text-slate-500'}`}><MessageSquare className="h-2 w-2" />{cCount.toLocaleString('fa-IR')}</span>}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="p-3"><Badge variant="outline" style={{ color: pr.color, borderColor: `${pr.color}35` }} className="text-xs">{pr.label}</Badge></td>
+                  <td className="p-3 text-xs text-slate-500 dark:text-slate-400">
+                    {task.dueDate ? <span className={`flex items-center gap-1 ${overdue ? 'font-medium text-red-500' : ''}`}><Clock className="h-3 w-3" />{formatJalali(task.dueDate)}</span> : '—'}
+                  </td>
+                  <td className="p-3"><Badge style={{ backgroundColor: `${st.color}15`, color: st.color }} className="rounded-full text-xs">{st.label}</Badge></td>
+                  <td className="p-3">
+                    {assignee ? <div className="flex items-center gap-1.5"><Avatar className="h-6 w-6"><AvatarFallback className="bg-sky-100 text-[10px] text-sky-700 dark:bg-sky-900/30 dark:text-sky-400">{assignee[0]}</AvatarFallback></Avatar><span className="text-xs text-slate-500 dark:text-slate-400">{assignee}</span></div> : '—'}
+                  </td>
+                  <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex gap-1">
+                      {canRefer && <button onClick={() => openRefer(task.id)} className="rounded p-1.5 text-slate-400 hover:bg-amber-50 hover:text-amber-500" title="ارجاع"><Forward className="h-4 w-4" /></button>}
+                      {canEdit(task) && <Link href={`/dashboard/tasks/${task.id}/edit`} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700" title="ویرایش"><Edit className="h-4 w-4" /></Link>}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
-      {sorted.length > visibleCount && <button type="button" onClick={() => setVisibleCount((c) => c + 5)} className="w-full py-3 text-xs font-semibold text-[#3155E7] transition-colors hover:bg-[#EFF4FF]">نمایش ۵ مورد دیگر</button>}
-    </CardContent></Card>
+      {sorted.length > visibleCount && <button type="button" onClick={() => setVisibleCount((c) => c + 5)} className="w-full py-3 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20">نمایش ۵ مورد دیگر</button>}
+    </div>
   );}
 
-  const sidebarItems = [
-    { key: 'all', label: 'همه وظایف', icon: CheckSquare, count: tasks.length },
-    { key: 'mine', label: 'وظایف من', icon: CheckSquare, count: myTasks.length },
-    { key: 'referrals', label: 'ارجاعات من', icon: Forward, count: referredTasks.length },
-    { key: 'favorites', label: 'علاقه‌مندی‌ها', icon: Bookmark, count: 0 },
-    { key: 'trash', label: 'سطل زباله', icon: Trash2, count: 0 },
-  ];
+  if (loading) {
+    return (
+      <div className="nb-page" dir="rtl">
+        <div className="nb-empty">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
+          <p>در حال بارگذاری وظایف...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="w-full" dir="rtl">
-      {/* Header */}
-      <header className="mb-4 flex flex-col gap-3 tablet:flex-row tablet:items-center tablet:justify-between tablet:mb-6">
-        <div>
-          <div className="flex items-center gap-2 mobile:gap-3">
-            <span className="h-8 w-[4px] mobile:h-10 mobile:w-[5px] rounded-full bg-[#FF7A00]" />
-            <h1 className="text-xl mobile:text-2xl tablet:text-[28px] font-bold text-[#101828]">وظایف</h1>
+    <div className="nb-page" dir="rtl">
+      <header className="nb-hero">
+        <div className="nb-hero-left">
+          <div>
+            <div className="nb-hero-title-row">
+              <span className="nb-hero-marker" style={{ background: 'linear-gradient(180deg,#FF7A00,#E65100)', boxShadow: '0 0 12px rgba(255,122,0,.25)' }} />
+              <h1>وظایف</h1>
+            </div>
+            <p>مدیریت وظایف، ارجاعات و نظرات</p>
           </div>
-          <div className="mt-1 mobile:mt-2 text-xs font-medium text-[#667085]">داشبورد <span className="mx-1.5 text-[#CBD5E1]">←</span> وظایف</div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" className="h-9 mobile:h-[42px] rounded-[10px] border-[#DCE3EE] bg-white text-xs mobile:text-sm font-semibold text-[#344054] shadow-sm hover:bg-[#FAFBFF]"><Calendar className="h-4 w-4" /> این ماه</Button>
-          <Button variant="outline" className="h-9 mobile:h-[42px] rounded-[10px] border-[#DCE3EE] bg-white text-xs mobile:text-sm font-semibold text-[#344054] shadow-sm hover:bg-[#FAFBFF]"><Filter className="h-4 w-4" /> فیلتر پیشرفته</Button>
+        <div className="nb-hero-right">
+          <Link href="/dashboard/tasks/new" className="nb-new-btn">
+            <Plus className="h-[18px] w-[18px]" />
+            وظیفه جدید
+          </Link>
         </div>
       </header>
 
-      {/* Action buttons */}
-      <div className="mb-4 mobile:mb-5 flex flex-wrap gap-2 mobile:gap-3">
-        <Link href="/dashboard/tasks/new">
-          <Button className="h-9 mobile:h-[42px] rounded-[10px] bg-[#3155E7] px-3 mobile:px-[18px] text-xs mobile:text-sm font-semibold text-white shadow-sm hover:bg-[#2445C7]"><Plus className="h-4 w-4" /> وظیفه جدید</Button>
-        </Link>
-        <Button variant="outline" className="h-9 mobile:h-[42px] rounded-[10px] border-[#DCE3EE] bg-white px-3 mobile:px-[18px] text-xs mobile:text-sm font-semibold text-[#344054] shadow-sm hover:bg-[#FAFBFF]"><BarChart3 className="h-4 w-4" /> گزارش سریع</Button>
-      </div>
-
-      {/* Stat cards */}
-      <div className="mb-4 mobile:mb-5 grid grid-cols-2 gap-2 mobile:gap-3 tablet:grid-cols-3 desktop:grid-cols-5">
-        {taskSummary.map((stage) => {
-          const Icon = stage.key === 'completed' ? CheckCircle2 : stage.key === 'cancelled' ? XCircle : stage.key === 'in_progress' ? PlayCircle : Circle;
-          return (
-            <div key={stage.key} className="flex min-h-[100px] mobile:min-h-[150px] flex-col justify-between rounded-[14px] border border-[#E7ECF3] bg-white p-3 mobile:p-5 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-              <div className="flex items-center justify-between">
-                <span className="flex h-[42px] w-[42px] items-center justify-center rounded-full" style={{ color: stage.color, backgroundColor: `${stage.color}15` }}><Icon className="h-5 w-5" strokeWidth={2.5} /></span>
-              </div>
-              <div>
-                <div className="text-xl mobile:text-[26px] font-bold leading-none text-[#101828]">{stage.count.toLocaleString('fa-IR')}</div>
-                <div className="mt-1.5 text-[13px] font-bold text-[#344054]">{stage.label}</div>
-              </div>
+      <section className="nb-stats-grid-v2">
+        {stats.map((stat) => (
+          <button
+            type="button"
+            className={`nb-stat-card-v2 ${filterStatus === stat.filter ? 'is-active' : ''}`}
+            key={stat.label}
+            onClick={() => handleStatClick(stat.filter)}
+            style={{ '--stat-glow': stat.glow } as React.CSSProperties}
+          >
+            <div className="nb-stat-v2-icon" style={{ background: stat.gradient }}>
+              <stat.icon className="h-[22px] w-[22px] text-white" />
             </div>
-          );
-        })}
-      </div>
+            <div className="nb-stat-v2-body">
+              <strong>{stat.value.toLocaleString('fa-IR')}</strong>
+              <span>{stat.label}</span>
+            </div>
+            <div className="nb-stat-v2-spark" style={{ background: stat.gradient }} />
+          </button>
+        ))}
+      </section>
 
-      {/* Main layout: sidebar + board */}
-      <div className="flex flex-col gap-4 desktop:flex-row">
-        {/* Sidebar */}
-        <aside className="w-full shrink-0 space-y-4 desktop:w-[250px]">
-          {/* Quick Access */}
-          <div className="rounded-[14px] border border-[#E6EBF2] bg-white p-3 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-            <div className="mb-3 flex items-center gap-2 px-1"><LayoutGrid className="h-4 w-4 text-[#667085]" /><span className="text-sm font-bold text-[#101828]">دسترسی سریع</span></div>
-            {sidebarItems.map((item) => (
-              <button key={item.key} onClick={() => setActiveTab(item.key === 'referrals' ? 'referrals' : 'tasks')}
-                className={`flex h-10 w-full items-center justify-between rounded-[8px] px-2.5 text-sm transition-colors ${activeTab === 'referrals' && item.key === 'referrals' ? 'bg-[#EFF4FF] text-[#2563EB]' : 'text-[#344054] hover:bg-[#F1F5F9]'}`}>
-                <span className="flex items-center gap-2"><item.icon className="h-4 w-4" /> {item.label}</span>
-                <span className="rounded-full bg-white px-2 py-0.5 text-[10px] text-[#667085]">{item.count.toLocaleString('fa-IR')}</span>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <div className="nb-toolbar">
+          <div className="nb-toolbar-left">
+            <h2>همه وظایف</h2>
+            <span className="nb-count-badge">{displayTasks.length.toLocaleString('fa-IR')} مورد</span>
+          </div>
+          <div className="nb-toolbar-right">
+            <div className="nb-search-box">
+              <Search className="h-4 w-4" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="جستجوی وظیفه..."
+              />
+              {search && <button onClick={() => setSearch('')}><X className="h-3.5 w-3.5" /></button>}
+            </div>
+            <Select value={filterPriority} onValueChange={setFilterPriority}>
+              <SelectTrigger className="nb-select-filter h-10 w-[140px]">
+                <SelectValue placeholder="اولویت" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">همه اولویت‌ها</SelectItem>
+                {TASK_PRIORITIES.map((p) => <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <div className="nb-view-toggle">
+              <button className={viewMode === 'board' ? 'is-active' : ''} onClick={() => setViewMode('board')} aria-label="تخته‌ای">
+                <LayoutGrid className="h-4 w-4" />
               </button>
-            ))}
+              <button className={viewMode === 'list' ? 'is-active' : ''} onClick={() => setViewMode('list')} aria-label="لیستی">
+                <List className="h-4 w-4" />
+              </button>
+            </div>
           </div>
-          {/* Filters */}
-          <div className="rounded-[14px] border border-[#E6EBF2] bg-white p-3 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-            <div className="mb-3 flex items-center gap-2 px-1"><Filter className="h-4 w-4 text-[#667085]" /><span className="text-sm font-bold text-[#101828]">فیلترها</span></div>
-            <div className="space-y-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs text-[#667085]">وضعیت</Label>
-                <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="all">همه</SelectItem>{TASK_STATUSES.map((s) => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}</SelectContent>
+        </div>
+
+        <TabsList className="mb-4">
+          <TabsTrigger value="tasks"><CheckSquare className="w-4 h-4 ml-1" />تسک‌ها <Badge variant="secondary" className="mr-1 text-xs">{myTasks.length.toLocaleString('fa-IR')}</Badge></TabsTrigger>
+          <TabsTrigger value="referrals"><Inbox className="w-4 h-4 ml-1" />ارجاعات <Badge variant="secondary" className="mr-1 text-xs">{referredTasks.length.toLocaleString('fa-IR')}</Badge></TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="tasks">
+          {myTasks.length === 0 ? (
+            <div className="nb-empty">
+              <div className="sb-empty-icon"><CheckSquare className="h-12 w-12 text-muted-foreground/30" /></div>
+              <h3>تسکی وجود ندارد</h3>
+              <p>تسک‌هایی که ایجاد کرده‌اید یا به شما اختصاص داده شده اینجا نمایش داده می‌شوند</p>
+              <Link href="/dashboard/tasks/new" className="nb-empty-new-btn"><Plus className="h-4 w-4" /> افزودن وظیفه</Link>
+            </div>
+          ) : viewMode === 'board' ? renderBoard(myTasks) : renderList(myTasks)}
+        </TabsContent>
+        <TabsContent value="referrals">
+          {referredTasks.length === 0 ? (
+            <div className="nb-empty">
+              <div className="sb-empty-icon"><Inbox className="h-12 w-12 text-muted-foreground/30" /></div>
+              <h3>ارجاعی وجود ندارد</h3>
+              <p>تسک‌هایی که دیگران به شما ارجاع داده‌اند اینجا نمایش داده می‌شوند</p>
+            </div>
+          ) : viewMode === 'board' ? renderBoard(referredTasks) : renderList(referredTasks)}
+        </TabsContent>
+      </Tabs>
+
+      <Link href="/dashboard/tasks/new" className="nb-fab" aria-label="وظیفه جدید">
+        <Plus className="h-6 w-6" />
+      </Link>
+
+      <Dialog open={!!editingTask} onOpenChange={(o) => !o && setEditingTask(null)}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>ویرایش وظیفه</DialogTitle></DialogHeader>
+          <form onSubmit={handleEdit} className="space-y-4">
+            <div className="space-y-2"><Label>عنوان *</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required /></div>
+            <div className="space-y-2"><Label>توضیحات</Label><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><Label>مسئول انجام</Label>
+                <Select value={form.assignedTo} onValueChange={(v) => setForm({ ...form, assignedTo: v === 'none' ? '' : v })}>
+                  <SelectTrigger><SelectValue placeholder="انتخاب..." /></SelectTrigger>
+                  <SelectContent><SelectItem value="none">بدون تخصیص</SelectItem>{assigneeOptions.map((s) => <SelectItem key={s.id} value={s.id}>{fullName(s.firstName, s.lastName)}{s.id === profile?.id ? ' (خودم)' : ''}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-[#667085]">اولویت</Label>
-                <Select value={filterPriority} onValueChange={setFilterPriority}>
-                  <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="all">همه</SelectItem>{TASK_PRIORITIES.map((p) => <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-[#667085]">تاریخ سررسید</Label>
-                <Select value={filterDueDate} onValueChange={setFilterDueDate}>
-                  <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="all">همه</SelectItem><SelectItem value="overdue">گذشته</SelectItem><SelectItem value="upcoming">در آینده</SelectItem><SelectItem value="no_due">بدون موعد</SelectItem></SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-[#667085]">کاربر مسئول</Label>
-                <Select value={filterAssignee} onValueChange={setFilterAssignee}>
-                  <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="all">همه</SelectItem>{allStaff.map((s) => <SelectItem key={s.id} value={s.id}>{fullName(s.firstName, s.lastName)}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-[#667085]">ایجادکننده</Label>
-                <Select value={filterCreator} onValueChange={setFilterCreator}>
-                  <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="all">همه</SelectItem>{allStaff.map((s) => <SelectItem key={s.id} value={s.id}>{fullName(s.firstName, s.lastName)}</SelectItem>)}</SelectContent>
+              <div className="space-y-2"><Label>اولویت</Label>
+                <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{TASK_PRIORITIES.map((p) => <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>
-            <button onClick={() => { setFilterStatus('all'); setFilterPriority('all'); setFilterDueDate('all'); setFilterAssignee('all'); setFilterCreator('all'); }} className="mt-3 w-full text-center text-xs font-semibold text-[#EF4444] hover:text-[#DC2626]">پاک کردن فیلترها</button>
-          </div>
-          {/* Priorities */}
-          <div className="rounded-[14px] border border-[#E6EBF2] bg-white p-3 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-            <div className="mb-3 flex items-center gap-2 px-1"><Flag className="h-4 w-4 text-[#667085]" /><span className="text-sm font-bold text-[#101828]">اولویت‌ها</span></div>
-            {TASK_PRIORITIES.map((p) => (
-              <div key={p.key} className="mb-3 flex items-center justify-between px-1 last:mb-0">
-                <span className="flex items-center gap-2 text-[13px] text-[#344054]"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: p.color }} />{p.label}</span>
-                <span className="text-xs text-[#98A2B3]">{displayTasks.filter((t) => t.priority === p.key).length.toLocaleString('fa-IR')}</span>
-              </div>
-            ))}
-          </div>
-        </aside>
-
-        {/* Main board area */}
-        <div className="min-w-0 flex-1">
-          {/* Content */}
-          {loading ? (
-            <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-[3px] border-[#2563EB] border-t-transparent" /></div>
-          ) : tasks.length === 0 ? (
-            <Card><EmptyState icon={<CheckSquare className="h-8 w-8" />} title="وظیفه‌ای یافت نشد" description="برای شروع، اولین وظیفه را ایجاد کنید" action={<Link href="/dashboard/tasks/new"><Button><Plus className="h-4 w-4" /> افزودن وظیفه</Button></Link>} /></Card>
-          ) : (
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              {/* Single horizontal toolbar: tabs, search, filter and view switch stay together */}
-              <div className="mb-4 flex w-full min-w-0 flex-col gap-2 overflow-x-auto pb-1 tablet:flex-row tablet:items-center tablet:flex-nowrap tablet:gap-2">
-                {/* Tabs remain in the toolbar instead of creating a second row */}
-                <TabsList className="flex shrink-0 flex-nowrap">
-                  <TabsTrigger value="tasks" className="flex shrink-0 items-center gap-1.5 whitespace-nowrap"><CheckSquare className="h-3.5 w-3.5" /> تسک‌ها <Badge variant="secondary" className="mr-1 text-xs">{myTasks.length.toLocaleString('fa-IR')}</Badge></TabsTrigger>
-                  <TabsTrigger value="referrals" className="flex shrink-0 items-center gap-1.5 whitespace-nowrap"><Inbox className="h-3.5 w-3.5" /> ارجاعات <Badge variant="secondary" className="mr-1 text-xs">{referredTasks.length.toLocaleString('fa-IR')}</Badge></TabsTrigger>
-                </TabsList>
-                {/* Search expands into available space while the other controls keep usable widths */}
-                <div className="relative min-w-0 flex-1">
-                  <Search className="absolute right-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#98A2B3]" />
-                  <Input placeholder="جستجوی وظیفه..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-9 tablet:h-[42px] w-full min-w-0 rounded-[10px] border-[#DCE3EE] bg-white pr-9 text-sm" />
-                </div>
-                <Select value={filterPriority} onValueChange={setFilterPriority}>
-                  <SelectTrigger className="h-9 tablet:h-[42px] w-full tablet:w-36 tablet:min-w-[120px] shrink-0 rounded-[10px] border-[#DCE3EE] bg-white text-sm"><SelectValue placeholder="مرتب‌سازی" /></SelectTrigger>
-                  <SelectContent><SelectItem value="all">همه اولویت‌ها</SelectItem>{TASK_PRIORITIES.map((p) => <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>)}</SelectContent>
-                </Select>
-                <div className="flex h-9 tablet:h-[42px] shrink-0 items-center rounded-[10px] border border-[#DCE3EE] bg-white p-1 shadow-sm">
-                  <button onClick={() => setViewMode('board')} className={`flex h-full items-center whitespace-nowrap rounded-[8px] px-2 tablet:px-3 text-xs tablet:text-sm font-semibold transition-colors ${viewMode === 'board' ? 'bg-[#EFF4FF] text-[#2563EB]' : 'text-[#667085] hover:text-[#344054]'}`}><LayoutGrid className="ml-1 h-4 w-4" /> برد</button>
-                  <button onClick={() => setViewMode('list')} className={`flex h-full items-center whitespace-nowrap rounded-[8px] px-2 tablet:px-3 text-xs tablet:text-sm font-semibold transition-colors ${viewMode === 'list' ? 'bg-[#EFF4FF] text-[#2563EB]' : 'text-[#667085] hover:text-[#344054]'}`}><BarChart3 className="ml-1 h-4 w-4" /> لیست</button>
-                </div>
-              </div>
-              <TabsContent value="tasks">
-                {myTasks.length === 0 ? <Card><EmptyState icon={<CheckSquare className="h-8 w-8" />} title="تسکی وجود ندارد" description="تسک‌هایی که ایجاد کرده‌اید یا به شما اختصاص داده شده اینجا نمایش داده می‌شوند" /></Card>
-                : viewMode === 'board' ? renderBoard(myTasks) : renderList(myTasks)}
-              </TabsContent>
-              <TabsContent value="referrals">
-                {referredTasks.length === 0 ? <Card><EmptyState icon={<Inbox className="h-8 w-8" />} title="ارجاعی وجود ندارد" description="تسک‌هایی که دیگران به شما ارجاع داده‌اند اینجا نمایش داده می‌شوند" /></Card>
-                : viewMode === 'board' ? renderBoard(referredTasks) : renderList(referredTasks)}
-              </TabsContent>
-            </Tabs>
-          )}
-        </div>
-      </div>
-
-      {/* Edit dialog */}
-      <Dialog open={!!editingTask} onOpenChange={(o) => !o && setEditingTask(null)}>
-        <DialogContent className="max-w-lg"><DialogHeader><DialogTitle>ویرایش وظیفه</DialogTitle></DialogHeader>{renderForm(true)}</DialogContent>
+            <div className="space-y-2"><Label>موعد انجام</Label><JalaliDatePicker value={form.dueDate ? new Date(form.dueDate) : null} onChange={(d) => setForm({ ...form, dueDate: d ? toLocalDateString(d) : '' })} /></div>
+            <DialogFooter><Button type="button" variant="outline" onClick={() => setEditingTask(null)}>انصراف</Button><Button type="submit">ذخیره تغییرات</Button></DialogFooter>
+          </form>
+        </DialogContent>
       </Dialog>
 
-      {/* Detail dialog */}
       <Dialog open={!!detailTask} onOpenChange={(o) => !o && setDetailTask(null)}>
         <DialogContent className="max-h-[85vh] max-w-xl overflow-y-auto">
           {detailTask && (() => {
             const st = statusInfo(detailTask.status); const pr = priorityInfo(detailTask.priority);
             const assignee = getStaffName(detailTask.assignedTo); const creator = getStaffName(detailTask.createdBy || null);
-            const overdue = detailTask.dueDate && new Date(detailTask.dueDate) < new Date() && detailTask.status !== 'completed';
+            const overdue = detailTask.dueDate && new Date(detailTask.dueDate) < new Date() && detailTask.status !== 'completed');
             return (
               <>
                 <DialogHeader>
@@ -609,17 +619,17 @@ export default function TasksPage() {
                     {detailTask.referredDate && <Badge variant="outline" className="border-amber-300 text-amber-600"><Forward className="ml-1 h-3 w-3" />ارجاعی</Badge>}
                     {detailTask.dueDate && <span className={`flex items-center gap-1 text-xs ${overdue ? 'font-medium text-red-500' : 'text-slate-400'}`}><Calendar className="h-3 w-3" />موعد: {formatJalali(detailTask.dueDate)}</span>}
                   </div>
-                  {detailTask.description && <div className="rounded-lg border border-slate-200 bg-slate-50 p-3"><p className="whitespace-pre-wrap text-sm text-slate-600">{detailTask.description}</p></div>}
+                  {detailTask.description && <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800"><p className="whitespace-pre-wrap text-sm text-slate-600 dark:text-slate-300">{detailTask.description}</p></div>}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                    {assignee && <div className="flex items-center gap-2"><Avatar className="h-7 w-7"><AvatarFallback className="bg-slate-100 text-[10px] text-slate-600">{assignee[0]}</AvatarFallback></Avatar><div><div className="text-xs text-slate-400">مسئول</div><div className="text-sm text-slate-700">{assignee}</div></div></div>}
-                    {creator && <div className="flex items-center gap-2"><Avatar className="h-7 w-7"><AvatarFallback className="bg-slate-100 text-[10px] text-slate-600">{creator[0]}</AvatarFallback></Avatar><div><div className="text-xs text-slate-400">ایجادکننده</div><div className="text-sm text-slate-700">{creator}</div></div></div>}
+                    {assignee && <div className="flex items-center gap-2"><Avatar className="h-7 w-7"><AvatarFallback className="bg-slate-100 text-[10px] text-slate-600">{assignee[0]}</AvatarFallback></Avatar><div><div className="text-xs text-slate-400">مسئول</div><div className="text-sm text-slate-700 dark:text-slate-200">{assignee}</div></div></div>}
+                    {creator && <div className="flex items-center gap-2"><Avatar className="h-7 w-7"><AvatarFallback className="bg-slate-100 text-[10px] text-slate-600">{creator[0]}</AvatarFallback></Avatar><div><div className="text-xs text-slate-400">ایجادکننده</div><div className="text-sm text-slate-700 dark:text-slate-200">{creator}</div></div></div>}
                   </div>
-                  <div className="border-t border-slate-200 pt-4">
-                    <div className="mb-3 flex items-center gap-2"><MessageSquare className="h-4 w-4 text-slate-400" /><h4 className="text-sm font-semibold text-slate-700">نظرات و ارجاعات</h4><Badge variant="secondary" className="text-xs">{comments.length.toLocaleString('fa-IR')}</Badge></div>
+                  <div className="border-t border-slate-200 pt-4 dark:border-slate-700">
+                    <div className="mb-3 flex items-center gap-2"><MessageSquare className="h-4 w-4 text-slate-400" /><h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200">نظرات و ارجاعات</h4><Badge variant="secondary" className="text-xs">{comments.length.toLocaleString('fa-IR')}</Badge></div>
                     <div className="mb-3 max-h-48 space-y-2 overflow-y-auto">
                       {comments.length === 0 ? <p className="py-4 text-center text-xs text-slate-400">هنوز نظری ثبت نشده است</p>
                       : comments.map((c) => { const author = getStaffName(c.profileId); return (
-                        <div key={c.id} className="flex items-start gap-2 rounded-lg bg-slate-50 p-2"><Avatar className="h-6 w-6 shrink-0"><AvatarFallback className="bg-slate-200 text-[10px] text-slate-600">{author?.[0] || '؟'}</AvatarFallback></Avatar><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><span className="text-xs font-medium text-slate-700">{author || 'کاربر'}</span><span className="text-[10px] text-slate-400">{relativeTime(c.createdAt)}</span></div><p className="mt-0.5 text-sm text-slate-600">{c.content}</p></div></div>
+                        <div key={c.id} className="flex items-start gap-2 rounded-lg bg-slate-50 p-2 dark:bg-slate-800"><Avatar className="h-6 w-6 shrink-0"><AvatarFallback className="bg-slate-200 text-[10px] text-slate-600">{author?.[0] || '؟'}</AvatarFallback></Avatar><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><span className="text-xs font-medium text-slate-700 dark:text-slate-200">{author || 'کاربر'}</span><span className="text-[10px] text-slate-400">{relativeTime(c.createdAt)}</span></div><p className="mt-0.5 text-sm text-slate-600 dark:text-slate-300">{c.content}</p></div></div>
                       ); })}
                     </div>
                     <div className="flex items-center gap-2"><Input value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="نظر یا ارجاع بنویسید..." onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAddComment(); } }} /><Button size="sm" onClick={handleAddComment} disabled={commentLoading || !newComment.trim()}><Send className="h-3.5 w-3.5" /></Button></div>
@@ -635,7 +645,6 @@ export default function TasksPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Refer dialog */}
       <Dialog open={referOpen} onOpenChange={setReferOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>ارجاع وظیفه</DialogTitle></DialogHeader>

@@ -20,6 +20,7 @@ import {
   Trash2, Pencil, DollarSign, Briefcase, User, AlertTriangle,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { SuperAdminActions } from '@/components/dashboard/super-admin-actions';
 import { formatJalali, formatToman, toLocalDateString } from '@/lib/format';
 import { toast } from 'sonner';
@@ -50,6 +51,7 @@ type Contract = {
 
 export default function ContractsPage() {
   const { profile } = useAuth();
+  const router = useRouter();
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -430,7 +432,7 @@ export default function ContractsPage() {
                           <SuperAdminActions
                             variant="table"
                             onView={() => openView(contract)}
-                            onEdit={() => openEdit(contract)}
+                            onEdit={() => router.push(`/dashboard/contracts/${contract.id}/edit`)}
                             onDelete={() => handleDelete(contract)}
                           />
                         </td>
@@ -498,7 +500,7 @@ export default function ContractsPage() {
               )}
               {isSuperAdmin && (
                 <div className="flex flex-wrap gap-2 pt-2">
-                  <Button type="button" variant="outline" size="sm" onClick={() => { setViewDialogOpen(false); openEdit(viewContract); }}>
+                  <Button type="button" variant="outline" size="sm" onClick={() => { setViewDialogOpen(false); router.push(`/dashboard/contracts/${viewContract.id}/edit`); }}>
                     <Pencil className="h-3.5 w-3.5" /> ویرایش
                   </Button>
                   <Button type="button" variant="outline" size="sm" onClick={() => handleDelete(viewContract)}>

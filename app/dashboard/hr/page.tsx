@@ -180,10 +180,10 @@ export default function HRPage() {
           </div>
         </div>
         <div className="nb-hero-right">
-          <button className="nb-new-btn" onClick={() => { setEditEmp(null); setForm({ firstName: '', lastName: '', position: '', department: '', phone: '', email: '', salary: '' }); setDialogOpen(true); }}>
+          <Link href="/dashboard/hr/new" className="nb-new-btn">
             <Plus className="h-[18px] w-[18px]" />
             کارمند جدید
-          </button>
+          </Link>
         </div>
       </header>
 
@@ -245,10 +245,10 @@ export default function HRPage() {
               </div>
               <h3>کارمندی ثبت نشده</h3>
               <p>کارکنان سازمان را اضافه کنید</p>
-              <button className="nb-empty-new-btn" onClick={() => { setEditEmp(null); setForm({ firstName: '', lastName: '', position: '', department: '', phone: '', email: '', salary: '' }); setDialogOpen(true); }}>
+              <Link href="/dashboard/hr/new" className="nb-empty-new-btn">
                 <Plus className="h-4 w-4" />
                 افزودن کارمند
-              </button>
+              </Link>
             </div>
           ) : viewMode === 'board' ? (
             <div className="nb-grid nb-grid-grid">
@@ -315,9 +315,9 @@ export default function HRPage() {
                         <Link href={`/dashboard/hr/${emp.id}`} className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700" title="مشاهده">
                           <Eye className="h-3.5 w-3.5" />
                         </Link>
-                        <button onClick={() => openEdit(emp)} title="ویرایش">
+                        <Link href={`/dashboard/hr/${emp.id}/edit`} className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700" title="ویرایش">
                           <Pencil className="h-3.5 w-3.5" />
-                        </button>
+                        </Link>
                         <button onClick={() => handleDelete(emp.id)} title="حذف">
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -365,9 +365,9 @@ export default function HRPage() {
                               <Link href={`/dashboard/hr/${emp.id}`} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700">
                                 <Eye className="h-4 w-4" />
                               </Link>
-                              <button className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700" onClick={() => openEdit(emp)}>
+                              <Link href={`/dashboard/hr/${emp.id}/edit`} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700">
                                 <Pencil className="h-4 w-4" />
-                              </button>
+                              </Link>
                               <button className="rounded p-1.5 text-red-400 hover:bg-red-50 hover:text-red-600" onClick={() => handleDelete(emp.id)}>
                                 <Trash2 className="h-4 w-4" />
                               </button>
@@ -428,10 +428,10 @@ export default function HRPage() {
               <span className="nb-count-badge">{leaves.length.toLocaleString('fa-IR')} مورد</span>
             </div>
             <div className="nb-toolbar-right">
-              <button className="nb-new-btn" onClick={() => setLeaveDialogOpen(true)}>
+              <Link href="/dashboard/hr/leaves/new" className="nb-new-btn">
                 <Plus className="h-[18px] w-[18px]" />
                 درخواست مرخصی
-              </button>
+              </Link>
             </div>
           </div>
 
@@ -499,7 +499,7 @@ export default function HRPage() {
         </TabsContent>
       </Tabs>
 
-      <Link href="#" onClick={(e) => { e.preventDefault(); setEditEmp(null); setForm({ firstName: '', lastName: '', position: '', department: '', phone: '', email: '', salary: '' }); setDialogOpen(true); }} className="nb-fab" aria-label="کارمند جدید">
+      <Link href="/dashboard/hr/new" className="nb-fab" aria-label="کارمند جدید">
         <Plus className="h-6 w-6" />
       </Link>
 

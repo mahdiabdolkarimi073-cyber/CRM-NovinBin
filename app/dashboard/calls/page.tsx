@@ -8,7 +8,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
-import { Phone, PhoneIncoming, PhoneOutgoing, Search, Play, Clock, Eye, Trash2, Video, MessageCircle, Loader2, X } from 'lucide-react';
+import { Phone, PhoneIncoming, PhoneOutgoing, Search, Play, Clock, Eye, Trash2, Video, MessageCircle, Loader2, X, PhoneCall, PhoneMissed } from 'lucide-react';
 import { formatJalaliDateTime } from '@/lib/format';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -166,6 +166,49 @@ export default function CallsPage() {
           </div>
         </div>
       </header>
+
+      <section className="nb-stats-grid-v2">
+        <div className="nb-stat-card-v2" style={{ '--stat-glow': 'rgba(37,99,235,0.25)' } as React.CSSProperties}>
+          <div className="nb-stat-v2-icon" style={{ background: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)' }}>
+            <PhoneCall className="h-[22px] w-[22px] text-white" />
+          </div>
+          <div className="nb-stat-v2-body">
+            <strong>{calls.length.toLocaleString('fa-IR')}</strong>
+            <span>کل تماس‌ها</span>
+          </div>
+          <div className="nb-stat-v2-spark" style={{ background: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)' }} />
+        </div>
+        <div className="nb-stat-card-v2" style={{ '--stat-glow': 'rgba(34,197,94,0.25)' } as React.CSSProperties}>
+          <div className="nb-stat-v2-icon" style={{ background: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)' }}>
+            <PhoneIncoming className="h-[22px] w-[22px] text-white" />
+          </div>
+          <div className="nb-stat-v2-body">
+            <strong>{calls.filter((c) => c.status === 'answered').length.toLocaleString('fa-IR')}</strong>
+            <span>پاسخ داده شد</span>
+          </div>
+          <div className="nb-stat-v2-spark" style={{ background: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)' }} />
+        </div>
+        <div className="nb-stat-card-v2" style={{ '--stat-glow': 'rgba(239,68,68,0.25)' } as React.CSSProperties}>
+          <div className="nb-stat-v2-icon" style={{ background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)' }}>
+            <PhoneMissed className="h-[22px] w-[22px] text-white" />
+          </div>
+          <div className="nb-stat-v2-body">
+            <strong>{calls.filter((c) => c.status === 'missed').length.toLocaleString('fa-IR')}</strong>
+            <span>رد شده</span>
+          </div>
+          <div className="nb-stat-v2-spark" style={{ background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)' }} />
+        </div>
+        <div className="nb-stat-card-v2" style={{ '--stat-glow': 'rgba(59,130,246,0.25)' } as React.CSSProperties}>
+          <div className="nb-stat-v2-icon" style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563EB 100%)' }}>
+            <PhoneOutgoing className="h-[22px] w-[22px] text-white" />
+          </div>
+          <div className="nb-stat-v2-body">
+            <strong>{calls.filter((c) => c.direction === 'outgoing').length.toLocaleString('fa-IR')}</strong>
+            <span>تماس‌های خروجی</span>
+          </div>
+          <div className="nb-stat-v2-spark" style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563EB 100%)' }} />
+        </div>
+      </section>
 
       <div className="nb-toolbar">
         <div className="nb-toolbar-left">
