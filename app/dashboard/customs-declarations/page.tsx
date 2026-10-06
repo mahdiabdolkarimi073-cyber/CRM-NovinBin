@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import {
   FileSearch, Plus, Search, Trash2, Calendar, ChevronLeft, ChevronRight,
-  CheckCircle, Clock, Eye, Ban, FileText, Building2, Send, Globe,
+  CheckCircle, Clock, Eye, Ban, FileText, Building2, Send, Globe, Pencil,
 } from 'lucide-react';
 import { formatJalali, formatToman, relativeTime } from '@/lib/format';
 import { fullName } from '@/lib/constants';
@@ -346,6 +346,7 @@ export default function CustomsDeclarationsPage() {
                     <DialogTitle className="text-lg">اظهارنامه {detail.internalNumber}</DialogTitle>
                     <div className="flex items-center gap-1">
                       <Button size="sm" variant="ghost" className="h-8 shrink-0 text-slate-500 hover:bg-slate-50" onClick={() => setHistoryDialog(detail)}><FileText className="h-4 w-4" /> تاریخچه</Button>
+                      {isSuperAdmin && <Link href={`/dashboard/customs-declarations/${detail.id}/edit`}><Button size="sm" variant="ghost" className="h-8 shrink-0 text-slate-500 hover:bg-slate-50"><Pencil className="h-4 w-4" /> ویرایش</Button></Link>}
                       {isSuperAdmin && <Button size="sm" variant="ghost" className="h-8 shrink-0 text-rose-500 hover:bg-rose-50 hover:text-rose-600" onClick={() => handleDelete(detail.id)}><Trash2 className="h-4 w-4" /></Button>}
                     </div>
                   </div>

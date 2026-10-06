@@ -4,15 +4,17 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { fetchData, updateData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { ArrowRight, Calendar, Save, Pencil, List, Folder, Eye, HelpCircle, Info, Lock } from 'lucide-react';
+import {
+  ArrowRight, Calendar, Save, Pencil, List, Folder, Eye, Lock,
+  Info, Lightbulb, Loader2, Check,
+} from 'lucide-react';
 import { toLocalDateString } from '@/lib/format';
 import { toast } from 'sonner';
 import Link from 'next/link';
@@ -46,6 +48,13 @@ const DURATION_OPTIONS = [
 
 const SUMMARY_MAX = 2000;
 const DETAILS_MAX = 5000;
+
+const guideItems = [
+  { icon: Pencil, title: 'عنوان مناسب', desc: 'عنوانی کوتاه و گویا برای خلاصه محتوای گزارش انتخاب کنید.' },
+  { icon: List, title: 'جزئیات کامل', desc: 'هرچه جزئیات بیشتری ارائه دهید، گزارش مفیدتر خواهد بود.' },
+  { icon: Folder, title: 'پروژه مرتبط', desc: 'در صورت ارتباط با پروژه خاص، آن را انتخاب کنید.' },
+  { icon: Eye, title: 'بررسی قبل از ذخیره', desc: 'قبل از ذخیره، اطلاعات وارد شده را بررسی کنید.' },
+];
 
 export default function EditDailyReportPage({ params }: { params: { id: string } }) {
   const { profile } = useAuth();
@@ -122,198 +131,206 @@ export default function EditDailyReportPage({ params }: { params: { id: string }
 
   if (loading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-[#0875C9] border-t-transparent" />
+      <div className="nb-page" dir="rtl">
+        <div className="nb-empty">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
+          <p>در حال بارگذاری گزارش...</p>
+        </div>
       </div>
     );
   }
 
   if (!report) {
     return (
-      <div className="rounded-[14px] border border-[#D9E2EF] bg-white p-16 text-center">
-        <p className="mb-4 text-slate-500">گزارش موردنظر یافت نشد</p>
-        <Link href="/dashboard/work-reports/daily">
-          <Button variant="outline" className="rounded-[10px]">
-            <ArrowRight className="h-4 w-4" /> بازگشت
-          </Button>
-        </Link>
-      </div>
-    );
-  }
-
-  if (!canEdit) {
-    return (
-      <div className="w-full" dir="rtl">
-        <div className="flex flex-col items-center justify-center rounded-[14px] border border-amber-200 bg-amber-50 p-12 text-center">
-          <Lock className="mb-4 h-12 w-12 text-amber-500" />
-          <h2 className="mb-2 text-lg font-bold text-amber-800">ویرایش این گزارش امکان‌پذیر نیست</h2>
-          <p className="mb-6 max-w-md text-sm text-amber-700">
-            گزارش‌ها فقط در همان روزی که ثبت شده‌اند قابل ویرایش هستند. مهلت ویرایش این گزارش به پایان رسیده است.
-          </p>
-          <Link href={`/dashboard/work-reports/daily/view/${report.id}`}>
-            <Button className="rounded-[10px] bg-[#10265F] hover:bg-[#1a3a7a]">
-              <Eye className="h-4 w-4" /> مشاهده گزارش
-            </Button>
+      <div className="nb-page" dir="rtl">
+        <div className="nb-empty">
+          <h3>گزارش موردنظر یافت نشد</h3>
+          <Link href="/dashboard/work-reports/daily" className="nb-empty-new-btn">
+            <ArrowRight className="h-4 w-4" /> بازگشت به گزارش‌ها
           </Link>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="w-full" dir="rtl">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="h-[30px] w-[5px] rounded-[4px] bg-[#F97316]" />
-            <h1 className="text-[24px] font-bold leading-tight text-[#0F172A] sm:text-[32px]">
-              ویرایش گزارش کار روزانه
-            </h1>
-          </div>
-          <p className="mt-2 text-[14px] text-[#64748B]">
-            گزارش‌ها فقط در روز ثبت قابل ویرایش هستند
-          </p>
-        </div>
-        <Link href="/dashboard/work-reports/daily">
-          <Button
-            variant="outline"
-            className="h-[52px] w-full rounded-[10px] border-[#D6E0EC] bg-white text-[#0F172A] shadow-sm sm:w-[215px]"
-          >
-            <ArrowRight className="h-4 w-4" />
-            بازگشت به گزارش‌ها
-          </Button>
-        </Link>
-      </div>
-
-      <div className="mt-8 rounded-[14px] border border-[#DCE4EF] bg-white p-5 shadow-[0_4px_18px_rgba(15,23,42,0.05)] sm:p-7">
-        <div className="mb-6">
-          <div className="flex items-center gap-2">
-            <Calendar className="h-[21px] w-[21px] text-[#2563EB]" />
-            <h2 className="text-[20px] font-bold text-[#0F172A]">اطلاعات گزارش</h2>
-          </div>
-          <div className="mt-2.5 h-[3px] w-[25px] rounded-full bg-[#2563EB]" />
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <Label className="mb-2 block text-[14px] font-semibold text-[#172033]">
-              عنوان گزارش <span className="text-[#DC2626]">*</span>
-            </Label>
-            <Input
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-              className="h-[50px] rounded-[10px] border-[#D4DEEA] text-[14px] focus:border-[#2563EB] focus:shadow-[0_0_0_3px_rgba(37,99,235,0.10)]"
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-            <div>
-              <Label className="mb-2 block text-[14px] font-semibold text-[#172033]">
-                پروژه / فعالیت مرتبط (اختیاری)
-              </Label>
-              <Input
-                value={form.project}
-                onChange={(e) => setForm({ ...form, project: e.target.value })}
-                className="h-[50px] rounded-[10px] border-[#D4DEEA] text-[14px] focus:border-[#2563EB] focus:shadow-[0_0_0_3px_rgba(37,99,235,0.10)]"
-              />
-            </div>
-            <div>
-              <Label className="mb-2 block text-[14px] font-semibold text-[#172033]">
-                تاریخ گزارش
-              </Label>
-              <JalaliDatePicker
-                value={form.reportDate ? new Date(form.reportDate) : null}
-                onChange={(d) => setForm({ ...form, reportDate: d ? toLocalDateString(d) : '' })}
-                minDate={todayDate}
-                maxDate={todayDate}
-                className="h-[50px] rounded-[10px] border-[#D4DEEA] text-[14px] focus:border-[#2563EB] focus:shadow-[0_0_0_3px_rgba(37,99,235,0.10)]"
-              />
-            </div>
-          </div>
-
-          <div>
-            <Label className="mb-2 block text-[14px] font-semibold text-[#172033]">
-              خلاصه فعالیت‌های انجام شده <span className="text-[#DC2626]">*</span>
-            </Label>
-            <Textarea
-              value={form.summary}
-              onChange={(e) => setForm({ ...form, summary: e.target.value.slice(0, SUMMARY_MAX) })}
-              className="h-[115px] resize-y rounded-[10px] border-[#D4DEEA] p-4 text-[14px] leading-[1.9] focus:border-[#2563EB] focus:shadow-[0_0_0_3px_rgba(37,99,235,0.10)]"
-              required
-            />
-            <div className="mt-1 text-left text-[12px] text-[#94A3B8]">
-              {form.summary.length.toLocaleString('fa-IR')} / {SUMMARY_MAX.toLocaleString('fa-IR')}
-            </div>
-          </div>
-
-          <div>
-            <Label className="mb-2 block text-[14px] font-semibold text-[#172033]">
-              جزئیات فعالیت‌ها
-            </Label>
-            <Textarea
-              value={form.details}
-              onChange={(e) => setForm({ ...form, details: e.target.value.slice(0, DETAILS_MAX) })}
-              className="h-[115px] resize-y rounded-[10px] border-[#D4DEEA] p-4 text-[14px] leading-[1.9] focus:border-[#2563EB] focus:shadow-[0_0_0_3px_rgba(37,99,235,0.10)]"
-            />
-            <div className="mt-1 text-left text-[12px] text-[#94A3B8]">
-              {form.details.length.toLocaleString('fa-IR')} / {DETAILS_MAX.toLocaleString('fa-IR')}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-            <div>
-              <Label className="mb-2 block text-[14px] font-semibold text-[#172033]">
-                وضعیت گزارش <span className="text-[#DC2626]">*</span>
-              </Label>
-              <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-                <SelectTrigger className="h-[50px] rounded-[10px] border-[#D4DEEA] text-[14px] focus:border-[#2563EB] focus:shadow-[0_0_0_3px_rgba(37,99,235,0.10)]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {STATUS_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="mb-2 block text-[14px] font-semibold text-[#172033]">
-                مدت زمان کارکرد (اختیاری)
-              </Label>
-              <Select value={form.duration} onValueChange={(v) => setForm({ ...form, duration: v })}>
-                <SelectTrigger className="h-[50px] rounded-[10px] border-[#D4DEEA] text-[14px] focus:border-[#2563EB] focus:shadow-[0_0_0_3px_rgba(37,99,235,0.10)]">
-                  <SelectValue placeholder="انتخاب مدت زمان..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {DURATION_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="flex flex-row gap-3.5 pt-2">
-            <Button
-              type="submit"
-              disabled={saving}
-              className="h-[52px] w-[60%] rounded-[10px] bg-[#102A68] text-[14px] font-bold text-white transition-all hover:bg-[#1a3a7a] hover:shadow-md sm:w-[175px]"
-            >
-              <Save className="h-4 w-4" />
-              {saving ? 'در حال ذخیره...' : 'ذخیره تغییرات'}
-            </Button>
-            <Link href="/dashboard/work-reports/daily" className="w-[40%] sm:w-[110px]">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-[52px] w-full rounded-[10px] border-[#D4DEEA] bg-white text-[14px] font-medium text-[#172033]"
-              >
-                انصراف
-              </Button>
+  if (!canEdit) {
+    return (
+      <div className="nb-page" dir="rtl">
+        <div className="nb-editor-canvas" style={{ padding: 48, textAlign: 'center' }}>
+          <div className="flex flex-col items-center gap-4">
+            <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 text-amber-500 dark:bg-amber-900/20">
+              <Lock className="h-8 w-8" />
+            </span>
+            <h2 className="text-lg font-bold text-amber-800 dark:text-amber-400">ویرایش این گزارش امکان‌پذیر نیست</h2>
+            <p className="max-w-md text-sm text-amber-700 dark:text-amber-300">
+              گزارش‌ها فقط در همان روزی که ثبت شده‌اند قابل ویرایش هستند. مهلت ویرایش این گزارش به پایان رسیده است.
+            </p>
+            <Link href={`/dashboard/work-reports/daily/view/${report.id}`} className="nb-empty-new-btn" style={{ background: 'linear-gradient(135deg,#10265F,#1a3a7a)' }}>
+              <Eye className="h-4 w-4" /> مشاهده گزارش
             </Link>
           </div>
-        </form>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="nb-editor-page" dir="rtl">
+      <div className="nb-editor-topbar">
+        <div className="nb-editor-topbar-left">
+          <Link href="/dashboard/work-reports/daily" className="nb-editor-back">
+            <ArrowRight className="h-4 w-4" />
+            بازگشت به گزارش‌ها
+          </Link>
+          <span className="nb-editor-breadcrumb">داشبورد <b>←</b> گزارش روزانه <b>←</b> ویرایش گزارش</span>
+        </div>
+        <div className="nb-editor-topbar-right">
+          <button type="button" className="nb-editor-discard" onClick={() => router.push('/dashboard/work-reports/daily')} disabled={saving}>
+            انصراف
+          </button>
+          <button type="submit" form="edit-daily-form" className="nb-editor-save-btn" disabled={saving}>
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+            {saving ? 'در حال ذخیره...' : 'ذخیره تغییرات'}
+          </button>
+        </div>
+      </div>
+
+      <div className="nb-editor-main">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <form id="edit-daily-form" className="lg:col-span-2 nb-editor-canvas" onSubmit={handleSubmit}>
+            <div className="nb-editor-meta-row">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-900/20">
+                  <Calendar className="h-5 w-5" />
+                </span>
+                <div>
+                  <h2 className="font-bold text-slate-900 dark:text-slate-100" style={{ fontSize: 20 }}>ویرایش اطلاعات گزارش</h2>
+                  <p className="text-sm text-slate-400">گزارش‌ها فقط در روز ثبت قابل ویرایش هستند.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-5">
+              <div className="nb-editor-field-group">
+                <Label className="nb-editor-label">عنوان گزارش <span className="text-red-500">*</span></Label>
+                <Input
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  className="nb-input"
+                  style={{ height: 44, borderRadius: 10, border: '1px solid #E2E8F0', padding: '0 14px', fontSize: 14, width: '100%', background: 'transparent', outline: 'none' }}
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">پروژه / فعالیت مرتبط (اختیاری)</Label>
+                  <Input
+                    value={form.project}
+                    onChange={(e) => setForm({ ...form, project: e.target.value })}
+                    className="nb-input"
+                    style={{ height: 44, borderRadius: 10, border: '1px solid #E2E8F0', padding: '0 14px', fontSize: 14, width: '100%', background: 'transparent', outline: 'none' }}
+                  />
+                </div>
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">تاریخ گزارش</Label>
+                  <JalaliDatePicker
+                    value={form.reportDate ? new Date(form.reportDate) : null}
+                    onChange={(d) => setForm({ ...form, reportDate: d ? toLocalDateString(d) : '' })}
+                    minDate={todayDate}
+                    maxDate={todayDate}
+                    className="h-11"
+                  />
+                </div>
+              </div>
+
+              <div className="nb-editor-field-group">
+                <Label className="nb-editor-label">خلاصه فعالیت‌های انجام شده <span className="text-red-500">*</span></Label>
+                <Textarea
+                  value={form.summary}
+                  onChange={(e) => setForm({ ...form, summary: e.target.value.slice(0, SUMMARY_MAX) })}
+                  className="nb-input"
+                  style={{ minHeight: 120, borderRadius: 10, border: '1px solid #E2E8F0', padding: '12px 14px', fontSize: 14, width: '100%', background: 'transparent', outline: 'none', resize: 'vertical' }}
+                  rows={6}
+                  required
+                />
+                <p className="text-xs text-slate-400 text-left">{form.summary.length.toLocaleString('fa-IR')} / {SUMMARY_MAX.toLocaleString('fa-IR')}</p>
+              </div>
+
+              <div className="nb-editor-field-group">
+                <Label className="nb-editor-label">جزئیات فعالیت‌ها</Label>
+                <Textarea
+                  value={form.details}
+                  onChange={(e) => setForm({ ...form, details: e.target.value.slice(0, DETAILS_MAX) })}
+                  className="nb-input"
+                  style={{ minHeight: 120, borderRadius: 10, border: '1px solid #E2E8F0', padding: '12px 14px', fontSize: 14, width: '100%', background: 'transparent', outline: 'none', resize: 'vertical' }}
+                  rows={6}
+                />
+                <p className="text-xs text-slate-400 text-left">{form.details.length.toLocaleString('fa-IR')} / {DETAILS_MAX.toLocaleString('fa-IR')}</p>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">وضعیت گزارش <span className="text-red-500">*</span></Label>
+                  <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                    <SelectTrigger className="h-11">
+                      <SelectValue placeholder="انتخاب وضعیت..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATUS_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">مدت زمان کارکرد (اختیاری)</Label>
+                  <Select value={form.duration} onValueChange={(v) => setForm({ ...form, duration: v })}>
+                    <SelectTrigger className="h-11">
+                      <SelectValue placeholder="انتخاب مدت زمان..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DURATION_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          </form>
+
+          <aside className="space-y-4">
+            <div className="nb-editor-canvas" style={{ padding: 20 }}>
+              <div className="mb-3 flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-500 dark:bg-amber-900/20">
+                  <Lightbulb className="h-5 w-5" />
+                </span>
+                <h2 className="font-bold text-slate-900 dark:text-slate-100">راهنما و نکات</h2>
+              </div>
+              <div className="space-y-3">
+                {guideItems.map((item, i) => (
+                  <div key={i} className="flex gap-2.5">
+                    <span className="mt-0.5 shrink-0 text-slate-300"><item.icon className="h-4 w-4" /></span>
+                    <div>
+                      <strong className="text-sm text-slate-700 dark:text-slate-300">{item.title}</strong>
+                      <p className="text-xs text-slate-400">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="rounded-xl border border-sky-100 bg-sky-50/50 p-5 dark:border-sky-900/30 dark:bg-sky-900/10">
+              <div className="mb-2 flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-100 text-sky-600 dark:bg-sky-900/30">
+                  <Info className="h-5 w-5" />
+                </span>
+                <h2 className="font-bold text-slate-900 dark:text-slate-100">اطلاعات مفید</h2>
+              </div>
+              <p className="text-sm text-slate-500 dark:text-slate-400">گزارش‌های روزانه به مدیریت بهتر پروژه‌ها و ارزیابی عملکرد کمک می‌کنند.</p>
+            </div>
+          </aside>
+        </div>
       </div>
     </div>
   );

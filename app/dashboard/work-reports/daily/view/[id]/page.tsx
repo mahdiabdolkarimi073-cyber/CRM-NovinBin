@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 import { fetchData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ArrowRight, Calendar, User, Printer, FileText, Clock, Folder, Activity, Pencil } from 'lucide-react';
+import {
+  ArrowRight, Calendar, User, Printer, FileText, Clock, Folder, Activity, Pencil,
+  Loader2,
+} from 'lucide-react';
 import { formatJalali, formatJalaliDateTime, toLocalDateString } from '@/lib/format';
 import { toast } from 'sonner';
 import Link from 'next/link';
@@ -39,11 +40,11 @@ const STATUS_LABELS: Record<string, string> = {
   needs_followup: 'نیازمند پیگیری',
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  completed: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  in_progress: 'bg-blue-50 text-blue-700 border-blue-200',
-  incomplete: 'bg-amber-50 text-amber-700 border-amber-200',
-  needs_followup: 'bg-purple-50 text-purple-700 border-purple-200',
+const STATUS_HEX: Record<string, string> = {
+  completed: '#22C55E',
+  in_progress: '#2563EB',
+  incomplete: '#f59e0b',
+  needs_followup: '#EF4444',
 };
 
 const DURATION_LABELS: Record<string, string> = {
@@ -84,22 +85,25 @@ export default function DailyReportViewPage({ params }: { params: { id: string }
 
   if (loading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-[#0875C9] border-t-transparent" />
+      <div className="nb-page" dir="rtl">
+        <div className="nb-empty">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
+          <p>در حال بارگذاری گزارش...</p>
+        </div>
       </div>
     );
   }
 
   if (!report) {
     return (
-      <div className="rounded-[14px] border border-[#D9E2EF] bg-white p-16 text-center">
-        <FileText className="mx-auto mb-4 h-12 w-12 text-slate-300" />
-        <p className="mb-4 text-slate-500">گزارش موردنظر یافت نشد</p>
-        <Link href="/dashboard/work-reports/daily">
-          <Button variant="outline" className="rounded-[10px]">
-            <ArrowRight className="h-4 w-4" /> بازگشت
-          </Button>
-        </Link>
+      <div className="nb-page" dir="rtl">
+        <div className="nb-empty">
+          <div className="sb-empty-icon"><FileText className="h-12 w-12 text-muted-foreground/30" /></div>
+          <h3>گزارش موردنظر یافت نشد</h3>
+          <Link href="/dashboard/work-reports/daily" className="nb-empty-new-btn">
+            <ArrowRight className="h-4 w-4" /> بازگشت به گزارش‌ها
+          </Link>
+        </div>
       </div>
     );
   }
@@ -114,50 +118,52 @@ export default function DailyReportViewPage({ params }: { params: { id: string }
   const today = toLocalDateString(new Date());
   const reportDay = toLocalDateString(new Date(report.reportDate));
   const canEdit = !isSuperAdmin && reportDay === today && report.profileId === profile?.id;
+  const statusColor = STATUS_HEX[report.status] || '#94A3B8';
 
   return (
-    <div className="w-full" dir="rtl">
-      {/* Header */}
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="h-[25px] w-[5px] rounded-[4px] bg-[#FF8A00]" />
-            <h1 className="text-[24px] font-bold text-[#101C35] sm:text-[28px]">مشاهده گزارش روزانه</h1>
+    <div className="nb-page" dir="rtl">
+      {/* Hero header */}
+      <header className="nb-hero">
+        <div className="nb-hero-left">
+          <div>
+            <div className="nb-hero-title-row">
+              <span className="nb-hero-marker" style={{ background: 'linear-gradient(180deg,#FF7A00,#E65100)', boxShadow: '0 0 12px rgba(255,122,0,.25)' }} />
+              <h1>مشاهده گزارش روزانه</h1>
+            </div>
+            <p>جزئیات گزارش کار روزانه</p>
           </div>
-          <p className="mt-[7px] text-[13px] text-[#71809A]">جزئیات گزارش کار روزانه</p>
         </div>
-        <div className="flex gap-2">
-          <Link href="/dashboard/work-reports/daily">
-            <Button variant="outline" className="rounded-[10px] border-[#D6E0EC]">
-              <ArrowRight className="h-4 w-4" /> بازگشت
-            </Button>
+        <div className="nb-hero-right">
+          <Link href="/dashboard/work-reports/daily" className="nb-editor-back">
+            <ArrowRight className="h-4 w-4" />
+            بازگشت به گزارش‌ها
           </Link>
           {canEdit && (
-            <Link href={`/dashboard/work-reports/daily/edit/${report.id}`}>
-              <Button className="rounded-[10px] bg-[#F97316] hover:bg-[#EA680C]">
-                <Pencil className="h-4 w-4" /> ویرایش
-              </Button>
+            <Link href={`/dashboard/work-reports/daily/edit/${report.id}`} className="nb-editor-quick-btn" style={{ borderColor: '#fed7aa', color: '#c2410c', background: '#fff7ed' }}>
+              <Pencil className="h-4 w-4" />
+              ویرایش
             </Link>
           )}
-          <Button onClick={() => window.print()} className="rounded-[10px] bg-[#10265F] hover:bg-[#1a3a7a]">
-            <Printer className="h-4 w-4" /> چاپ
-          </Button>
+          <button type="button" onClick={() => window.print()} className="nb-editor-quick-btn" style={{ borderColor: '#dbeafe', color: '#1e40af', background: '#eff6ff' }}>
+            <Printer className="h-4 w-4" />
+            چاپ
+          </button>
         </div>
-      </div>
+      </header>
 
       {/* Submitter info (super-admin only) */}
       {isSuperAdmin && reportUser && (
-        <div className="mb-5 flex items-center gap-3 rounded-[14px] border border-sky-200 bg-sky-50/50 p-4">
+        <div className="nb-editor-canvas" style={{ padding: '16px 20px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 14 }}>
           <Avatar className="h-12 w-12">
-            <AvatarFallback className="bg-sky-100 text-sm font-bold text-sky-700">
+            <AvatarFallback className="bg-sky-100 text-sm font-bold text-sky-700 dark:bg-sky-900/30 dark:text-sky-400">
               {submitterInitials}
             </AvatarFallback>
           </Avatar>
           <div>
             <div className="flex items-center gap-2">
               <User className="h-4 w-4 text-slate-400" />
-              <span className="text-sm font-bold text-slate-800">ارسال‌کننده:</span>
-              <span className="text-sm font-medium text-slate-700">{submitterName}</span>
+              <span className="text-sm font-bold text-slate-800 dark:text-slate-200">ارسال‌کننده:</span>
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{submitterName}</span>
             </div>
             <div className="mt-0.5 text-xs text-slate-400">
               تاریخ ارسال: {formatJalaliDateTime(report.createdAt)}
@@ -167,43 +173,53 @@ export default function DailyReportViewPage({ params }: { params: { id: string }
       )}
 
       {/* Report card */}
-      <div className="rounded-[14px] border border-[#DCE4EF] bg-white p-6 shadow-[0_4px_18px_rgba(15,23,42,0.05)] sm:p-8">
+      <div className="nb-editor-canvas" style={{ padding: '32px 36px' }}>
         {/* Title section */}
-        <div className="mb-6 border-b-2 border-slate-100 pb-5">
-          <div className="mb-1 text-xs text-slate-400">عنوان گزارش</div>
-          <div className="text-lg font-bold text-[#0F172A]">{report.title}</div>
+        <div className="nb-editor-meta-row" style={{ marginBottom: 24, paddingBottom: 20 }}>
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ background: `${statusColor}15`, color: statusColor }}>
+              <FileText className="h-5 w-5" />
+            </span>
+            <div>
+              <div className="text-xs text-slate-400 mb-1">عنوان گزارش</div>
+              <div className="text-lg font-bold text-slate-900 dark:text-slate-100">{report.title}</div>
+            </div>
+          </div>
+          <span className="nb-card-tag" style={{ background: `${statusColor}15`, color: statusColor, height: 28, padding: '0 14px', fontSize: 12 }}>
+            {STATUS_LABELS[report.status] || report.status}
+          </span>
         </div>
 
         {/* Meta grid */}
-        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="rounded-[10px] border border-[#DCE4EF] bg-[#F8FAFC] p-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 mb-6">
+          <div className="rounded-[12px] border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
             <div className="mb-1.5 flex items-center gap-1.5 text-xs text-slate-400">
               <Calendar className="h-3.5 w-3.5" /> تاریخ گزارش
             </div>
-            <div className="text-sm font-medium text-[#0F172A]">{formatJalali(report.reportDate)}</div>
+            <div className="text-sm font-medium text-slate-900 dark:text-slate-100">{formatJalali(report.reportDate)}</div>
           </div>
-          <div className="rounded-[10px] border border-[#DCE4EF] bg-[#F8FAFC] p-4">
+          <div className="rounded-[12px] border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
             <div className="mb-1.5 flex items-center gap-1.5 text-xs text-slate-400">
               <Activity className="h-3.5 w-3.5" /> وضعیت گزارش
             </div>
-            <Badge variant="outline" className={`rounded-[20px] border px-3 py-1 text-xs ${STATUS_COLORS[report.status] || 'bg-slate-50 text-slate-700 border-slate-200'}`}>
+            <span className="nb-card-tag" style={{ background: `${statusColor}15`, color: statusColor, height: 26, padding: '0 12px', fontSize: 11 }}>
               {STATUS_LABELS[report.status] || report.status}
-            </Badge>
+            </span>
           </div>
           {report.project && (
-            <div className="rounded-[10px] border border-[#DCE4EF] bg-[#F8FAFC] p-4">
+            <div className="rounded-[12px] border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
               <div className="mb-1.5 flex items-center gap-1.5 text-xs text-slate-400">
                 <Folder className="h-3.5 w-3.5" /> پروژه / فعالیت مرتبط
               </div>
-              <div className="text-sm font-medium text-[#0F172A]">{report.project}</div>
+              <div className="text-sm font-medium text-slate-900 dark:text-slate-100">{report.project}</div>
             </div>
           )}
           {report.duration && (
-            <div className="rounded-[10px] border border-[#DCE4EF] bg-[#F8FAFC] p-4">
+            <div className="rounded-[12px] border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
               <div className="mb-1.5 flex items-center gap-1.5 text-xs text-slate-400">
                 <Clock className="h-3.5 w-3.5" /> مدت زمان کارکرد
               </div>
-              <div className="text-sm font-medium text-[#0F172A]">{DURATION_LABELS[report.duration] || report.duration}</div>
+              <div className="text-sm font-medium text-slate-900 dark:text-slate-100">{DURATION_LABELS[report.duration] || report.duration}</div>
             </div>
           )}
         </div>
@@ -211,8 +227,8 @@ export default function DailyReportViewPage({ params }: { params: { id: string }
         {/* Summary */}
         {report.description && (
           <div className="mb-6">
-            <h3 className="mb-2 text-sm font-semibold text-[#172033]">خلاصه فعالیت‌های انجام شده</h3>
-            <div className="whitespace-pre-wrap rounded-[10px] border border-[#DCE4EF] bg-[#F8FAFC] p-4 text-sm leading-7 text-slate-600">
+            <h3 className="mb-2 text-sm font-semibold text-slate-800 dark:text-slate-200">خلاصه فعالیت‌های انجام شده</h3>
+            <div className="whitespace-pre-wrap rounded-[12px] border border-slate-200 bg-slate-50/50 p-4 text-sm leading-7 text-slate-600 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300">
               <LinkifyText text={report.description} />
             </div>
           </div>
@@ -221,15 +237,15 @@ export default function DailyReportViewPage({ params }: { params: { id: string }
         {/* Details */}
         {report.details && (
           <div className="mb-6">
-            <h3 className="mb-2 text-sm font-semibold text-[#172033]">جزئیات فعالیت‌ها</h3>
-            <div className="whitespace-pre-wrap rounded-[10px] border border-[#DCE4EF] bg-[#F8FAFC] p-4 text-sm leading-7 text-slate-600">
+            <h3 className="mb-2 text-sm font-semibold text-slate-800 dark:text-slate-200">جزئیات فعالیت‌ها</h3>
+            <div className="whitespace-pre-wrap rounded-[12px] border border-slate-200 bg-slate-50/50 p-4 text-sm leading-7 text-slate-600 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300">
               <LinkifyText text={report.details} />
             </div>
           </div>
         )}
 
         {/* Footer */}
-        <div className="mt-8 flex items-center justify-between border-t border-slate-100 pt-5 text-xs text-slate-400">
+        <div className="mt-8 flex items-center justify-between border-t border-slate-100 pt-5 text-xs text-slate-400 dark:border-slate-700">
           <span>تاریخ ثبت: {formatJalaliDateTime(report.createdAt)}</span>
           <span>شماره گزارش: <span dir="ltr">{report.id.slice(0, 8)}</span></span>
         </div>
