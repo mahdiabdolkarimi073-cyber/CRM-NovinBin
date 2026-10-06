@@ -5,13 +5,12 @@ import Link from 'next/link';
 import { fetchData, updateData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
   Send, Loader2, Search, Calendar, Phone, CheckCircle2, XCircle,
-  MessageSquare, RefreshCw, ArrowRight, Clock, UserRound,
+  MessageSquare, RefreshCw, ArrowRight, Clock, UserRound, X,
 } from 'lucide-react';
 import { formatJalaliDateTime } from '@/lib/format';
 import { MEETING_STATUSES, fullName } from '@/lib/constants';
@@ -190,34 +189,87 @@ export default function MeetingSmsPanelPage() {
     }
   };
 
-  return (
-    <div className="mx-auto max-w-7xl p-3 mobile:p-4 tablet:p-6" dir="rtl">
-      {/* Header */}
-      <header className="mb-4 flex flex-col gap-3 tablet:flex-row tablet:items-center tablet:justify-between tablet:mb-6">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="h-7 w-1.5 rounded-full bg-sky-500" />
-            <h1 className="text-xl font-bold text-slate-900 mobile:text-2xl">پنل پیامک جلسات</h1>
-          </div>
-          <p className="mt-1 text-sm text-slate-500">ارسال و مدیریت پیامک یادآوری جلسات</p>
+  const stats = [
+    {
+      label: 'کل جلسات', value: filtered.length, icon: Calendar,
+      gradient: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)',
+      glow: 'rgba(37,99,235,0.25)',
+    },
+    {
+      label: 'پیامک ارسال شده', value: filtered.filter((m) => m.smsSent).length, icon: CheckCircle2,
+      gradient: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)',
+      glow: 'rgba(34,197,94,0.25)',
+    },
+    {
+      label: 'ارسال نشده', value: filtered.filter((m) => !m.smsSent).length, icon: XCircle,
+      gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+      glow: 'rgba(245,158,11,0.25)',
+    },
+    {
+      label: 'بدون شماره', value: filtered.filter((m) => !m.staffPhone && !m.customerPhone).length, icon: Phone,
+      gradient: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+      glow: 'rgba(239,68,68,0.25)',
+    },
+  ];
+
+  if (loading) {
+    return (
+      <div className="nb-page" dir="rtl">
+        <div className="nb-empty">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
+          <p>در حال بارگذاری...</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Link href="/dashboard/meetings" className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs mobile:text-sm font-medium text-slate-600 transition hover:bg-slate-50">
+      </div>
+    );
+  }
+
+  return (
+    <div className="nb-page" dir="rtl">
+      <header className="nb-hero">
+        <div className="nb-hero-left">
+          <div>
+            <div className="nb-hero-title-row">
+              <span className="nb-hero-marker" style={{ background: 'linear-gradient(180deg,#0EA5E9,#0284C7)', boxShadow: '0 0 12px rgba(14,165,233,.25)' }} />
+              <h1>پنل پیامک جلسات</h1>
+            </div>
+            <p>ارسال و مدیریت پیامک یادآوری جلسات</p>
+          </div>
+        </div>
+        <div className="nb-hero-right">
+          <Link href="/dashboard/meetings" className="nb-editor-quick-btn">
             <ArrowRight className="h-4 w-4" />
             بازگشت به جلسات
           </Link>
         </div>
       </header>
 
-      {/* Info banner */}
-      <div className="mb-4 rounded-xl border border-sky-100 bg-sky-50 p-4 tablet:mb-5">
+      <section className="nb-stats-grid-v2">
+        {stats.map((stat) => (
+          <div
+            className="nb-stat-card-v2"
+            key={stat.label}
+            style={{ '--stat-glow': stat.glow } as React.CSSProperties}
+          >
+            <div className="nb-stat-v2-icon" style={{ background: stat.gradient }}>
+              <stat.icon className="h-[22px] w-[22px] text-white" />
+            </div>
+            <div className="nb-stat-v2-body">
+              <strong>{stat.value.toLocaleString('fa-IR')}</strong>
+              <span>{stat.label}</span>
+            </div>
+            <div className="nb-stat-v2-spark" style={{ background: stat.gradient }} />
+          </div>
+        ))}
+      </section>
+
+      <div className="mb-4 rounded-xl border border-sky-100 bg-sky-50 p-4 dark:border-sky-900/30 dark:bg-sky-900/10">
         <div className="flex items-start gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sky-100 text-sky-600">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sky-100 text-sky-600 dark:bg-sky-900/30 dark:text-sky-400">
             <MessageSquare className="h-5 w-5" />
           </div>
           <div className="text-sm">
-            <p className="font-medium text-sky-900">ارسال خودکار پیامک</p>
-            <p className="mt-0.5 text-sky-700">
+            <p className="font-medium text-sky-900 dark:text-sky-300">ارسال خودکار پیامک</p>
+            <p className="mt-0.5 text-sky-700 dark:text-sky-400">
               پیامک یادآوری جلسات به‌صورت خودکار و مستقل از مرورگر، هر ساعت توسط سرور بررسی و ارسال می‌شود.
               همچنین می‌توانید از این پنل به‌صورت دستی برای هر جلسه پیامک ارسال کنید.
             </p>
@@ -225,8 +277,7 @@ export default function MeetingSmsPanelPage() {
         </div>
       </div>
 
-      {/* Actions bar */}
-      <div className="mb-4 flex flex-wrap gap-2 tablet:mb-5">
+      <div className="mb-4 flex flex-wrap gap-2">
         <Button
           onClick={triggerAutoCheck}
           disabled={checking}
@@ -248,80 +299,50 @@ export default function MeetingSmsPanelPage() {
         </Button>
       </div>
 
-      {/* Filters bar */}
-      <div className="mb-4 tablet:mb-5 flex flex-col gap-2 tablet:flex-wrap tablet:items-center tablet:gap-2 rounded-xl border border-slate-200 bg-white p-2 tablet:p-3">
-        <div className="relative flex-1 min-w-0 tablet:min-w-[200px]">
-          <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="جستجو در جلسات..."
-            className="pr-9"
-          />
+      <div className="nb-toolbar">
+        <div className="nb-toolbar-left">
+          <h2>جلسات</h2>
+          <span className="nb-count-badge">{filtered.length.toLocaleString('fa-IR')} مورد</span>
         </div>
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-full tablet:w-[160px]">
-            <SelectValue placeholder="وضعیت جلسه" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">همه وضعیت‌ها</SelectItem>
-            {MEETING_STATUSES.map((s) => (
-              <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={filterSms} onValueChange={setFilterSms}>
-          <SelectTrigger className="w-full tablet:w-[160px]">
-            <SelectValue placeholder="وضعیت پیامک" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">همه پیامک‌ها</SelectItem>
-            <SelectItem value="sent">ارسال شده</SelectItem>
-            <SelectItem value="not_sent">ارسال نشده</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Summary */}
-      <div className="mb-4 grid grid-cols-3 gap-2 mobile:gap-3">
-        <div className="rounded-xl border border-slate-200 bg-white p-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">کل جلسات</span>
-            <Calendar className="h-4 w-4 text-slate-400" />
+        <div className="nb-toolbar-right">
+          <div className="nb-search-box">
+            <Search className="h-4 w-4" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="جستجو در جلسات..."
+            />
+            {search && <button onClick={() => setSearch('')}><X className="h-3.5 w-3.5" /></button>}
           </div>
-          <div className="mt-1 text-xl font-bold text-slate-900">
-            {filtered.length.toLocaleString('fa-IR')}
-          </div>
-        </div>
-        <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-emerald-600">پیامک ارسال شده</span>
-            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-          </div>
-          <div className="mt-1 text-xl font-bold text-emerald-700">
-            {filtered.filter((m) => m.smsSent).length.toLocaleString('fa-IR')}
-          </div>
-        </div>
-        <div className="rounded-xl border border-amber-100 bg-amber-50 p-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-amber-600">ارسال نشده</span>
-            <XCircle className="h-4 w-4 text-amber-500" />
-          </div>
-          <div className="mt-1 text-xl font-bold text-amber-700">
-            {filtered.filter((m) => !m.smsSent).length.toLocaleString('fa-IR')}
-          </div>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="nb-select-filter h-10 w-[150px]">
+              <SelectValue placeholder="وضعیت جلسه" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">همه وضعیت‌ها</SelectItem>
+              {MEETING_STATUSES.map((s) => (
+                <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filterSms} onValueChange={setFilterSms}>
+            <SelectTrigger className="nb-select-filter h-10 w-[150px]">
+              <SelectValue placeholder="وضعیت پیامک" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">همه پیامک‌ها</SelectItem>
+              <SelectItem value="sent">ارسال شده</SelectItem>
+              <SelectItem value="not_sent">ارسال نشده</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
-      {/* Meeting list */}
-      {loading ? (
-        <div className="flex h-[40vh] items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white py-16">
-          <Calendar className="h-10 w-10 text-slate-300" />
-          <strong className="mt-3 text-slate-700">جلسه‌ای یافت نشد</strong>
+      {filtered.length === 0 ? (
+        <div className="nb-empty">
+          <div className="sb-empty-icon"><Calendar className="h-12 w-12 text-muted-foreground/30" /></div>
+          <h3>جلسه‌ای یافت نشد</h3>
+          <p>جلسه‌ای برای ارسال پیامک وجود ندارد</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -333,80 +354,75 @@ export default function MeetingSmsPanelPage() {
             return (
               <div
                 key={m.id}
-                className="rounded-xl border border-slate-200 bg-white p-4 transition hover:shadow-sm"
+                className="nb-card"
+                style={{ borderBottomColor: m.smsSent ? '#22C55E' : '#f59e0b', borderBottomWidth: 3 }}
               >
-                <div className="flex flex-col gap-3 tablet:flex-row tablet:items-start tablet:justify-between">
-                  {/* Left: meeting info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-2">
-                      <h3 className="text-sm font-bold text-slate-900 truncate">
-                        {m.contact_name || m.title}
-                      </h3>
-                      <span
-                        className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
-                        style={{ background: `${st.color}15`, color: st.color }}
-                      >
-                        {st.label}
+                <div className="nb-card-top">
+                  <div className="nb-card-tags">
+                    <span className="nb-card-tag" style={{ background: `${st.color}15`, color: st.color }}>
+                      {st.label}
+                    </span>
+                    {m.smsSent ? (
+                      <span className="nb-card-tag" style={{ background: 'rgba(34,197,94,.12)', color: '#22C55E' }}>
+                        <CheckCircle2 className="h-2.5 w-2.5" /> ارسال شد
                       </span>
-                      {m.smsSent ? (
-                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-600">
-                          <CheckCircle2 className="h-3 w-3" /> پیامک ارسال شد
-                        </span>
-                      ) : (
-                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-600">
-                          <XCircle className="h-3 w-3" /> پیامک ارسال نشده
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="space-y-1.5 text-xs text-slate-500">
-                      <div className="flex items-center gap-1.5">
-                        <Clock className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-                        <span>{formatJalaliDateTime(m.date)}</span>
-                      </div>
-                      {m.assigned_to_name && (
-                        <div className="flex items-center gap-1.5">
-                          <UserRound className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-                          <span>مسئول: <strong className="font-medium text-slate-600">{m.assigned_to_name}</strong></span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-4">
-                        {m.staffPhone && (
-                          <div className="flex items-center gap-1.5">
-                            <Phone className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-                            <span className="text-slate-600" dir="ltr">پرسنل: {m.staffPhone}</span>
-                          </div>
-                        )}
-                        {m.customerPhone && (
-                          <div className="flex items-center gap-1.5">
-                            <Phone className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-                            <span className="text-slate-600" dir="ltr">مشتری: {m.customerPhone}</span>
-                          </div>
-                        )}
-                        {!hasPhone && (
-                          <span className="text-slate-400">شماره تلفنی ثبت نشده</span>
-                        )}
-                      </div>
-                      {m.smsSent && m.smsSentAt && (
-                        <div className="text-[11px] text-emerald-500">
-                          زمان ارسال: {formatJalaliDateTime(m.smsSentAt)}
-                        </div>
-                      )}
-                    </div>
+                    ) : (
+                      <span className="nb-card-tag" style={{ background: 'rgba(245,158,11,.12)', color: '#f59e0b' }}>
+                        <XCircle className="h-2.5 w-2.5" /> ارسال نشده
+                      </span>
+                    )}
                   </div>
+                </div>
 
-                  {/* Right: actions */}
-                  <div className="flex items-center gap-2 shrink-0">
+                <h3 className="nb-card-title">{m.contact_name || m.title}</h3>
+
+                <div className="space-y-1.5 text-xs text-slate-500 dark:text-slate-400">
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                    <span>{formatJalaliDateTime(m.date)}</span>
+                  </div>
+                  {m.assigned_to_name && (
+                    <div className="flex items-center gap-1.5">
+                      <UserRound className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                      <span>مسئول: <strong className="font-medium text-slate-600 dark:text-slate-300">{m.assigned_to_name}</strong></span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-4">
+                    {m.staffPhone && (
+                      <div className="flex items-center gap-1.5">
+                        <Phone className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                        <span className="text-slate-600 dark:text-slate-300" dir="ltr">پرسنل: {m.staffPhone}</span>
+                      </div>
+                    )}
+                    {m.customerPhone && (
+                      <div className="flex items-center gap-1.5">
+                        <Phone className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                        <span className="text-slate-600 dark:text-slate-300" dir="ltr">مشتری: {m.customerPhone}</span>
+                      </div>
+                    )}
+                    {!hasPhone && (
+                      <span className="text-slate-400">شماره تلفنی ثبت نشده</span>
+                    )}
+                  </div>
+                  {m.smsSent && m.smsSentAt && (
+                    <div className="text-[11px] text-emerald-500">
+                      زمان ارسال: {formatJalaliDateTime(m.smsSentAt)}
+                    </div>
+                  )}
+                </div>
+
+                <div className="nb-card-footer">
+                  <div className="nb-card-quick">
                     <Button
                       onClick={() => sendSingleSms(m.id)}
                       disabled={isSending || !hasPhone}
                       size="sm"
-                      className="gap-1.5 bg-sky-500 hover:bg-sky-600"
+                      className="gap-1.5 bg-sky-500 hover:bg-sky-600 h-8"
                     >
                       {isSending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       ) : (
-                        <Send className="h-4 w-4" />
+                        <Send className="h-3.5 w-3.5" />
                       )}
                       {m.smsSent ? 'ارسال مجدد' : 'ارسال پیامک'}
                     </Button>
@@ -415,7 +431,7 @@ export default function MeetingSmsPanelPage() {
                         onClick={() => resetSmsStatus(m)}
                         variant="outline"
                         size="sm"
-                        className="gap-1.5"
+                        className="gap-1.5 h-8"
                       >
                         <RefreshCw className="h-3.5 w-3.5" />
                         بازنشانی

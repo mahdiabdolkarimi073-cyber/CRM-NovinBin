@@ -2,22 +2,22 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { fetchData, deleteData, updateData, createData } from '@/lib/data-client';
+import { fetchData, deleteData, updateData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
-import { EmptyState } from '@/components/dashboard/empty-state';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  FileOutput, Plus, Search, Trash2, Calendar, ChevronLeft, ChevronRight,
-  Eye, FileText, Clock, CheckCircle, XCircle,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import {
+  FileOutput, Plus, Search, Trash2, Calendar, Eye, Clock,
+  CheckCircle, XCircle, X, FileText, LayoutGrid, List, Loader2,
 } from 'lucide-react';
-import { formatJalali, formatToman } from '@/lib/format';
-import { fullName } from '@/lib/constants';
+import { formatJalali, formatToman, relativeTime } from '@/lib/format';
+import { fullName, tomanShort } from '@/lib/constants';
 import { toast } from 'sonner';
 import type { PreInvoice, PreInvoiceItem, Customer, Profile } from '@/lib/types';
 
@@ -37,6 +37,16 @@ const PI_STATUS_COLOR: Record<string, string> = {
   expired: '#f59e0b',
 };
 
+const PI_STATUSES = [
+  { key: 'draft', label: 'پیش‌نویس', color: '#94a3b8' },
+  { key: 'sent', label: 'ارسال شده', color: '#3155E7' },
+  { key: 'confirmed', label: 'تأیید شده', color: '#10b981' },
+  { key: 'rejected', label: 'رد شده', color: '#ef4444' },
+  { key: 'expired', label: 'منقضی شده', color: '#f59e0b' },
+];
+
+const statusInfo = (key: string) => PI_STATUSES.find((s) => s.key === key) || PI_STATUSES[0];
+
 export default function PreInvoicesSalesPage() {
   const { profile } = useAuth();
   const [records, setRecords] = useState<PreInvoice[]>([]);
@@ -44,11 +54,10 @@ export default function PreInvoicesSalesPage() {
   const [staff, setStaff] = useState<Profile[]>([]);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [page, setPage] = useState(1);
+  const [viewMode, setViewMode] = useState<'board' | 'list'>('list');
   const [detail, setDetail] = useState<PreInvoice | null>(null);
   const [detailItems, setDetailItems] = useState<PreInvoiceItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const pageSize = 10;
 
   const isSuperAdmin = profile?.role === 'super_admin' || profile?.role === 'owner';
 
@@ -90,22 +99,43 @@ export default function PreInvoicesSalesPage() {
   const filtered = useMemo(() => {
     const q = search.trim().toLocaleLowerCase();
     return records.filter((r) => {
-      const matches = !q || r.number?.toLocaleLowerCase().includes(q) || r.supplierName?.toLocaleLowerCase().includes(q);
+      const matches = !q || r.number?.toLocaleLowerCase().includes(q) || r.supplierName?.toLocaleLowerCase().includes(q) || customerName(r.customerId).toLocaleLowerCase().includes(q);
       const st = filterStatus === 'all' || r.status === filterStatus;
       return matches && st;
     });
-  }, [records, search, filterStatus]);
+  }, [records, search, filterStatus, customers]);
 
-  const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const currentPage = Math.min(page, pages);
-  const pageItems = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const stats = useMemo(() => [
+    {
+      label: 'کل پیش‌فاکتورها', value: records.length, icon: FileOutput,
+      filter: 'all',
+      gradient: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)',
+      glow: 'rgba(37,99,235,0.25)',
+    },
+    {
+      label: 'در انتظار', value: records.filter((r) => r.status === 'draft').length, icon: Clock,
+      filter: 'draft',
+      gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+      glow: 'rgba(245,158,11,0.25)',
+    },
+    {
+      label: 'تأیید / ارسال شده', value: records.filter((r) => r.status === 'confirmed' || r.status === 'sent').length, icon: CheckCircle,
+      filter: 'confirmed',
+      gradient: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)',
+      glow: 'rgba(34,197,94,0.25)',
+    },
+    {
+      label: 'رد شده', value: records.filter((r) => r.status === 'rejected').length, icon: XCircle,
+      filter: 'rejected',
+      gradient: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+      glow: 'rgba(239,68,68,0.25)',
+    },
+  ], [records]);
 
-  const stats = useMemo(() => ({
-    total: records.length,
-    pending: records.filter((r) => r.status === 'draft').length,
-    confirmed: records.filter((r) => r.status === 'confirmed' || r.status === 'sent').length,
-    totalValue: records.reduce((sum, r) => sum + Number(r.finalAmount || 0), 0),
-  }), [records]);
+  const columns = PI_STATUSES.map((s) => ({
+    ...s,
+    items: filtered.filter((r) => r.status === s.key),
+  }));
 
   const handleDelete = async (id: string) => {
     if (!confirm('حذف این پیش‌فاکتور؟')) return;
@@ -122,9 +152,7 @@ export default function PreInvoicesSalesPage() {
   const handleStatusChange = async (id: string, newStatus: string) => {
     if (!profile) return;
     try {
-      await updateData('pre_invoices', { id }, {
-        status: newStatus,
-      });
+      await updateData('pre_invoices', { id }, { status: newStatus });
       toast.success('وضعیت تغییر کرد');
       setDetail(null);
       loadData();
@@ -133,100 +161,203 @@ export default function PreInvoicesSalesPage() {
     }
   };
 
+  const handleStatClick = (f: string) => {
+    setFilterStatus(filterStatus === f ? 'all' : f);
+  };
+
   const loadDetail = (r: PreInvoice) => {
     setDetail(r);
     setDetailItems(r.items || []);
   };
 
-  return (
-    <div className="w-full" dir="rtl">
-      <header className="mb-6 flex flex-col gap-4 mobile:flex-row mobile:items-center mobile:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <span className="h-10 w-[5px] rounded-full bg-[#FF7A00]" />
-            <h1 className="text-[28px] font-bold text-[#101828]">پیش فاکتور فروش</h1>
-          </div>
-          <div className="mt-2 text-xs font-medium text-[#667085]">داشبورد <span className="mx-1.5 text-[#CBD5E1]">←</span> کارتابل <span className="mx-1.5 text-[#CBD5E1]">←</span> پیش فاکتور فروش</div>
+  if (loading) {
+    return (
+      <div className="nb-page" dir="rtl">
+        <div className="nb-empty">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
+          <p>در حال بارگذاری پیش‌فاکتورها...</p>
         </div>
-        <Link href="/dashboard/pre-invoices-sales/new">
-          <Button className="h-[42px] rounded-[10px] bg-[#3155E7] px-[18px] text-sm font-semibold text-white shadow-sm hover:bg-[#2445C7]">
-            <Plus className="h-4 w-4" /> ثبت پیش‌فاکتور
-          </Button>
-        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="nb-page" dir="rtl">
+      <header className="nb-hero">
+        <div className="nb-hero-left">
+          <div>
+            <div className="nb-hero-title-row">
+              <span className="nb-hero-marker" style={{ background: 'linear-gradient(180deg,#FF7A00,#E65100)', boxShadow: '0 0 12px rgba(255,122,0,.25)' }} />
+              <h1>پیش فاکتور فروش</h1>
+            </div>
+            <p>مدیریت پیش‌فاکتورهای فروش</p>
+          </div>
+        </div>
+        <div className="nb-hero-right">
+          <Link href="/dashboard/pre-invoices-sales/new" className="nb-new-btn">
+            <Plus className="h-[18px] w-[18px]" />
+            ثبت پیش‌فاکتور
+          </Link>
+        </div>
       </header>
 
-      <div className="mb-5 grid grid-cols-2 gap-4 xl:grid-cols-4">
-        <div className="flex min-h-[120px] flex-col justify-between rounded-[14px] border border-[#E7ECF3] bg-white p-5 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-          <span className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#3155E7]/10 text-[#3155E7]"><FileOutput className="h-5 w-5" strokeWidth={2.5} /></span>
-          <div><div className="text-[26px] font-bold leading-none text-[#101828]">{stats.total.toLocaleString('fa-IR')}</div><div className="mt-1.5 text-[13px] font-bold text-[#344054]">کل پیش‌فاکتورها</div></div>
-        </div>
-        <div className="flex min-h-[120px] flex-col justify-between rounded-[14px] border border-[#E7ECF3] bg-white p-5 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-          <span className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#f59e0b]/10 text-[#f59e0b]"><Clock className="h-5 w-5" strokeWidth={2.5} /></span>
-          <div><div className="text-[26px] font-bold leading-none text-[#101828]">{stats.pending.toLocaleString('fa-IR')}</div><div className="mt-1.5 text-[13px] font-bold text-[#344054]">در انتظار</div></div>
-        </div>
-        <div className="flex min-h-[120px] flex-col justify-between rounded-[14px] border border-[#E7ECF3] bg-white p-5 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-          <span className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#10b981]/10 text-[#10b981]"><CheckCircle className="h-5 w-5" strokeWidth={2.5} /></span>
-          <div><div className="text-[26px] font-bold leading-none text-[#101828]">{stats.confirmed.toLocaleString('fa-IR')}</div><div className="mt-1.5 text-[13px] font-bold text-[#344054]">تأیید / ارسال شده</div></div>
-        </div>
-        <div className="flex min-h-[120px] flex-col justify-between rounded-[14px] border border-[#E7ECF3] bg-white p-5 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-          <span className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#6366f1]/10 text-[#6366f1]"><FileText className="h-5 w-5" strokeWidth={2.5} /></span>
-          <div><div className="text-[20px] font-bold leading-none text-[#101828]">{formatToman(stats.totalValue)}</div><div className="mt-1.5 text-[13px] font-bold text-[#344054]">ارزش کل (تومان)</div></div>
-        </div>
-      </div>
+      <section className="nb-stats-grid-v2">
+        {stats.map((stat) => (
+          <button
+            type="button"
+            className={`nb-stat-card-v2 ${filterStatus === stat.filter ? 'is-active' : ''}`}
+            key={stat.label}
+            onClick={() => handleStatClick(stat.filter)}
+            style={{ '--stat-glow': stat.glow } as React.CSSProperties}
+          >
+            <div className="nb-stat-v2-icon" style={{ background: stat.gradient }}>
+              <stat.icon className="h-[22px] w-[22px] text-white" />
+            </div>
+            <div className="nb-stat-v2-body">
+              <strong>{stat.value.toLocaleString('fa-IR')}</strong>
+              <span>{stat.label}</span>
+            </div>
+            <div className="nb-stat-v2-spark" style={{ background: stat.gradient }} />
+          </button>
+        ))}
+      </section>
 
-      <div className="mb-4 flex flex-col gap-3 mobile:flex-row mobile:items-center mobile:justify-between">
-        <div className="relative">
-          <Search className="absolute right-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#98A2B3]" />
-          <Input placeholder="جستجو بر اساس شماره یا مشتری..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-[42px] w-full rounded-[10px] border-[#DCE3EE] bg-white pr-9 text-sm mobile:w-[320px]" />
+      <div className="nb-toolbar">
+        <div className="nb-toolbar-left">
+          <h2>همه پیش‌فاکتورها</h2>
+          <span className="nb-count-badge">{filtered.length.toLocaleString('fa-IR')} مورد</span>
         </div>
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="h-[42px] rounded-[10px] border border-[#DCE3EE] bg-white px-3 text-sm text-[#344054]">
-          <option value="all">همه وضعیت‌ها</option>
-          {Object.entries(PI_STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-        </select>
-      </div>
-
-      {loading ? (
-        <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-[3px] border-[#2563EB] border-t-transparent" /></div>
-      ) : records.length === 0 ? (
-        <Card><EmptyState icon={<FileOutput className="h-8 w-8" />} title="پیش‌فاکتوری یافت نشد" description="برای شروع، اولین پیش‌فاکتور فروش را ثبت کنید" action={<Link href="/dashboard/pre-invoices-sales/new"><Button><Plus className="h-4 w-4" /> افزودن پیش‌فاکتور</Button></Link>} /></Card>
-      ) : (
-        <Card><CardContent className="p-0">
-          <div className="divide-y divide-[#F1F5F9]">
-            {pageItems.map((r) => {
-              const stColor = PI_STATUS_COLOR[r.status] || '#64748b';
-              return (
-                <div key={r.id} className="flex cursor-pointer items-center gap-3 p-4 transition-colors hover:bg-[#F8FAFD]" onClick={() => loadDetail(r)}>
-                  <div className="h-10 w-2 rounded-full" style={{ backgroundColor: stColor }} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <div className="truncate text-sm font-bold text-[#1D2939]">{r.number}</div>
-                      <Badge variant="outline" className="shrink-0 text-[10px]" style={{ color: stColor, borderColor: `${stColor}35`, backgroundColor: `${stColor}10` }}>{PI_STATUS[r.status] || r.status}</Badge>
-                    </div>
-                    <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-[#98A2B3]">
-                      <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{formatJalali(r.issueDate)}</span>
-                      <span>{customerName(r.customerId)}</span>
-                      {r.seller && <span>فروشنده: {r.seller}</span>}
-                      <span>{formatToman(Number(r.finalAmount))} تومان</span>
-                    </div>
-                  </div>
-                  <button onClick={(e) => { e.stopPropagation(); loadDetail(r); }} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#98A2B3] transition-colors hover:bg-[#EFF4FF] hover:text-[#2563EB]"><Eye className="h-4 w-4" /></button>
-                  {isSuperAdmin && <button onClick={(e) => { e.stopPropagation(); handleDelete(r.id); }} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#98A2B3] transition-colors hover:bg-rose-50 hover:text-rose-500"><Trash2 className="h-4 w-4" /></button>}
-                </div>
-              );
-            })}
-            {pageItems.length === 0 && <div className="py-12 text-center text-sm text-[#CBD5E1]">نتیجه‌ای یافت نشد</div>}
+        <div className="nb-toolbar-right">
+          <div className="nb-search-box">
+            <Search className="h-4 w-4" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="جستجوی پیش‌فاکتور..."
+            />
+            {search && <button onClick={() => setSearch('')}><X className="h-3.5 w-3.5" /></button>}
           </div>
-          {pages > 1 && (
-            <div className="flex items-center justify-between border-t border-[#F1F5F9] px-4 py-3">
-              <span className="text-xs text-[#667085]">صفحه {currentPage.toLocaleString('fa-IR')} از {pages.toLocaleString('fa-IR')}</span>
-              <div className="flex items-center gap-2">
-                <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE3EE] text-[#667085] transition-colors hover:bg-[#F1F5F9] disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button>
-                <button onClick={() => setPage((p) => Math.min(pages, p + 1))} disabled={currentPage === pages} className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE3EE] text-[#667085] transition-colors hover:bg-[#F1F5F9] disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="nb-select-filter h-10 w-[150px]">
+              <SelectValue placeholder="وضعیت" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">همه وضعیت‌ها</SelectItem>
+              {PI_STATUSES.map((s) => (
+                <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="nb-view-toggle">
+            <button className={viewMode === 'board' ? 'is-active' : ''} onClick={() => setViewMode('board')} aria-label="تخته‌ای">
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+            <button className={viewMode === 'list' ? 'is-active' : ''} onClick={() => setViewMode('list')} aria-label="لیستی">
+              <List className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="nb-empty">
+          <div className="sb-empty-icon"><FileOutput className="h-12 w-12 text-muted-foreground/30" /></div>
+          <h3>پیش‌فاکتوری یافت نشد</h3>
+          <p>اولین پیش‌فاکتور فروش را ثبت کنید</p>
+          <Link href="/dashboard/pre-invoices-sales/new" className="nb-empty-new-btn">
+            <Plus className="h-4 w-4" />
+            ایجاد پیش‌فاکتور
+          </Link>
+        </div>
+      ) : viewMode === 'board' ? (
+        <div className="grid grid-cols-1 gap-3 mobile:gap-4 tablet:grid-cols-2 desktop:grid-cols-4 pb-4">
+          {columns.map((col) => (
+            <div key={col.key} className="flex flex-col rounded-2xl border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50">
+              <div className="flex items-center justify-between border-b-[3px] px-4 py-3" style={{ borderColor: col.color }}>
+                <div className="flex items-center gap-2">
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: col.color }} />
+                  <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{col.label}</span>
+                </div>
+                <span className="flex h-5 min-w-[20px] items-center justify-center rounded-md bg-slate-100 px-1.5 text-xs font-bold text-slate-500 dark:bg-slate-700 dark:text-slate-400">{col.items.length.toLocaleString('fa-IR')}</span>
+              </div>
+              <div className="flex-1 space-y-2.5 overflow-y-auto p-3" style={{ maxHeight: 'calc(100vh - 420px)' }}>
+                {col.items.length === 0 && <div className="flex flex-col items-center gap-2 py-8 text-center"><FileText className="h-5 w-5 text-slate-300" /><p className="text-xs text-slate-400">موردی وجود ندارد</p></div>}
+                {col.items.map((r) => {
+                  const stColor = PI_STATUS_COLOR[r.status] || '#64748b';
+                  return (
+                    <div key={r.id} className="nb-card" style={{ borderBottomColor: stColor, borderBottomWidth: 3 }} onClick={() => loadDetail(r)}>
+                      <div className="nb-card-top">
+                        <span className="text-xs font-mono text-slate-400">{r.number}</span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-slate-100">{tomanShort(Number(r.finalAmount))}</span>
+                      </div>
+                      <p className="nb-card-excerpt">{customerName(r.customerId)}</p>
+                      <div className="nb-card-footer">
+                        <div className="nb-card-date"><Clock className="h-3 w-3" />{relativeTime(r.createdAt)}</div>
+                        {r.issueDate && <span className="text-[11px] text-slate-400">{formatJalali(r.issueDate)}</span>}
+                      </div>
+                      {isSuperAdmin && (
+                        <div className="flex items-center gap-1 border-t border-slate-100 pt-2 dark:border-slate-700">
+                          <button onClick={(e) => { e.stopPropagation(); loadDetail(r); }} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700" title="مشاهده"><Eye className="h-3.5 w-3.5" /></button>
+                          <button onClick={(e) => { e.stopPropagation(); handleDelete(r.id); }} className="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500" title="حذف"><Trash2 className="h-3.5 w-3.5" /></button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
-          )}
-        </CardContent></Card>
+          ))}
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[700px]">
+              <thead className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/50">
+                <tr>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">شماره</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">مشتری</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">فروشنده</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">تاریخ صدور</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">مبلغ نهایی</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">وضعیت</th>
+                  {isSuperAdmin && <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">عملیات</th>}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                {filtered.map((r) => {
+                  const stColor = PI_STATUS_COLOR[r.status] || '#64748b';
+                  return (
+                    <tr key={r.id} className="cursor-pointer transition hover:bg-slate-50 dark:hover:bg-slate-700/50" onClick={() => loadDetail(r)}>
+                      <td className="p-3"><span className="font-mono text-xs text-slate-500 dark:text-slate-400">{r.number}</span></td>
+                      <td className="p-3 text-sm text-slate-700 dark:text-slate-200">{customerName(r.customerId)}</td>
+                      <td className="p-3 text-xs text-slate-500 dark:text-slate-400">{r.seller || '—'}</td>
+                      <td className="p-3 text-xs text-slate-500 dark:text-slate-400">{formatJalali(r.issueDate)}</td>
+                      <td className="p-3"><span className="text-sm font-bold text-slate-800 dark:text-slate-100">{formatToman(Number(r.finalAmount))} ت</span></td>
+                      <td className="p-3">
+                        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium" style={{ background: `${stColor}15`, color: stColor }}>
+                          {PI_STATUS[r.status] || r.status}
+                        </span>
+                      </td>
+                      {isSuperAdmin && (
+                        <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex gap-1">
+                            <button onClick={() => loadDetail(r)} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700" title="مشاهده"><Eye className="h-4 w-4" /></button>
+                            <button onClick={() => handleDelete(r.id)} className="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500" title="حذف"><Trash2 className="h-4 w-4" /></button>
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
+
+      <Link href="/dashboard/pre-invoices-sales/new" className="nb-fab" aria-label="پیش‌فاکتور جدید">
+        <Plus className="h-6 w-6" />
+      </Link>
 
       <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
         <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
@@ -252,16 +383,16 @@ export default function PreInvoicesSalesPage() {
                     {detail.expiryDate && <div className="rounded-[10px] bg-amber-50 p-3"><div className="text-xs text-[#667085]">تاریخ انقضا</div><div className="mt-1 text-sm font-bold text-amber-600">{formatJalali(detail.expiryDate)}</div></div>}
                     <div className="rounded-[10px] bg-blue-50 p-3"><div className="text-xs text-[#667085]">مبلغ نهایی</div><div className="mt-1 text-sm font-bold text-blue-700">{formatToman(Number(detail.finalAmount))}</div></div>
                   </div>
-                  {detail.notes && <div className="rounded-lg border border-slate-200 bg-slate-50 p-3"><p className="whitespace-pre-wrap text-sm text-slate-600">{detail.notes}</p></div>}
+                  {detail.notes && <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800"><p className="whitespace-pre-wrap text-sm text-slate-600 dark:text-slate-300">{detail.notes}</p></div>}
 
                   <div>
-                    <h3 className="mb-2 text-sm font-bold text-[#1D2939]">اقلام ({detailItems.length})</h3>
+                    <h3 className="mb-2 text-sm font-bold text-slate-800 dark:text-slate-100">اقلام ({detailItems.length})</h3>
                     {detailItems.length === 0 ? <p className="py-3 text-center text-xs text-slate-400">قلمی ثبت نشده است</p> : (
                       <div className="space-y-1.5">
                         {detailItems.map((item) => (
-                          <div key={item.id} className="flex items-center justify-between rounded-lg bg-slate-50 p-3 text-xs">
+                          <div key={item.id} className="flex items-center justify-between rounded-lg bg-slate-50 p-3 text-xs dark:bg-slate-800">
                             <div className="min-w-0 flex-1">
-                              <div className="font-semibold text-slate-700">{item.productName || '—'}</div>
+                              <div className="font-semibold text-slate-700 dark:text-slate-200">{item.productName || '—'}</div>
                               <div className="mt-0.5 flex gap-3 text-slate-400">
                                 <span>{formatToman(Number(item.qty))} {item.unit || ''}</span>
                                 <span>قیمت واحد: {formatToman(Number(item.unitPrice))}</span>
@@ -274,7 +405,7 @@ export default function PreInvoicesSalesPage() {
                     )}
                   </div>
 
-                  <div className="flex flex-wrap gap-2 border-t border-slate-200 pt-4">
+                  <div className="flex flex-wrap gap-2 border-t border-slate-200 pt-4 dark:border-slate-700">
                     {detail.status === 'draft' && isSuperAdmin && (
                       <Button variant="outline" className="border-blue-200 text-blue-600 hover:bg-blue-50" onClick={() => handleStatusChange(detail.id, 'sent')}><FileOutput className="h-4 w-4" /> ارسال به مشتری</Button>
                     )}

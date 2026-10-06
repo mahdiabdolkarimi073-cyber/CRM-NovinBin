@@ -3,8 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { fetchData, createData, updateData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
-import { PageHeader } from '@/components/dashboard/page-header';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,13 +15,12 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   FileText, FilePlus2, Send, Inbox, Archive, PenTool,
-  Clock, AlertCircle, ChevronLeft, Eye, Check, X, Undo2,
+  Clock, ChevronLeft, Eye, Check, X, Undo2,
   History, Mail, Lock, Flame, FileCheck, Search,
+  Loader2, Mailbox,
 } from 'lucide-react';
 import { formatJalali, formatJalaliDateTime, relativeTime } from '@/lib/format';
 import { toast } from 'sonner';
@@ -455,150 +453,117 @@ export default function SecretariatPage() {
     { key: 'archive', label: 'بایگانی', icon: Archive, count: archivedLetters.length },
   ];
 
+  const tabGradients: Record<string, string> = {
+    inbox: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)',
+    outbox: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)',
+    drafts: 'linear-gradient(135deg, #94a3b8 0%, #64748b 100%)',
+    'pending-sign': 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+    urgent: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+    archive: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+  };
+  const tabGlows: Record<string, string> = {
+    inbox: 'rgba(37,99,235,0.25)',
+    outbox: 'rgba(34,197,94,0.25)',
+    drafts: 'rgba(148,163,184,0.25)',
+    'pending-sign': 'rgba(139,92,246,0.25)',
+    urgent: 'rgba(239,68,68,0.25)',
+    archive: 'rgba(245,158,11,0.25)',
+  };
+
   return (
-    <div className="secretariat-page space-y-4 mobile:space-y-5 tablet:space-y-6">
-      <PageHeader
-        title="دبیرخانه"
-        description="مدیریت نامه‌های وارده، صادره و داخلی - گردش، امضا و ثبت نامه"
-      />
-
-      {/* Mobile layout: stacked, compact tabs */}
-      <div className="flex flex-col gap-3 mobile:hidden">
-        <Button onClick={() => setShowCreate(true)} className="gap-2 rounded-xl w-full" size="sm">
-          <FilePlus2 className="h-4 w-4" />
-          نامه جدید
-        </Button>
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="flex h-auto w-full flex-wrap gap-1 bg-muted/60 p-1.5">
-            {tabs.map((t) => (
-              <TabsTrigger
-                key={t.key}
-                value={t.key}
-                className="flex flex-1 items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-[10px] font-bold data-[state=active]:bg-card data-[state=active]:shadow-sm"
-              >
-                <t.icon className="h-3 w-3" />
-                {t.label}
-                {t.count > 0 && (
-                  <span className="ml-0.5 rounded-md bg-accent/15 px-1 py-0.5 text-[8px] font-bold text-accent">
-                    {t.count.toLocaleString('fa-IR')}
-                  </span>
-                )}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-        <div className="flex h-9 items-center gap-2 rounded-xl border-2 border-border bg-muted/40 px-3 transition-all focus-within:border-accent focus-within:bg-card">
-          <Search className="h-4 w-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="جستجو در نامه‌ها..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-transparent text-xs font-medium outline-none placeholder:text-muted-foreground/60"
-          />
+    <div className="nb-page" dir="rtl">
+      <header className="nb-hero">
+        <div className="nb-hero-left">
+          <div>
+            <div className="nb-hero-title-row">
+              <span className="nb-hero-marker" style={{ background: 'linear-gradient(180deg,#0EA5E9,#0284C7)', boxShadow: '0 0 12px rgba(14,165,233,.25)' }} />
+              <h1>دبیرخانه</h1>
+            </div>
+            <p>مدیریت نامه‌های وارده، صادره و داخلی - گردش، امضا و ثبت نامه</p>
+          </div>
         </div>
-        <div className="grid grid-cols-3 gap-2">
-          {tabs.map((t) => (
-            <Card key={t.key} className="border-border bg-card">
-              <CardContent className="flex flex-col items-center gap-1 p-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10">
-                  <t.icon className="h-4 w-4 text-accent" />
-                </div>
-                <p className="text-[10px] text-muted-foreground text-center">{t.label}</p>
-                <p className="text-sm font-bold text-foreground">{t.count.toLocaleString('fa-IR')}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-
-      {/* Tablet/Desktop layout: horizontal tabs, full cards */}
-      <div className="hidden mobile:flex mobile:flex-col tablet:flex-row tablet:items-center tablet:justify-between gap-3">
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="flex h-auto flex-wrap gap-1 bg-muted/60 p-1.5">
-            {tabs.map((t) => (
-              <TabsTrigger
-                key={t.key}
-                value={t.key}
-                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-bold data-[state=active]:bg-card data-[state=active]:shadow-sm"
-              >
-                <t.icon className="h-3.5 w-3.5" />
-                {t.label}
-                {t.count > 0 && (
-                  <span className="ml-1 rounded-md bg-accent/15 px-1.5 py-0.5 text-[9px] font-bold text-accent">
-                    {t.count.toLocaleString('fa-IR')}
-                  </span>
-                )}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          <Button onClick={() => setShowCreate(true)} className="gap-2 rounded-xl" size="sm">
-            <FilePlus2 className="h-4 w-4" />
+        <div className="nb-hero-right">
+          <button className="nb-new-btn" onClick={() => setShowCreate(true)}>
+            <FilePlus2 className="h-[18px] w-[18px]" />
             نامه جدید
-          </Button>
-          <div className="flex h-10 items-center gap-2 rounded-xl border-2 border-border bg-muted/40 px-3 transition-all focus-within:border-accent focus-within:bg-card flex-1">
-            <Search className="h-4 w-4 text-muted-foreground" />
+          </button>
+        </div>
+      </header>
+
+      <section className="nb-stats-grid-v2">
+        {tabs.map((t) => (
+          <div
+            className={`nb-stat-card-v2 ${activeTab === t.key ? 'is-active' : ''}`}
+            key={t.key}
+            onClick={() => setActiveTab(t.key)}
+            style={{ '--stat-glow': tabGlows[t.key] } as React.CSSProperties}
+          >
+            <div className="nb-stat-v2-icon" style={{ background: tabGradients[t.key] }}>
+              <t.icon className="h-[22px] w-[22px] text-white" />
+            </div>
+            <div className="nb-stat-v2-body">
+              <strong>{t.count.toLocaleString('fa-IR')}</strong>
+              <span>{t.label}</span>
+            </div>
+            <div className="nb-stat-v2-spark" style={{ background: tabGradients[t.key] }} />
+          </div>
+        ))}
+      </section>
+
+      <div className="nb-toolbar">
+        <div className="nb-toolbar-left">
+          <h2>{tabs.find((t) => t.key === activeTab)?.label || 'همه'}</h2>
+          <span className="nb-count-badge">{tabLetters.length.toLocaleString('fa-IR')} مورد</span>
+        </div>
+        <div className="nb-toolbar-right">
+          <div className="nb-search-box">
+            <Search className="h-4 w-4" />
             <input
-              type="text"
-              placeholder="جستجو در نامه‌ها..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-transparent text-sm font-medium outline-none placeholder:text-muted-foreground/60"
+              placeholder="جستجو در نامه‌ها..."
             />
+            {search && <button onClick={() => setSearch('')}><X className="h-3.5 w-3.5" /></button>}
           </div>
         </div>
       </div>
 
-      {/* Tablet/Desktop stat cards */}
-      <div className="hidden mobile:grid mobile:grid-cols-3 tablet:grid-cols-3 lg:grid-cols-6 gap-2 mobile:gap-3">
-        {tabs.map((t) => (
-          <Card key={t.key} className="border-border bg-card transition-all hover:border-accent/30 hover:shadow-md">
-            <CardContent className="flex items-center gap-2.5 p-3 mobile:p-3.5">
-              <div className="flex h-9 w-9 mobile:h-10 mobile:w-10 items-center justify-center rounded-xl bg-accent/10">
-                <t.icon className="h-4 w-4 mobile:h-5 mobile:w-5 text-accent" />
-              </div>
-              <div>
-                <p className="text-[11px] mobile:text-xs text-muted-foreground">{t.label}</p>
-                <p className="text-base mobile:text-lg font-bold text-foreground">{t.count.toLocaleString('fa-IR')}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <div className="space-y-3">
-        {loading && (
-          <div className="flex items-center justify-center py-12">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-          </div>
-        )}
-        {!loading && tabLetters.length === 0 && (
-          <div className="flex flex-col items-center gap-3 py-12 text-center">
-            <AlertCircle className="h-8 w-8 text-muted-foreground/40" />
-            <p className="text-sm text-muted-foreground">نامه‌ای وجود ندارد</p>
-          </div>
-        )}
-        {!loading && tabLetters.map((letter) => (
-          <LetterCard
-            key={letter.id}
-            letter={letter}
-            userMap={userMap}
-            onDetail={() => setShowDetail(letter)}
-            onReferral={() => setShowReferral(letter)}
-            onSign={() => setShowSign(letter)}
-            onRegister={() => handleRegister(letter)}
-            onIssue={(method) => handleIssue(letter, method)}
-            onSend={() => handleSend(letter)}
-            onArchive={() => handleArchive(letter)}
-            onCancel={() => handleCancel(letter)}
-            canAct={isAdmin || letter.currentHolderId === profile?.id || letter.createdById === profile?.id}
-            isImmutable={letter.isSigned}
-          />
-        ))}
-      </div>
+      {loading ? (
+        <div className="nb-empty">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
+          <p>در حال بارگذاری نامه‌ها...</p>
+        </div>
+      ) : tabLetters.length === 0 ? (
+        <div className="nb-empty">
+          <div className="sb-empty-icon"><Mailbox className="h-12 w-12 text-muted-foreground/30" /></div>
+          <h3>نامه‌ای وجود ندارد</h3>
+          <p>در این بخش نامه‌ای برای نمایش وجود ندارد</p>
+          <button className="nb-empty-new-btn" onClick={() => setShowCreate(true)}>
+            <FilePlus2 className="h-4 w-4" />
+            ایجاد نامه
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {tabLetters.map((letter) => (
+            <LetterCard
+              key={letter.id}
+              letter={letter}
+              userMap={userMap}
+              onDetail={() => setShowDetail(letter)}
+              onReferral={() => setShowReferral(letter)}
+              onSign={() => setShowSign(letter)}
+              onRegister={() => handleRegister(letter)}
+              onIssue={(method) => handleIssue(letter, method)}
+              onSend={() => handleSend(letter)}
+              onArchive={() => handleArchive(letter)}
+              onCancel={() => handleCancel(letter)}
+              canAct={isAdmin || letter.currentHolderId === profile?.id || letter.createdById === profile?.id}
+              isImmutable={letter.isSigned}
+            />
+          ))}
+        </div>
+      )}
 
       {showCreate && (
         <CreateLetterDialog
