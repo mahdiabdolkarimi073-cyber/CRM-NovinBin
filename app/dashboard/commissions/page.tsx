@@ -4,8 +4,6 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { fetchData, deleteData, updateData, createData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
-import { EmptyState } from '@/components/dashboard/empty-state';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,9 +13,12 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import {
   Plus, Search, Trash2, Calendar, ChevronLeft, ChevronRight,
   CheckCircle, Clock, Eye, Ban, FileText, Percent, XCircle,
-  Send, AlertCircle, DollarSign, Wallet,
+  Send, AlertCircle, DollarSign, Wallet, X, Loader2,
 } from 'lucide-react';
 import { formatJalali, formatToman, relativeTime } from '@/lib/format';
 import { fullName } from '@/lib/constants';
@@ -146,6 +147,19 @@ export default function CommissionsPage() {
     totalPaid: records.filter((r) => r.status !== 'cancelled').reduce((sum, r) => sum + Number(r.paidAmount || 0), 0),
   }), [records]);
 
+  const statsList = useMemo(() => [
+    { label: 'کل پورسانت‌ها', value: stats.total.toLocaleString('fa-IR'), icon: Percent, filter: 'all', gradient: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)', glow: 'rgba(37,99,235,0.25)' },
+    { label: 'در انتظار', value: stats.pending.toLocaleString('fa-IR'), icon: Clock, filter: 'calculated', gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', glow: 'rgba(245,158,11,0.25)' },
+    { label: 'تأیید/قطعی', value: stats.approved.toLocaleString('fa-IR'), icon: CheckCircle, filter: 'approved', gradient: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)', glow: 'rgba(34,197,94,0.25)' },
+    { label: 'لغو شده', value: stats.cancelled.toLocaleString('fa-IR'), icon: XCircle, filter: 'cancelled', gradient: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)', glow: 'rgba(239,68,68,0.25)' },
+    { label: 'قابل پرداخت (تومان)', value: formatToman(stats.totalPayable), icon: DollarSign, filter: 'all', gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', glow: 'rgba(16,185,129,0.25)' },
+    { label: 'پرداخت شده (تومان)', value: formatToman(stats.totalPaid), icon: Wallet, filter: 'all', gradient: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', glow: 'rgba(99,102,241,0.25)' },
+  ], [stats]);
+
+  const handleStatClick = (f: string) => {
+    setFilterStatus(filterStatus === f ? 'all' : f);
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm('حذف این پورسانت؟')) return;
     try {
@@ -167,13 +181,8 @@ export default function CommissionsPage() {
       if (newStatus === 'rejected') { updates.rejectedBy = profile.id; updates.rejectedAt = new Date().toISOString(); }
       await updateData('commissions', { id }, updates);
       await createData('commission_history', {
-        commissionId: id,
-        action,
-        actionBy: profile.id,
-        actionAt: new Date().toISOString(),
-        fromStatus: records.find((r) => r.id === id)?.status || null,
-        toStatus: newStatus,
-        details: {},
+        commissionId: id, action, actionBy: profile.id, actionAt: new Date().toISOString(),
+        fromStatus: records.find((r) => r.id === id)?.status || null, toStatus: newStatus, details: {},
       });
       toast.success('وضعیت تغییر کرد');
       setDetail(null);
@@ -187,26 +196,16 @@ export default function CommissionsPage() {
     if (!cancelDialog || !profile) return;
     try {
       await updateData('commissions', { id: cancelDialog.id }, {
-        status: 'cancelled',
-        cancelledBy: profile.id,
-        cancelledAt: new Date().toISOString(),
-        cancelReason: cancelDialog.reason || null,
-        updatedAt: new Date().toISOString(),
+        status: 'cancelled', cancelledBy: profile.id, cancelledAt: new Date().toISOString(),
+        cancelReason: cancelDialog.reason || null, updatedAt: new Date().toISOString(),
       });
       await createData('commission_history', {
-        commissionId: cancelDialog.id,
-        action: 'cancelled',
-        actionBy: profile.id,
-        actionAt: new Date().toISOString(),
-        fromStatus: records.find((r) => r.id === cancelDialog.id)?.status || null,
-        toStatus: 'cancelled',
-        reason: cancelDialog.reason,
-        details: {},
+        commissionId: cancelDialog.id, action: 'cancelled', actionBy: profile.id, actionAt: new Date().toISOString(),
+        fromStatus: records.find((r) => r.id === cancelDialog.id)?.status || null, toStatus: 'cancelled',
+        reason: cancelDialog.reason, details: {},
       });
       toast.success('پورسانت لغو شد');
-      setCancelDialog(null);
-      setDetail(null);
-      loadData();
+      setCancelDialog(null); setDetail(null); loadData();
     } catch (error: any) {
       toast.error('عملیات ناموفق: ' + error.message);
     }
@@ -218,32 +217,23 @@ export default function CommissionsPage() {
     if (isNaN(amt) || amt === 0) { toast.error('مبلغ تعدیل نامعتبر است'); return; }
     try {
       await createData('commission_adjustments', {
-        commissionId: adjustDialog.id,
-        adjustmentType: adjustDialog.type,
-        amount: amt,
-        reason: adjustDialog.reason || null,
-        createdBy: profile.id,
+        commissionId: adjustDialog.id, adjustmentType: adjustDialog.type, amount: amt,
+        reason: adjustDialog.reason || null, createdBy: profile.id,
       });
       const cm = records.find((r) => r.id === adjustDialog.id);
       if (cm) {
         const newAdjTotal = Number(cm.adjustmentsTotal || 0) + amt;
         const newFinal = Number(cm.calculatedCommission || 0) + newAdjTotal;
         await updateData('commissions', { id: adjustDialog.id }, {
-          adjustmentsTotal: newAdjTotal,
-          finalPayableAmount: newFinal,
-          updatedAt: new Date().toISOString(),
+          adjustmentsTotal: newAdjTotal, finalPayableAmount: newFinal, updatedAt: new Date().toISOString(),
         });
       }
       await createData('commission_history', {
-        commissionId: adjustDialog.id,
-        action: 'adjusted',
-        actionBy: profile.id,
-        actionAt: new Date().toISOString(),
+        commissionId: adjustDialog.id, action: 'adjusted', actionBy: profile.id, actionAt: new Date().toISOString(),
         details: { type: adjustDialog.type, amount: amt, reason: adjustDialog.reason },
       });
       toast.success('تعدیل ثبت شد');
-      setAdjustDialog(null);
-      loadData();
+      setAdjustDialog(null); loadData();
     } catch (error: any) {
       toast.error('عملیات ناموفق: ' + error.message);
     }
@@ -256,103 +246,146 @@ export default function CommissionsPage() {
     setDetailHistory(cm.history || []);
   };
 
-  return (
-    <div className="w-full" dir="rtl">
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <span className="h-10 w-[5px] rounded-full bg-[#FF7A00]" />
-            <h1 className="text-[28px] font-bold text-[#101828]">پورسانت</h1>
-          </div>
-          <div className="mt-2 text-xs font-medium text-[#667085]">داشبورد <span className="mx-1.5 text-[#CBD5E1]">←</span> فروش <span className="mx-1.5 text-[#CBD5E1]">←</span> پورسانت</div>
+  if (loading) {
+    return (
+      <div className="nb-page" dir="rtl">
+        <div className="nb-empty">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
+          <p>در حال بارگذاری پورسانت‌ها...</p>
         </div>
-        <Link href="/dashboard/commissions/new">
-          <Button className="h-[42px] rounded-[10px] bg-[#3155E7] px-[18px] text-sm font-semibold text-white shadow-sm hover:bg-[#2445C7]">
-            <Plus className="h-4 w-4" /> ثبت پورسانت
-          </Button>
-        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="nb-page" dir="rtl">
+      <header className="nb-hero">
+        <div className="nb-hero-left">
+          <div>
+            <div className="nb-hero-title-row">
+              <span className="nb-hero-marker" style={{ background: 'linear-gradient(180deg,#FF7A00,#E65100)', boxShadow: '0 0 12px rgba(255,122,0,.25)' }} />
+              <h1>پورسانت</h1>
+            </div>
+            <p>مدیریت پورسانت فروشندگان، تأیید و پرداخت</p>
+          </div>
+        </div>
+        <div className="nb-hero-right">
+          <Link href="/dashboard/commissions/new" className="nb-new-btn">
+            <Plus className="h-[18px] w-[18px]" />
+            ثبت پورسانت
+          </Link>
+        </div>
       </header>
 
-      <div className="mb-5 grid grid-cols-2 gap-4 xl:grid-cols-6">
-        <div className="flex min-h-[120px] flex-col justify-between rounded-[14px] border border-[#E7ECF3] bg-white p-5 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-          <span className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#3155E7]/10 text-[#3155E7]"><Percent className="h-5 w-5" strokeWidth={2.5} /></span>
-          <div><div className="text-[26px] font-bold leading-none text-[#101828]">{stats.total.toLocaleString('fa-IR')}</div><div className="mt-1.5 text-[13px] font-bold text-[#344054]">کل پورسانت‌ها</div></div>
+      <section className="nb-stats-grid-v2">
+        {statsList.map((stat) => (
+          <button
+            type="button"
+            className={`nb-stat-card-v2 ${filterStatus === stat.filter ? 'is-active' : ''}`}
+            key={stat.label}
+            onClick={() => handleStatClick(stat.filter)}
+            style={{ '--stat-glow': stat.glow } as React.CSSProperties}
+          >
+            <div className="nb-stat-v2-icon" style={{ background: stat.gradient }}>
+              <stat.icon className="h-[22px] w-[22px] text-white" strokeWidth={2.5} />
+            </div>
+            <div className="nb-stat-v2-body">
+              <strong>{stat.value}</strong>
+              <span>{stat.label}</span>
+            </div>
+            <div className="nb-stat-v2-spark" style={{ background: stat.gradient }} />
+          </button>
+        ))}
+      </section>
+
+      <div className="nb-toolbar">
+        <div className="nb-toolbar-left">
+          <h2>همه پورسانت‌ها</h2>
+          <span className="nb-count-badge">{filtered.length.toLocaleString('fa-IR')} مورد</span>
         </div>
-        <div className="flex min-h-[120px] flex-col justify-between rounded-[14px] border border-[#E7ECF3] bg-white p-5 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-          <span className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#f59e0b]/10 text-[#f59e0b]"><Clock className="h-5 w-5" strokeWidth={2.5} /></span>
-          <div><div className="text-[26px] font-bold leading-none text-[#101828]">{stats.pending.toLocaleString('fa-IR')}</div><div className="mt-1.5 text-[13px] font-bold text-[#344054]">در انتظار</div></div>
-        </div>
-        <div className="flex min-h-[120px] flex-col justify-between rounded-[14px] border border-[#E7ECF3] bg-white p-5 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-          <span className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#10b981]/10 text-[#10b981]"><CheckCircle className="h-5 w-5" strokeWidth={2.5} /></span>
-          <div><div className="text-[26px] font-bold leading-none text-[#101828]">{stats.approved.toLocaleString('fa-IR')}</div><div className="mt-1.5 text-[13px] font-bold text-[#344054]">تأیید/قطعی</div></div>
-        </div>
-        <div className="flex min-h-[120px] flex-col justify-between rounded-[14px] border border-[#E7ECF3] bg-white p-5 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-          <span className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#ef4444]/10 text-[#ef4444]"><XCircle className="h-5 w-5" strokeWidth={2.5} /></span>
-          <div><div className="text-[26px] font-bold leading-none text-[#101828]">{stats.cancelled.toLocaleString('fa-IR')}</div><div className="mt-1.5 text-[13px] font-bold text-[#344054]">لغو شده</div></div>
-        </div>
-        <div className="flex min-h-[120px] flex-col justify-between rounded-[14px] border border-[#E7ECF3] bg-white p-5 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-          <span className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-emerald-50 text-emerald-500"><DollarSign className="h-5 w-5" strokeWidth={2.5} /></span>
-          <div><div className="text-[20px] font-bold leading-none text-[#101828]">{formatToman(stats.totalPayable)}</div><div className="mt-1.5 text-[13px] font-bold text-[#344054]">قابل پرداخت (تومان)</div></div>
-        </div>
-        <div className="flex min-h-[120px] flex-col justify-between rounded-[14px] border border-[#E7ECF3] bg-white p-5 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-          <span className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-blue-50 text-blue-500"><Wallet className="h-5 w-5" strokeWidth={2.5} /></span>
-          <div><div className="text-[20px] font-bold leading-none text-[#101828]">{formatToman(stats.totalPaid)}</div><div className="mt-1.5 text-[13px] font-bold text-[#344054]">پرداخت شده (تومان)</div></div>
+        <div className="nb-toolbar-right">
+          <div className="nb-search-box">
+            <Search className="h-4 w-4" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="جستجو بر اساس شماره یا فروشنده..." />
+            {search && <button onClick={() => setSearch('')}><X className="h-3.5 w-3.5" /></button>}
+          </div>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="nb-select-filter h-10 w-[150px]">
+              <SelectValue placeholder="وضعیت" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">همه وضعیت‌ها</SelectItem>
+              {Object.entries(CM_STATUS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative">
-          <Search className="absolute right-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#98A2B3]" />
-          <Input placeholder="جستجو بر اساس شماره یا فروشنده..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-[42px] w-full rounded-[10px] border-[#DCE3EE] bg-white pr-9 text-sm sm:w-[320px]" />
+      {records.length === 0 ? (
+        <div className="nb-empty">
+          <div className="sb-empty-icon"><Percent className="h-12 w-12 text-muted-foreground/30" /></div>
+          <h3>پورسانتی یافت نشد</h3>
+          <p>برای شروع، اولین پورسانت را ثبت کنید</p>
+          <Link href="/dashboard/commissions/new" className="nb-empty-new-btn"><Plus className="h-4 w-4" /> افزودن پورسانت</Link>
         </div>
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="h-[42px] rounded-[10px] border border-[#DCE3EE] bg-white px-3 text-sm text-[#344054]">
-          <option value="all">همه وضعیت‌ها</option>
-          {Object.entries(CM_STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-        </select>
-      </div>
-
-      {loading ? (
-        <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-[3px] border-[#2563EB] border-t-transparent" /></div>
-      ) : records.length === 0 ? (
-        <Card><EmptyState icon={<Percent className="h-8 w-8" />} title="پورسانتی یافت نشد" description="برای شروع، اولین پورسانت را ثبت کنید" action={<Link href="/dashboard/commissions/new"><Button><Plus className="h-4 w-4" /> افزودن پورسانت</Button></Link>} /></Card>
       ) : (
-        <Card><CardContent className="p-0">
-          <div className="divide-y divide-[#F1F5F9]">
-            {pageItems.map((r) => {
-              const stColor = CM_STATUS_COLOR[r.status] || '#64748b';
-              return (
-                <div key={r.id} className="flex cursor-pointer items-center gap-3 p-4 transition-colors hover:bg-[#F8FAFD]" onClick={() => loadDetail(r)}>
-                  <div className="h-10 w-2 rounded-full" style={{ backgroundColor: stColor }} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <div className="truncate text-sm font-bold text-[#1D2939]">{r.number}</div>
-                      <Badge variant="outline" className="shrink-0 text-[10px]" style={{ color: stColor, borderColor: `${stColor}35`, backgroundColor: `${stColor}10` }}>{CM_STATUS[r.status]}</Badge>
-                      <Badge variant="outline" className="shrink-0 text-[10px] text-[#667085]">{PAYMENT_STATUS[r.paymentStatus] || r.paymentStatus}</Badge>
-                    </div>
-                    <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-[#98A2B3]">
-                      <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{formatJalali(r.periodStart)} - {formatJalali(r.periodEnd)}</span>
-                      {r.salespersonName && <span>{r.salespersonName}</span>}
-                      <span>{formatToman(Number(r.finalPayableAmount))} تومان</span>
-                      {r.calculationBasis && <span>{CALC_BASIS[r.calculationBasis] || r.calculationBasis}</span>}
-                    </div>
-                  </div>
-                  <button onClick={(e) => { e.stopPropagation(); loadDetail(r); }} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#98A2B3] transition-colors hover:bg-[#EFF4FF] hover:text-[#2563EB]"><Eye className="h-4 w-4" /></button>
-                  {isSuperAdmin && r.status === 'calculated' && <button onClick={(e) => { e.stopPropagation(); handleDelete(r.id); }} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#98A2B3] transition-colors hover:bg-rose-50 hover:text-rose-500"><Trash2 className="h-4 w-4" /></button>}
-                </div>
-              );
-            })}
-            {pageItems.length === 0 && <div className="py-12 text-center text-sm text-[#CBD5E1]">نتیجه‌ای یافت نشد</div>}
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[800px]">
+              <thead className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/50">
+                <tr>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">شماره</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">وضعیت</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">فروشنده</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">دوره</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">قابل پرداخت</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">عملیات</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                {pageItems.map((r) => {
+                  const stColor = CM_STATUS_COLOR[r.status] || '#64748b';
+                  return (
+                    <tr key={r.id} className="cursor-pointer transition hover:bg-slate-50 dark:hover:bg-slate-700/50" onClick={() => loadDetail(r)}>
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: stColor }} />
+                          <div className="font-medium text-slate-800 dark:text-slate-100">{r.number}</div>
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <Badge style={{ backgroundColor: `${stColor}15`, color: stColor }} className="rounded-full text-xs">{CM_STATUS[r.status]}</Badge>
+                      </td>
+                      <td className="p-3 text-xs text-slate-500 dark:text-slate-400">{r.salespersonName || '—'}</td>
+                      <td className="p-3 text-xs text-slate-500 dark:text-slate-400">
+                        <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{formatJalali(r.periodStart)}</span>
+                      </td>
+                      <td className="p-3 text-xs font-medium text-slate-700 dark:text-slate-300">{formatToman(Number(r.finalPayableAmount))} تومان</td>
+                      <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex gap-1">
+                          <button onClick={() => loadDetail(r)} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700" title="مشاهده"><Eye className="h-4 w-4" /></button>
+                          {isSuperAdmin && r.status === 'calculated' && <button onClick={() => handleDelete(r.id)} className="rounded p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-500" title="حذف"><Trash2 className="h-4 w-4" /></button>}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {pageItems.length === 0 && (
+                  <tr><td colSpan={6} className="py-12 text-center text-sm text-slate-300 dark:text-slate-600">نتیجه‌ای یافت نشد</td></tr>
+                )}
+              </tbody>
+            </table>
           </div>
           {pages > 1 && (
-            <div className="flex items-center justify-between border-t border-[#F1F5F9] px-4 py-3">
-              <span className="text-xs text-[#667085]">صفحه {currentPage.toLocaleString('fa-IR')} از {pages.toLocaleString('fa-IR')}</span>
+            <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 dark:border-slate-700">
+              <span className="text-xs text-slate-500 dark:text-slate-400">صفحه {currentPage.toLocaleString('fa-IR')} از {pages.toLocaleString('fa-IR')}</span>
               <div className="flex items-center gap-2">
-                <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE3EE] text-[#667085] transition-colors hover:bg-[#F1F5F9] disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button>
-                <button onClick={() => setPage((p) => Math.min(pages, p + 1))} disabled={currentPage === pages} className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE3EE] text-[#667085] transition-colors hover:bg-[#F1F5F9] disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button>
+                <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:bg-slate-100 disabled:opacity-40 dark:border-slate-700 dark:hover:bg-slate-700"><ChevronRight className="h-4 w-4" /></button>
+                <button onClick={() => setPage((p) => Math.min(pages, p + 1))} disabled={currentPage === pages} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:bg-slate-100 disabled:opacity-40 dark:border-slate-700 dark:hover:bg-slate-700"><ChevronLeft className="h-4 w-4" /></button>
               </div>
             </div>
           )}
-        </CardContent></Card>
+        </div>
       )}
 
       <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
@@ -373,36 +406,33 @@ export default function CommissionsPage() {
                 <div className="space-y-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge style={{ backgroundColor: `${stColor}20`, color: stColor }}>{CM_STATUS[detail.status]}</Badge>
-                    <Badge variant="outline" className="text-[#667085]">{PAYMENT_STATUS[detail.paymentStatus] || detail.paymentStatus}</Badge>
-                    {detail.calculationBasis && <Badge variant="outline" className="text-[#667085]">{CALC_BASIS[detail.calculationBasis] || detail.calculationBasis}</Badge>}
+                    <Badge variant="outline" className="text-slate-500 dark:text-slate-400">{PAYMENT_STATUS[detail.paymentStatus] || detail.paymentStatus}</Badge>
+                    {detail.calculationBasis && <Badge variant="outline" className="text-slate-500 dark:text-slate-400">{CALC_BASIS[detail.calculationBasis] || detail.calculationBasis}</Badge>}
                   </div>
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    <div className="rounded-[10px] bg-[#EFF4FF] p-3"><div className="text-xs text-[#667085]">شماره</div><div className="mt-1 text-sm font-bold text-[#3155E7]">{detail.number}</div></div>
-                    <div className="rounded-[10px] bg-[#F1F5F9] p-3"><div className="text-xs text-[#667085]">فروشنده</div><div className="mt-1 text-sm font-bold text-[#344054]">{detail.salespersonName || '—'}</div></div>
-                    <div className="rounded-[10px] bg-[#F1F5F9] p-3"><div className="text-xs text-[#667085]">دوره</div><div className="mt-1 text-sm font-bold text-[#344054]">{formatJalali(detail.periodStart)} - {formatJalali(detail.periodEnd)}</div></div>
-                    <div className="rounded-[10px] bg-[#F1F5F9] p-3"><div className="text-xs text-[#667085]">ایجادکننده</div><div className="mt-1 text-sm font-bold text-[#344054]">{staffName(detail.createdBy)}</div></div>
-                    <div className="rounded-[10px] bg-blue-50 p-3"><div className="text-xs text-[#667085]">مبلغ مشمول</div><div className="mt-1 text-sm font-bold text-blue-700">{formatToman(Number(detail.subjectAmount))}</div></div>
-                    <div className="rounded-[10px] bg-emerald-50 p-3"><div className="text-xs text-[#667085]">پورسانت محاسبه‌شده</div><div className="mt-1 text-sm font-bold text-emerald-600">{formatToman(Number(detail.calculatedCommission))}</div></div>
-                    <div className="rounded-[10px] bg-amber-50 p-3"><div className="text-xs text-[#667085]">تعدیلات</div><div className="mt-1 text-sm font-bold text-amber-600">{formatToman(Number(detail.adjustmentsTotal))}</div></div>
-                    <div className="rounded-[10px] bg-[#DCFCE7] p-3"><div className="text-xs text-[#667085]">قابل پرداخت</div><div className="mt-1 text-sm font-bold text-[#16A34A]">{formatToman(Number(detail.finalPayableAmount))}</div></div>
-                    <div className="rounded-[10px] bg-[#F1F5F9] p-3"><div className="text-xs text-[#667085]">پرداخت شده</div><div className="mt-1 text-sm font-bold text-[#344054]">{formatToman(Number(detail.paidAmount))}</div></div>
+                    <div className="rounded-[10px] bg-sky-50 p-3"><div className="text-xs text-slate-500">شماره</div><div className="mt-1 text-sm font-bold text-sky-700">{detail.number}</div></div>
+                    <div className="rounded-[10px] bg-slate-50 p-3 dark:bg-slate-800/50"><div className="text-xs text-slate-500 dark:text-slate-400">فروشنده</div><div className="mt-1 text-sm font-bold text-slate-700 dark:text-slate-200">{detail.salespersonName || '—'}</div></div>
+                    <div className="rounded-[10px] bg-slate-50 p-3 dark:bg-slate-800/50"><div className="text-xs text-slate-500 dark:text-slate-400">دوره</div><div className="mt-1 text-sm font-bold text-slate-700 dark:text-slate-200">{formatJalali(detail.periodStart)} - {formatJalali(detail.periodEnd)}</div></div>
+                    <div className="rounded-[10px] bg-slate-50 p-3 dark:bg-slate-800/50"><div className="text-xs text-slate-500 dark:text-slate-400">ایجادکننده</div><div className="mt-1 text-sm font-bold text-slate-700 dark:text-slate-200">{staffName(detail.createdBy)}</div></div>
+                    <div className="rounded-[10px] bg-blue-50 p-3"><div className="text-xs text-slate-500">مبلغ مشمول</div><div className="mt-1 text-sm font-bold text-blue-700">{formatToman(Number(detail.subjectAmount))}</div></div>
+                    <div className="rounded-[10px] bg-emerald-50 p-3"><div className="text-xs text-slate-500">پورسانت محاسبه‌شده</div><div className="mt-1 text-sm font-bold text-emerald-600">{formatToman(Number(detail.calculatedCommission))}</div></div>
+                    <div className="rounded-[10px] bg-amber-50 p-3"><div className="text-xs text-slate-500">تعدیلات</div><div className="mt-1 text-sm font-bold text-amber-600">{formatToman(Number(detail.adjustmentsTotal))}</div></div>
+                    <div className="rounded-[10px] bg-green-50 p-3"><div className="text-xs text-slate-500">قابل پرداخت</div><div className="mt-1 text-sm font-bold text-green-700">{formatToman(Number(detail.finalPayableAmount))}</div></div>
+                    <div className="rounded-[10px] bg-slate-50 p-3 dark:bg-slate-800/50"><div className="text-xs text-slate-500 dark:text-slate-400">پرداخت شده</div><div className="mt-1 text-sm font-bold text-slate-700 dark:text-slate-200">{formatToman(Number(detail.paidAmount))}</div></div>
                   </div>
-
-                  {detail.description && <div className="rounded-lg border border-slate-200 bg-slate-50 p-3"><p className="whitespace-pre-wrap text-sm text-slate-600">{detail.description}</p></div>}
-
+                  {detail.description && <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50"><p className="whitespace-pre-wrap text-sm text-slate-600 dark:text-slate-300">{detail.description}</p></div>}
                   <div>
-                    <h3 className="mb-2 text-sm font-bold text-[#1D2939]">اسناد فروش ({detailItems.length})</h3>
+                    <h3 className="mb-2 text-sm font-bold text-slate-800 dark:text-slate-200">اسناد فروش ({detailItems.length})</h3>
                     {detailItems.length === 0 ? <p className="py-3 text-center text-xs text-slate-400">سندی ثبت نشده است</p> : (
                       <div className="space-y-1.5">
                         {detailItems.map((item) => (
-                          <div key={item.id} className="flex items-center justify-between rounded-lg bg-slate-50 p-3 text-xs">
+                          <div key={item.id} className="flex items-center justify-between rounded-lg bg-slate-50 p-3 text-xs dark:bg-slate-800/50">
                             <div className="min-w-0 flex-1">
-                              <div className="font-semibold text-slate-700">{item.invoiceNumber || 'بدون شماره'}</div>
+                              <div className="font-semibold text-slate-700 dark:text-slate-200">{item.invoiceNumber || 'بدون شماره'}</div>
                               <div className="mt-0.5 flex gap-3 text-slate-400">
                                 <span>فاکتور: {formatToman(Number(item.invoiceAmount))}</span>
                                 <span>تخفیف: {formatToman(Number(item.discountAmount))}</span>
                                 <span>برگشت: {formatToman(Number(item.returnAmount))}</span>
-                                <span>وصول: {formatToman(Number(item.collectedAmount))}</span>
                                 <span>مشمول: {formatToman(Number(item.subjectAmount))}</span>
                                 <span>پورسانت: {formatToman(Number(item.commissionAmount))}</span>
                               </div>
@@ -413,10 +443,9 @@ export default function CommissionsPage() {
                       </div>
                     )}
                   </div>
-
                   {detailAdjustments.length > 0 && (
                     <div>
-                      <h3 className="mb-2 text-sm font-bold text-[#1D2939]">تعدیلات ({detailAdjustments.length})</h3>
+                      <h3 className="mb-2 text-sm font-bold text-slate-800 dark:text-slate-200">تعدیلات ({detailAdjustments.length})</h3>
                       <div className="space-y-1.5">
                         {detailAdjustments.map((adj) => (
                           <div key={adj.id} className="flex items-center justify-between rounded-lg bg-amber-50 p-3 text-xs">
@@ -430,8 +459,7 @@ export default function CommissionsPage() {
                       </div>
                     </div>
                   )}
-
-                  <div className="flex flex-wrap gap-2 border-t border-slate-200 pt-4">
+                  <div className="flex flex-wrap gap-2 border-t border-slate-200 pt-4 dark:border-slate-700">
                     {detail.status === 'calculated' && isSuperAdmin && (
                       <Button variant="outline" className="border-amber-200 text-amber-600 hover:bg-amber-50" onClick={() => handleStatusChange(detail.id, 'review', 'reviewed')}><Clock className="h-4 w-4" /> بررسی</Button>
                     )}
@@ -462,8 +490,8 @@ export default function CommissionsPage() {
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>لغو پورسانت</DialogTitle></DialogHeader>
           <div className="space-y-2">
-            <Label className="text-sm font-semibold text-[#344054]">علت لغو</Label>
-            <Textarea value={cancelDialog?.reason || ''} onChange={(e) => setCancelDialog((d) => d ? { ...d, reason: e.target.value } : null)} placeholder="دلیل..." className="rounded-[10px] border-[#DCE3EE]" />
+            <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">علت لغو</Label>
+            <Textarea value={cancelDialog?.reason || ''} onChange={(e) => setCancelDialog((d) => d ? { ...d, reason: e.target.value } : null)} placeholder="دلیل..." className="rounded-[10px]" />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCancelDialog(null)}>انصراف</Button>
@@ -477,8 +505,8 @@ export default function CommissionsPage() {
           <DialogHeader><DialogTitle>ثبت تعدیل</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-[#344054]">نوع تعدیل</Label>
-              <select value={adjustDialog?.type || 'bonus'} onChange={(e) => setAdjustDialog((d) => d ? { ...d, type: e.target.value } : null)} className="h-[42px] w-full rounded-[10px] border border-[#DCE3EE] bg-white px-3 text-sm text-[#344054]">
+              <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">نوع تعدیل</Label>
+              <select value={adjustDialog?.type || 'bonus'} onChange={(e) => setAdjustDialog((d) => d ? { ...d, type: e.target.value } : null)} className="h-[42px] w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
                 <option value="bonus">پاداش</option>
                 <option value="deduction">کسورات</option>
                 <option value="penalty">جریمه</option>
@@ -487,12 +515,12 @@ export default function CommissionsPage() {
               </select>
             </div>
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-[#344054]">مبلغ (تومان)</Label>
-              <Input type="number" value={adjustDialog?.amount || ''} onChange={(e) => setAdjustDialog((d) => d ? { ...d, amount: e.target.value } : null)} placeholder="مبلغ..." className="h-[42px] rounded-[10px] border-[#DCE3EE]" />
+              <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">مبلغ (تومان)</Label>
+              <Input type="number" value={adjustDialog?.amount || ''} onChange={(e) => setAdjustDialog((d) => d ? { ...d, amount: e.target.value } : null)} placeholder="مبلغ..." className="h-[42px] rounded-[10px]" />
             </div>
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-[#344054]">علت</Label>
-              <Textarea value={adjustDialog?.reason || ''} onChange={(e) => setAdjustDialog((d) => d ? { ...d, reason: e.target.value } : null)} placeholder="علت تعدیل..." className="rounded-[10px] border-[#DCE3EE]" />
+              <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">علت</Label>
+              <Textarea value={adjustDialog?.reason || ''} onChange={(e) => setAdjustDialog((d) => d ? { ...d, reason: e.target.value } : null)} placeholder="علت تعدیل..." className="rounded-[10px]" />
             </div>
           </div>
           <DialogFooter>
@@ -508,14 +536,14 @@ export default function CommissionsPage() {
           {detailHistory.length === 0 ? <p className="py-4 text-center text-xs text-slate-400">تاریخچه‌ای ثبت نشده است</p> : (
             <div className="space-y-2">
               {detailHistory.map((h) => (
-                <div key={h.id} className="flex items-start gap-3 rounded-lg border border-slate-100 bg-slate-50 p-3">
-                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-slate-500"><FileText className="h-3.5 w-3.5" /></span>
+                <div key={h.id} className="flex items-start gap-3 rounded-lg border border-slate-100 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50">
+                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-slate-500 dark:bg-slate-700 dark:text-slate-300"><FileText className="h-3.5 w-3.5" /></span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-slate-700">{ACTION_LABEL[h.action] || h.action}</span>
+                      <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{ACTION_LABEL[h.action] || h.action}</span>
                       <span className="text-xs text-slate-400">{relativeTime(h.actionAt)}</span>
                     </div>
-                    <div className="mt-1 text-xs text-slate-500">
+                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                       توسط {staffName(h.actionBy)}
                       {h.fromStatus && h.toStatus && <span> • {CM_STATUS[h.fromStatus] || h.fromStatus} ← {CM_STATUS[h.toStatus] || h.toStatus}</span>}
                       {h.reason && <span> • {h.reason}</span>}
@@ -527,6 +555,10 @@ export default function CommissionsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <Link href="/dashboard/commissions/new" className="nb-fab" aria-label="ثبت پورسانت">
+        <Plus className="h-6 w-6" />
+      </Link>
     </div>
   );
 }

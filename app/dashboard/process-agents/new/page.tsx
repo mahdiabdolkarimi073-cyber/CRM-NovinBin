@@ -1,18 +1,14 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createData, fetchData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import {
-  ArrowRight, Network, Loader2, Plus, Trash2,
-  Lightbulb, Info, Hash, User, Calendar, TrendingUp,
+  ArrowRight, Network, Loader2, Plus, Trash2, Check,
+  Lightbulb, Info, Hash, User, TrendingUp,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { toEnglishDigits, parseNumber } from '@/lib/format';
@@ -57,6 +53,16 @@ const guideItems = [
   { icon: TrendingUp, title: 'نقش و پورسانت', desc: 'نقش‌ها و نرخ پورسانت را تعریف کنید.' },
 ];
 
+const inputStyle: React.CSSProperties = {
+  height: 44, borderRadius: 10, border: '1px solid #E2E8F0',
+  padding: '0 14px', fontSize: 14, width: '100%', background: 'transparent', outline: 'none',
+};
+
+const selectStyle: React.CSSProperties = {
+  height: 44, borderRadius: 10, border: '1px solid #E2E8F0',
+  padding: '0 12px', fontSize: 14, width: '100%', background: 'white', outline: 'none',
+};
+
 export default function NewProcessAgentPage() {
   const { profile } = useAuth();
   const router = useRouter();
@@ -78,6 +84,8 @@ export default function NewProcessAgentPage() {
   const [description, setDescription] = useState('');
   const [roles, setRoles] = useState<RoleRow[]>([]);
 
+  const codeRef = useRef<HTMLInputElement>(null);
+
   const loadData = useCallback(async () => {
     try {
       const [contactData, accData, staffData] = await Promise.all([
@@ -97,6 +105,7 @@ export default function NewProcessAgentPage() {
 
   useEffect(() => {
     setStartDate(new Date().toISOString().slice(0, 10));
+    setTimeout(() => codeRef.current?.focus(), 100);
   }, []);
 
   const addRole = () => {
@@ -187,164 +196,194 @@ export default function NewProcessAgentPage() {
   };
 
   return (
-    <div className="w-full" dir="rtl">
-      <header className="mb-6 flex flex-col gap-4 mobile:flex-row mobile:items-center mobile:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <span className="h-10 w-[5px] rounded-full bg-[#FF7A00]" />
-            <h1 className="text-[28px] font-bold text-[#101828]">ثبت عامل فرایند جدید</h1>
-          </div>
-          <div className="mt-2 text-xs font-medium text-[#667085]">داشبورد <span className="mx-1.5 text-[#CBD5E1]">←</span> عامل فرایند <span className="mx-1.5 text-[#CBD5E1]">←</span> ثبت</div>
+    <div className="nb-editor-page" dir="rtl">
+      <div className="nb-editor-topbar">
+        <div className="nb-editor-topbar-left">
+          <Link href="/dashboard/process-agents" className="nb-editor-back">
+            <ArrowRight className="h-4 w-4" />
+            بازگشت به عوامل
+          </Link>
+          <span className="nb-editor-breadcrumb">داشبورد <b>←</b> عامل فرایند <b>←</b> ثبت</span>
         </div>
-        <Link href="/dashboard/process-agents">
-          <Button variant="outline" className="h-[42px] rounded-[10px] border-[#DCE3EE] bg-white text-sm font-semibold text-[#344054] shadow-sm hover:bg-[#FAFBFF]">
-            <ArrowRight className="h-4 w-4" /> بازگشت
-          </Button>
-        </Link>
-      </header>
+        <div className="nb-editor-topbar-right">
+          <button type="button" className="nb-editor-discard" onClick={() => router.push('/dashboard/process-agents')} disabled={submitting}>
+            انصراف
+          </button>
+          <button type="submit" form="pa-form" className="nb-editor-save-btn" disabled={submitting}>
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+            {submitting ? 'در حال ثبت...' : 'ثبت عامل'}
+          </button>
+        </div>
+      </div>
 
-      <form onSubmit={handleSubmit}>
+      <div className="nb-editor-main">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2 space-y-6">
-            <Card>
-              <CardContent className="p-5">
-                <div className="mb-4 flex items-center gap-2">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#3155E7]/10 text-[#3155E7]"><Network className="h-5 w-5" /></span>
-                  <div>
-                    <h2 className="text-base font-bold text-[#1D2939]">اطلاعات عامل</h2>
-                    <p className="text-xs text-[#98A2B3]">جزئیات عامل فرایند را وارد کنید.</p>
-                  </div>
+          <form id="pa-form" className="lg:col-span-2 nb-editor-canvas" onSubmit={handleSubmit}>
+            <div className="nb-editor-meta-row">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-50 text-orange-600 dark:bg-orange-900/20">
+                  <Network className="h-5 w-5" />
+                </span>
+                <div>
+                  <h2 className="font-bold text-slate-900 dark:text-slate-100" style={{ fontSize: 20 }}>اطلاعات عامل</h2>
+                  <p className="text-sm text-slate-400">جزئیات عامل فرایند را وارد کنید.</p>
                 </div>
-
-                <div className="grid grid-cols-1 gap-4 tablet:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">کد عامل <span className="text-rose-500">*</span></Label>
-                    <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="مثل AG-001..." className="h-[42px] rounded-[10px] border-[#DCE3EE]" />
-                    {errors.code && <span className="text-xs text-rose-500">{errors.code}</span>}
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">نام عامل <span className="text-rose-500">*</span></Label>
-                    <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="نام عامل..." className="h-[42px] rounded-[10px] border-[#DCE3EE]" />
-                    {errors.name && <span className="text-xs text-rose-500">{errors.name}</span>}
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">نوع عامل</Label>
-                    <select value={agentType} onChange={(e) => setAgentType(e.target.value)} className="h-[42px] w-full rounded-[10px] border border-[#DCE3EE] bg-white px-3 text-sm text-[#344054]">
-                      {AGENT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">طرف حساب</Label>
-                    <select value={contactPartyId} onChange={(e) => setContactPartyId(e.target.value)} className="h-[42px] w-full rounded-[10px] border border-[#DCE3EE] bg-white px-3 text-sm text-[#344054]">
-                      <option value="">انتخاب طرف حساب...</option>
-                      {contacts.map((c) => <option key={c.id} value={c.id}>{[c.firstName, c.lastName, c.companyName].filter(Boolean).join(' ')}</option>)}
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">حساب تسویه</Label>
-                    <select value={accountId} onChange={(e) => setAccountId(e.target.value)} className="h-[42px] w-full rounded-[10px] border border-[#DCE3EE] bg-white px-3 text-sm text-[#344054]">
-                      <option value="">انتخاب حساب...</option>
-                      {accounts.map((a) => <option key={a.id} value={a.id}>{a.code} - {a.name}</option>)}
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">تاریخ شروع</Label>
-                    <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="h-[42px] rounded-[10px] border-[#DCE3EE]" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">تاریخ پایان</Label>
-                    <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="h-[42px] rounded-[10px] border-[#DCE3EE]" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">شرایط تسویه</Label>
-                    <Input value={settlementInfo} onChange={(e) => setSettlementInfo(e.target.value)} placeholder="شرایط تسویه..." className="h-[42px] rounded-[10px] border-[#DCE3EE]" />
-                  </div>
-                </div>
-
-                <div className="mt-4 space-y-2">
-                  <Label className="text-sm font-semibold text-[#344054]">توضیحات</Label>
-                  <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="توضیحات اختیاری..." className="rounded-[10px] border-[#DCE3EE]" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-5">
-                <div className="mb-4 flex items-center justify-between">
-                  <h2 className="text-base font-bold text-[#1D2939]">نقش‌ها و پورسانت</h2>
-                  <Button type="button" size="sm" variant="outline" onClick={addRole}><Plus className="h-4 w-4" /> افزودن نقش</Button>
-                </div>
-
-                {roles.length === 0 ? (
-                  <p className="py-3 text-center text-xs text-slate-400">نقشی ثبت نشده است</p>
-                ) : (
-                  <div className="space-y-3">
-                    {roles.map((role, i) => (
-                      <div key={i} className="rounded-lg border border-[#E7ECF3] bg-slate-50 p-3">
-                        <div className="mb-2 flex items-center justify-between">
-                          <span className="text-xs font-bold text-[#667085]">نقش {toEnglishDigits(String(i + 1))}</span>
-                          <button type="button" onClick={() => removeRole(i)} className="text-rose-400 hover:text-rose-600"><Trash2 className="h-4 w-4" /></button>
-                        </div>
-                        <div className="grid grid-cols-1 gap-2 tablet:grid-cols-2 lg:grid-cols-3">
-                          <Input placeholder="عنوان نقش" value={role.roleTitle} onChange={(e) => updateRole(i, 'roleTitle', e.target.value)} className="h-[38px] rounded-[8px] border-[#DCE3EE] text-sm" />
-                          <Input placeholder="کد نقش" value={role.roleCode} onChange={(e) => updateRole(i, 'roleCode', e.target.value)} className="h-[38px] rounded-[8px] border-[#DCE3EE] text-sm" />
-                          <select value={role.calcMethod} onChange={(e) => updateRole(i, 'calcMethod', e.target.value)} className="h-[38px] rounded-[8px] border border-[#DCE3EE] bg-white px-2 text-sm">
-                            {CALC_METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-                          </select>
-                          <Input placeholder="نرخ پورسانت (%)" type="number" value={role.commissionRate} onChange={(e) => updateRole(i, 'commissionRate', e.target.value)} className="h-[38px] rounded-[8px] border-[#DCE3EE] text-sm" />
-                          <Input placeholder="مبلغ ثابت" type="number" value={role.fixedAmount} onChange={(e) => updateRole(i, 'fixedAmount', e.target.value)} className="h-[38px] rounded-[8px] border-[#DCE3EE] text-sm" />
-                          <select value={role.saleType} onChange={(e) => updateRole(i, 'saleType', e.target.value)} className="h-[38px] rounded-[8px] border border-[#DCE3EE] bg-white px-2 text-sm">
-                            {SALE_TYPES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-                          </select>
-                          <Input type="date" placeholder="از" value={role.validFrom} onChange={(e) => updateRole(i, 'validFrom', e.target.value)} className="h-[38px] rounded-[8px] border-[#DCE3EE] text-sm" />
-                          <Input type="date" placeholder="تا" value={role.validTo} onChange={(e) => updateRole(i, 'validTo', e.target.value)} className="h-[38px] rounded-[8px] border-[#DCE3EE] text-sm" />
-                          <Input placeholder="شرایط تسویه" value={role.settlementTerms} onChange={(e) => updateRole(i, 'settlementTerms', e.target.value)} className="h-[38px] rounded-[8px] border-[#DCE3EE] text-sm" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <div className="flex justify-end gap-3">
-              <Link href="/dashboard/process-agents">
-                <Button type="button" variant="outline" className="h-[42px] rounded-[10px] border-[#DCE3EE]">انصراف</Button>
-              </Link>
-              <Button type="submit" disabled={submitting} className="h-[42px] rounded-[10px] bg-[#3155E7] px-[18px] text-sm font-semibold text-white shadow-sm hover:bg-[#2445C7]">
-                {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> در حال ثبت...</> : <><Plus className="h-4 w-4" /> ثبت عامل</>}
-              </Button>
+              </div>
             </div>
-          </div>
 
-          <div className="space-y-4">
-            <Card>
-              <CardContent className="p-5">
-                <div className="mb-4 flex items-center gap-2">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 text-amber-500"><Lightbulb className="h-5 w-5" /></span>
-                  <h2 className="text-base font-bold text-[#1D2939]">راهنمای ثبت</h2>
+            <div className="space-y-5">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">کد عامل <span className="text-red-500">*</span></Label>
+                  <input
+                    ref={codeRef}
+                    type="text"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    placeholder="مثل AG-001..."
+                    className="nb-input"
+                    style={{ ...inputStyle, borderColor: errors.code ? '#FCA5A5' : '#E2E8F0' }}
+                  />
+                  {errors.code && <span className="nb-editor-error">{errors.code}</span>}
                 </div>
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">نام عامل <span className="text-red-500">*</span></Label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="نام عامل..."
+                    className="nb-input"
+                    style={{ ...inputStyle, borderColor: errors.name ? '#FCA5A5' : '#E2E8F0' }}
+                  />
+                  {errors.name && <span className="nb-editor-error">{errors.name}</span>}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">نوع عامل</Label>
+                  <select value={agentType} onChange={(e) => setAgentType(e.target.value)} className="nb-input" style={selectStyle}>
+                    {AGENT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </select>
+                </div>
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">طرف حساب</Label>
+                  <select value={contactPartyId} onChange={(e) => setContactPartyId(e.target.value)} className="nb-input" style={selectStyle}>
+                    <option value="">انتخاب طرف حساب...</option>
+                    {contacts.map((c) => <option key={c.id} value={c.id}>{[c.firstName, c.lastName, c.companyName].filter(Boolean).join(' ')}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">حساب تسویه</Label>
+                  <select value={accountId} onChange={(e) => setAccountId(e.target.value)} className="nb-input" style={selectStyle}>
+                    <option value="">انتخاب حساب...</option>
+                    {accounts.map((a) => <option key={a.id} value={a.id}>{a.code} - {a.name}</option>)}
+                  </select>
+                </div>
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">شرایط تسویه</Label>
+                  <input type="text" value={settlementInfo} onChange={(e) => setSettlementInfo(e.target.value)} placeholder="شرایط تسویه..." className="nb-input" style={inputStyle} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">تاریخ شروع</Label>
+                  <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="nb-input" style={inputStyle} />
+                </div>
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">تاریخ پایان</Label>
+                  <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="nb-input" style={inputStyle} />
+                </div>
+              </div>
+
+              <div className="nb-editor-field-group">
+                <Label className="nb-editor-label">توضیحات</Label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="توضیحات اختیاری..."
+                  className="nb-input"
+                  style={{ minHeight: 100, borderRadius: 10, border: '1px solid #E2E8F0', padding: '12px 14px', fontSize: 14, width: '100%', background: 'transparent', outline: 'none', resize: 'vertical' }}
+                  rows={5}
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 border-t border-slate-200 pt-5 dark:border-slate-700">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="font-bold text-slate-900 dark:text-slate-100">نقش‌ها و پورسانت</h3>
+                <button type="button" onClick={addRole} className="flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-700"><Plus className="h-4 w-4" /> افزودن نقش</button>
+              </div>
+
+              {roles.length === 0 ? (
+                <p className="py-6 text-center text-sm text-slate-400">نقشی ثبت نشده است. روی «افزودن نقش» کلیک کنید.</p>
+              ) : (
                 <div className="space-y-3">
-                  {guideItems.map((item, i) => (
-                    <div key={i} className="flex items-start gap-3">
-                      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#F1F5F9] text-[#3155E7]"><item.icon className="h-3.5 w-3.5" /></span>
-                      <div>
-                        <div className="text-sm font-semibold text-[#344054]">{item.title}</div>
-                        <div className="mt-0.5 text-xs text-[#98A2B3]">{item.desc}</div>
+                  {roles.map((role, i) => (
+                    <div key={i} className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+                      <div className="mb-3 flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400">نقش {toEnglishDigits(String(i + 1))}</span>
+                        <button type="button" onClick={() => removeRole(i)} className="text-rose-400 transition-colors hover:text-rose-600"><Trash2 className="h-4 w-4" /></button>
+                      </div>
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        <input placeholder="عنوان نقش" value={role.roleTitle} onChange={(e) => updateRole(i, 'roleTitle', e.target.value)} className="nb-input" style={{ height: 38, borderRadius: 8, border: '1px solid #E2E8F0', padding: '0 12px', fontSize: 13, width: '100%', background: 'transparent', outline: 'none' }} />
+                        <input placeholder="کد نقش" value={role.roleCode} onChange={(e) => updateRole(i, 'roleCode', e.target.value)} className="nb-input" style={{ height: 38, borderRadius: 8, border: '1px solid #E2E8F0', padding: '0 12px', fontSize: 13, width: '100%', background: 'transparent', outline: 'none' }} />
+                        <select value={role.calcMethod} onChange={(e) => updateRole(i, 'calcMethod', e.target.value)} style={{ height: 38, borderRadius: 8, border: '1px solid #E2E8F0', padding: '0 12px', fontSize: 13, width: '100%', background: 'white', outline: 'none' }}>
+                          {CALC_METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+                        </select>
+                        <input placeholder="نرخ پورسانت (%)" type="number" value={role.commissionRate} onChange={(e) => updateRole(i, 'commissionRate', e.target.value)} className="nb-input" style={{ height: 38, borderRadius: 8, border: '1px solid #E2E8F0', padding: '0 12px', fontSize: 13, width: '100%', background: 'transparent', outline: 'none' }} />
+                        <input placeholder="مبلغ ثابت" type="number" value={role.fixedAmount} onChange={(e) => updateRole(i, 'fixedAmount', e.target.value)} className="nb-input" style={{ height: 38, borderRadius: 8, border: '1px solid #E2E8F0', padding: '0 12px', fontSize: 13, width: '100%', background: 'transparent', outline: 'none' }} />
+                        <select value={role.saleType} onChange={(e) => updateRole(i, 'saleType', e.target.value)} style={{ height: 38, borderRadius: 8, border: '1px solid #E2E8F0', padding: '0 12px', fontSize: 13, width: '100%', background: 'white', outline: 'none' }}>
+                          {SALE_TYPES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+                        </select>
+                        <input type="date" placeholder="از" value={role.validFrom} onChange={(e) => updateRole(i, 'validFrom', e.target.value)} className="nb-input" style={{ height: 38, borderRadius: 8, border: '1px solid #E2E8F0', padding: '0 12px', fontSize: 13, width: '100%', background: 'transparent', outline: 'none' }} />
+                        <input type="date" placeholder="تا" value={role.validTo} onChange={(e) => updateRole(i, 'validTo', e.target.value)} className="nb-input" style={{ height: 38, borderRadius: 8, border: '1px solid #E2E8F0', padding: '0 12px', fontSize: 13, width: '100%', background: 'transparent', outline: 'none' }} />
+                        <input placeholder="شرایط تسویه" value={role.settlementTerms} onChange={(e) => updateRole(i, 'settlementTerms', e.target.value)} className="nb-input" style={{ height: 38, borderRadius: 8, border: '1px solid #E2E8F0', padding: '0 12px', fontSize: 13, width: '100%', background: 'transparent', outline: 'none' }} />
                       </div>
                     </div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-
-            <div className="flex items-start gap-3 rounded-[12px] border border-blue-100 bg-blue-50 p-4">
-              <Info className="mt-0.5 h-5 w-5 shrink-0 text-blue-500" />
-              <p className="text-xs text-blue-700">پس از ثبت عامل، باید آن را فعال کنید. نقش‌ها و نرخ پورسانت تعریف شده برای محاسبه پورسانت فروش استفاده می‌شود.</p>
+              )}
             </div>
-          </div>
+          </form>
+
+          <aside className="space-y-4">
+            <div className="nb-editor-canvas" style={{ padding: 20 }}>
+              <div className="mb-3 flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-500 dark:bg-amber-900/20">
+                  <Lightbulb className="h-5 w-5" />
+                </span>
+                <h2 className="font-bold text-slate-900 dark:text-slate-100">راهنمای ثبت</h2>
+              </div>
+              <div className="space-y-3">
+                {guideItems.map((item, i) => (
+                  <div key={i} className="flex gap-2.5">
+                    <span className="mt-0.5 shrink-0 text-slate-300"><item.icon className="h-4 w-4" /></span>
+                    <div>
+                      <strong className="text-sm text-slate-700 dark:text-slate-300">{item.title}</strong>
+                      <p className="text-xs text-slate-400">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="rounded-xl border border-sky-100 bg-sky-50/50 p-5 dark:border-sky-900/30 dark:bg-sky-900/10">
+              <div className="mb-2 flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-100 text-sky-600 dark:bg-sky-900/30">
+                  <Info className="h-5 w-5" />
+                </span>
+                <h2 className="font-bold text-slate-900 dark:text-slate-100">اطلاعات مفید</h2>
+              </div>
+              <p className="text-sm text-slate-500 dark:text-slate-400">پس از ثبت عامل، باید آن را فعال کنید. نقش‌ها و نرخ پورسانت تعریف شده برای محاسبه پورسانت فروش استفاده می‌شود.</p>
+            </div>
+          </aside>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

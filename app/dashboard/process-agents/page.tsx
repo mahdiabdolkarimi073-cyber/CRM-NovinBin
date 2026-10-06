@@ -4,19 +4,17 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { fetchData, deleteData, updateData, createData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
-import { EmptyState } from '@/components/dashboard/empty-state';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import {
   Network, Plus, Search, Trash2, Calendar, ChevronLeft, ChevronRight,
-  CheckCircle, Clock, Eye, Ban, FileText, User, TrendingUp, Pencil,
+  CheckCircle, Ban, Eye, FileText, User, TrendingUp, Pencil, X, Loader2,
 } from 'lucide-react';
 import { formatJalali, formatToman, relativeTime } from '@/lib/format';
 import { fullName } from '@/lib/constants';
@@ -145,12 +143,36 @@ export default function ProcessAgentsPage() {
   const currentPage = Math.min(page, pages);
   const pageItems = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  const stats = useMemo(() => ({
-    total: records.length,
-    active: records.filter((r) => r.status === 'active').length,
-    inactive: records.filter((r) => r.status === 'inactive').length,
-    totalDebt: records.reduce((sum, r) => sum + Number(r.balance || 0), 0),
-  }), [records]);
+  const stats = useMemo(() => [
+    {
+      label: 'کل عوامل', value: records.length, icon: Network,
+      filter: 'all',
+      gradient: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)',
+      glow: 'rgba(37,99,235,0.25)',
+    },
+    {
+      label: 'فعال', value: records.filter((r) => r.status === 'active').length, icon: CheckCircle,
+      filter: 'active',
+      gradient: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)',
+      glow: 'rgba(34,197,94,0.25)',
+    },
+    {
+      label: 'غیرفعال', value: records.filter((r) => r.status === 'inactive').length, icon: Ban,
+      filter: 'inactive',
+      gradient: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+      glow: 'rgba(239,68,68,0.25)',
+    },
+    {
+      label: 'مانده کل (تومان)', value: records.reduce((sum, r) => sum + Number(r.balance || 0), 0), icon: TrendingUp,
+      filter: 'all',
+      gradient: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+      glow: 'rgba(99,102,241,0.25)',
+    },
+  ], [records]);
+
+  const handleStatClick = (f: string) => {
+    setFilterStatus(filterStatus === f ? 'all' : f);
+  };
 
   const handleDelete = async (id: string) => {
     if (!confirm('حذف این عامل؟')) return;
@@ -196,95 +218,159 @@ export default function ProcessAgentsPage() {
     setDetailHistory(pa.history || []);
   };
 
-  return (
-    <div className="w-full" dir="rtl">
-      <header className="mb-6 flex flex-col gap-4 mobile:flex-row mobile:items-center mobile:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <span className="h-10 w-[5px] rounded-full bg-[#FF7A00]" />
-            <h1 className="text-[28px] font-bold text-[#101828]">عامل فرایند</h1>
-          </div>
-          <div className="mt-2 text-xs font-medium text-[#667085]">داشبورد <span className="mx-1.5 text-[#CBD5E1]">←</span> فروش <span className="mx-1.5 text-[#CBD5E1]">←</span> عامل فرایند</div>
+  if (loading) {
+    return (
+      <div className="nb-page" dir="rtl">
+        <div className="nb-empty">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
+          <p>در حال بارگذاری عوامل...</p>
         </div>
-        <Link href="/dashboard/process-agents/new">
-          <Button className="h-[42px] rounded-[10px] bg-[#3155E7] px-[18px] text-sm font-semibold text-white shadow-sm hover:bg-[#2445C7]">
-            <Plus className="h-4 w-4" /> ثبت عامل
-          </Button>
-        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="nb-page" dir="rtl">
+      <header className="nb-hero">
+        <div className="nb-hero-left">
+          <div>
+            <div className="nb-hero-title-row">
+              <span className="nb-hero-marker" style={{ background: 'linear-gradient(180deg,#FF7A00,#E65100)', boxShadow: '0 0 12px rgba(255,122,0,.25)' }} />
+              <h1>عامل فرایند</h1>
+            </div>
+            <p>مدیریت عوامل فرایند، نقش‌ها و پورسانت</p>
+          </div>
+        </div>
+        <div className="nb-hero-right">
+          <Link href="/dashboard/process-agents/new" className="nb-new-btn">
+            <Plus className="h-[18px] w-[18px]" />
+            ثبت عامل
+          </Link>
+        </div>
       </header>
 
-      <div className="mb-5 grid grid-cols-2 gap-4 xl:grid-cols-4">
-        <div className="flex min-h-[120px] flex-col justify-between rounded-[14px] border border-[#E7ECF3] bg-white p-5 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-          <span className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#3155E7]/10 text-[#3155E7]"><Network className="h-5 w-5" strokeWidth={2.5} /></span>
-          <div><div className="text-[26px] font-bold leading-none text-[#101828]">{stats.total.toLocaleString('fa-IR')}</div><div className="mt-1.5 text-[13px] font-bold text-[#344054]">کل عوامل</div></div>
+      <section className="nb-stats-grid-v2">
+        {stats.map((stat) => (
+          <button
+            type="button"
+            className={`nb-stat-card-v2 ${filterStatus === stat.filter ? 'is-active' : ''}`}
+            key={stat.label}
+            onClick={() => handleStatClick(stat.filter)}
+            style={{ '--stat-glow': stat.glow } as React.CSSProperties}
+          >
+            <div className="nb-stat-v2-icon" style={{ background: stat.gradient }}>
+              <stat.icon className="h-[22px] w-[22px] text-white" strokeWidth={2.5} />
+            </div>
+            <div className="nb-stat-v2-body">
+              <strong>{stat.label.includes('تومان') ? formatToman(stat.value) : stat.value.toLocaleString('fa-IR')}</strong>
+              <span>{stat.label}</span>
+            </div>
+            <div className="nb-stat-v2-spark" style={{ background: stat.gradient }} />
+          </button>
+        ))}
+      </section>
+
+      <div className="nb-toolbar">
+        <div className="nb-toolbar-left">
+          <h2>همه عوامل</h2>
+          <span className="nb-count-badge">{filtered.length.toLocaleString('fa-IR')} مورد</span>
         </div>
-        <div className="flex min-h-[120px] flex-col justify-between rounded-[14px] border border-[#E7ECF3] bg-white p-5 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-          <span className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#10b981]/10 text-[#10b981]"><CheckCircle className="h-5 w-5" strokeWidth={2.5} /></span>
-          <div><div className="text-[26px] font-bold leading-none text-[#101828]">{stats.active.toLocaleString('fa-IR')}</div><div className="mt-1.5 text-[13px] font-bold text-[#344054]">فعال</div></div>
-        </div>
-        <div className="flex min-h-[120px] flex-col justify-between rounded-[14px] border border-[#E7ECF3] bg-white p-5 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-          <span className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#ef4444]/10 text-[#ef4444]"><Ban className="h-5 w-5" strokeWidth={2.5} /></span>
-          <div><div className="text-[26px] font-bold leading-none text-[#101828]">{stats.inactive.toLocaleString('fa-IR')}</div><div className="mt-1.5 text-[13px] font-bold text-[#344054]">غیرفعال</div></div>
-        </div>
-        <div className="flex min-h-[120px] flex-col justify-between rounded-[14px] border border-[#E7ECF3] bg-white p-5 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-          <span className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#6366f1]/10 text-[#6366f1]"><TrendingUp className="h-5 w-5" strokeWidth={2.5} /></span>
-          <div><div className="text-[20px] font-bold leading-none text-[#101828]">{formatToman(stats.totalDebt)}</div><div className="mt-1.5 text-[13px] font-bold text-[#344054]">مانده کل (تومان)</div></div>
+        <div className="nb-toolbar-right">
+          <div className="nb-search-box">
+            <Search className="h-4 w-4" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="جستجو بر اساس کد، نام یا طرف..."
+            />
+            {search && <button onClick={() => setSearch('')}><X className="h-3.5 w-3.5" /></button>}
+          </div>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="nb-select-filter h-10 w-[150px]">
+              <SelectValue placeholder="وضعیت" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">همه وضعیت‌ها</SelectItem>
+              {Object.entries(PA_STATUS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
-      <div className="mb-4 flex flex-col gap-3 mobile:flex-row mobile:items-center mobile:justify-between">
-        <div className="relative">
-          <Search className="absolute right-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#98A2B3]" />
-          <Input placeholder="جستجو بر اساس کد، نام یا طرف..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-[42px] w-full rounded-[10px] border-[#DCE3EE] bg-white pr-9 text-sm mobile:w-[320px]" />
+      {records.length === 0 ? (
+        <div className="nb-empty">
+          <div className="sb-empty-icon"><Network className="h-12 w-12 text-muted-foreground/30" /></div>
+          <h3>عاملی یافت نشد</h3>
+          <p>برای شروع، اولین عامل فرایند را ثبت کنید</p>
+          <Link href="/dashboard/process-agents/new" className="nb-empty-new-btn"><Plus className="h-4 w-4" /> افزودن عامل</Link>
         </div>
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="h-[42px] rounded-[10px] border border-[#DCE3EE] bg-white px-3 text-sm text-[#344054]">
-          <option value="all">همه وضعیت‌ها</option>
-          {Object.entries(PA_STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-        </select>
-      </div>
-
-      {loading ? (
-        <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-[3px] border-[#2563EB] border-t-transparent" /></div>
-      ) : records.length === 0 ? (
-        <Card><EmptyState icon={<Network className="h-8 w-8" />} title="عاملی یافت نشد" description="برای شروع، اولین عامل فرایند را ثبت کنید" action={<Link href="/dashboard/process-agents/new"><Button><Plus className="h-4 w-4" /> افزودن عامل</Button></Link>} /></Card>
       ) : (
-        <Card><CardContent className="p-0">
-          <div className="divide-y divide-[#F1F5F9]">
-            {pageItems.map((r) => {
-              const stColor = PA_STATUS_COLOR[r.status] || '#64748b';
-              return (
-                <div key={r.id} className="flex cursor-pointer items-center gap-3 p-4 transition-colors hover:bg-[#F8FAFD]" onClick={() => loadDetail(r)}>
-                  <div className="h-10 w-2 rounded-full" style={{ backgroundColor: stColor }} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <div className="truncate text-sm font-bold text-[#1D2939]">{r.code} - {r.name}</div>
-                      <Badge variant="outline" className="shrink-0 text-[10px]" style={{ color: stColor, borderColor: `${stColor}35`, backgroundColor: `${stColor}10` }}>{PA_STATUS[r.status]}</Badge>
-                      <Badge variant="outline" className="shrink-0 text-[10px] text-[#667085]">{AGENT_TYPE[r.agentType] || r.agentType}</Badge>
-                    </div>
-                    <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-[#98A2B3]">
-                      {r.contactName && <span className="flex items-center gap-1"><User className="h-3 w-3" />{r.contactName}</span>}
-                      <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{formatJalali(r.createdAt)}</span>
-                      <span>مانده: {formatToman(Number(r.balance))} تومان</span>
-                    </div>
-                  </div>
-                  <button onClick={(e) => { e.stopPropagation(); loadDetail(r); }} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#98A2B3] transition-colors hover:bg-[#EFF4FF] hover:text-[#2563EB]"><Eye className="h-4 w-4" /></button>
-                  {isSuperAdmin && <button onClick={(e) => { e.stopPropagation(); handleDelete(r.id); }} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#98A2B3] transition-colors hover:bg-rose-50 hover:text-rose-500"><Trash2 className="h-4 w-4" /></button>}
-                </div>
-              );
-            })}
-            {pageItems.length === 0 && <div className="py-12 text-center text-sm text-[#CBD5E1]">نتیجه‌ای یافت نشد</div>}
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[700px]">
+              <thead className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/50">
+                <tr>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">عامل</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">نوع</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">طرف حساب</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">مانده</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">تاریخ</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">عملیات</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                {pageItems.map((r) => {
+                  const stColor = PA_STATUS_COLOR[r.status] || '#64748b';
+                  return (
+                    <tr key={r.id} className="cursor-pointer transition hover:bg-slate-50 dark:hover:bg-slate-700/50" onClick={() => loadDetail(r)}>
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          <span className="h-8 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: stColor }} />
+                          <div>
+                            <div className="font-medium text-slate-800 dark:text-slate-100">{r.code} - {r.name}</div>
+                            <Badge variant="outline" className="mt-0.5 text-[10px]" style={{ color: stColor, borderColor: `${stColor}35`, backgroundColor: `${stColor}10` }}>{PA_STATUS[r.status]}</Badge>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-3"><Badge variant="outline" className="text-[10px] text-slate-500 dark:text-slate-400">{AGENT_TYPE[r.agentType] || r.agentType}</Badge></td>
+                      <td className="p-3 text-xs text-slate-500 dark:text-slate-400">
+                        {r.contactName ? <span className="flex items-center gap-1"><User className="h-3 w-3" />{r.contactName}</span> : '—'}
+                      </td>
+                      <td className="p-3 text-xs font-medium text-slate-600 dark:text-slate-300">{formatToman(Number(r.balance))}</td>
+                      <td className="p-3 text-xs text-slate-500 dark:text-slate-400">
+                        <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{formatJalali(r.createdAt)}</span>
+                      </td>
+                      <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex gap-1">
+                          <button onClick={() => loadDetail(r)} className="rounded p-1.5 text-slate-400 transition-colors hover:bg-sky-50 hover:text-sky-600 dark:hover:bg-sky-900/20" title="مشاهده"><Eye className="h-4 w-4" /></button>
+                          {isSuperAdmin && <Link href={`/dashboard/process-agents/${r.id}/edit`} className="rounded p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700" title="ویرایش"><Pencil className="h-4 w-4" /></Link>}
+                          {isSuperAdmin && <button onClick={() => handleDelete(r.id)} className="rounded p-1.5 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-900/20" title="حذف"><Trash2 className="h-4 w-4" /></button>}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {pageItems.length === 0 && (
+                  <tr><td colSpan={6} className="py-12 text-center text-sm text-slate-300 dark:text-slate-600">نتیجه‌ای یافت نشد</td></tr>
+                )}
+              </tbody>
+            </table>
           </div>
           {pages > 1 && (
-            <div className="flex items-center justify-between border-t border-[#F1F5F9] px-4 py-3">
-              <span className="text-xs text-[#667085]">صفحه {currentPage.toLocaleString('fa-IR')} از {pages.toLocaleString('fa-IR')}</span>
+            <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 dark:border-slate-700">
+              <span className="text-xs text-slate-500 dark:text-slate-400">صفحه {currentPage.toLocaleString('fa-IR')} از {pages.toLocaleString('fa-IR')}</span>
               <div className="flex items-center gap-2">
-                <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE3EE] text-[#667085] transition-colors hover:bg-[#F1F5F9] disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button>
-                <button onClick={() => setPage((p) => Math.min(pages, p + 1))} disabled={currentPage === pages} className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE3EE] text-[#667085] transition-colors hover:bg-[#F1F5F9] disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button>
+                <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:bg-slate-100 disabled:opacity-40 dark:border-slate-700 dark:hover:bg-slate-700"><ChevronRight className="h-4 w-4" /></button>
+                <button onClick={() => setPage((p) => Math.min(pages, p + 1))} disabled={currentPage === pages} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:bg-slate-100 disabled:opacity-40 dark:border-slate-700 dark:hover:bg-slate-700"><ChevronLeft className="h-4 w-4" /></button>
               </div>
             </div>
           )}
-        </CardContent></Card>
+        </div>
       )}
+
+      <Link href="/dashboard/process-agents/new" className="nb-fab" aria-label="ثبت عامل">
+        <Plus className="h-6 w-6" />
+      </Link>
 
       <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
         <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
@@ -296,35 +382,35 @@ export default function ProcessAgentsPage() {
                   <div className="flex items-start justify-between gap-3">
                     <DialogTitle className="text-lg">{detail.code} - {detail.name}</DialogTitle>
                     <div className="flex items-center gap-1">
-                      <Button size="sm" variant="ghost" className="h-8 shrink-0 text-slate-500 hover:bg-slate-50" onClick={() => setHistoryDialog(detail)}><FileText className="h-4 w-4" /> تاریخچه</Button>
-                      {isSuperAdmin && <Link href={`/dashboard/process-agents/${detail.id}/edit`}><Button size="sm" variant="ghost" className="h-8 shrink-0 text-slate-500 hover:bg-slate-50"><Pencil className="h-4 w-4" /> ویرایش</Button></Link>}
-                      {isSuperAdmin && <Button size="sm" variant="ghost" className="h-8 shrink-0 text-rose-500 hover:bg-rose-50 hover:text-rose-600" onClick={() => handleDelete(detail.id)}><Trash2 className="h-4 w-4" /></Button>}
+                      <button onClick={() => setHistoryDialog(detail)} className="flex h-8 items-center gap-1 rounded-lg px-2 text-sm text-slate-500 transition-colors hover:bg-slate-50 dark:hover:bg-slate-700"><FileText className="h-4 w-4" /> تاریخچه</button>
+                      {isSuperAdmin && <Link href={`/dashboard/process-agents/${detail.id}/edit`}><button className="flex h-8 items-center gap-1 rounded-lg px-2 text-sm text-slate-500 transition-colors hover:bg-slate-50 dark:hover:bg-slate-700"><Pencil className="h-4 w-4" /> ویرایش</button></Link>}
+                      {isSuperAdmin && <button onClick={() => handleDelete(detail.id)} className="flex h-8 w-8 items-center justify-center rounded-lg text-rose-500 transition-colors hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-900/20"><Trash2 className="h-4 w-4" /></button>}
                     </div>
                   </div>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge style={{ backgroundColor: `${stColor}20`, color: stColor }}>{PA_STATUS[detail.status]}</Badge>
-                    <Badge variant="outline" className="text-[#667085]">{AGENT_TYPE[detail.agentType] || detail.agentType}</Badge>
+                    <Badge variant="outline" className="text-slate-500 dark:text-slate-400">{AGENT_TYPE[detail.agentType] || detail.agentType}</Badge>
                   </div>
                   <div className="grid grid-cols-2 gap-3 tablet:grid-cols-3">
-                    <div className="rounded-[10px] bg-[#EFF4FF] p-3"><div className="text-xs text-[#667085]">کد</div><div className="mt-1 text-sm font-bold text-[#3155E7]">{detail.code}</div></div>
-                    <div className="rounded-[10px] bg-[#F1F5F9] p-3"><div className="text-xs text-[#667085]">نام</div><div className="mt-1 text-sm font-bold text-[#344054]">{detail.name}</div></div>
-                    <div className="rounded-[10px] bg-[#F1F5F9] p-3"><div className="text-xs text-[#667085]">طرف حساب</div><div className="mt-1 text-sm font-bold text-[#344054]">{contactName(detail.contactPartyId, detail.contactName)}</div></div>
-                    <div className="rounded-[10px] bg-[#DCFCE7] p-3"><div className="text-xs text-[#667085]">بدهی کل</div><div className="mt-1 text-sm font-bold text-[#16A34A]">{formatToman(Number(detail.totalDebt))}</div></div>
-                    <div className="rounded-[10px] bg-[#F1F5F9] p-3"><div className="text-xs text-[#667085]">پرداخت شده</div><div className="mt-1 text-sm font-bold text-[#344054]">{formatToman(Number(detail.totalPaid))}</div></div>
-                    <div className="rounded-[10px] bg-blue-50 p-3"><div className="text-xs text-[#667085]">مانده</div><div className="mt-1 text-sm font-bold text-blue-700">{formatToman(Number(detail.balance))}</div></div>
+                    <div className="rounded-[10px] bg-sky-50 p-3 dark:bg-sky-900/20"><div className="text-xs text-slate-500 dark:text-slate-400">کد</div><div className="mt-1 text-sm font-bold text-sky-600 dark:text-sky-400">{detail.code}</div></div>
+                    <div className="rounded-[10px] bg-slate-50 p-3 dark:bg-slate-700/40"><div className="text-xs text-slate-500 dark:text-slate-400">نام</div><div className="mt-1 text-sm font-bold text-slate-700 dark:text-slate-200">{detail.name}</div></div>
+                    <div className="rounded-[10px] bg-slate-50 p-3 dark:bg-slate-700/40"><div className="text-xs text-slate-500 dark:text-slate-400">طرف حساب</div><div className="mt-1 text-sm font-bold text-slate-700 dark:text-slate-200">{contactName(detail.contactPartyId, detail.contactName)}</div></div>
+                    <div className="rounded-[10px] bg-green-50 p-3 dark:bg-green-900/20"><div className="text-xs text-slate-500 dark:text-slate-400">بدهی کل</div><div className="mt-1 text-sm font-bold text-green-600 dark:text-green-400">{formatToman(Number(detail.totalDebt))}</div></div>
+                    <div className="rounded-[10px] bg-slate-50 p-3 dark:bg-slate-700/40"><div className="text-xs text-slate-500 dark:text-slate-400">پرداخت شده</div><div className="mt-1 text-sm font-bold text-slate-700 dark:text-slate-200">{formatToman(Number(detail.totalPaid))}</div></div>
+                    <div className="rounded-[10px] bg-blue-50 p-3 dark:bg-blue-900/20"><div className="text-xs text-slate-500 dark:text-slate-400">مانده</div><div className="mt-1 text-sm font-bold text-blue-600 dark:text-blue-400">{formatToman(Number(detail.balance))}</div></div>
                   </div>
-                  {detail.description && <div className="rounded-lg border border-slate-200 bg-slate-50 p-3"><p className="whitespace-pre-wrap text-sm text-slate-600">{detail.description}</p></div>}
+                  {detail.description && <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50"><p className="whitespace-pre-wrap text-sm text-slate-600 dark:text-slate-300">{detail.description}</p></div>}
 
                   {detailRoles.length > 0 && (
                     <div>
-                      <h3 className="mb-2 text-sm font-bold text-[#1D2939]">نقش‌ها ({detailRoles.length})</h3>
+                      <h3 className="mb-2 text-sm font-bold text-slate-800 dark:text-slate-200">نقش‌ها ({detailRoles.length})</h3>
                       <div className="space-y-1.5">
                         {detailRoles.map((role) => (
-                          <div key={role.id} className="flex items-center justify-between rounded-lg bg-slate-50 p-3 text-xs">
+                          <div key={role.id} className="flex items-center justify-between rounded-lg bg-slate-50 p-3 text-xs dark:bg-slate-800/50">
                             <div className="min-w-0 flex-1">
-                              <div className="font-semibold text-slate-700">{role.roleTitle}</div>
+                              <div className="font-semibold text-slate-700 dark:text-slate-200">{role.roleTitle}</div>
                               <div className="mt-0.5 flex flex-wrap gap-3 text-slate-400">
                                 <span>{CALC_METHOD[role.calcMethod] || role.calcMethod}</span>
                                 {role.commissionRate > 0 && <span>نرخ: {String(role.commissionRate)}%</span>}
@@ -340,13 +426,13 @@ export default function ProcessAgentsPage() {
 
                   {detailDebts.length > 0 && (
                     <div>
-                      <h3 className="mb-2 text-sm font-bold text-[#1D2939]">بدهی‌ها ({detailDebts.length})</h3>
+                      <h3 className="mb-2 text-sm font-bold text-slate-800 dark:text-slate-200">بدهی‌ها ({detailDebts.length})</h3>
                       <div className="space-y-1.5">
                         {detailDebts.map((debt) => (
-                          <div key={debt.id} className="flex items-center justify-between rounded-lg bg-amber-50 p-3 text-xs">
+                          <div key={debt.id} className="flex items-center justify-between rounded-lg bg-amber-50 p-3 text-xs dark:bg-amber-900/20">
                             <div className="min-w-0 flex-1">
-                              <div className="font-semibold text-amber-800">{DEBT_TYPE[debt.debtType] || debt.debtType}</div>
-                              <div className="mt-0.5 flex gap-3 text-amber-600">
+                              <div className="font-semibold text-amber-800 dark:text-amber-400">{DEBT_TYPE[debt.debtType] || debt.debtType}</div>
+                              <div className="mt-0.5 flex gap-3 text-amber-600 dark:text-amber-500">
                                 <span>{formatJalali(debt.debtDate)}</span>
                                 <span>مانده: {formatToman(Number(debt.balance))}</span>
                               </div>
@@ -358,15 +444,15 @@ export default function ProcessAgentsPage() {
                     </div>
                   )}
 
-                  <div className="flex flex-wrap gap-2 border-t border-slate-200 pt-4">
+                  <div className="flex flex-wrap gap-2 border-t border-slate-200 pt-4 dark:border-slate-700">
                     {detail.status === 'draft' && isSuperAdmin && (
-                      <Button variant="outline" className="border-green-200 text-green-600 hover:bg-green-50" onClick={() => handleStatusChange(detail.id, 'active', 'status_changed')}><CheckCircle className="h-4 w-4" /> فعال‌سازی</Button>
+                      <button className="flex h-9 items-center gap-1.5 rounded-lg border border-green-200 px-3 text-sm font-medium text-green-600 transition-colors hover:bg-green-50 dark:border-green-900/40 dark:hover:bg-green-900/20" onClick={() => handleStatusChange(detail.id, 'active', 'status_changed')}><CheckCircle className="h-4 w-4" /> فعال‌سازی</button>
                     )}
                     {detail.status === 'active' && isSuperAdmin && (
-                      <Button variant="outline" className="border-rose-200 text-rose-600 hover:bg-rose-50" onClick={() => handleStatusChange(detail.id, 'inactive', 'deactivated')}><Ban className="h-4 w-4" /> غیرفعال‌سازی</Button>
+                      <button className="flex h-9 items-center gap-1.5 rounded-lg border border-rose-200 px-3 text-sm font-medium text-rose-600 transition-colors hover:bg-rose-50 dark:border-rose-900/40 dark:hover:bg-rose-900/20" onClick={() => handleStatusChange(detail.id, 'inactive', 'deactivated')}><Ban className="h-4 w-4" /> غیرفعال‌سازی</button>
                     )}
                     {detail.status === 'inactive' && isSuperAdmin && (
-                      <Button variant="outline" className="border-green-200 text-green-600 hover:bg-green-50" onClick={() => handleStatusChange(detail.id, 'active', 'status_changed')}><CheckCircle className="h-4 w-4" /> فعال‌سازی</Button>
+                      <button className="flex h-9 items-center gap-1.5 rounded-lg border border-green-200 px-3 text-sm font-medium text-green-600 transition-colors hover:bg-green-50 dark:border-green-900/40 dark:hover:bg-green-900/20" onClick={() => handleStatusChange(detail.id, 'active', 'status_changed')}><CheckCircle className="h-4 w-4" /> فعال‌سازی</button>
                     )}
                   </div>
                 </div>
@@ -382,14 +468,14 @@ export default function ProcessAgentsPage() {
           {detailHistory.length === 0 ? <p className="py-4 text-center text-xs text-slate-400">تاریخچه‌ای ثبت نشده است</p> : (
             <div className="space-y-2">
               {detailHistory.map((h) => (
-                <div key={h.id} className="flex items-start gap-3 rounded-lg border border-slate-100 bg-slate-50 p-3">
-                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-slate-500"><FileText className="h-3.5 w-3.5" /></span>
+                <div key={h.id} className="flex items-start gap-3 rounded-lg border border-slate-100 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50">
+                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-slate-500 dark:bg-slate-700 dark:text-slate-300"><FileText className="h-3.5 w-3.5" /></span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-slate-700">{ACTION_LABEL[h.action] || h.action}</span>
+                      <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{ACTION_LABEL[h.action] || h.action}</span>
                       <span className="text-xs text-slate-400">{relativeTime(h.actionAt)}</span>
                     </div>
-                    <div className="mt-1 text-xs text-slate-500">
+                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                       توسط {staffName(h.actionBy)}
                       {h.fromStatus && h.toStatus && <span> • {PA_STATUS[h.fromStatus] || h.fromStatus} ← {PA_STATUS[h.toStatus] || h.toStatus}</span>}
                     </div>

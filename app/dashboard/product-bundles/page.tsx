@@ -4,17 +4,14 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { fetchData, deleteData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
-import { EmptyState } from '@/components/dashboard/empty-state';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import {
   Boxes, Plus, Search, Trash2, Calendar, ChevronLeft, ChevronRight,
-  Eye, FileText, Tag,
+  Eye, FileText, Tag, X, Loader2,
 } from 'lucide-react';
 import { formatJalali, formatToman, toEnglishDigits } from '@/lib/format';
 import { toast } from 'sonner';
@@ -60,11 +57,23 @@ export default function ProductBundlesPage() {
   const currentPage = Math.min(page, pages);
   const pageItems = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  const stats = useMemo(() => ({
-    total: records.length,
-    active: records.filter((r) => r.active).length,
-    totalValue: records.reduce((sum, r) => sum + Number(r.finalPrice || 0), 0),
-  }), [records]);
+  const stats = useMemo(() => [
+    {
+      label: 'کل بسته‌ها', value: records.length.toLocaleString('fa-IR'), icon: Boxes,
+      gradient: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)',
+      glow: 'rgba(37,99,235,0.25)',
+    },
+    {
+      label: 'فعال', value: records.filter((r) => r.active).length.toLocaleString('fa-IR'), icon: Tag,
+      gradient: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)',
+      glow: 'rgba(34,197,94,0.25)',
+    },
+    {
+      label: 'ارزش کل (تومان)', value: formatToman(records.reduce((sum, r) => sum + Number(r.finalPrice || 0), 0)), icon: FileText,
+      gradient: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+      glow: 'rgba(99,102,241,0.25)',
+    },
+  ], [records]);
 
   const handleDelete = async (id: string) => {
     if (!confirm('حذف این بسته محصول؟')) return;
@@ -83,84 +92,135 @@ export default function ProductBundlesPage() {
     setDetailItems(b.items || []);
   };
 
-  return (
-    <div className="w-full" dir="rtl">
-      <header className="mb-6 flex flex-col gap-4 mobile:flex-row mobile:items-center mobile:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <span className="h-10 w-[5px] rounded-full bg-[#FF7A00]" />
-            <h1 className="text-[28px] font-bold text-[#101828]">بسته محصول فروش</h1>
-          </div>
-          <div className="mt-2 text-xs font-medium text-[#667085]">داشبورد <span className="mx-1.5 text-[#CBD5E1]">←</span> فروش <span className="mx-1.5 text-[#CBD5E1]">←</span> بسته محصول</div>
+  if (loading) {
+    return (
+      <div className="nb-page" dir="rtl">
+        <div className="nb-empty">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
+          <p>در حال بارگذاری بسته‌ها...</p>
         </div>
-        <Link href="/dashboard/product-bundles/new">
-          <Button className="h-[42px] rounded-[10px] bg-[#3155E7] px-[18px] text-sm font-semibold text-white shadow-sm hover:bg-[#2445C7]">
-            <Plus className="h-4 w-4" /> ثبت بسته
-          </Button>
-        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="nb-page" dir="rtl">
+      <header className="nb-hero">
+        <div className="nb-hero-left">
+          <div>
+            <div className="nb-hero-title-row">
+              <span className="nb-hero-marker" style={{ background: 'linear-gradient(180deg,#FF7A00,#E65100)', boxShadow: '0 0 12px rgba(255,122,0,.25)' }} />
+              <h1>بسته محصول فروش</h1>
+            </div>
+            <p>داشبورد ← فروش ← بسته محصول</p>
+          </div>
+        </div>
+        <div className="nb-hero-right">
+          <Link href="/dashboard/product-bundles/new" className="nb-new-btn">
+            <Plus className="h-[18px] w-[18px]" />
+            ثبت بسته
+          </Link>
+        </div>
       </header>
 
-      <div className="mb-5 grid grid-cols-2 gap-4 xl:grid-cols-3">
-        <div className="flex min-h-[120px] flex-col justify-between rounded-[14px] border border-[#E7ECF3] bg-white p-5 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-          <span className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#3155E7]/10 text-[#3155E7]"><Boxes className="h-5 w-5" strokeWidth={2.5} /></span>
-          <div><div className="text-[26px] font-bold leading-none text-[#101828]">{stats.total.toLocaleString('fa-IR')}</div><div className="mt-1.5 text-[13px] font-bold text-[#344054]">کل بسته‌ها</div></div>
+      <section className="nb-stats-grid-v2">
+        {stats.map((stat) => (
+          <div
+            className="nb-stat-card-v2"
+            key={stat.label}
+            style={{ '--stat-glow': stat.glow } as React.CSSProperties}
+          >
+            <div className="nb-stat-v2-icon" style={{ background: stat.gradient }}>
+              <stat.icon className="h-[22px] w-[22px] text-white" />
+            </div>
+            <div className="nb-stat-v2-body">
+              <strong>{stat.value}</strong>
+              <span>{stat.label}</span>
+            </div>
+            <div className="nb-stat-v2-spark" style={{ background: stat.gradient }} />
+          </div>
+        ))}
+      </section>
+
+      <div className="nb-toolbar">
+        <div className="nb-toolbar-left">
+          <h2>همه بسته‌ها</h2>
+          <span className="nb-count-badge">{filtered.length.toLocaleString('fa-IR')} مورد</span>
         </div>
-        <div className="flex min-h-[120px] flex-col justify-between rounded-[14px] border border-[#E7ECF3] bg-white p-5 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-          <span className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#10b981]/10 text-[#10b981]"><Tag className="h-5 w-5" strokeWidth={2.5} /></span>
-          <div><div className="text-[26px] font-bold leading-none text-[#101828]">{stats.active.toLocaleString('fa-IR')}</div><div className="mt-1.5 text-[13px] font-bold text-[#344054]">فعال</div></div>
-        </div>
-        <div className="flex min-h-[120px] flex-col justify-between rounded-[14px] border border-[#E7ECF3] bg-white p-5 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-          <span className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#6366f1]/10 text-[#6366f1]"><FileText className="h-5 w-5" strokeWidth={2.5} /></span>
-          <div><div className="text-[20px] font-bold leading-none text-[#101828]">{formatToman(stats.totalValue)}</div><div className="mt-1.5 text-[13px] font-bold text-[#344054]">ارزش کل (تومان)</div></div>
+        <div className="nb-toolbar-right">
+          <div className="nb-search-box">
+            <Search className="h-4 w-4" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="جستجو بر اساس نام یا کد..."
+            />
+            {search && <button onClick={() => setSearch('')}><X className="h-3.5 w-3.5" /></button>}
+          </div>
         </div>
       </div>
 
-      <div className="mb-4 flex flex-col gap-3 mobile:flex-row mobile:items-center mobile:justify-between">
-        <div className="relative">
-          <Search className="absolute right-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#98A2B3]" />
-          <Input placeholder="جستجو بر اساس نام یا کد..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-[42px] w-full rounded-[10px] border-[#DCE3EE] bg-white pr-9 text-sm mobile:w-[320px]" />
+      {records.length === 0 ? (
+        <div className="nb-empty">
+          <div className="sb-empty-icon"><Boxes className="h-12 w-12 text-muted-foreground/30" /></div>
+          <h3>بسته‌ای یافت نشد</h3>
+          <p>برای شروع، اولین بسته محصول را ثبت کنید</p>
+          <Link href="/dashboard/product-bundles/new" className="nb-empty-new-btn"><Plus className="h-4 w-4" /> افزودن بسته</Link>
         </div>
-      </div>
-
-      {loading ? (
-        <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-[3px] border-[#2563EB] border-t-transparent" /></div>
-      ) : records.length === 0 ? (
-        <Card><EmptyState icon={<Boxes className="h-8 w-8" />} title="بسته‌ای یافت نشد" description="برای شروع، اولین بسته محصول را ثبت کنید" action={<Link href="/dashboard/product-bundles/new"><Button><Plus className="h-4 w-4" /> افزودن بسته</Button></Link>} /></Card>
       ) : (
-        <Card><CardContent className="p-0">
-          <div className="divide-y divide-[#F1F5F9]">
-            {pageItems.map((r) => (
-              <div key={r.id} className="flex cursor-pointer items-center gap-3 p-4 transition-colors hover:bg-[#F8FAFD]" onClick={() => loadDetail(r)}>
-                <div className="h-10 w-2 rounded-full bg-[#3155E7]" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <div className="truncate text-sm font-bold text-[#1D2939]">{r.name}</div>
-                    {r.code && <Badge variant="outline" className="shrink-0 text-[10px] text-[#667085]">{r.code}</Badge>}
-                    <Badge variant="outline" className="shrink-0 text-[10px]" style={{ color: r.active ? '#10b981' : '#94a3b8', borderColor: r.active ? '#10b98135' : '#94a3b835', backgroundColor: r.active ? '#10b98110' : '#94a3b810' }}>{r.active ? 'فعال' : 'غیرفعال'}</Badge>
-                  </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-[#98A2B3]">
-                    <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{formatJalali(r.createdAt)}</span>
-                    <span>{(r.items || []).length} قلم</span>
-                    <span>هزینه کل: {formatToman(Number(r.totalCost))}</span>
-                    <span>قیمت نهایی: {formatToman(Number(r.finalPrice))}</span>
-                  </div>
-                </div>
-                <button onClick={(e) => { e.stopPropagation(); loadDetail(r); }} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#98A2B3] transition-colors hover:bg-[#EFF4FF] hover:text-[#2563EB]"><Eye className="h-4 w-4" /></button>
-                {isSuperAdmin && <button onClick={(e) => { e.stopPropagation(); handleDelete(r.id); }} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#98A2B3] transition-colors hover:bg-rose-50 hover:text-rose-500"><Trash2 className="h-4 w-4" /></button>}
-              </div>
-            ))}
-            {pageItems.length === 0 && <div className="py-12 text-center text-sm text-[#CBD5E1]">نتیجه‌ای یافت نشد</div>}
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[700px]">
+              <thead className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/50">
+                <tr>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">نام بسته</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">تاریخ</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">اقلام</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">هزینه کل</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">قیمت نهایی</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">عملیات</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                {pageItems.map((r) => (
+                  <tr key={r.id} className="cursor-pointer transition hover:bg-slate-50 dark:hover:bg-slate-700/50" onClick={() => loadDetail(r)}>
+                    <td className="p-3">
+                      <div className="flex items-center gap-2">
+                        <div className="font-medium text-slate-800 dark:text-slate-100">{r.name}</div>
+                        {r.code && <Badge variant="outline" className="shrink-0 text-[10px] text-slate-500">{r.code}</Badge>}
+                        <Badge variant="outline" className="shrink-0 text-[10px]" style={{ color: r.active ? '#10b981' : '#94a3b8', borderColor: r.active ? '#10b98135' : '#94a3b835', backgroundColor: r.active ? '#10b98110' : '#94a3b810' }}>{r.active ? 'فعال' : 'غیرفعال'}</Badge>
+                      </div>
+                    </td>
+                    <td className="p-3 text-xs text-slate-500 dark:text-slate-400">
+                      <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{formatJalali(r.createdAt)}</span>
+                    </td>
+                    <td className="p-3 text-xs text-slate-500 dark:text-slate-400">{(r.items || []).length} قلم</td>
+                    <td className="p-3 text-xs text-slate-500 dark:text-slate-400">{formatToman(Number(r.totalCost))}</td>
+                    <td className="p-3 text-xs font-medium text-slate-700 dark:text-slate-300">{formatToman(Number(r.finalPrice))}</td>
+                    <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex gap-1">
+                        <button onClick={() => loadDetail(r)} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700" title="مشاهده"><Eye className="h-4 w-4" /></button>
+                        {isSuperAdmin && <button onClick={() => handleDelete(r.id)} className="rounded p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-500" title="حذف"><Trash2 className="h-4 w-4" /></button>}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {pageItems.length === 0 && (
+                  <tr><td colSpan={6} className="py-12 text-center text-sm text-slate-300 dark:text-slate-600">نتیجه‌ای یافت نشد</td></tr>
+                )}
+              </tbody>
+            </table>
           </div>
           {pages > 1 && (
-            <div className="flex items-center justify-between border-t border-[#F1F5F9] px-4 py-3">
-              <span className="text-xs text-[#667085]">صفحه {currentPage.toLocaleString('fa-IR')} از {pages.toLocaleString('fa-IR')}</span>
+            <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 dark:border-slate-700">
+              <span className="text-xs text-slate-500 dark:text-slate-400">صفحه {currentPage.toLocaleString('fa-IR')} از {pages.toLocaleString('fa-IR')}</span>
               <div className="flex items-center gap-2">
-                <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE3EE] text-[#667085] transition-colors hover:bg-[#F1F5F9] disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button>
-                <button onClick={() => setPage((p) => Math.min(pages, p + 1))} disabled={currentPage === pages} className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE3EE] text-[#667085] transition-colors hover:bg-[#F1F5F9] disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button>
+                <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:bg-slate-100 disabled:opacity-40 dark:border-slate-700 dark:hover:bg-slate-700"><ChevronRight className="h-4 w-4" /></button>
+                <button onClick={() => setPage((p) => Math.min(pages, p + 1))} disabled={currentPage === pages} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:bg-slate-100 disabled:opacity-40 dark:border-slate-700 dark:hover:bg-slate-700"><ChevronLeft className="h-4 w-4" /></button>
               </div>
             </div>
           )}
-        </CardContent></Card>
+        </div>
       )}
 
       <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
@@ -175,25 +235,25 @@ export default function ProductBundlesPage() {
               </DialogHeader>
               <div className="space-y-4">
                 <div className="flex flex-wrap items-center gap-2">
-                  {detail.code && <Badge variant="outline" className="text-[#667085]">{detail.code}</Badge>}
+                  {detail.code && <Badge variant="outline" className="text-slate-500">{detail.code}</Badge>}
                   <Badge variant="outline" style={{ color: detail.active ? '#10b981' : '#94a3b8', borderColor: detail.active ? '#10b98135' : '#94a3b835', backgroundColor: detail.active ? '#10b98110' : '#94a3b810' }}>{detail.active ? 'فعال' : 'غیرفعال'}</Badge>
                 </div>
-                {detail.description && <div className="rounded-lg border border-slate-200 bg-slate-50 p-3"><p className="whitespace-pre-wrap text-sm text-slate-600">{detail.description}</p></div>}
+                {detail.description && <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50"><p className="whitespace-pre-wrap text-sm text-slate-600 dark:text-slate-400">{detail.description}</p></div>}
                 <div className="grid grid-cols-2 gap-3 tablet:grid-cols-3">
-                  <div className="rounded-[10px] bg-[#F1F5F9] p-3"><div className="text-xs text-[#667085]">هزینه کل</div><div className="mt-1 text-sm font-bold text-[#344054]">{formatToman(Number(detail.totalCost))}</div></div>
-                  <div className="rounded-[10px] bg-[#F1F5F9] p-3"><div className="text-xs text-[#667085]">قیمت کل</div><div className="mt-1 text-sm font-bold text-[#344054]">{formatToman(Number(detail.totalPrice))}</div></div>
-                  <div className="rounded-[10px] bg-[#EFF4FF] p-3"><div className="text-xs text-[#667085]">درصد تخفیف</div><div className="mt-1 text-sm font-bold text-[#3155E7]">{toEnglishDigits(String(Number(detail.discountPct)))}٪</div></div>
-                  <div className="rounded-[10px] bg-blue-50 p-3"><div className="text-xs text-[#667085]">قیمت نهایی</div><div className="mt-1 text-sm font-bold text-blue-700">{formatToman(Number(detail.finalPrice))}</div></div>
+                  <div className="rounded-[10px] bg-slate-100 p-3 dark:bg-slate-800/50"><div className="text-xs text-slate-500 dark:text-slate-400">هزینه کل</div><div className="mt-1 text-sm font-bold text-slate-700 dark:text-slate-200">{formatToman(Number(detail.totalCost))}</div></div>
+                  <div className="rounded-[10px] bg-slate-100 p-3 dark:bg-slate-800/50"><div className="text-xs text-slate-500 dark:text-slate-400">قیمت کل</div><div className="mt-1 text-sm font-bold text-slate-700 dark:text-slate-200">{formatToman(Number(detail.totalPrice))}</div></div>
+                  <div className="rounded-[10px] bg-blue-50 p-3 dark:bg-blue-900/20"><div className="text-xs text-slate-500 dark:text-slate-400">درصد تخفیف</div><div className="mt-1 text-sm font-bold text-blue-600">{toEnglishDigits(String(Number(detail.discountPct)))}٪</div></div>
+                  <div className="rounded-[10px] bg-blue-50 p-3 dark:bg-blue-900/20"><div className="text-xs text-slate-500 dark:text-slate-400">قیمت نهایی</div><div className="mt-1 text-sm font-bold text-blue-700 dark:text-blue-400">{formatToman(Number(detail.finalPrice))}</div></div>
                 </div>
 
                 <div>
-                  <h3 className="mb-2 text-sm font-bold text-[#1D2939]">اقلام ({detailItems.length})</h3>
+                  <h3 className="mb-2 text-sm font-bold text-slate-800 dark:text-slate-200">اقلام ({detailItems.length})</h3>
                   {detailItems.length === 0 ? <p className="py-3 text-center text-xs text-slate-400">قلمی ثبت نشده است</p> : (
                     <div className="space-y-1.5">
                       {detailItems.map((item) => (
-                        <div key={item.id} className="flex items-center justify-between rounded-lg bg-slate-50 p-3 text-xs">
+                        <div key={item.id} className="flex items-center justify-between rounded-lg bg-slate-50 p-3 text-xs dark:bg-slate-800/50">
                           <div className="min-w-0 flex-1">
-                            <div className="font-semibold text-slate-700">{item.productName || '—'}</div>
+                            <div className="font-semibold text-slate-700 dark:text-slate-300">{item.productName || '—'}</div>
                             <div className="mt-0.5 flex gap-3 text-slate-400">
                               <span>{formatToman(Number(item.qty))} {item.unit || ''}</span>
                               <span>قیمت واحد: {formatToman(Number(item.unitPrice))}</span>
@@ -211,6 +271,10 @@ export default function ProductBundlesPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <Link href="/dashboard/product-bundles/new" className="nb-fab" aria-label="ثبت بسته">
+        <Plus className="h-6 w-6" />
+      </Link>
     </div>
   );
 }

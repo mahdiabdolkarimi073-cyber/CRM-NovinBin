@@ -1,17 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createData, fetchData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import {
-  ArrowRight, Send, Loader2, Plus,
+  ArrowRight, Send, Loader2, Plus, Check,
   Lightbulb, Info, User, TrendingUp,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -23,6 +19,16 @@ const guideItems = [
   { icon: User, title: 'ارجاع به', desc: 'شخصی که سرنخ به او ارجاع داده می‌شود.' },
   { icon: Send, title: 'یادداشت', desc: 'توضیحات اختیاری درباره دلیل ارجاع.' },
 ];
+
+const inputStyle: React.CSSProperties = {
+  height: 44, borderRadius: 10, border: '1px solid #E2E8F0',
+  padding: '0 14px', fontSize: 14, width: '100%', background: 'transparent', outline: 'none',
+};
+
+const selectStyle: React.CSSProperties = {
+  height: 44, borderRadius: 10, border: '1px solid #E2E8F0',
+  padding: '0 12px', fontSize: 14, width: '100%', background: 'white', outline: 'none',
+};
 
 export default function NewLeadReferralPage() {
   const { profile } = useAuth();
@@ -37,6 +43,8 @@ export default function NewLeadReferralPage() {
   const [referredToProfileId, setReferredToProfileId] = useState('');
   const [note, setNote] = useState('');
 
+  const leadRef = useRef<HTMLSelectElement>(null);
+
   const loadData = useCallback(async () => {
     try {
       const [leadData, staffData] = await Promise.all([
@@ -50,7 +58,10 @@ export default function NewLeadReferralPage() {
     }
   }, []);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    loadData();
+    setTimeout(() => leadRef.current?.focus(), 100);
+  }, [loadData]);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -84,99 +95,101 @@ export default function NewLeadReferralPage() {
   };
 
   return (
-    <div className="w-full" dir="rtl">
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <span className="h-10 w-[5px] rounded-full bg-[#FF7A00]" />
-            <h1 className="text-[28px] font-bold text-[#101828]">ثبت ارجاع جدید</h1>
-          </div>
-          <div className="mt-2 text-xs font-medium text-[#667085]">داشبورد <span className="mx-1.5 text-[#CBD5E1]">←</span> ارجاعیات سرنخ‌های فروش <span className="mx-1.5 text-[#CBD5E1]">←</span> ثبت</div>
+    <div className="nb-editor-page" dir="rtl">
+      <div className="nb-editor-topbar">
+        <div className="nb-editor-topbar-left">
+          <Link href="/dashboard/lead-referrals" className="nb-editor-back">
+            <ArrowRight className="h-4 w-4" />
+            بازگشت به ارجاعیات
+          </Link>
+          <span className="nb-editor-breadcrumb">داشبورد <b>←</b> ارجاعیات سرنخ‌های فروش <b>←</b> ثبت</span>
         </div>
-        <Link href="/dashboard/lead-referrals">
-          <Button variant="outline" className="h-[42px] rounded-[10px] border-[#DCE3EE] bg-white text-sm font-semibold text-[#344054] shadow-sm hover:bg-[#FAFBFF]">
-            <ArrowRight className="h-4 w-4" /> بازگشت
-          </Button>
-        </Link>
-      </header>
+        <div className="nb-editor-topbar-right">
+          <button type="button" className="nb-editor-discard" onClick={() => router.push('/dashboard/lead-referrals')} disabled={submitting}>
+            انصراف
+          </button>
+          <button type="submit" form="ref-form" className="nb-editor-save-btn" disabled={submitting}>
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+            {submitting ? 'در حال ثبت...' : 'ثبت ارجاع'}
+          </button>
+        </div>
+      </div>
 
-      <form onSubmit={handleSubmit}>
+      <div className="nb-editor-main">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2 space-y-6">
-            <Card>
-              <CardContent className="p-5">
-                <div className="mb-4 flex items-center gap-2">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#3155E7]/10 text-[#3155E7]"><Send className="h-5 w-5" /></span>
-                  <div>
-                    <h2 className="text-base font-bold text-[#1D2939]">اطلاعات ارجاع</h2>
-                    <p className="text-xs text-[#98A2B3]">سرنخ و شخص ارجاع‌شونده را انتخاب کنید.</p>
-                  </div>
+          <form id="ref-form" className="lg:col-span-2 nb-editor-canvas" onSubmit={handleSubmit}>
+            <div className="nb-editor-meta-row">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-50 text-orange-600 dark:bg-orange-900/20">
+                  <Send className="h-5 w-5" />
+                </span>
+                <div>
+                  <h2 className="font-bold text-slate-900 dark:text-slate-100" style={{ fontSize: 20 }}>اطلاعات ارجاع</h2>
+                  <p className="text-sm text-slate-400">سرنخ و شخص ارجاع‌شونده را انتخاب کنید.</p>
                 </div>
-
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">سرنخ فروش <span className="text-rose-500">*</span></Label>
-                    <select value={leadId} onChange={(e) => setLeadId(e.target.value)} className="h-[42px] w-full rounded-[10px] border border-[#DCE3EE] bg-white px-3 text-sm text-[#344054]">
-                      <option value="">انتخاب سرنخ...</option>
-                      {leads.map((l) => <option key={l.id} value={l.id}>{l.name}{l.company ? ` - ${l.company}` : ''}</option>)}
-                    </select>
-                    {errors.leadId && <span className="text-xs text-rose-500">{errors.leadId}</span>}
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">ارجاع به <span className="text-rose-500">*</span></Label>
-                    <select value={referredToProfileId} onChange={(e) => setReferredToProfileId(e.target.value)} className="h-[42px] w-full rounded-[10px] border border-[#DCE3EE] bg-white px-3 text-sm text-[#344054]">
-                      <option value="">انتخاب شخص...</option>
-                      {staff.map((s) => <option key={s.id} value={s.id}>{fullName(s.firstName, s.lastName)}</option>)}
-                    </select>
-                    {errors.referredToProfileId && <span className="text-xs text-rose-500">{errors.referredToProfileId}</span>}
-                  </div>
-                </div>
-
-                <div className="mt-4 space-y-2">
-                  <Label className="text-sm font-semibold text-[#344054]">یادداشت</Label>
-                  <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="توضیحات اختیاری درباره دلیل ارجاع..." className="rounded-[10px] border-[#DCE3EE]" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="flex justify-end gap-3">
-              <Link href="/dashboard/lead-referrals">
-                <Button type="button" variant="outline" className="h-[42px] rounded-[10px] border-[#DCE3EE]">انصراف</Button>
-              </Link>
-              <Button type="submit" disabled={submitting} className="h-[42px] rounded-[10px] bg-[#3155E7] px-[18px] text-sm font-semibold text-white shadow-sm hover:bg-[#2445C7]">
-                {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> در حال ثبت...</> : <><Plus className="h-4 w-4" /> ثبت ارجاع</>}
-              </Button>
+              </div>
             </div>
-          </div>
 
-          <div className="space-y-4">
-            <Card>
-              <CardContent className="p-5">
-                <div className="mb-4 flex items-center gap-2">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 text-amber-500"><Lightbulb className="h-5 w-5" /></span>
-                  <h2 className="text-base font-bold text-[#1D2939]">راهنمای ثبت</h2>
+            <div className="space-y-5">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">سرنخ فروش <span className="text-red-500">*</span></Label>
+                  <select ref={leadRef} value={leadId} onChange={(e) => setLeadId(e.target.value)} className="nb-input" style={{ ...selectStyle, borderColor: errors.leadId ? '#FCA5A5' : '#E2E8F0' }}>
+                    <option value="">انتخاب سرنخ...</option>
+                    {leads.map((l) => <option key={l.id} value={l.id}>{l.name}{l.company ? ` - ${l.company}` : ''}</option>)}
+                  </select>
+                  {errors.leadId && <span className="nb-editor-error">{errors.leadId}</span>}
                 </div>
-                <div className="space-y-3">
-                  {guideItems.map((item, i) => (
-                    <div key={i} className="flex items-start gap-3">
-                      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#F1F5F9] text-[#3155E7]"><item.icon className="h-3.5 w-3.5" /></span>
-                      <div>
-                        <div className="text-sm font-semibold text-[#344054]">{item.title}</div>
-                        <div className="mt-0.5 text-xs text-[#98A2B3]">{item.desc}</div>
-                      </div>
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">ارجاع به <span className="text-red-500">*</span></Label>
+                  <select value={referredToProfileId} onChange={(e) => setReferredToProfileId(e.target.value)} className="nb-input" style={{ ...selectStyle, borderColor: errors.referredToProfileId ? '#FCA5A5' : '#E2E8F0' }}>
+                    <option value="">انتخاب شخص...</option>
+                    {staff.map((s) => <option key={s.id} value={s.id}>{fullName(s.firstName, s.lastName)}</option>)}
+                  </select>
+                  {errors.referredToProfileId && <span className="nb-editor-error">{errors.referredToProfileId}</span>}
+                </div>
+              </div>
+
+              <div className="nb-editor-field-group">
+                <Label className="nb-editor-label">یادداشت</Label>
+                <textarea
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="توضیحات اختیاری درباره دلیل ارجاع..."
+                  className="nb-input"
+                  style={{ minHeight: 100, borderRadius: 10, border: '1px solid #E2E8F0', padding: '12px 14px', fontSize: 14, width: '100%', background: 'transparent', outline: 'none', resize: 'vertical' }}
+                  rows={4}
+                />
+              </div>
+            </div>
+          </form>
+
+          <aside className="space-y-4">
+            <div className="nb-editor-canvas">
+              <div className="mb-4 flex items-center gap-2">
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 text-amber-500 dark:bg-amber-900/20"><Lightbulb className="h-5 w-5" /></span>
+                <h2 className="font-bold text-slate-900 dark:text-slate-100" style={{ fontSize: 16 }}>راهنمای ثبت</h2>
+              </div>
+              <div className="space-y-3">
+                {guideItems.map((item, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"><item.icon className="h-3.5 w-3.5" /></span>
+                    <div>
+                      <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">{item.title}</div>
+                      <div className="mt-0.5 text-xs text-slate-400">{item.desc}</div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="flex items-start gap-3 rounded-[12px] border border-blue-100 bg-blue-50 p-4">
-              <Info className="mt-0.5 h-5 w-5 shrink-0 text-blue-500" />
-              <p className="text-xs text-blue-700">پس از ثبت ارجاع، شخص ارجاع‌شونده می‌تواند سرنخ را پیگیری کند و در صورت نیاز آن را ببندد.</p>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+
+            <div className="flex items-start gap-3 rounded-xl border border-sky-100 bg-sky-50/50 p-4 dark:border-sky-900/30 dark:bg-sky-900/10">
+              <Info className="mt-0.5 h-5 w-5 shrink-0 text-sky-500" />
+              <p className="text-xs text-sky-700 dark:text-sky-400">پس از ثبت ارجاع، شخص ارجاع‌شونده می‌تواند سرنخ را پیگیری کند و در صورت نیاز آن را ببندد.</p>
+            </div>
+          </aside>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

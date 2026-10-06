@@ -4,17 +4,17 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { fetchData, updateData, deleteData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
-import { EmptyState } from '@/components/dashboard/empty-state';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import {
   Send, Plus, Search, Trash2, Calendar, ChevronLeft, ChevronRight,
-  Eye, User, Clock, X, TrendingUp,
+  Eye, User, Clock, X, TrendingUp, Loader2,
 } from 'lucide-react';
 import { formatJalali, relativeTime } from '@/lib/format';
 import { LEAD_STATUSES, fullName } from '@/lib/constants';
@@ -107,6 +107,16 @@ export default function LeadReferralsPage() {
     closed: referrals.filter((r) => r.status === 'closed').length,
   }), [referrals]);
 
+  const statsList = useMemo(() => [
+    { label: 'کل ارجاعیات', value: stats.total.toLocaleString('fa-IR'), icon: Send, filter: 'all', gradient: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)', glow: 'rgba(37,99,235,0.25)' },
+    { label: 'فعال', value: stats.active.toLocaleString('fa-IR'), icon: TrendingUp, filter: 'active', gradient: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)', glow: 'rgba(34,197,94,0.25)' },
+    { label: 'بسته شده', value: stats.closed.toLocaleString('fa-IR'), icon: X, filter: 'closed', gradient: 'linear-gradient(135deg, #64748b 0%, #475569 100%)', glow: 'rgba(100,116,139,0.25)' },
+  ], [stats]);
+
+  const handleStatClick = (f: string) => {
+    setFilterStatus(filterStatus === f ? 'all' : f);
+  };
+
   const closeReferral = async (id: string) => {
     try {
       await updateData('lead_referrals', { id }, { status: 'closed' });
@@ -140,95 +150,158 @@ export default function LeadReferralsPage() {
     return s ? fullName(s.firstName, s.lastName) : 'نامشخص';
   };
 
-  return (
-    <div className="w-full" dir="rtl">
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <span className="h-10 w-[5px] rounded-full bg-[#FF7A00]" />
-            <h1 className="text-[28px] font-bold text-[#101828]">ارجاعیات سرنخ‌های فروش</h1>
-          </div>
-          <div className="mt-2 text-xs font-medium text-[#667085]">داشبورد <span className="mx-1.5 text-[#CBD5E1]">←</span> فروش <span className="mx-1.5 text-[#CBD5E1]">←</span> ارجاعیات سرنخ‌های فروش</div>
+  if (loading) {
+    return (
+      <div className="nb-page" dir="rtl">
+        <div className="nb-empty">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
+          <p>در حال بارگذاری ارجاعیات...</p>
         </div>
-        <Link href="/dashboard/lead-referrals/new">
-          <Button className="h-[42px] rounded-[10px] bg-[#3155E7] px-[18px] text-sm font-semibold text-white shadow-sm hover:bg-[#2445C7]">
-            <Plus className="h-4 w-4" /> ثبت ارجاع
-          </Button>
-        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="nb-page" dir="rtl">
+      <header className="nb-hero">
+        <div className="nb-hero-left">
+          <div>
+            <div className="nb-hero-title-row">
+              <span className="nb-hero-marker" style={{ background: 'linear-gradient(180deg,#FF7A00,#E65100)', boxShadow: '0 0 12px rgba(255,122,0,.25)' }} />
+              <h1>ارجاعیات سرنخ‌های فروش</h1>
+            </div>
+            <p>مدیریت ارجاعیات سرنخ‌های فروش بین اعضای تیم</p>
+          </div>
+        </div>
+        <div className="nb-hero-right">
+          <Link href="/dashboard/lead-referrals/new" className="nb-new-btn">
+            <Plus className="h-[18px] w-[18px]" />
+            ثبت ارجاع
+          </Link>
+        </div>
       </header>
 
-      <div className="mb-5 grid grid-cols-2 gap-4 xl:grid-cols-3">
-        <div className="flex min-h-[120px] flex-col justify-between rounded-[14px] border border-[#E7ECF3] bg-white p-5 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-          <span className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#3155E7]/10 text-[#3155E7]"><Send className="h-5 w-5" strokeWidth={2.5} /></span>
-          <div><div className="text-[26px] font-bold leading-none text-[#101828]">{stats.total.toLocaleString('fa-IR')}</div><div className="mt-1.5 text-[13px] font-bold text-[#344054]">کل ارجاعیات</div></div>
+      <section className="nb-stats-grid-v2">
+        {statsList.map((stat) => (
+          <button
+            type="button"
+            className={`nb-stat-card-v2 ${filterStatus === stat.filter ? 'is-active' : ''}`}
+            key={stat.label}
+            onClick={() => handleStatClick(stat.filter)}
+            style={{ '--stat-glow': stat.glow } as React.CSSProperties}
+          >
+            <div className="nb-stat-v2-icon" style={{ background: stat.gradient }}>
+              <stat.icon className="h-[22px] w-[22px] text-white" strokeWidth={2.5} />
+            </div>
+            <div className="nb-stat-v2-body">
+              <strong>{stat.value}</strong>
+              <span>{stat.label}</span>
+            </div>
+            <div className="nb-stat-v2-spark" style={{ background: stat.gradient }} />
+          </button>
+        ))}
+      </section>
+
+      <div className="nb-toolbar">
+        <div className="nb-toolbar-left">
+          <h2>همه ارجاعیات</h2>
+          <span className="nb-count-badge">{filtered.length.toLocaleString('fa-IR')} مورد</span>
         </div>
-        <div className="flex min-h-[120px] flex-col justify-between rounded-[14px] border border-[#E7ECF3] bg-white p-5 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-          <span className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#10b981]/10 text-[#10b981]"><TrendingUp className="h-5 w-5" strokeWidth={2.5} /></span>
-          <div><div className="text-[26px] font-bold leading-none text-[#101828]">{stats.active.toLocaleString('fa-IR')}</div><div className="mt-1.5 text-[13px] font-bold text-[#344054]">فعال</div></div>
-        </div>
-        <div className="flex min-h-[120px] flex-col justify-between rounded-[14px] border border-[#E7ECF3] bg-white p-5 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-          <span className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#64748b]/10 text-[#64748b]"><X className="h-5 w-5" strokeWidth={2.5} /></span>
-          <div><div className="text-[26px] font-bold leading-none text-[#101828]">{stats.closed.toLocaleString('fa-IR')}</div><div className="mt-1.5 text-[13px] font-bold text-[#344054]">بسته شده</div></div>
+        <div className="nb-toolbar-right">
+          <div className="nb-search-box">
+            <Search className="h-4 w-4" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="جستجو بر اساس نام یا شرکت..."
+            />
+            {search && <button onClick={() => setSearch('')}><X className="h-3.5 w-3.5" /></button>}
+          </div>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="nb-select-filter h-10 w-[150px]">
+              <SelectValue placeholder="وضعیت" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">همه وضعیت‌ها</SelectItem>
+              <SelectItem value="active">فعال</SelectItem>
+              <SelectItem value="closed">بسته شده</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative">
-          <Search className="absolute right-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#98A2B3]" />
-          <Input placeholder="جستجو بر اساس نام یا شرکت..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-[42px] w-full rounded-[10px] border-[#DCE3EE] bg-white pr-9 text-sm sm:w-[320px]" />
+      {referrals.length === 0 ? (
+        <div className="nb-empty">
+          <div className="sb-empty-icon"><Send className="h-12 w-12 text-muted-foreground/30" /></div>
+          <h3>ارجاعی یافت نشد</h3>
+          <p>سرنخ‌های فروش ارجاع‌داده‌شده در اینجا نمایش داده می‌شوند</p>
+          <Link href="/dashboard/lead-referrals/new" className="nb-empty-new-btn"><Plus className="h-4 w-4" /> افزودن ارجاع</Link>
         </div>
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="h-[42px] rounded-[10px] border border-[#DCE3EE] bg-white px-3 text-sm text-[#344054]">
-          <option value="all">همه وضعیت‌ها</option>
-          <option value="active">فعال</option>
-          <option value="closed">بسته شده</option>
-        </select>
-      </div>
-
-      {loading ? (
-        <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-[3px] border-[#2563EB] border-t-transparent" /></div>
-      ) : referrals.length === 0 ? (
-        <Card><EmptyState icon={<Send className="h-8 w-8" />} title="ارجاعی یافت نشد" description="سرنخ‌های فروش ارجاع‌داده‌شده در اینجا نمایش داده می‌شوند" action={<Link href="/dashboard/lead-referrals/new"><Button><Plus className="h-4 w-4" /> افزودن ارجاع</Button></Link>} /></Card>
       ) : (
-        <Card><CardContent className="p-0">
-          <div className="divide-y divide-[#F1F5F9]">
-            {pageItems.map((ref) => {
-              const lead = leads[ref.leadId];
-              if (!lead) return null;
-              const st = statusInfo(lead.status);
-              const refColor = REF_STATUS_COLOR[ref.status] || '#64748b';
-              return (
-                <div key={ref.id} className="flex cursor-pointer items-center gap-3 p-4 transition-colors hover:bg-[#F8FAFD]" onClick={() => loadDetail(ref)}>
-                  <div className="h-10 w-2 rounded-full" style={{ backgroundColor: refColor }} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <div className="truncate text-sm font-bold text-[#1D2939]">{lead.name}</div>
-                      <Badge variant="outline" className="shrink-0 text-[10px]" style={{ color: refColor, borderColor: `${refColor}35`, backgroundColor: `${refColor}10` }}>{REF_STATUS[ref.status] || ref.status}</Badge>
-                      <Badge variant="outline" className="shrink-0 text-[10px]" style={{ color: st.color, borderColor: `${st.color}35`, backgroundColor: `${st.color}10` }}>{st.label}</Badge>
-                    </div>
-                    <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-[#98A2B3]">
-                      <span className="flex items-center gap-1"><User className="h-3 w-3" />ارجاع توسط: {staffName(ref.referredByProfileId)}</span>
-                      <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{relativeTime(ref.createdAt)}</span>
-                      {lead.company && <span>{lead.company}</span>}
-                    </div>
-                  </div>
-                  <button onClick={(e) => { e.stopPropagation(); loadDetail(ref); }} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#98A2B3] transition-colors hover:bg-[#EFF4FF] hover:text-[#2563EB]"><Eye className="h-4 w-4" /></button>
-                  {ref.status === 'active' && isSuperAdmin && <button onClick={(e) => { e.stopPropagation(); closeReferral(ref.id); }} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#98A2B3] transition-colors hover:bg-amber-50 hover:text-amber-500" title="بستن ارجاع"><X className="h-4 w-4" /></button>}
-                  {isSuperAdmin && <button onClick={(e) => { e.stopPropagation(); handleDelete(ref.id); }} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#98A2B3] transition-colors hover:bg-rose-50 hover:text-rose-500"><Trash2 className="h-4 w-4" /></button>}
-                </div>
-              );
-            })}
-            {pageItems.length === 0 && <div className="py-12 text-center text-sm text-[#CBD5E1]">نتیجه‌ای یافت نشد</div>}
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[700px]">
+              <thead className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/50">
+                <tr>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">سرنخ</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">وضعیت ارجاع</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">ارجاع‌دهنده</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">تاریخ</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">عملیات</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                {pageItems.map((ref) => {
+                  const lead = leads[ref.leadId];
+                  if (!lead) return null;
+                  const st = statusInfo(lead.status);
+                  const refColor = REF_STATUS_COLOR[ref.status] || '#64748b';
+                  return (
+                    <tr key={ref.id} className="cursor-pointer transition hover:bg-slate-50 dark:hover:bg-slate-700/50" onClick={() => loadDetail(ref)}>
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: refColor }} />
+                          <div>
+                            <div className="font-medium text-slate-800 dark:text-slate-100">{lead.name}</div>
+                            {lead.company && <div className="text-xs text-slate-400">{lead.company}</div>}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <Badge style={{ backgroundColor: `${refColor}15`, color: refColor }} className="rounded-full text-xs">{REF_STATUS[ref.status] || ref.status}</Badge>
+                      </td>
+                      <td className="p-3 text-xs text-slate-500 dark:text-slate-400">
+                        <span className="flex items-center gap-1"><User className="h-3 w-3" />{staffName(ref.referredByProfileId)}</span>
+                      </td>
+                      <td className="p-3 text-xs text-slate-500 dark:text-slate-400">
+                        <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{relativeTime(ref.createdAt)}</span>
+                      </td>
+                      <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex gap-1">
+                          <button onClick={() => loadDetail(ref)} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700" title="مشاهده"><Eye className="h-4 w-4" /></button>
+                          {ref.status === 'active' && isSuperAdmin && <button onClick={() => closeReferral(ref.id)} className="rounded p-1.5 text-slate-400 hover:bg-amber-50 hover:text-amber-500" title="بستن ارجاع"><X className="h-4 w-4" /></button>}
+                          {isSuperAdmin && <button onClick={() => handleDelete(ref.id)} className="rounded p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-500" title="حذف"><Trash2 className="h-4 w-4" /></button>}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {pageItems.length === 0 && (
+                  <tr><td colSpan={5} className="py-12 text-center text-sm text-slate-300 dark:text-slate-600">نتیجه‌ای یافت نشد</td></tr>
+                )}
+              </tbody>
+            </table>
           </div>
           {pages > 1 && (
-            <div className="flex items-center justify-between border-t border-[#F1F5F9] px-4 py-3">
-              <span className="text-xs text-[#667085]">صفحه {currentPage.toLocaleString('fa-IR')} از {pages.toLocaleString('fa-IR')}</span>
+            <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 dark:border-slate-700">
+              <span className="text-xs text-slate-500 dark:text-slate-400">صفحه {currentPage.toLocaleString('fa-IR')} از {pages.toLocaleString('fa-IR')}</span>
               <div className="flex items-center gap-2">
-                <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE3EE] text-[#667085] transition-colors hover:bg-[#F1F5F9] disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button>
-                <button onClick={() => setPage((p) => Math.min(pages, p + 1))} disabled={currentPage === pages} className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE3EE] text-[#667085] transition-colors hover:bg-[#F1F5F9] disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button>
+                <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:bg-slate-100 disabled:opacity-40 dark:border-slate-700 dark:hover:bg-slate-700"><ChevronRight className="h-4 w-4" /></button>
+                <button onClick={() => setPage((p) => Math.min(pages, p + 1))} disabled={currentPage === pages} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:bg-slate-100 disabled:opacity-40 dark:border-slate-700 dark:hover:bg-slate-700"><ChevronLeft className="h-4 w-4" /></button>
               </div>
             </div>
           )}
-        </CardContent></Card>
+        </div>
       )}
 
       <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
@@ -251,15 +324,15 @@ export default function LeadReferralsPage() {
                     <Badge style={{ backgroundColor: `${st.color}20`, color: st.color }}>{st.label}</Badge>
                   </div>
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    <div className="rounded-[10px] bg-[#EFF4FF] p-3"><div className="text-xs text-[#667085]">سرنخ</div><div className="mt-1 text-sm font-bold text-[#3155E7]">{lead.name}</div></div>
-                    <div className="rounded-[10px] bg-[#F1F5F9] p-3"><div className="text-xs text-[#667085]">شرکت</div><div className="mt-1 text-sm font-bold text-[#344054]">{lead.company || '—'}</div></div>
-                    <div className="rounded-[10px] bg-[#DCFCE7] p-3"><div className="text-xs text-[#667085]">تاریخ ارجاع</div><div className="mt-1 text-sm font-bold text-[#16A34A]">{formatJalali(ref.createdAt)}</div></div>
-                    <div className="rounded-[10px] bg-[#F1F5F9] p-3"><div className="text-xs text-[#667085]">ارجاع‌دهنده</div><div className="mt-1 text-sm font-bold text-[#344054]">{staffName(ref.referredByProfileId)}</div></div>
-                    <div className="rounded-[10px] bg-[#F1F5F9] p-3"><div className="text-xs text-[#667085]">ارجاع‌شونده</div><div className="mt-1 text-sm font-bold text-[#344054]">{staffName(ref.referredToProfileId)}</div></div>
+                    <div className="rounded-[10px] bg-sky-50 p-3"><div className="text-xs text-slate-500">سرنخ</div><div className="mt-1 text-sm font-bold text-sky-700">{lead.name}</div></div>
+                    <div className="rounded-[10px] bg-slate-50 p-3 dark:bg-slate-800/50"><div className="text-xs text-slate-500 dark:text-slate-400">شرکت</div><div className="mt-1 text-sm font-bold text-slate-700 dark:text-slate-200">{lead.company || '—'}</div></div>
+                    <div className="rounded-[10px] bg-green-50 p-3"><div className="text-xs text-slate-500">تاریخ ارجاع</div><div className="mt-1 text-sm font-bold text-green-700">{formatJalali(ref.createdAt)}</div></div>
+                    <div className="rounded-[10px] bg-slate-50 p-3 dark:bg-slate-800/50"><div className="text-xs text-slate-500 dark:text-slate-400">ارجاع‌دهنده</div><div className="mt-1 text-sm font-bold text-slate-700 dark:text-slate-200">{staffName(ref.referredByProfileId)}</div></div>
+                    <div className="rounded-[10px] bg-slate-50 p-3 dark:bg-slate-800/50"><div className="text-xs text-slate-500 dark:text-slate-400">ارجاع‌شونده</div><div className="mt-1 text-sm font-bold text-slate-700 dark:text-slate-200">{staffName(ref.referredToProfileId)}</div></div>
                   </div>
-                  {ref.note && <div className="rounded-lg border border-slate-200 bg-slate-50 p-3"><div className="text-xs font-semibold text-slate-500">یادداشت ارجاع:</div><p className="mt-1 whitespace-pre-wrap text-sm text-slate-600">{ref.note}</p></div>}
+                  {ref.note && <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50"><div className="text-xs font-semibold text-slate-500 dark:text-slate-400">یادداشت ارجاع:</div><p className="mt-1 whitespace-pre-wrap text-sm text-slate-600 dark:text-slate-300">{ref.note}</p></div>}
 
-                  <div className="flex flex-wrap gap-2 border-t border-slate-200 pt-4">
+                  <div className="flex flex-wrap gap-2 border-t border-slate-200 pt-4 dark:border-slate-700">
                     {ref.status === 'active' && isSuperAdmin && (
                       <Button variant="outline" className="border-amber-200 text-amber-600 hover:bg-amber-50" onClick={() => closeReferral(ref.id)}><X className="h-4 w-4" /> بستن ارجاع</Button>
                     )}
@@ -276,6 +349,10 @@ export default function LeadReferralsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <Link href="/dashboard/lead-referrals/new" className="nb-fab" aria-label="ثبت ارجاع">
+        <Plus className="h-6 w-6" />
+      </Link>
     </div>
   );
 }
