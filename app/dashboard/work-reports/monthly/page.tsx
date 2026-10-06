@@ -1,26 +1,29 @@
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
+import Link from 'next/link';
 import { fetchData, createData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
-import { EmptyState } from '@/components/dashboard/empty-state';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
-import { Plus, FileText, Calendar, Search, ShieldCheck, Eye, ChevronRight, ChevronLeft, Sparkles, Send, Loader2 } from 'lucide-react';
+import {
+  FileText, Plus, Search, Calendar, ShieldCheck, Eye,
+  ChevronRight, ChevronLeft, Sparkles, Send, Loader2, X,
+  LayoutGrid, List, Clock,
+} from 'lucide-react';
 import { formatJalali, formatJalaliDateTime, toLocalDateString } from '@/lib/format';
 import { toast } from 'sonner';
 import { isSuperAdminRole } from '@/lib/nav-config';
-import Link from 'next/link';
 
 type WorkReportImage = { id: string; imageUrl: string };
 type MonthlyWorkReport = {
@@ -46,8 +49,6 @@ type ProfileInfo = {
   lastName: string | null;
 };
 
-const PAGE_SIZE = 10;
-
 const STATUS_LABELS: Record<string, string> = {
   draft: 'پیش‌نویس',
   submitted: 'ارسال شده',
@@ -57,11 +58,11 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  draft: 'bg-slate-50 text-slate-700 border-slate-200',
-  submitted: 'bg-blue-50 text-blue-700 border-blue-200',
-  reviewing: 'bg-amber-50 text-amber-700 border-amber-200',
-  approved: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  needs_revision: 'bg-red-50 text-red-700 border-red-200',
+  draft: '#94A3B8',
+  submitted: '#2563EB',
+  reviewing: '#f59e0b',
+  approved: '#22C55E',
+  needs_revision: '#EF4444',
 };
 
 export default function MonthlyWorkReportsPage() {
@@ -70,9 +71,10 @@ export default function MonthlyWorkReportsPage() {
   const [profileMap, setProfileMap] = useState<Record<string, ProfileInfo>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [visibleCount, setVisibleCount] = useState(6);
+  const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
 
-  // AI generate + send state
   const [aiOpen, setAiOpen] = useState(false);
   const [aiStep, setAiStep] = useState<'dates' | 'generating' | 'review' | 'sending'>('dates');
   const [aiStartDate, setAiStartDate] = useState('');
@@ -88,10 +90,7 @@ export default function MonthlyWorkReportsPage() {
     try {
       if (isSuperAdmin) {
         const [allReports, allProfiles] = await Promise.all([
-          fetchData<MonthlyWorkReport>('monthly_work_reports', {
-            orderBy: { createdAt: 'desc' },
-            include: { images: true },
-          }),
+          fetchData<MonthlyWorkReport>('monthly_work_reports', { orderBy: { createdAt: 'desc' }, include: { images: true } }),
           fetchData<ProfileInfo>('profiles', {}),
         ]);
         setReports(allReports);
@@ -113,47 +112,63 @@ export default function MonthlyWorkReportsPage() {
   }, [profile?.id, isSuperAdmin]);
 
   useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => { setVisibleCount(6); }, [search, filterStatus]);
 
-  const filtered = useMemo(() => {
-    if (!search) return reports;
-    const s = search.toLowerCase();
-    return reports.filter((r) => {
-      const name = isSuperAdmin ? getProfileName(r.profileId) : '';
-      return r.fullName.toLowerCase().includes(s) || name.toLowerCase().includes(s);
-    });
-  }, [search, reports, isSuperAdmin, profileMap]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages);
-  const paged = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-  const startIdx = filtered.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
-  const endIdx = Math.min(currentPage * PAGE_SIZE, filtered.length);
-
-  function getProfileName(pid: string) {
+  const getProfileName = (pid: string) => {
     const p = profileMap[pid];
     return p ? `${p.firstName || ''} ${p.lastName || ''}`.trim() : 'نامشخص';
-  }
-  function getInitials(pid: string) {
+  };
+  const getInitials = (pid: string) => {
     const p = profileMap[pid];
     if (!p) return '؟';
     return ((p.firstName?.[0] || '') + (p.lastName?.[0] || '')).toUpperCase();
-  }
+  };
 
-  const pageNumbers: number[] = [];
-  const maxVisible = 3;
-  let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
-  let endPage = Math.min(totalPages, startPage + maxVisible - 1);
-  if (endPage - startPage + 1 < maxVisible) {
-    startPage = Math.max(1, endPage - maxVisible + 1);
-  }
-  for (let i = startPage; i <= endPage; i++) pageNumbers.push(i);
+  const filtered = useMemo(() => {
+    const q = search.trim().toLocaleLowerCase();
+    return reports.filter((r) => {
+      const name = isSuperAdmin ? getProfileName(r.profileId).toLocaleLowerCase() : '';
+      const matchesQuery = !q || r.fullName.toLocaleLowerCase().includes(q) || name.includes(q);
+      const matchesStatus = filterStatus === 'all' || r.status === filterStatus;
+      return matchesQuery && matchesStatus;
+    });
+  }, [reports, search, filterStatus, isSuperAdmin, profileMap]);
 
-  // ─── AI Generate handler ───
+  const stats = useMemo(() => [
+    {
+      label: 'کل گزارش‌ها', value: reports.length, icon: FileText,
+      filter: 'all',
+      gradient: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)',
+      glow: 'rgba(37,99,235,0.25)',
+    },
+    {
+      label: 'ارسال شده', value: reports.filter((r) => r.status === 'submitted').length, icon: Send,
+      filter: 'submitted',
+      gradient: 'linear-gradient(135deg, #2563EB 0%, #1d4ed8 100%)',
+      glow: 'rgba(37,99,235,0.25)',
+    },
+    {
+      label: 'تأیید شده', value: reports.filter((r) => r.status === 'approved').length, icon: FileText,
+      filter: 'approved',
+      gradient: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)',
+      glow: 'rgba(34,197,94,0.25)',
+    },
+    {
+      label: 'در حال بررسی', value: reports.filter((r) => r.status === 'reviewing').length, icon: Clock,
+      filter: 'reviewing',
+      gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+      glow: 'rgba(245,158,11,0.25)',
+    },
+  ], [reports]);
+
+  const handleStatClick = (f: string) => {
+    setFilterStatus(filterStatus === f ? 'all' : f);
+  };
+
+  const stColor = (status: string) => STATUS_COLORS[status] || '#94A3B8';
+
   const handleGenerate = async () => {
-    if (!aiStartDate || !aiEndDate) {
-      toast.error('تاریخ شروع و پایان را انتخاب کنید');
-      return;
-    }
+    if (!aiStartDate || !aiEndDate) { toast.error('تاریخ شروع و پایان را انتخاب کنید'); return; }
     setAiStep('generating');
     try {
       const res = await fetch('/api/work-reports/generate-monthly', {
@@ -162,11 +177,7 @@ export default function MonthlyWorkReportsPage() {
         body: JSON.stringify({ startDate: aiStartDate, endDate: aiEndDate }),
       });
       const json = await res.json();
-      if (!res.ok) {
-        toast.error(json.error || 'خطا در تولید گزارش');
-        setAiStep('dates');
-        return;
-      }
+      if (!res.ok) { toast.error(json.error || 'خطا در تولید گزارش'); setAiStep('dates'); return; }
       setAiSummary(json.summary);
       setAiReportCount(json.reportCount);
       setAiStep('review');
@@ -176,7 +187,6 @@ export default function MonthlyWorkReportsPage() {
     }
   };
 
-  // ─── Send monthly report handler ───
   const handleSend = async () => {
     if (!profile?.id) { toast.error('اطلاعات کاربری یافت نشد'); return; }
     setAiStep('sending');
@@ -194,11 +204,7 @@ export default function MonthlyWorkReportsPage() {
         status: 'submitted',
       });
       toast.success('گزارش ماهانه ارسال شد');
-      setAiOpen(false);
-      setAiStep('dates');
-      setAiSummary('');
-      setAiStartDate('');
-      setAiEndDate('');
+      resetAiDialog();
       loadData();
     } catch (error: any) {
       toast.error('خطا در ارسال گزارش: ' + (error?.message || 'خطا'));
@@ -214,260 +220,250 @@ export default function MonthlyWorkReportsPage() {
     setAiEndDate('');
   };
 
-  return (
-    <div className="w-full" dir="rtl">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="h-[25px] w-[5px] rounded-[4px] bg-[#FF8A00]" />
-            <h1 className="text-[28px] font-bold leading-tight text-[#101C35]">
-              {isSuperAdmin ? 'گزارشات کار ماهانه (نمای کل)' : 'گزارش کار ماهانه'}
-            </h1>
-          </div>
-          <p className="mt-[7px] text-[13px] text-[#71809A]">
-            {isSuperAdmin ? 'مشاهده تمام گزارش‌های ماهانه ارسال‌شده توسط کاربران' : 'ثبت گزارش ماهانه پروژه با صورت وضعیت'}
-          </p>
+  if (loading) {
+    return (
+      <div className="nb-page" dir="rtl">
+        <div className="nb-empty">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
+          <p>در حال بارگذاری گزارش‌ها...</p>
         </div>
-        <div className="flex items-center gap-2">
-          {isSuperAdmin ? (
-            <div className="flex items-center gap-2 rounded-[10px] border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-700">
-              <ShieldCheck className="h-4 w-4" />
-              حالت مشاهده (سوپرادمین)
+      </div>
+    );
+  }
+
+  return (
+    <div className="nb-page" dir="rtl">
+      <header className="nb-hero">
+        <div className="nb-hero-left">
+          <div>
+            <div className="nb-hero-title-row">
+              <span className="nb-hero-marker" style={{ background: 'linear-gradient(180deg,#FF7A00,#E65100)', boxShadow: '0 0 12px rgba(255,122,0,.25)' }} />
+              <h1>گزارش کار ماهانه</h1>
             </div>
+            <p>{isSuperAdmin ? 'مشاهده تمام گزارش‌های ماهانه ارسال‌شده توسط کاربران' : 'ثبت گزارش ماهانه پروژه با صورت وضعیت'}</p>
+          </div>
+        </div>
+        <div className="nb-hero-right">
+          {isSuperAdmin ? (
+            <span className="nb-editor-quick-btn" style={{ borderColor: '#a7f3d0', color: '#047857', background: '#ecfdf5' }}>
+              <ShieldCheck className="h-4 w-4" />
+              حالت مشاهده
+            </span>
           ) : (
             <>
-              <Button
-                onClick={() => setAiOpen(true)}
-                className="h-[44px] rounded-[10px] bg-[#0D9488] text-[13px] font-bold text-white shadow-sm transition-all hover:-translate-y-px hover:bg-[#0f766e]"
-              >
+              <button type="button" className="nb-editor-quick-btn" style={{ borderColor: '#5eead4', color: '#0f766e', background: '#f0fdfa' }} onClick={() => setAiOpen(true)}>
                 <Sparkles className="h-4 w-4" />
                 گزارش هوشمند
-              </Button>
-              <Link href="/dashboard/work-reports/monthly/new">
-                <Button
-                  className="h-[44px] w-[100px] rounded-[10px] bg-[#10265F] text-[13px] font-bold text-white shadow-sm transition-all hover:-translate-y-px hover:bg-[#1a3a7a]"
-                >
-                  <Plus className="h-4 w-4" />
-                  گزارش جدید
-                </Button>
+              </button>
+              <Link href="/dashboard/work-reports/monthly/new" className="nb-new-btn">
+                <Plus className="h-[18px] w-[18px]" />
+                گزارش جدید
               </Link>
             </>
           )}
         </div>
-      </div>
+      </header>
 
-      {/* Date bar */}
-      <div className="mt-[35px] flex h-[40px] w-full items-center gap-2 rounded-[10px] border border-[#D7EBFA] bg-[#EFF9FF] px-4 text-[13px] text-[#0875C9]">
-        <Calendar className="h-4 w-4" />
-        <span>امروز: {formatJalali(new Date())}</span>
-      </div>
+      <section className="nb-stats-grid-v2">
+        {stats.map((stat) => (
+          <button
+            type="button"
+            className={`nb-stat-card-v2 ${filterStatus === stat.filter ? 'is-active' : ''}`}
+            key={stat.label}
+            onClick={() => handleStatClick(stat.filter)}
+            style={{ '--stat-glow': stat.glow } as React.CSSProperties}
+          >
+            <div className="nb-stat-v2-icon" style={{ background: stat.gradient }}>
+              <stat.icon className="h-[22px] w-[22px] text-white" />
+            </div>
+            <div className="nb-stat-v2-body">
+              <strong>{stat.value.toLocaleString('fa-IR')}</strong>
+              <span>{stat.label}</span>
+            </div>
+            <div className="nb-stat-v2-spark" style={{ background: stat.gradient }} />
+          </button>
+        ))}
+      </section>
 
-      {/* Search */}
-      <div className="relative mt-[14px] w-full max-w-[330px]">
-        <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#94A3B8]" />
-        <Input
-          placeholder={isSuperAdmin ? 'جستجوی نام کاربر یا گزارش...' : 'جستجوی نام...'}
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          className="h-[38px] rounded-[10px] border-[#D2DCEB] bg-white pr-10 text-[13px] focus:border-[#8EB6E5] focus:shadow-[0_0_0_3px_rgba(142,182,229,0.15)]"
-        />
-      </div>
-
-      {/* Table */}
-      {loading ? (
-        <div className="mt-[15px] flex h-64 items-center justify-center rounded-[14px] border border-[#D9E2EF] bg-white">
-          <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-[#0875C9] border-t-transparent" />
+      <div className="nb-toolbar">
+        <div className="nb-toolbar-left">
+          <h2>همه گزارش‌ها</h2>
+          <span className="nb-count-badge">{filtered.length.toLocaleString('fa-IR')} مورد</span>
         </div>
-      ) : paged.length === 0 ? (
-        <div className="mt-[15px] rounded-[14px] border border-[#D9E2EF] bg-white p-8">
-          <EmptyState
-            icon={<FileText className="h-8 w-8" />}
-            title={isSuperAdmin ? 'هنوز گزارشی ارسال نشده' : 'گزارش ماهانه‌ای ثبت نشده'}
-            description={isSuperAdmin ? 'گزارش‌های ماهانه ارسال‌شده توسط کاربران اینجا نمایش داده می‌شود' : 'اولین گزارش ماهانه خود را ثبت کنید'}
-            action={!isSuperAdmin ? (
-              <div className="flex gap-2">
-                <Button onClick={() => setAiOpen(true)} className="rounded-[10px] bg-[#0D9488] hover:bg-[#0f766e]">
-                  <Sparkles className="h-4 w-4" /> گزارش هوشمند
-                </Button>
-                <Link href="/dashboard/work-reports/monthly/new">
-                  <Button className="rounded-[10px] bg-[#10265F] hover:bg-[#1a3a7a]">
-                    <Plus className="h-4 w-4" /> افزودن گزارش
-                  </Button>
-                </Link>
-              </div>
-            ) : undefined}
-          />
+        <div className="nb-toolbar-right">
+          <div className="nb-search-box">
+            <Search className="h-4 w-4" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={isSuperAdmin ? 'جستجوی نام کاربر یا گزارش...' : 'جستجوی نام...'}
+            />
+            {search && <button onClick={() => setSearch('')}><X className="h-3.5 w-3.5" /></button>}
+          </div>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="nb-select-filter h-10 w-[150px]">
+              <SelectValue placeholder="وضعیت" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">همه وضعیت‌ها</SelectItem>
+              {Object.entries(STATUS_LABELS).map(([k, v]) => (
+                <SelectItem key={k} value={k}>{v}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="nb-view-toggle">
+            <button className={viewMode === 'board' ? 'is-active' : ''} onClick={() => setViewMode('board')} aria-label="تخته‌ای">
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+            <button className={viewMode === 'list' ? 'is-active' : ''} onClick={() => setViewMode('list')} aria-label="لیستی">
+              <List className="h-4 w-4" />
+            </button>
+          </div>
         </div>
-      ) : (
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="nb-empty">
+          <div className="sb-empty-icon"><FileText className="h-12 w-12 text-muted-foreground/30" /></div>
+          <h3>{isSuperAdmin ? 'هنوز گزارشی ارسال نشده' : 'گزارش ماهانه‌ای ثبت نشده'}</h3>
+          <p>{isSuperAdmin ? 'گزارش‌های ماهانه ارسال‌شده توسط کاربران اینجا نمایش داده می‌شود' : 'اولین گزارش ماهانه خود را ثبت کنید'}</p>
+          {!isSuperAdmin && (
+            <div className="flex gap-2">
+              <button type="button" className="nb-empty-new-btn" style={{ background: '#0D9488' }} onClick={() => setAiOpen(true)}>
+                <Sparkles className="h-4 w-4" /> گزارش هوشمند
+              </button>
+              <Link href="/dashboard/work-reports/monthly/new" className="nb-empty-new-btn">
+                <Plus className="h-4 w-4" /> افزودن گزارش
+              </Link>
+            </div>
+          )}
+        </div>
+      ) : viewMode === 'board' ? (
         <>
-          {/* Desktop table */}
-          <div className="mt-[15px] hidden overflow-hidden rounded-[14px] border border-[#D9E2EF] bg-white shadow-[0_4px_15px_rgba(20,40,80,0.06)] md:block">
-            <Table>
-              <TableHeader>
-                <TableRow className="h-[48px] border-b border-[#EEF2F6] bg-[#F8FAFC] hover:bg-[#F8FAFC]">
-                  {isSuperAdmin && <TableHead className="text-[12px] font-semibold text-[#5F708A]">کاربر</TableHead>}
-                  <TableHead className="text-[12px] font-semibold text-[#5F708A]">نام</TableHead>
-                  <TableHead className="text-[12px] font-semibold text-[#5F708A]">بازه زمانی</TableHead>
-                  <TableHead className="text-[12px] font-semibold text-[#5F708A]">وضعیت</TableHead>
-                  <TableHead className="text-[12px] font-semibold text-[#5F708A]">تصاویر</TableHead>
-                  <TableHead className="text-[12px] font-semibold text-[#5F708A]">تاریخ ثبت</TableHead>
-                  <TableHead className="text-[12px] font-semibold text-[#5F708A] text-left">عملیات</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paged.map((report) => (
-                  <TableRow
-                    key={report.id}
-                    className="h-[70px] border-b border-[#EEF2F6] transition-all hover:bg-[#FAFCFF]"
-                  >
-                    {isSuperAdmin && (
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-8 w-8">
-                            <AvatarFallback className="bg-sky-100 text-[10px] font-bold text-sky-700">
-                              {getInitials(report.profileId)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="text-sm font-medium text-[#17233D]">{getProfileName(report.profileId)}</span>
-                        </div>
-                      </TableCell>
-                    )}
-                    <TableCell className="text-[14px] font-bold text-[#17233D]">{report.fullName}</TableCell>
-                    <TableCell>
-                      <span className="text-[13px] text-[#71809A]">
-                        {formatJalali(report.startDate)} تا {formatJalali(report.endDate)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={`rounded-[20px] border px-3 py-1 text-xs ${STATUS_COLORS[report.status] || 'bg-slate-50 text-slate-700 border-slate-200'}`}>
+          <div className="nb-grid nb-grid-grid">
+            {filtered.slice(0, visibleCount).map((report) => {
+              const color = stColor(report.status);
+              return (
+                <article
+                  key={report.id}
+                  className="nb-card cursor-pointer"
+                  onClick={() => window.location.href = `/dashboard/work-reports/view/${report.id}`}
+                  style={{ borderBottomColor: color, borderBottomWidth: 3 }}
+                >
+                  <div className="nb-card-top">
+                    <div className="nb-card-tags">
+                      <span className="nb-card-tag" style={{ background: `${color}15`, color }}>
                         {STATUS_LABELS[report.status] || report.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs">
-                        {report.images?.length || 0} تصویر
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-[13px] text-[#71809A]">{formatJalaliDateTime(report.createdAt)}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Link href={`/dashboard/work-reports/view/${report.id}`}>
-                          <button
-                            className="flex h-[40px] w-[40px] items-center justify-center rounded-[9px] bg-[#F4F8FD] text-[#1764C0] transition-all hover:bg-[#E0EDFB] hover:shadow-sm"
-                            title="مشاهده"
-                          >
-                            <Eye className="h-[18px] w-[18px]" />
-                          </button>
-                        </Link>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Mobile card list */}
-          <div className="mt-[15px] space-y-[10px] md:hidden">
-            {paged.map((report) => (
-              <div key={report.id} className="rounded-[12px] border border-[#D9E2EF] bg-white p-4 shadow-[0_4px_15px_rgba(20,40,80,0.06)]">
-                {isSuperAdmin && (
-                  <div className="mb-2 flex items-center gap-2">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-sky-100 text-[10px] font-bold text-sky-700">
-                        {getInitials(report.profileId)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm font-medium text-[#17233D]">{getProfileName(report.profileId)}</span>
+                      </span>
+                      {report.images && report.images.length > 0 && (
+                        <span className="nb-card-tag" style={{ background: 'rgba(37,99,235,.12)', color: '#2563EB' }}>
+                          {report.images.length.toLocaleString('fa-IR')} تصویر
+                        </span>
+                      )}
+                    </div>
                   </div>
-                )}
-                <div className="text-[14px] font-bold text-[#17233D]">{report.fullName}</div>
-                <div className="mt-1 text-[13px] text-[#71809A]">
-                  {formatJalali(report.startDate)} تا {formatJalali(report.endDate)}
-                </div>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <Badge variant="outline" className={`rounded-[20px] border px-3 py-1 text-xs ${STATUS_COLORS[report.status] || 'bg-slate-50 text-slate-700 border-slate-200'}`}>
-                    {STATUS_LABELS[report.status] || report.status}
-                  </Badge>
-                  <Badge variant="outline" className="text-xs">
-                    {report.images?.length || 0} تصویر
-                  </Badge>
-                  <span className="text-[13px] text-[#71809A]">{formatJalaliDateTime(report.createdAt)}</span>
-                </div>
-                <div className="mt-3 flex gap-2">
-                  <Link href={`/dashboard/work-reports/view/${report.id}`}>
-                    <Button variant="outline" size="sm" className="rounded-[9px]">
-                      <Eye className="h-4 w-4" /> مشاهده
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            ))}
+                  <h3 className="nb-card-title">{report.fullName}</h3>
+                  <p className="nb-card-excerpt">{formatJalali(report.startDate)} تا {formatJalali(report.endDate)}</p>
+                  <div className="space-y-1.5 text-xs text-slate-500 dark:text-slate-400">
+                    {report.project && (
+                      <div className="flex items-center gap-1.5">
+                        <FileText className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                        <span>{report.project}</span>
+                      </div>
+                    )}
+                    {isSuperAdmin && (
+                      <div className="flex items-center gap-1.5">
+                        <Avatar className="h-5 w-5"><AvatarFallback className="bg-sky-100 text-[9px] text-sky-700 dark:bg-sky-900/30 dark:text-sky-400">{getInitials(report.profileId)}</AvatarFallback></Avatar>
+                        <span>{getProfileName(report.profileId)}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="nb-card-footer">
+                    <div className="nb-card-date">
+                      <Clock className="h-3 w-3" />
+                      {formatJalaliDateTime(report.createdAt)}
+                    </div>
+                    <div className="nb-card-quick">
+                      <Link href={`/dashboard/work-reports/view/${report.id}`} onClick={(e) => e.stopPropagation()}>
+                        <Eye className="h-3.5 w-3.5" />
+                      </Link>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
           </div>
-
-          {/* Pagination */}
-          <div className="mt-4 flex flex-col items-center justify-between gap-4 rounded-[14px] border border-[#D9E2EF] bg-white px-5 py-4 sm:flex-row">
-            <div className="text-[13px] text-[#71809A]">
-              نمایش {startIdx.toLocaleString('fa-IR')} تا {endIdx.toLocaleString('fa-IR')} از {filtered.length.toLocaleString('fa-IR')} گزارش
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 text-[13px] text-[#71809A]">
-                <span>تعداد در صفحه</span>
-                <Select value={String(PAGE_SIZE)} onValueChange={() => {}}>
-                  <SelectTrigger className="h-[38px] w-[60px] rounded-[10px] border-[#D2DCEB] text-[13px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="10">۱۰</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setPage(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1}
-                  className="flex h-[42px] w-[42px] items-center justify-center rounded-[10px] bg-[#F7F9FC] text-[#263752] transition-all hover:bg-[#EEF2F6] disabled:opacity-40"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-                {pageNumbers.map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => setPage(p)}
-                    className={`flex h-[42px] w-[42px] items-center justify-center rounded-[10px] text-[14px] font-medium transition-all ${
-                      p === currentPage
-                        ? 'bg-[#10265F] text-white'
-                        : 'bg-[#F7F9FC] text-[#263752] hover:bg-[#EEF2F6]'
-                    }`}
-                  >
-                    {p.toLocaleString('fa-IR')}
-                  </button>
-                ))}
-                <button
-                  onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
-                  disabled={currentPage === totalPages}
-                  className="flex h-[42px] w-[42px] items-center justify-center rounded-[10px] bg-[#F7F9FC] text-[#263752] transition-all hover:bg-[#EEF2F6] disabled:opacity-40"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          </div>
+          {filtered.length > visibleCount && (
+            <button type="button" onClick={() => setVisibleCount((c) => c + 6)} className="w-full rounded-lg py-3 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20">
+              نمایش ۶ مورد دیگر
+            </button>
+          )}
         </>
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[700px]">
+              <thead className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/50">
+                <tr>
+                  {isSuperAdmin && <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">کاربر</th>}
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">نام</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">بازه زمانی</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">وضعیت</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">تصاویر</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">عملیات</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                {filtered.slice(0, visibleCount).map((report) => {
+                  const color = stColor(report.status);
+                  return (
+                    <tr key={report.id} className="cursor-pointer transition hover:bg-slate-50 dark:hover:bg-slate-700/50" onClick={() => window.location.href = `/dashboard/work-reports/view/${report.id}`}>
+                      {isSuperAdmin && (
+                        <td className="p-3">
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-6 w-6"><AvatarFallback className="bg-sky-100 text-[10px] text-sky-700 dark:bg-sky-900/30 dark:text-sky-400">{getInitials(report.profileId)}</AvatarFallback></Avatar>
+                            <span className="text-xs text-slate-500 dark:text-slate-400">{getProfileName(report.profileId)}</span>
+                          </div>
+                        </td>
+                      )}
+                      <td className="p-3 font-medium text-slate-800 dark:text-slate-100">{report.fullName}</td>
+                      <td className="p-3 text-xs text-slate-500 dark:text-slate-400">{formatJalali(report.startDate)} تا {formatJalali(report.endDate)}</td>
+                      <td className="p-3">
+                        <Badge style={{ backgroundColor: `${color}15`, color }} className="rounded-full text-xs">{STATUS_LABELS[report.status] || report.status}</Badge>
+                      </td>
+                      <td className="p-3 text-xs text-slate-500 dark:text-slate-400">{(report.images?.length || 0).toLocaleString('fa-IR')} تصویر</td>
+                      <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                        <Link href={`/dashboard/work-reports/view/${report.id}`} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700" title="مشاهده"><Eye className="h-4 w-4" /></Link>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {filtered.length > visibleCount && (
+            <button type="button" onClick={() => setVisibleCount((c) => c + 6)} className="w-full py-3 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20">
+              نمایش ۶ مورد دیگر
+            </button>
+          )}
+        </div>
       )}
 
-      {/* AI Generate + Send Dialog */}
+      {!isSuperAdmin && (
+        <Link href="/dashboard/work-reports/monthly/new" className="nb-fab" aria-label="گزارش جدید">
+          <Plus className="h-6 w-6" />
+        </Link>
+      )}
+
       <Dialog open={aiOpen} onOpenChange={(open) => { if (!open) resetAiDialog(); }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-[18px] font-bold text-[#0F172A]">
+            <DialogTitle className="flex items-center gap-2 text-[18px] font-bold text-slate-900">
               <Sparkles className="h-5 w-5 text-[#0D9488]" />
               تولید و ارسال گزارش ماهانه هوشمند
             </DialogTitle>
           </DialogHeader>
 
-          {/* Step 1: Date selection */}
           {aiStep === 'dates' && (
             <div className="space-y-5 py-2">
               <div className="rounded-lg border border-sky-100 bg-sky-50/50 px-4 py-3 text-[13px] leading-relaxed text-slate-600">
@@ -475,30 +471,17 @@ export default function MonthlyWorkReportsPage() {
               </div>
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <div>
-                  <Label className="mb-2 block text-[14px] font-semibold text-[#172033]">
-                    تاریخ شروع <span className="text-[#DC2626]">*</span>
-                  </Label>
-                  <JalaliDatePicker
-                    value={aiStartDate ? new Date(aiStartDate) : null}
-                    onChange={(d) => setAiStartDate(d ? toLocalDateString(d) : '')}
-                    className="h-[50px] rounded-[10px] border-[#D4DEEA] text-[14px]"
-                  />
+                  <Label className="mb-2 block text-[14px] font-semibold text-slate-700">تاریخ شروع <span className="text-red-500">*</span></Label>
+                  <JalaliDatePicker value={aiStartDate ? new Date(aiStartDate) : null} onChange={(d) => setAiStartDate(d ? toLocalDateString(d) : '')} className="h-[50px]" />
                 </div>
                 <div>
-                  <Label className="mb-2 block text-[14px] font-semibold text-[#172033]">
-                    تاریخ پایان <span className="text-[#DC2626]">*</span>
-                  </Label>
-                  <JalaliDatePicker
-                    value={aiEndDate ? new Date(aiEndDate) : null}
-                    onChange={(d) => setAiEndDate(d ? toLocalDateString(d) : '')}
-                    className="h-[50px] rounded-[10px] border-[#D4DEEA] text-[14px]"
-                  />
+                  <Label className="mb-2 block text-[14px] font-semibold text-slate-700">تاریخ پایان <span className="text-red-500">*</span></Label>
+                  <JalaliDatePicker value={aiEndDate ? new Date(aiEndDate) : null} onChange={(d) => setAiEndDate(d ? toLocalDateString(d) : '')} className="h-[50px]" />
                 </div>
               </div>
             </div>
           )}
 
-          {/* Step 2: Generating */}
           {aiStep === 'generating' && (
             <div className="flex flex-col items-center justify-center py-12">
               <Loader2 className="h-10 w-10 animate-spin text-[#0D9488]" />
@@ -506,7 +489,6 @@ export default function MonthlyWorkReportsPage() {
             </div>
           )}
 
-          {/* Step 3: Review */}
           {(aiStep === 'review' || aiStep === 'sending') && (
             <div className="space-y-4 py-2">
               <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-[13px] font-medium text-emerald-700">
@@ -514,18 +496,14 @@ export default function MonthlyWorkReportsPage() {
                 {aiReportCount.toLocaleString('fa-IR')} گزارش روزانه تحلیل شد
               </div>
               <div>
-                <Label className="mb-2 block text-[14px] font-semibold text-[#172033]">
-                  خلاصه گزارش ماهانه
-                </Label>
+                <Label className="mb-2 block text-[14px] font-semibold text-slate-700">خلاصه گزارش ماهانه</Label>
                 <Textarea
                   value={aiSummary}
                   onChange={(e) => setAiSummary(e.target.value)}
-                  className="h-[300px] resize-y rounded-[10px] border-[#D4DEEA] p-4 text-[13px] leading-[1.9]"
+                  className="h-[300px] resize-y text-[13px] leading-[1.9]"
                   placeholder="خلاصه تولید‌شده اینجا نمایش داده می‌شود..."
                 />
-                <p className="mt-1 text-left text-[12px] text-[#94A3B8]">
-                  می‌توانید متن را ویرایش کنید قبل از ارسال
-                </p>
+                <p className="mt-1 text-left text-[12px] text-slate-400">می‌توانید متن را ویرایش کنید قبل از ارسال</p>
               </div>
             </div>
           )}
@@ -533,40 +511,17 @@ export default function MonthlyWorkReportsPage() {
           <DialogFooter className="gap-2">
             {aiStep === 'dates' && (
               <>
-                <Button variant="outline" onClick={resetAiDialog} className="rounded-[10px]">
-                  انصراف
-                </Button>
-                <Button
-                  onClick={handleGenerate}
-                  disabled={!aiStartDate || !aiEndDate}
-                  className="rounded-[10px] bg-[#0D9488] text-white hover:bg-[#0f766e]"
-                >
-                  <Sparkles className="h-4 w-4" />
-                  تولید گزارش
+                <Button type="button" variant="outline" onClick={resetAiDialog} className="rounded-[10px]">انصراف</Button>
+                <Button type="button" onClick={handleGenerate} disabled={!aiStartDate || !aiEndDate} className="rounded-[10px] bg-[#0D9488] text-white hover:bg-[#0f766e]">
+                  <Sparkles className="h-4 w-4" /> تولید گزارش
                 </Button>
               </>
             )}
             {(aiStep === 'review' || aiStep === 'sending') && (
               <>
-                <Button variant="outline" onClick={() => setAiStep('dates')} className="rounded-[10px]" disabled={aiStep === 'sending'}>
-                  بازگشت
-                </Button>
-                <Button
-                  onClick={handleSend}
-                  disabled={aiStep === 'sending' || !aiSummary.trim()}
-                  className="rounded-[10px] bg-[#10265F] text-white hover:bg-[#1a3a7a]"
-                >
-                  {aiStep === 'sending' ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      در حال ارسال...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="h-4 w-4" />
-                      ارسال گزارش ماهانه
-                    </>
-                  )}
+                <Button type="button" variant="outline" onClick={() => setAiStep('dates')} className="rounded-[10px]" disabled={aiStep === 'sending'}>بازگشت</Button>
+                <Button type="button" onClick={handleSend} disabled={aiStep === 'sending' || !aiSummary.trim()} className="rounded-[10px] bg-[#10265F] text-white hover:bg-[#1a3a7a]">
+                  {aiStep === 'sending' ? (<><Loader2 className="h-4 w-4 animate-spin" /> در حال ارسال...</>) : (<><Send className="h-4 w-4" /> ارسال گزارش ماهانه</>)}
                 </Button>
               </>
             )}

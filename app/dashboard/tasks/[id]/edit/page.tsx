@@ -6,16 +6,21 @@ import Link from 'next/link';
 import { fetchData, updateData, createData, deleteData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
   ArrowRight, Clipboard, Flag, Activity, Lightbulb,
-  Info, Type, AlignRight, Gauge, Clock, UserCheck, Loader2, Check,
+  Info, Type, AlignRight, Gauge, Clock, UserCheck, Loader2, Check, Trash2,
+  MessageSquare, Send,
 } from 'lucide-react';
 import { TASK_STATUSES, TASK_PRIORITIES, fullName } from '@/lib/constants';
-import { toLocalDateString } from '@/lib/format';
+import { toLocalDateString, relativeTime } from '@/lib/format';
 import { toast } from 'sonner';
 import type { Profile, TaskAssignee, Task } from '@/lib/types';
 
@@ -46,6 +51,9 @@ export default function EditTaskPage() {
   const titleInputRef = useRef<HTMLInputElement>(null);
   const [existingAssignees, setExistingAssignees] = useState<string[]>([]);
   const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
+  const [comments, setComments] = useState<any[]>([]);
+  const [newComment, setNewComment] = useState('');
+  const [commentLoading, setCommentLoading] = useState(false);
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -108,6 +116,62 @@ export default function EditTaskPage() {
     loadTask();
   }, [loadStaff, loadTask]);
 
+  const loadComments = useCallback(async () => {
+    if (!id) return;
+    try {
+      const data = await fetchData<any>('task_comments', { where: { taskId: id }, orderBy: { createdAt: 'asc' } });
+      setComments(data || []);
+    } catch {
+      setComments([]);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    loadComments();
+  }, [loadComments]);
+
+  const handleAddComment = async () => {
+    if (!id || !newComment.trim() || !profile) return;
+    setCommentLoading(true);
+    try {
+      await createData('task_comments', { taskId: id, profileId: profile.id, content: newComment.trim() });
+      const myName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
+      const task = await fetchData<Task>('tasks', { where: { id } });
+      const t = task?.[0];
+      if (t) {
+        const notifPromises: Promise<any>[] = [];
+        const recipients = new Set<string>();
+        if (t.assignedTo && t.assignedTo !== profile.id) recipients.add(t.assignedTo);
+        if (t.createdBy && t.createdBy !== profile.id) recipients.add(t.createdBy);
+        staff.filter((s) => s.role === 'super_admin').forEach((a) => { if (a.id !== profile.id) recipients.add(a.id); });
+        recipients.forEach((rid) => {
+          notifPromises.push(
+            createData('notifications', {
+              profileId: rid,
+              title: 'نظر جدید روی وظیفه',
+              body: `${myName} روی وظیفه «${t.title}» نظر جدیدی ثبت کرد: ${newComment.trim().slice(0, 80)}`,
+              type: 'task',
+              priority: 'normal',
+              link: '/dashboard/tasks',
+            }).catch(() => {})
+          );
+        });
+        await Promise.all(notifPromises);
+      }
+      setNewComment('');
+      loadComments();
+    } catch (error: any) {
+      toast.error('ثبت نظر ناموفق: ' + error.message);
+    }
+    setCommentLoading(false);
+  };
+
+  const getStaffName = (sid: string | null) => {
+    if (!sid) return null;
+    const s = staff.find((p) => p.id === sid);
+    return s ? fullName(s.firstName, s.lastName) : null;
+  };
+
   const validate = () => {
     const e: Record<string, string> = {};
     if (!form.title.trim()) e.title = 'عنوان وظیفه الزامی است';
@@ -118,6 +182,18 @@ export default function EditTaskPage() {
 
   const toggleAssignee = (aid: string) => {
     setAssigneeIds((prev) => prev.includes(aid) ? prev.filter((x) => x !== aid) : [...prev, aid]);
+  };
+
+  const handleDelete = async () => {
+    if (!id) return;
+    if (!confirm('آیا از حذف این وظیفه مطمئن هستید؟')) return;
+    try {
+      await deleteData('tasks', { id });
+      toast.success('وظیفه حذف شد');
+      router.push('/dashboard/tasks');
+    } catch (error: any) {
+      toast.error('حذف ناموفق: ' + error.message);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -181,6 +257,10 @@ export default function EditTaskPage() {
         <div className="nb-editor-topbar-right">
           <button type="button" className="nb-editor-discard" onClick={() => router.push('/dashboard/tasks')} disabled={submitting}>
             انصراف
+          </button>
+          <button type="button" onClick={handleDelete} className="nb-editor-discard" style={{ color: '#ef4444', borderColor: '#fca5a5' }} disabled={submitting}>
+            <Trash2 className="h-4 w-4" />
+            حذف وظیفه
           </button>
           <button type="submit" form="task-edit-form" className="nb-editor-save-btn" disabled={submitting}>
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
@@ -321,6 +401,44 @@ export default function EditTaskPage() {
               </div>
             </div>
           </form>
+
+          <div className="lg:col-span-2 nb-editor-canvas" style={{ padding: 24 }}>
+            <div className="mb-4 flex items-center gap-2">
+              <MessageSquare className="h-5 w-5 text-slate-400" />
+              <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">نظرات و ارجاعات</h3>
+              <Badge variant="secondary" className="text-xs">{comments.length.toLocaleString('fa-IR')}</Badge>
+            </div>
+            <div className="mb-4 max-h-64 space-y-2 overflow-y-auto">
+              {comments.length === 0 ? (
+                <p className="py-4 text-center text-xs text-slate-400">هنوز نظری ثبت نشده است</p>
+              ) : comments.map((c) => {
+                const author = getStaffName(c.profileId);
+                return (
+                  <div key={c.id} className="flex items-start gap-2 rounded-lg bg-slate-50 p-2.5 dark:bg-slate-800">
+                    <Avatar className="h-7 w-7 shrink-0"><AvatarFallback className="bg-slate-200 text-[10px] text-slate-600">{author?.[0] || '؟'}</AvatarFallback></Avatar>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-slate-700 dark:text-slate-200">{author || 'کاربر'}</span>
+                        <span className="text-[10px] text-slate-400">{relativeTime(c.createdAt)}</span>
+                      </div>
+                      <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-300">{c.content}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex items-center gap-2">
+              <Input
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="نظر یا ارجاع بنویسید..."
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAddComment(); } }}
+              />
+              <Button size="sm" onClick={handleAddComment} disabled={commentLoading || !newComment.trim()}>
+                {commentLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+              </Button>
+            </div>
+          </div>
 
           <aside className="space-y-4">
             <div className="nb-editor-canvas" style={{ padding: 20 }}>

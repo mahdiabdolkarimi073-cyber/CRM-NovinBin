@@ -1,21 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { createData, fetchData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { ArrowRight, Calendar, Save, Pencil, List, Folder, Eye, HelpCircle, Info } from 'lucide-react';
+import {
+  ArrowRight, Calendar, Save, Pencil, List, Folder, Eye,
+  Info, Lightbulb, Loader2, Check,
+} from 'lucide-react';
 import { toLocalDateString } from '@/lib/format';
 import { toast } from 'sonner';
-import Link from 'next/link';
 
 type DailyWorkReport = {
   id: string;
@@ -61,6 +61,7 @@ export default function NewDailyReportPage() {
     status: '',
     duration: '',
   });
+  const titleRef = useRef<HTMLInputElement>(null);
 
   const today = toLocalDateString(new Date());
   const todayDate = new Date();
@@ -108,208 +109,167 @@ export default function NewDailyReportPage() {
   };
 
   return (
-    <div className="w-full" dir="rtl">
-      {/* Header */}
-      <div className="flex flex-col gap-4 mobile:flex-row mobile:items-start mobile:justify-between">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="h-[30px] w-[5px] rounded-[4px] bg-[#F97316]" />
-            <h1 className="text-[24px] font-bold leading-tight text-[#0F172A] mobile:text-[28px] tablet:text-[32px]">
-              ایجاد گزارش کار روزانه
-            </h1>
-          </div>
-          <p className="mt-2 text-[14px] text-[#64748B]">
-            گزارش کارهای انجام شده در روز را ثبت کنید
-          </p>
-        </div>
-        <Link href="/dashboard/work-reports/daily">
-          <Button
-            variant="outline"
-            className="h-[52px] w-full rounded-[10px] border-[#D6E0EC] bg-white text-[#0F172A] shadow-sm mobile:w-[215px]"
-          >
+    <div className="nb-editor-page" dir="rtl">
+      <div className="nb-editor-topbar">
+        <div className="nb-editor-topbar-left">
+          <Link href="/dashboard/work-reports/daily" className="nb-editor-back">
             <ArrowRight className="h-4 w-4" />
             بازگشت به گزارش‌ها
-          </Button>
-        </Link>
+          </Link>
+          <span className="nb-editor-breadcrumb">داشبورد <b>←</b> گزارش روزانه <b>←</b> ایجاد گزارش</span>
+        </div>
+        <div className="nb-editor-topbar-right">
+          <button type="button" className="nb-editor-discard" onClick={() => router.push('/dashboard/work-reports/daily')} disabled={saving}>
+            انصراف
+          </button>
+          <button type="submit" form="daily-form" className="nb-editor-save-btn" disabled={saving}>
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+            {saving ? 'در حال ایجاد...' : 'ایجاد گزارش'}
+          </button>
+        </div>
       </div>
 
-      {/* Two-column layout */}
-      <div className="mt-8 grid grid-cols-1 gap-7 lg:grid-cols-[2fr_0.9fr]">
-        {/* Form column */}
-        <div className="rounded-[14px] border border-[#DCE4EF] bg-white p-5 shadow-[0_4px_18px_rgba(15,23,42,0.05)] mobile:p-7">
-          {/* Form header */}
-          <div className="mb-6">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-[21px] w-[21px] text-[#2563EB]" />
-              <h2 className="text-[20px] font-bold text-[#0F172A]">اطلاعات گزارش</h2>
-            </div>
-            <div className="mt-2.5 h-[3px] w-[25px] rounded-full bg-[#2563EB]" />
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Title */}
-            <div>
-              <Label className="mb-2 block text-[14px] font-semibold text-[#172033]">
-                عنوان گزارش <span className="text-[#DC2626]">*</span>
-              </Label>
-              <Input
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                placeholder="عنوان گزارش کار روزانه را وارد کنید..."
-                className="h-[50px] rounded-[10px] border-[#D4DEEA] text-[14px] focus:border-[#2563EB] focus:shadow-[0_0_0_3px_rgba(37,99,235,0.10)]"
-                required
-              />
+      <div className="nb-editor-main">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <form id="daily-form" className="lg:col-span-2 nb-editor-canvas" onSubmit={handleSubmit}>
+            <div className="nb-editor-meta-row">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-900/20">
+                  <Calendar className="h-5 w-5" />
+                </span>
+                <div>
+                  <h2 className="font-bold text-slate-900 dark:text-slate-100" style={{ fontSize: 20 }}>اطلاعات گزارش</h2>
+                  <p className="text-sm text-slate-400">گزارش کارهای انجام‌شده در روز را ثبت کنید.</p>
+                </div>
+              </div>
             </div>
 
-            {/* Project + Date row */}
-            <div className="grid grid-cols-1 gap-5 tablet:grid-cols-2">
-              <div>
-                <Label className="mb-2 block text-[14px] font-semibold text-[#172033]">
-                  پروژه / فعالیت مرتبط (اختیاری)
-                </Label>
-                <Input
-                  value={form.project}
-                  onChange={(e) => setForm({ ...form, project: e.target.value })}
-                  placeholder="انتخاب پروژه یا فعالیت مرتبط..."
-                  className="h-[50px] rounded-[10px] border-[#D4DEEA] text-[14px] focus:border-[#2563EB] focus:shadow-[0_0_0_3px_rgba(37,99,235,0.10)]"
+            <div className="space-y-5">
+              <div className="nb-editor-field-group">
+                <Label className="nb-editor-label">عنوان گزارش <span className="text-red-500">*</span></Label>
+                <input
+                  ref={titleRef}
+                  type="text"
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  placeholder="عنوان گزارش کار روزانه را وارد کنید..."
+                  className="nb-input"
+                  style={{ height: 44, borderRadius: 10, border: '1px solid #E2E8F0', padding: '0 14px', fontSize: 14, width: '100%', background: 'transparent', outline: 'none' }}
+                  required
                 />
               </div>
-              <div>
-                <Label className="mb-2 block text-[14px] font-semibold text-[#172033]">
-                  تاریخ گزارش <span className="text-[#DC2626]">*</span>
-                </Label>
-                <JalaliDatePicker
-                  value={form.reportDate ? new Date(form.reportDate) : null}
-                  onChange={(d) => setForm({ ...form, reportDate: d ? toLocalDateString(d) : '' })}
-                  minDate={todayDate}
-                  className="h-[50px] rounded-[10px] border-[#D4DEEA] text-[14px] focus:border-[#2563EB] focus:shadow-[0_0_0_3px_rgba(37,99,235,0.10)]"
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">پروژه / فعالیت مرتبط (اختیاری)</Label>
+                  <input
+                    type="text"
+                    value={form.project}
+                    onChange={(e) => setForm({ ...form, project: e.target.value })}
+                    placeholder="انتخاب پروژه یا فعالیت مرتبط..."
+                    className="nb-input"
+                    style={{ height: 44, borderRadius: 10, border: '1px solid #E2E8F0', padding: '0 14px', fontSize: 14, width: '100%', background: 'transparent', outline: 'none' }}
+                  />
+                </div>
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">تاریخ گزارش <span className="text-red-500">*</span></Label>
+                  <JalaliDatePicker
+                    value={form.reportDate ? new Date(form.reportDate) : null}
+                    onChange={(d) => setForm({ ...form, reportDate: d ? toLocalDateString(d) : '' })}
+                    minDate={todayDate}
+                    className="h-11"
+                  />
+                </div>
+              </div>
+
+              <div className="nb-editor-field-group">
+                <Label className="nb-editor-label">خلاصه فعالیت‌های انجام شده <span className="text-red-500">*</span></Label>
+                <textarea
+                  value={form.summary}
+                  onChange={(e) => setForm({ ...form, summary: e.target.value.slice(0, SUMMARY_MAX) })}
+                  placeholder="خلاصه‌ای از فعالیت‌های اصلی امروز را بنویسید..."
+                  className="nb-input"
+                  style={{ minHeight: 120, borderRadius: 10, border: '1px solid #E2E8F0', padding: '12px 14px', fontSize: 14, width: '100%', background: 'transparent', outline: 'none', resize: 'vertical' }}
+                  rows={6}
+                  required
                 />
+                <p className="text-xs text-slate-400 text-left">{form.summary.length.toLocaleString('fa-IR')} / {SUMMARY_MAX.toLocaleString('fa-IR')}</p>
               </div>
-            </div>
 
-            {/* Summary */}
-            <div>
-              <Label className="mb-2 block text-[14px] font-semibold text-[#172033]">
-                خلاصه فعالیت‌های انجام شده <span className="text-[#DC2626]">*</span>
-              </Label>
-              <Textarea
-                value={form.summary}
-                onChange={(e) => setForm({ ...form, summary: e.target.value.slice(0, SUMMARY_MAX) })}
-                placeholder="خلاصه‌ای از فعالیت‌های اصلی امروز را بنویسید..."
-                className="h-[115px] resize-y rounded-[10px] border-[#D4DEEA] p-4 text-[14px] leading-[1.9] focus:border-[#2563EB] focus:shadow-[0_0_0_3px_rgba(37,99,235,0.10)]"
-                required
-              />
-              <div className="mt-1 text-left text-[12px] text-[#94A3B8]">
-                {form.summary.length.toLocaleString('fa-IR')} / {SUMMARY_MAX.toLocaleString('fa-IR')}
+              <div className="nb-editor-field-group">
+                <Label className="nb-editor-label">جزئیات فعالیت‌ها</Label>
+                <textarea
+                  value={form.details}
+                  onChange={(e) => setForm({ ...form, details: e.target.value.slice(0, DETAILS_MAX) })}
+                  placeholder="جزئیات کامل فعالیت‌ها، اقدامات انجام شده و نتایج به‌دست آمده را بنویسید..."
+                  className="nb-input"
+                  style={{ minHeight: 120, borderRadius: 10, border: '1px solid #E2E8F0', padding: '12px 14px', fontSize: 14, width: '100%', background: 'transparent', outline: 'none', resize: 'vertical' }}
+                  rows={6}
+                />
+                <p className="text-xs text-slate-400 text-left">{form.details.length.toLocaleString('fa-IR')} / {DETAILS_MAX.toLocaleString('fa-IR')}</p>
               </div>
-            </div>
 
-            {/* Details */}
-            <div>
-              <Label className="mb-2 block text-[14px] font-semibold text-[#172033]">
-                جزئیات فعالیت‌ها
-              </Label>
-              <Textarea
-                value={form.details}
-                onChange={(e) => setForm({ ...form, details: e.target.value.slice(0, DETAILS_MAX) })}
-                placeholder="جزئیات کامل فعالیت‌ها، اقدامات انجام شده و نتایج به‌دست آمده را بنویسید..."
-                className="h-[115px] resize-y rounded-[10px] border-[#D4DEEA] p-4 text-[14px] leading-[1.9] focus:border-[#2563EB] focus:shadow-[0_0_0_3px_rgba(37,99,235,0.10)]"
-              />
-              <div className="mt-1 text-left text-[12px] text-[#94A3B8]">
-                {form.details.length.toLocaleString('fa-IR')} / {DETAILS_MAX.toLocaleString('fa-IR')}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">وضعیت گزارش <span className="text-red-500">*</span></Label>
+                  <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                    <SelectTrigger className="h-11">
+                      <SelectValue placeholder="انتخاب وضعیت..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATUS_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">مدت زمان کارکرد (اختیاری)</Label>
+                  <Select value={form.duration} onValueChange={(v) => setForm({ ...form, duration: v })}>
+                    <SelectTrigger className="h-11">
+                      <SelectValue placeholder="انتخاب مدت زمان..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DURATION_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            </div>
-
-            {/* Status + Duration row */}
-            <div className="grid grid-cols-1 gap-5 tablet:grid-cols-2">
-              <div>
-                <Label className="mb-2 block text-[14px] font-semibold text-[#172033]">
-                  وضعیت گزارش <span className="text-[#DC2626]">*</span>
-                </Label>
-                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-                  <SelectTrigger className="h-[50px] rounded-[10px] border-[#D4DEEA] text-[14px] focus:border-[#2563EB] focus:shadow-[0_0_0_3px_rgba(37,99,235,0.10)]">
-                    <SelectValue placeholder="انتخاب وضعیت..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {STATUS_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="mb-2 block text-[14px] font-semibold text-[#172033]">
-                  مدت زمان کارکرد (اختیاری)
-                </Label>
-                <Select value={form.duration} onValueChange={(v) => setForm({ ...form, duration: v })}>
-                  <SelectTrigger className="h-[50px] rounded-[10px] border-[#D4DEEA] text-[14px] focus:border-[#2563EB] focus:shadow-[0_0_0_3px_rgba(37,99,235,0.10)]">
-                    <SelectValue placeholder="انتخاب مدت زمان..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DURATION_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Buttons */}
-            <div className="flex flex-row gap-3.5 pt-2">
-              <Button
-                type="submit"
-                disabled={saving}
-                className="h-[52px] w-[60%] rounded-[10px] bg-[#102A68] text-[14px] font-bold text-white transition-all hover:bg-[#1a3a7a] hover:shadow-md mobile:w-[175px]"
-              >
-                <Save className="h-4 w-4" />
-                {saving ? 'در حال ذخیره...' : 'ذخیره گزارش'}
-              </Button>
-              <Link href="/dashboard/work-reports/daily" className="w-[40%] mobile:w-[110px]">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-[52px] w-full rounded-[10px] border-[#D4DEEA] bg-white text-[14px] font-medium text-[#172033]"
-                >
-                  انصراف
-                </Button>
-              </Link>
             </div>
           </form>
-        </div>
 
-        {/* Guide column */}
-        <div className="space-y-5">
-          {/* Guide card */}
-          <div className="rounded-[14px] border border-[#DCE4EF] bg-white p-5 shadow-sm mobile:p-7">
-            <div className="mb-6 flex items-center gap-2">
-              <HelpCircle className="h-5 w-5 text-[#2563EB]" />
-              <h3 className="text-[20px] font-bold text-[#0F172A]">راهنما و نکات</h3>
-            </div>
-            <div className="space-y-7">
-              {guideItems.map((item, idx) => (
-                <div key={idx} className="flex items-start gap-3">
-                  <div className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-[10px] bg-[#EFF6FF]">
-                    <item.icon className="h-5 w-5 text-[#2563EB]" />
+          <aside className="space-y-4">
+            <div className="nb-editor-canvas" style={{ padding: 20 }}>
+              <div className="mb-3 flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-500 dark:bg-amber-900/20">
+                  <Lightbulb className="h-5 w-5" />
+                </span>
+                <h2 className="font-bold text-slate-900 dark:text-slate-100">راهنما و نکات</h2>
+              </div>
+              <div className="space-y-3">
+                {guideItems.map((item, i) => (
+                  <div key={i} className="flex gap-2.5">
+                    <span className="mt-0.5 shrink-0 text-slate-300"><item.icon className="h-4 w-4" /></span>
+                    <div>
+                      <strong className="text-sm text-slate-700 dark:text-slate-300">{item.title}</strong>
+                      <p className="text-xs text-slate-400">{item.desc}</p>
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-[14px] font-semibold text-[#0F172A]">{item.title}</div>
-                    <div className="mt-1 text-[13px] leading-relaxed text-[#64748B]">{item.desc}</div>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-
-          {/* Info card */}
-          <div className="rounded-[12px] border border-[#BFDBFE] bg-[#EFF6FF] p-5 mobile:p-6">
-            <div className="mb-3 flex items-center gap-2">
-              <Info className="h-5 w-5 text-[#2563EB]" />
-              <h4 className="text-[14px] font-bold text-[#2563EB]">اطلاعات مفید</h4>
+            <div className="rounded-xl border border-sky-100 bg-sky-50/50 p-5 dark:border-sky-900/30 dark:bg-sky-900/10">
+              <div className="mb-2 flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-100 text-sky-600 dark:bg-sky-900/30">
+                  <Info className="h-5 w-5" />
+                </span>
+                <h2 className="font-bold text-slate-900 dark:text-slate-100">اطلاعات مفید</h2>
+              </div>
+              <p className="text-sm text-slate-500 dark:text-slate-400">گزارش‌های روزانه به مدیریت بهتر پروژه‌ها و ارزیابی عملکرد کمک می‌کنند.</p>
             </div>
-            <p className="text-[13px] leading-[2] text-[#64748B]">
-              گزارش‌های روزانه به مدیریت بهتر پروژه‌ها و ارزیابی عملکرد کمک می‌کنند.
-            </p>
-          </div>
+          </aside>
         </div>
       </div>
     </div>

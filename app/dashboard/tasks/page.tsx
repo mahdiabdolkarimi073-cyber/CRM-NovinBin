@@ -2,10 +2,10 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { fetchData, createData, updateData, deleteData } from '@/lib/data-client';
+import { useRouter } from 'next/navigation';
+import { fetchData, createData, updateData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -17,17 +17,14 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
-  CheckSquare, Plus, Search, Calendar, Clock, Trash2, Edit,
-  MessageSquare, Send, Forward, Inbox, CheckCircle2,
+  CheckSquare, Plus, Search, Calendar, Clock, Edit,
+  Forward, Inbox, CheckCircle2,
   XCircle, PlayCircle, LayoutGrid, List, Flag, X, Loader2,
 } from 'lucide-react';
-import { formatJalali, relativeTime, toLocalDateString } from '@/lib/format';
+import { formatJalali, relativeTime } from '@/lib/format';
 import { TASK_STATUSES, TASK_PRIORITIES, fullName } from '@/lib/constants';
 import { toast } from 'sonner';
 import type { Task, Profile } from '@/lib/types';
-
-// اگر این کامپوننت را دارید، مسیر import را درست کنید:
-import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 
 const statusInfo = (key: string) => TASK_STATUSES.find((s) => s.key === key) || TASK_STATUSES[0];
 const priorityInfo = (key: string) => TASK_PRIORITIES.find((p) => p.key === key) || TASK_PRIORITIES[0];
@@ -36,6 +33,7 @@ interface UserManagerRow { id: string; userId: string; managerId: string; create
 
 export default function TasksPage() {
   const { profile } = useAuth();
+  const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [staff, setStaff] = useState<Profile[]>([]);
   const [allStaff, setAllStaff] = useState<Profile[]>([]);
@@ -48,7 +46,6 @@ export default function TasksPage() {
   const [filterCreator, setFilterCreator] = useState('all');
   const [filterDueDate, setFilterDueDate] = useState('all');
   const [visibleCount, setVisibleCount] = useState(5);
-  const [detailTask, setDetailTask] = useState<Task | null>(null);
   const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState('');
   const [commentLoading, setCommentLoading] = useState(false);
@@ -105,16 +102,6 @@ export default function TasksPage() {
       .catch(() => {});
   }, [profile, tasks]);
 
-  const loadComments = async (taskId: string) => {
-    try {
-      const data = await fetchData<any>('task_comments', { where: { taskId }, orderBy: { createdAt: 'asc' } });
-      setComments(data || []);
-      const newLastSeen = { ...lastSeenComments, [taskId]: data ? data.length : 0 };
-      setLastSeenComments(newLastSeen);
-      try { localStorage.setItem('task_comment_last_seen', JSON.stringify(newLastSeen)); } catch {}
-    } catch { setComments([]); }
-  };
-
   const filteredTasks = useMemo(() => {
     const query = search.trim().toLocaleLowerCase();
     const today = new Date();
@@ -153,40 +140,6 @@ export default function TasksPage() {
 
   const displayTasks = activeTab === 'referrals' ? referredTasks : myTasks;
   const referOptions = useMemo(() => allStaff.filter((s) => s.id !== profile?.id), [allStaff, profile]);
- = async (taskId: string) => {
-    try { await deleteData('tasks', { id: taskId }); toast.success('وظیفه حذف شد'); setDetailTask(null); loadData(); }
-    catch (error: any) { toast.error('حذف ناموفق: ' + error.message); }
-  };
-
-  const handleAddComment = async () => {
-    if (!detailTask || !newComment.trim() || !profile) return;
-    setCommentLoading(true);
-    try {
-      await createData('task_comments', { taskId: detailTask.id, profileId: profile.id, content: newComment.trim() });
-      const myName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
-      const notifPromises: Promise<any>[] = [];
-      const recipients = new Set<string>();
-      if (detailTask.assignedTo && detailTask.assignedTo !== profile.id) recipients.add(detailTask.assignedTo);
-      if (detailTask.createdBy && detailTask.createdBy !== profile.id) recipients.add(detailTask.createdBy);
-      allStaff.filter((s) => s.role === 'super_admin').forEach((a) => { if (a.id !== profile.id) recipients.add(a.id); });
-      recipients.forEach((rid) => {
-        notifPromises.push(
-          createData('notifications', {
-            profileId: rid,
-            title: 'نظر جدید روی وظیفه',
-            body: `${myName} روی وظیفه «${detailTask.title}» نظر جدیدی ثبت کرد: ${newComment.trim().slice(0, 80)}`,
-            type: 'task',
-            priority: 'normal',
-            link: '/dashboard/tasks',
-          }).catch(() => {})
-        );
-      });
-      await Promise.all(notifPromises);
-      setNewComment(''); loadComments(detailTask.id);
-    }
-    catch (error: any) { toast.error('ثبت نظر ناموفق: ' + error.message); }
-    setCommentLoading(false);
-  };
 
   const handleDrop = async (status: string) => {
     if (!dragId) return;
@@ -199,17 +152,16 @@ export default function TasksPage() {
     catch (error: any) { toast.error('تغییر وضعیت ناموفق: ' + error.message); }
   };
 
-  const openDetail = (task: Task) => { setDetailTask(task); loadComments(task.id); };
-
   const handleRefer = async () => {
     if (!referTargetId || referTo === 'none' || !profile) return;
     try {
       await updateData('tasks', { id: referTargetId }, { assignedTo: referTo, referredDate: new Date().toISOString() });
       const targetTask = tasks.find((t) => t.id === referTargetId);
       const myName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
-      const notifPromises: Promise<any>[] = [
-        createData('notifications', { profileId: referTo, title: 'وظیفه‌ای به شما ارجاع داده شد', body: `${myName} یک وظیفه${targetTask ? ` «${targetTask.title}»` : ''} را به شما ارجاع داد`, type: 'task', priority: 'normal', link: '/dashboard/tasks' }).catch(() => {}),
-      ];
+      const notifPromises: Promise<any>[] = [];
+      notifPromises.push(
+        createData('notifications', { profileId: referTo, title: 'وظیفه‌ای به شما ارجاع داده شد', body: `${myName} یک وظیفه${targetTask ? ` «${targetTask.title}»` : ''} را به شما ارجاع داد`, type: 'task', priority: 'normal', link: '/dashboard/tasks' }).catch(() => {})
+      );
       allStaff.filter((s) => s.role === 'super_admin' && s.id !== profile.id && s.id !== referTo).forEach((admin) => {
         notifPromises.push(
           createData('notifications', { profileId: admin.id, title: 'وظیفه‌ای ارجاع داده شد', body: `${myName} یک وظیفه${targetTask ? ` «${targetTask.title}»` : ''} را به ${fullName(allStaff.find((s) => s.id === referTo)?.firstName, allStaff.find((s) => s.id === referTo)?.lastName) || 'فردی'} ارجاع داد`, type: 'task', priority: 'normal', link: '/dashboard/tasks' }).catch(() => {})
@@ -220,11 +172,17 @@ export default function TasksPage() {
     } catch (error: any) { toast.error('ارجاع ناموفق: ' + error.message); }
   };
 
-  const openRefer = (taskId: string) => { if (referOptions.length === 0) { toast.error('شما نمی‌توانید وظیفه‌ای را ارجاع دهید'); return; } setReferTargetId(taskId); setReferTo('none'); setReferOpen(true); };
+  const openRefer = (taskId: string) => {
+    if (referOptions.length === 0) { toast.error('شما نمی‌توانید وظیفه‌ای را ارجاع دهید'); return; }
+    setReferTargetId(taskId); setReferTo('none'); setReferOpen(true);
+  };
+
+  const navigateToEdit = (taskId: string) => {
+    router.push(`/dashboard/tasks/${taskId}/edit`);
+  };
 
   const getStaffName = (id: string | null) => { if (!id) return null; const s = allStaff.find((p) => p.id === id); return s ? fullName(s.firstName, s.lastName) : null; };
   const canEdit = (task?: Task) => isSuperAdmin && (!task || task.status !== 'completed');
-  const canDelete = (task?: Task) => isSuperAdmin && (!task || task.status !== 'completed');
   const canDrag = (task: Task) => {
     if (task.status === 'completed' && !isSuperAdmin) return false;
     return true;
@@ -278,7 +236,7 @@ export default function TasksPage() {
     const unread = hasUnreadComments(task.id);
     const stColor = statusInfo(task.status).color;
     return (
-      <div draggable={canDrag(task)} onDragStart={() => canDrag(task) && setDragId(task.id)} onDragEnd={() => { setDragId(null); setDragOver(null); }} onClick={() => openDetail(task)}
+      <div draggable={canDrag(task)} onDragStart={() => canDrag(task) && setDragId(task.id)} onDragEnd={() => { setDragId(null); setDragOver(null); }} onClick={() => navigateToEdit(task.id)}
         className={`nb-card cursor-grab active:cursor-grabbing ${dragId === task.id ? 'opacity-50' : ''} ${isReferred ? 'border-amber-200' : ''} ${unread ? 'ring-2 ring-sky-400/50' : ''}`}
         style={{ borderBottomColor: stColor, borderBottomWidth: 3 }}>
         <div className="nb-card-top">
@@ -290,7 +248,7 @@ export default function TasksPage() {
           </div>
           {cCount > 0 && (
             <span className={`flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-full px-1 text-[10px] font-bold ${unread ? 'bg-sky-500 text-white animate-pulse' : 'bg-slate-100 text-slate-500'}`} title={unread ? 'نظرات جدید' : 'نظرات'}>
-              <MessageSquare className="h-2.5 w-2.5" />{cCount.toLocaleString('fa-IR')}
+              {cCount.toLocaleString('fa-IR')}
             </span>
           )}
         </div>
@@ -322,7 +280,7 @@ export default function TasksPage() {
                 <span className="text-[11px] text-slate-500 dark:text-slate-400">{assignee}</span>
               </div>
             ) : unread ? <span className="flex items-center gap-1 text-[10px] font-medium text-sky-600"><span className="h-2 w-2 animate-pulse rounded-full bg-sky-500" />نظر جدید</span> : <Flag className="h-3.5 w-3.5 text-slate-400" />}
-            {canEdit(task) && <Link href={`/dashboard/tasks/${task.id}/edit`} onClick={(e) => e.stopPropagation()} className="text-slate-400 transition-colors hover:text-blue-600" title="ویرایش"><Edit className="h-3.5 w-3.5" /></Link>}
+            {canRefer && <button onClick={(e) => { e.stopPropagation(); openRefer(task.id); }} className="text-slate-400 transition-colors hover:text-amber-500" title="ارجاع"><Forward className="h-3.5 w-3.5" /></button>}
           </div>
         </div>
       </div>
@@ -385,13 +343,13 @@ export default function TasksPage() {
               const cCount = commentCounts[task.id] || 0;
               const unread = hasUnreadComments(task.id);
               return (
-                <tr key={task.id} className={`cursor-pointer transition hover:bg-slate-50 dark:hover:bg-slate-700/50 ${unread ? 'bg-sky-50/40' : ''}`} onClick={() => openDetail(task)}>
+                <tr key={task.id} className={`cursor-pointer transition hover:bg-slate-50 dark:hover:bg-slate-700/50 ${unread ? 'bg-sky-50/40' : ''}`} onClick={() => navigateToEdit(task.id)}>
                   <td className="p-3">
                     <div className="flex items-center gap-2">
                       {unread && <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-sky-500" title="نظر جدید" />}
                       <div>
                         <div className="font-medium text-slate-800 dark:text-slate-100">{task.title}</div>
-                        {cCount > 0 && <span className={`flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[9px] font-bold ${unread ? 'bg-sky-500 text-white' : 'bg-slate-100 text-slate-500'}`}><MessageSquare className="h-2 w-2" />{cCount.toLocaleString('fa-IR')}</span>}
+                        {cCount > 0 && <span className={`flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[9px] font-bold ${unread ? 'bg-sky-500 text-white' : 'bg-slate-100 text-slate-500'}`}>{cCount.toLocaleString('fa-IR')}</span>}
                       </div>
                     </div>
                   </td>
@@ -406,7 +364,7 @@ export default function TasksPage() {
                   <td className="p-3" onClick={(e) => e.stopPropagation()}>
                     <div className="flex gap-1">
                       {canRefer && <button onClick={() => openRefer(task.id)} className="rounded p-1.5 text-slate-400 hover:bg-amber-50 hover:text-amber-500" title="ارجاع"><Forward className="h-4 w-4" /></button>}
-                      {canEdit(task) && <Link href={`/dashboard/tasks/${task.id}/edit`} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700" title="ویرایش"><Edit className="h-4 w-4" /></Link>}
+                      <Link href={`/dashboard/tasks/${task.id}/edit`} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700" title="ویرایش"><Edit className="h-4 w-4" /></Link>
                     </div>
                   </td>
                 </tr>
@@ -536,56 +494,6 @@ export default function TasksPage() {
       <Link href="/dashboard/tasks/new" className="nb-fab" aria-label="وظیفه جدید">
         <Plus className="h-6 w-6" />
       </Link>
-
-      <Dialog open={!!detailTask} onOpenChange={(o) => !o && setDetailTask(null)}>
-        <DialogContent className="max-h-[85vh] max-w-xl overflow-y-auto">
-          {detailTask && (() => {
-            const st = statusInfo(detailTask.status); const pr = priorityInfo(detailTask.priority);
-            const assignee = getStaffName(detailTask.assignedTo); const creator = getStaffName(detailTask.createdBy || null);
-            const overdue = detailTask.dueDate && new Date(detailTask.dueDate) < new Date() && detailTask.status !== 'completed';
-            return (
-              <>
-                <DialogHeader>
-                  <div className="flex items-start justify-between gap-3">
-                    <DialogTitle className="text-lg">{detailTask.title}</DialogTitle>
-                    <div className="flex items-center gap-1">
-                      {canRefer && <Button size="sm" variant="ghost" className="h-8 shrink-0 text-amber-500 hover:bg-amber-50 hover:text-amber-600" onClick={() => { setDetailTask(null); openRefer(detailTask.id); }}><Forward className="h-4 w-4" /></Button>}
-                      {canDelete(detailTask) && <Button size="sm" variant="ghost" className="h-8 shrink-0 text-rose-500 hover:bg-rose-50 hover:text-rose-600" onClick={() => handleDelete(detailTask.id)}><Trash2 className="h-4 w-4" /></Button>}
-                    </div>
-                  </div>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge style={{ backgroundColor: `${st.color}20`, color: st.color }}>{st.label}</Badge>
-                    <Badge variant="outline" style={{ color: pr.color, borderColor: `${pr.color}40` }}>{pr.label}</Badge>
-                    {detailTask.referredDate && <Badge variant="outline" className="border-amber-300 text-amber-600"><Forward className="ml-1 h-3 w-3" />ارجاعی</Badge>}
-                    {detailTask.dueDate && <span className={`flex items-center gap-1 text-xs ${overdue ? 'font-medium text-red-500' : 'text-slate-400'}`}><Calendar className="h-3 w-3" />موعد: {formatJalali(detailTask.dueDate)}</span>}
-                  </div>
-                  {detailTask.description && <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800"><p className="whitespace-pre-wrap text-sm text-slate-600 dark:text-slate-300">{detailTask.description}</p></div>}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                    {assignee && <div className="flex items-center gap-2"><Avatar className="h-7 w-7"><AvatarFallback className="bg-slate-100 text-[10px] text-slate-600">{assignee[0]}</AvatarFallback></Avatar><div><div className="text-xs text-slate-400">مسئول</div><div className="text-sm text-slate-700 dark:text-slate-200">{assignee}</div></div></div>}
-                    {creator && <div className="flex items-center gap-2"><Avatar className="h-7 w-7"><AvatarFallback className="bg-slate-100 text-[10px] text-slate-600">{creator[0]}</AvatarFallback></Avatar><div><div className="text-xs text-slate-400">ایجادکننده</div><div className="text-sm text-slate-700 dark:text-slate-200">{creator}</div></div></div>}
-                  </div>
-                  <div className="border-t border-slate-200 pt-4 dark:border-slate-700">
-                    <div className="mb-3 flex items-center gap-2"><MessageSquare className="h-4 w-4 text-slate-400" /><h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200">نظرات و ارجاعات</h4><Badge variant="secondary" className="text-xs">{comments.length.toLocaleString('fa-IR')}</Badge></div>
-                    <div className="mb-3 max-h-48 space-y-2 overflow-y-auto">
-                      {comments.length === 0 ? <p className="py-4 text-center text-xs text-slate-400">هنوز نظری ثبت نشده است</p>
-                      : comments.map((c) => { const author = getStaffName(c.profileId); return (
-                        <div key={c.id} className="flex items-start gap-2 rounded-lg bg-slate-50 p-2 dark:bg-slate-800"><Avatar className="h-6 w-6 shrink-0"><AvatarFallback className="bg-slate-200 text-[10px] text-slate-600">{author?.[0] || '؟'}</AvatarFallback></Avatar><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><span className="text-xs font-medium text-slate-700 dark:text-slate-200">{author || 'کاربر'}</span><span className="text-[10px] text-slate-400">{relativeTime(c.createdAt)}</span></div><p className="mt-0.5 text-sm text-slate-600 dark:text-slate-300">{c.content}</p></div></div>
-                      ); })}
-                    </div>
-                    <div className="flex items-center gap-2"><Input value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="نظر یا ارجاع بنویسید..." onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAddComment(); } }} /><Button size="sm" onClick={handleAddComment} disabled={commentLoading || !newComment.trim()}><Send className="h-3.5 w-3.5" /></Button></div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {canRefer && <Button variant="outline" className="flex-1" onClick={() => { setDetailTask(null); openRefer(detailTask.id); }}><Forward className="h-4 w-4" /> ارجاع وظیفه</Button>}
-                    {canEdit(detailTask) && <Link href={`/dashboard/tasks/${detailTask.id}/edit`} className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-slate-200 px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 flex-1"><Edit className="h-4 w-4" /> ویرایش وظیفه</Link>}
-                  </div>
-                </div>
-              </>
-            );
-          })()}
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={referOpen} onOpenChange={setReferOpen}>
         <DialogContent className="max-w-md">

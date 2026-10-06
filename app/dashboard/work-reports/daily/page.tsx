@@ -1,22 +1,21 @@
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
+import Link from 'next/link';
 import { fetchData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
-import { EmptyState } from '@/components/dashboard/empty-state';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Plus, FileText, Calendar, Search, ShieldCheck, Eye, Pencil, ChevronRight, ChevronLeft } from 'lucide-react';
+import {
+  FileText, Plus, Search, Calendar, ShieldCheck, Eye, Pencil,
+  Loader2, X, LayoutGrid, List, Clock,
+} from 'lucide-react';
 import { formatJalali, formatJalaliDateTime, toLocalDateString } from '@/lib/format';
 import { toast } from 'sonner';
 import { isSuperAdminRole } from '@/lib/nav-config';
-import Link from 'next/link';
 
 type DailyWorkReport = {
   id: string;
@@ -37,13 +36,18 @@ type ProfileInfo = {
   lastName: string | null;
 };
 
-const PAGE_SIZE = 10;
-
 const STATUS_LABELS: Record<string, string> = {
   completed: 'تکمیل شده',
   in_progress: 'در حال انجام',
   incomplete: 'ناقص',
   needs_followup: 'نیازمند پیگیری',
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  completed: '#22C55E',
+  in_progress: '#2563EB',
+  incomplete: '#f59e0b',
+  needs_followup: '#EF4444',
 };
 
 export default function DailyWorkReportsPage() {
@@ -52,7 +56,9 @@ export default function DailyWorkReportsPage() {
   const [profileMap, setProfileMap] = useState<Record<string, ProfileInfo>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [visibleCount, setVisibleCount] = useState(6);
+  const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
 
   const isSuperAdmin = isSuperAdminRole(profile?.role);
   const today = toLocalDateString(new Date());
@@ -84,272 +90,282 @@ export default function DailyWorkReportsPage() {
   }, [profile?.id, isSuperAdmin]);
 
   useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => { setVisibleCount(6); }, [search, filterStatus]);
 
-  const filtered = useMemo(() => {
-    if (!search) return reports;
-    const s = search.toLowerCase();
-    return reports.filter((r) => {
-      const name = isSuperAdmin ? getProfileName(r.profileId) : '';
-      return r.title.toLowerCase().includes(s) || name.toLowerCase().includes(s);
-    });
-  }, [search, reports, isSuperAdmin, profileMap]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages);
-  const paged = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-  const startIdx = filtered.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
-  const endIdx = Math.min(currentPage * PAGE_SIZE, filtered.length);
-
-  function getProfileName(pid: string) {
+  const getProfileName = (pid: string) => {
     const p = profileMap[pid];
     return p ? `${p.firstName || ''} ${p.lastName || ''}`.trim() : 'نامشخص';
-  }
-  function getInitials(pid: string) {
+  };
+  const getInitials = (pid: string) => {
     const p = profileMap[pid];
     if (!p) return '؟';
     return ((p.firstName?.[0] || '') + (p.lastName?.[0] || '')).toUpperCase();
-  }
+  };
 
-  const pageNumbers: number[] = [];
-  const maxVisible = 3;
-  let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
-  let endPage = Math.min(totalPages, startPage + maxVisible - 1);
-  if (endPage - startPage + 1 < maxVisible) {
-    startPage = Math.max(1, endPage - maxVisible + 1);
+  const filtered = useMemo(() => {
+    const q = search.trim().toLocaleLowerCase();
+    return reports.filter((r) => {
+      const name = isSuperAdmin ? getProfileName(r.profileId).toLocaleLowerCase() : '';
+      const matchesQuery = !q || r.title.toLocaleLowerCase().includes(q) || name.includes(q);
+      const matchesStatus = filterStatus === 'all' || r.status === filterStatus;
+      return matchesQuery && matchesStatus;
+    });
+  }, [reports, search, filterStatus, isSuperAdmin, profileMap]);
+
+  const stats = useMemo(() => [
+    {
+      label: 'کل گزارش‌ها', value: reports.length, icon: FileText,
+      filter: 'all',
+      gradient: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)',
+      glow: 'rgba(37,99,235,0.25)',
+    },
+    {
+      label: 'تکمیل شده', value: reports.filter((r) => r.status === 'completed').length, icon: FileText,
+      filter: 'completed',
+      gradient: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)',
+      glow: 'rgba(34,197,94,0.25)',
+    },
+    {
+      label: 'در حال انجام', value: reports.filter((r) => r.status === 'in_progress').length, icon: Clock,
+      filter: 'in_progress',
+      gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+      glow: 'rgba(245,158,11,0.25)',
+    },
+    {
+      label: 'ناقص', value: reports.filter((r) => r.status === 'incomplete').length, icon: FileText,
+      filter: 'incomplete',
+      gradient: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+      glow: 'rgba(239,68,68,0.25)',
+    },
+  ], [reports]);
+
+  const handleStatClick = (f: string) => {
+    setFilterStatus(filterStatus === f ? 'all' : f);
+  };
+
+  const stColor = (status: string) => STATUS_COLORS[status] || '#94A3B8';
+
+  if (loading) {
+    return (
+      <div className="nb-page" dir="rtl">
+        <div className="nb-empty">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
+          <p>در حال بارگذاری گزارش‌ها...</p>
+        </div>
+      </div>
+    );
   }
-  for (let i = startPage; i <= endPage; i++) pageNumbers.push(i);
 
   return (
-    <div className="w-full" dir="rtl">
-      {/* Header */}
-      <div className="flex flex-col gap-3 tablet:flex-row tablet:items-start tablet:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="h-6 mobile:h-[25px] w-[4px] mobile:w-[5px] rounded-[4px] bg-[#FF8A00]" />
-            <h1 className="text-xl mobile:text-2xl tablet:text-[28px] font-bold leading-tight text-[#101C35]">
-              {isSuperAdmin ? 'گزارشات کار روزانه (نمای کل)' : 'گزارش کار روزانه'}
-            </h1>
-          </div>
-          <p className="mt-1 mobile:mt-[7px] text-xs mobile:text-[13px] text-[#71809A]">
-            {isSuperAdmin ? 'مشاهده تمام گزارش‌های روزانه ارسال‌شده توسط کاربران' : 'ثبت گزارش کارهای انجام‌شده در هر روز'}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {isSuperAdmin ? (
-            <div className="flex items-center gap-2 rounded-[10px] border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-700">
-              <ShieldCheck className="h-4 w-4" />
-              حالت مشاهده (سوپرادمین)
+    <div className="nb-page" dir="rtl">
+      <header className="nb-hero">
+        <div className="nb-hero-left">
+          <div>
+            <div className="nb-hero-title-row">
+              <span className="nb-hero-marker" style={{ background: 'linear-gradient(180deg,#FF7A00,#E65100)', boxShadow: '0 0 12px rgba(255,122,0,.25)' }} />
+              <h1>گزارش کار روزانه</h1>
             </div>
+            <p>{isSuperAdmin ? 'مشاهده تمام گزارش‌های روزانه ارسال‌شده توسط کاربران' : 'ثبت گزارش کارهای انجام‌شده در هر روز'}</p>
+          </div>
+        </div>
+        <div className="nb-hero-right">
+          {isSuperAdmin ? (
+            <span className="nb-editor-quick-btn" style={{ borderColor: '#a7f3d0', color: '#047857', background: '#ecfdf5' }}>
+              <ShieldCheck className="h-4 w-4" />
+              حالت مشاهده
+            </span>
           ) : (
-            <Link href="/dashboard/work-reports/daily/new">
-              <Button
-                className="h-9 mobile:h-[44px] w-full mobile:w-[100px] rounded-[10px] bg-[#10265F] text-xs mobile:text-[13px] font-bold text-white shadow-sm transition-all hover:-translate-y-px hover:bg-[#1a3a7a]"
-              >
-                <Plus className="h-4 w-4" />
-                گزارش جدید
-              </Button>
+            <Link href="/dashboard/work-reports/daily/new" className="nb-new-btn">
+              <Plus className="h-[18px] w-[18px]" />
+              گزارش جدید
             </Link>
           )}
         </div>
-      </div>
+      </header>
 
-      {/* Date bar */}
-      <div className="mt-4 mobile:mt-[35px] flex h-auto mobile:h-[40px] w-full items-center gap-2 rounded-[10px] border border-[#D7EBFA] bg-[#EFF9FF] px-3 mobile:px-4 py-2 mobile:py-0 text-xs mobile:text-[13px] text-[#0875C9]">
-        <Calendar className="h-4 w-4" />
-        <span>امروز: {formatJalali(new Date())}</span>
-      </div>
+      <section className="nb-stats-grid-v2">
+        {stats.map((stat) => (
+          <button
+            type="button"
+            className={`nb-stat-card-v2 ${filterStatus === stat.filter ? 'is-active' : ''}`}
+            key={stat.label}
+            onClick={() => handleStatClick(stat.filter)}
+            style={{ '--stat-glow': stat.glow } as React.CSSProperties}
+          >
+            <div className="nb-stat-v2-icon" style={{ background: stat.gradient }}>
+              <stat.icon className="h-[22px] w-[22px] text-white" />
+            </div>
+            <div className="nb-stat-v2-body">
+              <strong>{stat.value.toLocaleString('fa-IR')}</strong>
+              <span>{stat.label}</span>
+            </div>
+            <div className="nb-stat-v2-spark" style={{ background: stat.gradient }} />
+          </button>
+        ))}
+      </section>
 
-      {/* Search */}
-      <div className="relative mt-3 mobile:mt-[14px] w-full max-w-[330px]">
-        <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#94A3B8]" />
-        <Input
-          placeholder="جستجوی عنوان گزارش..."
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          className="h-9 mobile:h-[38px] rounded-[10px] border-[#D2DCEB] bg-white pr-10 text-xs mobile:text-[13px] focus:border-[#8EB6E5] focus:shadow-[0_0_0_3px_rgba(142,182,229,0.15)]"
-        />
-      </div>
-
-      {/* Table */}
-      {loading ? (
-        <div className="mt-[15px] flex h-64 items-center justify-center rounded-[14px] border border-[#D9E2EF] bg-white">
-          <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-[#0875C9] border-t-transparent" />
+      <div className="nb-toolbar">
+        <div className="nb-toolbar-left">
+          <h2>همه گزارش‌ها</h2>
+          <span className="nb-count-badge">{filtered.length.toLocaleString('fa-IR')} مورد</span>
         </div>
-      ) : paged.length === 0 ? (
-        <div className="mt-3 mobile:mt-[15px] rounded-[14px] border border-[#D9E2EF] bg-white p-4 mobile:p-8">
-          <EmptyState
-            icon={<FileText className="h-8 w-8" />}
-            title={isSuperAdmin ? 'هنوز گزارشی ارسال نشده' : 'گزارشی ثبت نشده'}
-            description={isSuperAdmin ? 'گزارش‌های روزانه ارسال‌شده توسط کاربران اینجا نمایش داده می‌شود' : 'اولین گزارش کار روزانه خود را ثبت کنید'}
-            action={!isSuperAdmin ? (
-              <Link href="/dashboard/work-reports/daily/new">
-                <Button className="rounded-[10px] bg-[#10265F] hover:bg-[#1a3a7a]">
-                  <Plus className="h-4 w-4" /> افزودن گزارش
-                </Button>
-              </Link>
-            ) : undefined}
-          />
+        <div className="nb-toolbar-right">
+          <div className="nb-search-box">
+            <Search className="h-4 w-4" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="جستجوی عنوان گزارش..."
+            />
+            {search && <button onClick={() => setSearch('')}><X className="h-3.5 w-3.5" /></button>}
+          </div>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="nb-select-filter h-10 w-[150px]">
+              <SelectValue placeholder="وضعیت" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">همه وضعیت‌ها</SelectItem>
+              {Object.entries(STATUS_LABELS).map(([k, v]) => (
+                <SelectItem key={k} value={k}>{v}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="nb-view-toggle">
+            <button className={viewMode === 'board' ? 'is-active' : ''} onClick={() => setViewMode('board')} aria-label="تخته‌ای">
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+            <button className={viewMode === 'list' ? 'is-active' : ''} onClick={() => setViewMode('list')} aria-label="لیستی">
+              <List className="h-4 w-4" />
+            </button>
+          </div>
         </div>
-      ) : (
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="nb-empty">
+          <div className="sb-empty-icon"><FileText className="h-12 w-12 text-muted-foreground/30" /></div>
+          <h3>{isSuperAdmin ? 'هنوز گزارشی ارسال نشده' : 'گزارشی ثبت نشده'}</h3>
+          <p>{isSuperAdmin ? 'گزارش‌های روزانه ارسال‌شده توسط کاربران اینجا نمایش داده می‌شود' : 'اولین گزارش کار روزانه خود را ثبت کنید'}</p>
+          {!isSuperAdmin && <Link href="/dashboard/work-reports/daily/new" className="nb-empty-new-btn"><Plus className="h-4 w-4" /> افزودن گزارش</Link>}
+        </div>
+      ) : viewMode === 'board' ? (
         <>
-          {/* Desktop table */}
-          <div className="mt-3 mobile:mt-[15px] hidden overflow-hidden rounded-[14px] border border-[#D9E2EF] bg-white shadow-[0_4px_15px_rgba(20,40,80,0.06)] tablet:block">
-            <Table>
-              <TableHeader>
-                <TableRow className="h-[48px] border-b border-[#EEF2F6] bg-[#F8FAFC] hover:bg-[#F8FAFC]">
-                  {isSuperAdmin && <TableHead className="text-[12px] font-semibold text-[#5F708A]">کاربر</TableHead>}
-                  <TableHead className="text-[12px] font-semibold text-[#5F708A]">عنوان</TableHead>
-                  <TableHead className="text-[12px] font-semibold text-[#5F708A]">تاریخ گزارش</TableHead>
-                  <TableHead className="text-[12px] font-semibold text-[#5F708A]">تاریخ ثبت</TableHead>
-                  <TableHead className="text-[12px] font-semibold text-[#5F708A] text-left">عملیات</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paged.map((report) => (
-                  <TableRow
-                    key={report.id}
-                    className="h-[70px] border-b border-[#EEF2F6] transition-all hover:bg-[#FAFCFF]"
-                  >
-                    {isSuperAdmin && (
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-8 w-8">
-                            <AvatarFallback className="bg-sky-100 text-[10px] font-bold text-sky-700">
-                              {getInitials(report.profileId)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="text-sm font-medium text-[#17233D]">{getProfileName(report.profileId)}</span>
-                        </div>
-                      </TableCell>
-                    )}
-                    <TableCell className="text-[14px] font-bold text-[#17233D]">{report.title}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="h-[30px] gap-1 rounded-[20px] border-[#D6E0EC] bg-white px-3 text-xs text-[#17233D]">
-                        <Calendar className="h-3 w-3 text-[#71809A]" />
-                        {formatJalali(report.reportDate)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-[13px] text-[#71809A]">{formatJalaliDateTime(report.createdAt)}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Link href={`/dashboard/work-reports/daily/view/${report.id}`}>
-                          <button
-                            className="flex h-[40px] w-[40px] items-center justify-center rounded-[9px] bg-[#F4F8FD] text-[#1764C0] transition-all hover:bg-[#E0EDFB] hover:shadow-sm"
-                            title="مشاهده"
-                          >
-                            <Eye className="h-[18px] w-[18px]" />
-                          </button>
-                        </Link>
-                        {!isSuperAdmin && toLocalDateString(new Date(report.reportDate)) === today && (
-                          <Link href={`/dashboard/work-reports/daily/edit/${report.id}`}>
-                            <button
-                              className="flex h-[40px] w-[40px] items-center justify-center rounded-[9px] bg-[#FFF8F0] text-[#F97316] transition-all hover:bg-[#FFE8D0] hover:shadow-sm"
-                              title="ویرایش (فقط امروز)"
-                            >
-                              <Pencil className="h-[18px] w-[18px]" />
-                            </button>
-                          </Link>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Mobile card list */}
-          <div className="mt-3 mobile:mt-[15px] space-y-[10px] tablet:hidden">
-            {paged.map((report) => (
-              <div key={report.id} className="rounded-[12px] border border-[#D9E2EF] bg-white p-3 mobile:p-4 shadow-[0_4px_15px_rgba(20,40,80,0.06)]">
-                {isSuperAdmin && (
-                  <div className="mb-2 flex items-center gap-2">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-sky-100 text-[10px] font-bold text-sky-700">
-                        {getInitials(report.profileId)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm font-medium text-[#17233D]">{getProfileName(report.profileId)}</span>
+          <div className="nb-grid nb-grid-grid">
+            {filtered.slice(0, visibleCount).map((report) => {
+              const color = stColor(report.status);
+              const canEditToday = !isSuperAdmin && toLocalDateString(new Date(report.reportDate)) === today;
+              return (
+                <article
+                  key={report.id}
+                  className="nb-card cursor-pointer"
+                  onClick={() => window.location.href = `/dashboard/work-reports/daily/view/${report.id}`}
+                  style={{ borderBottomColor: color, borderBottomWidth: 3 }}
+                >
+                  <div className="nb-card-top">
+                    <div className="nb-card-tags">
+                      <span className="nb-card-tag" style={{ background: `${color}15`, color }}>
+                        {STATUS_LABELS[report.status] || report.status}
+                      </span>
+                    </div>
                   </div>
-                )}
-                <div className="text-[14px] font-bold text-[#17233D]">{report.title}</div>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <Badge variant="outline" className="h-[30px] gap-1 rounded-[20px] border-[#D6E0EC] bg-white px-3 text-xs text-[#17233D]">
-                    <Calendar className="h-3 w-3 text-[#71809A]" />
-                    {formatJalali(report.reportDate)}
-                  </Badge>
-                  <span className="text-[13px] text-[#71809A]">{formatJalaliDateTime(report.createdAt)}</span>
-                </div>
-                <div className="mt-3 flex gap-2">
-                  <Link href={`/dashboard/work-reports/daily/view/${report.id}`}>
-                    <Button variant="outline" size="sm" className="rounded-[9px]">
-                      <Eye className="h-4 w-4" /> مشاهده
-                    </Button>
-                  </Link>
-                  {!isSuperAdmin && toLocalDateString(new Date(report.reportDate)) === today && (
-                    <Link href={`/dashboard/work-reports/daily/edit/${report.id}`}>
-                      <Button variant="outline" size="sm" className="rounded-[9px] border-[#FFE8D0] text-[#F97316] hover:bg-[#FFF8F0]">
-                        <Pencil className="h-4 w-4" /> ویرایش
-                      </Button>
-                    </Link>
-                  )}
-                </div>
-              </div>
-            ))}
+                  <h3 className="nb-card-title">{report.title}</h3>
+                  {report.description && <p className="nb-card-excerpt">{report.description}</p>}
+                  <div className="space-y-1.5 text-xs text-slate-500 dark:text-slate-400">
+                    <div className="flex items-center gap-1.5">
+                      <Calendar className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                      <span>{formatJalali(report.reportDate)}</span>
+                    </div>
+                    {isSuperAdmin && (
+                      <div className="flex items-center gap-1.5">
+                        <Avatar className="h-5 w-5"><AvatarFallback className="bg-sky-100 text-[9px] text-sky-700 dark:bg-sky-900/30 dark:text-sky-400">{getInitials(report.profileId)}</AvatarFallback></Avatar>
+                        <span>{getProfileName(report.profileId)}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="nb-card-footer">
+                    <div className="nb-card-date">
+                      <Clock className="h-3 w-3" />
+                      {formatJalaliDateTime(report.createdAt)}
+                    </div>
+                    <div className="nb-card-quick">
+                      <Link href={`/dashboard/work-reports/daily/view/${report.id}`} onClick={(e) => e.stopPropagation()}>
+                        <Eye className="h-3.5 w-3.5" />
+                      </Link>
+                      {canEditToday && (
+                        <Link href={`/dashboard/work-reports/daily/edit/${report.id}`} onClick={(e) => e.stopPropagation()}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
           </div>
-
-          {/* Pagination */}
-          <div className="mt-4 flex flex-col items-center justify-between gap-3 tablet:flex-row tablet:gap-4 rounded-[14px] border border-[#D9E2EF] bg-white px-3 mobile:px-5 py-3 mobile:py-4">
-            <div className="text-[13px] text-[#71809A]">
-              نمایش {startIdx} تا {endIdx} از {filtered.length} گزارش
-            </div>
-            <div className="flex items-center gap-2">
-              {/* Page size selector */}
-              <div className="flex items-center gap-1 text-[13px] text-[#71809A]">
-                <span>تعداد در صفحه</span>
-                <Select value={String(PAGE_SIZE)} onValueChange={() => {}}>
-                  <SelectTrigger className="h-[38px] w-[60px] rounded-[10px] border-[#D2DCEB] text-[13px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="10">۱۰</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Page nav */}
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setPage(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1}
-                  className="flex h-9 mobile:h-[42px] w-9 mobile:w-[42px] items-center justify-center rounded-[10px] bg-[#F7F9FC] text-[#263752] transition-all hover:bg-[#EEF2F6] disabled:opacity-40"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-                {pageNumbers.map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => setPage(p)}
-                    className={`flex h-9 mobile:h-[42px] w-9 mobile:w-[42px] items-center justify-center rounded-[10px] text-xs mobile:text-[14px] font-medium transition-all ${
-                      p === currentPage
-                        ? 'bg-[#10265F] text-white'
-                        : 'bg-[#F7F9FC] text-[#263752] hover:bg-[#EEF2F6]'
-                    }`}
-                  >
-                    {p.toLocaleString('fa-IR')}
-                  </button>
-                ))}
-                <button
-                  onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
-                  disabled={currentPage === totalPages}
-                  className="flex h-9 mobile:h-[42px] w-9 mobile:w-[42px] items-center justify-center rounded-[10px] bg-[#F7F9FC] text-[#263752] transition-all hover:bg-[#EEF2F6] disabled:opacity-40"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          </div>
+          {filtered.length > visibleCount && (
+            <button type="button" onClick={() => setVisibleCount((c) => c + 6)} className="w-full rounded-lg py-3 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20">
+              نمایش ۶ مورد دیگر
+            </button>
+          )}
         </>
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[700px]">
+              <thead className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/50">
+                <tr>
+                  {isSuperAdmin && <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">کاربر</th>}
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">عنوان</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">تاریخ گزارش</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">وضعیت</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">تاریخ ثبت</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">عملیات</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                {filtered.slice(0, visibleCount).map((report) => {
+                  const color = stColor(report.status);
+                  const canEditToday = !isSuperAdmin && toLocalDateString(new Date(report.reportDate)) === today;
+                  return (
+                    <tr key={report.id} className="cursor-pointer transition hover:bg-slate-50 dark:hover:bg-slate-700/50" onClick={() => window.location.href = `/dashboard/work-reports/daily/view/${report.id}`}>
+                      {isSuperAdmin && (
+                        <td className="p-3">
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-6 w-6"><AvatarFallback className="bg-sky-100 text-[10px] text-sky-700 dark:bg-sky-900/30 dark:text-sky-400">{getInitials(report.profileId)}</AvatarFallback></Avatar>
+                            <span className="text-xs text-slate-500 dark:text-slate-400">{getProfileName(report.profileId)}</span>
+                          </div>
+                        </td>
+                      )}
+                      <td className="p-3 font-medium text-slate-800 dark:text-slate-100">{report.title}</td>
+                      <td className="p-3 text-xs text-slate-500 dark:text-slate-400">{formatJalali(report.reportDate)}</td>
+                      <td className="p-3">
+                        <Badge style={{ backgroundColor: `${color}15`, color }} className="rounded-full text-xs">{STATUS_LABELS[report.status] || report.status}</Badge>
+                      </td>
+                      <td className="p-3 text-xs text-slate-500 dark:text-slate-400">{formatJalaliDateTime(report.createdAt)}</td>
+                      <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex gap-1">
+                          <Link href={`/dashboard/work-reports/daily/view/${report.id}`} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700" title="مشاهده"><Eye className="h-4 w-4" /></Link>
+                          {canEditToday && <Link href={`/dashboard/work-reports/daily/edit/${report.id}`} className="rounded p-1.5 text-slate-400 hover:bg-amber-50 hover:text-amber-500" title="ویرایش"><Pencil className="h-4 w-4" /></Link>}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {filtered.length > visibleCount && (
+            <button type="button" onClick={() => setVisibleCount((c) => c + 6)} className="w-full py-3 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20">
+              نمایش ۶ مورد دیگر
+            </button>
+          )}
+        </div>
+      )}
+
+      {!isSuperAdmin && (
+        <Link href="/dashboard/work-reports/daily/new" className="nb-fab" aria-label="گزارش جدید">
+          <Plus className="h-6 w-6" />
+        </Link>
       )}
     </div>
   );
