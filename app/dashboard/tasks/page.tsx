@@ -19,13 +19,16 @@ import {
 } from '@/components/ui/select';
 import {
   CheckSquare, Plus, Search, Calendar, Clock, Trash2, Edit,
-  MessageSquare, Send, Forward, Inbox, Circle, CheckCircle2,
-  XCircle, PlayCircle, LayoutGrid, List, Filter, Flag, X, Loader2,
+  MessageSquare, Send, Forward, Inbox, CheckCircle2,
+  XCircle, PlayCircle, LayoutGrid, List, Flag, X, Loader2,
 } from 'lucide-react';
 import { formatJalali, relativeTime, toLocalDateString } from '@/lib/format';
 import { TASK_STATUSES, TASK_PRIORITIES, fullName } from '@/lib/constants';
 import { toast } from 'sonner';
 import type { Task, Profile } from '@/lib/types';
+
+// اگر این کامپوننت را دارید، مسیر import را درست کنید:
+import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 
 const statusInfo = (key: string) => TASK_STATUSES.find((s) => s.key === key) || TASK_STATUSES[0];
 const priorityInfo = (key: string) => TASK_PRIORITIES.find((p) => p.key === key) || TASK_PRIORITIES[0];
@@ -261,7 +264,6 @@ export default function TasksPage() {
     return true;
   };
   const canRefer = referOptions.length > 0;
-  const taskSummary = [...TASK_STATUSES].reverse().map((stage) => ({ ...stage, count: displayTasks.filter((task) => task.status === stage.key).length }));
 
   const stats = useMemo(() => [
     {
@@ -600,7 +602,7 @@ export default function TasksPage() {
           {detailTask && (() => {
             const st = statusInfo(detailTask.status); const pr = priorityInfo(detailTask.priority);
             const assignee = getStaffName(detailTask.assignedTo); const creator = getStaffName(detailTask.createdBy || null);
-            const overdue = detailTask.dueDate && new Date(detailTask.dueDate) < new Date() && detailTask.status !== 'completed');
+            const overdue = detailTask.dueDate && new Date(detailTask.dueDate) < new Date() && detailTask.status !== 'completed';
             return (
               <>
                 <DialogHeader>

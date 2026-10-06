@@ -3,9 +3,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { fetchData, createData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
-import { PageHeader } from '@/components/dashboard/page-header';
-import { EmptyState } from '@/components/dashboard/empty-state';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
@@ -16,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from '@/components/ui/dialog';
-import { FileText, Plus, Search, X, Loader2, Clock, LayoutGrid, List } from 'lucide-react';
+import { FileText, Plus, Search, X, Loader2, Clock } from 'lucide-react';
 import { formatToman, formatJalali, toLocalDateString } from '@/lib/format';
 import { fullName } from '@/lib/constants';
 import { toast } from 'sonner';
@@ -91,8 +88,8 @@ export default function PreInvoicesPage() {
   const [activeTab, setActiveTab] = useState<'sales' | 'purchase'>('sales');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [viewMode, setViewMode] = useState<'board' | 'list'>('list');
 
-  // form state
   const [form, setForm] = useState({
     price_list: 'standard',
     seller: '',
@@ -105,7 +102,6 @@ export default function PreInvoicesPage() {
   });
   const [items, setItems] = useState<LineItem[]>([emptyItem(1)]);
 
-  // product search
   const [productSearch, setProductSearch] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
@@ -116,7 +112,7 @@ export default function PreInvoicesPage() {
   const loadData = useCallback(async () => {
     if (!profile) return;
     setLoading(true);
-    const where = isSuperAdmin ? {} : {};
+    const where = {};
     const [pis, cust, prods] = await Promise.all([
       fetchData('pre_invoices', { where, orderBy: { createdAt: 'desc' }, include: { items: true } }),
       fetchData('customers', { where }),
@@ -126,13 +122,12 @@ export default function PreInvoicesPage() {
     setCustomers(cust || []);
     setAllProducts(prods || []);
     setLoading(false);
-  }, [profile, isSuperAdmin]);
+  }, [profile]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  // product live search (client-side filter)
   useEffect(() => {
     if (!productSearch || productSearch.length < 2) {
       setSearchResults([]);
@@ -293,8 +288,6 @@ export default function PreInvoicesPage() {
       })
     : filtered;
 
-  const [viewMode, setViewMode] = useState<'board' | 'list'>('list');
-
   return (
     <div className="nb-page" dir="rtl">
       <header className="nb-hero">
@@ -319,7 +312,6 @@ export default function PreInvoicesPage() {
                 </DialogTitle>
               </DialogHeader>
               <form onSubmit={handleCreate} className="space-y-4">
-                {/* header fields */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <div className="space-y-2">
                     <Label>لیست قیمت</Label>
@@ -367,7 +359,6 @@ export default function PreInvoicesPage() {
                   </div>
                 )}
 
-                {/* line items */}
                 <div className="border rounded-lg overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead className="bg-slate-50 text-slate-500 text-xs">
@@ -444,7 +435,6 @@ export default function PreInvoicesPage() {
                   </div>
                 </div>
 
-                {/* totals + shipping */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>هزینه ارسال (تومان)</Label>
@@ -468,8 +458,8 @@ export default function PreInvoicesPage() {
               </form>
             </DialogContent>
           </Dialog>
-        }
-      />
+        </div>
+      </header>
 
       <section className="nb-stats-grid-v2">
         <div className="nb-stat-card-v2" style={{ '--stat-glow': 'rgba(14,165,233,0.25)' } as React.CSSProperties}>

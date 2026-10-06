@@ -3,9 +3,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { fetchData, createData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
-import { PageHeader } from '@/components/dashboard/page-header';
-import { EmptyState } from '@/components/dashboard/empty-state';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
@@ -118,7 +115,7 @@ export default function ReturnsPage() {
   const loadData = useCallback(async () => {
     if (!profile) return;
     setLoading(true);
-    const where = isSuperAdmin ? {} : {};
+    const where = {};
     const [rets, cust, prods] = await Promise.all([
       fetchData('sales_returns', { where, orderBy: { createdAt: 'desc' }, include: { items: true } }),
       fetchData('customers', { where }),
@@ -128,13 +125,12 @@ export default function ReturnsPage() {
     setCustomers(cust || []);
     setAllProducts(prods || []);
     setLoading(false);
-  }, [profile, isSuperAdmin]);
+  }, [profile]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  // product live search (client-side filter)
   useEffect(() => {
     if (!productSearch || productSearch.length < 2) {
       setSearchResults([]);
@@ -390,7 +386,6 @@ export default function ReturnsPage() {
                   </div>
                 </div>
 
-                {/* line items */}
                 <div className="border rounded-lg overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead className="bg-slate-50 text-slate-500 text-xs">
@@ -489,69 +484,7 @@ export default function ReturnsPage() {
               </form>
             </DialogContent>
           </Dialog>
-        }
-      />
-
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'sales' | 'purchase')}>
-        <TabsList className="mb-4">
-          <TabsTrigger value="sales">مرجوعی فروش</TabsTrigger>
-          <TabsTrigger value="purchase">مرجوعی خرید</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value={activeTab}>
-          <div className="relative mb-4">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <Input placeholder="جستجو بر اساس شماره / تأمین‌کننده..." value={search} onChange={(e) => setSearch(e.target.value)} className="pr-10 max-w-md" />
-          </div>
-
-          {loading ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="animate-spin w-8 h-8 border-3 border-sky-500 border-t-transparent rounded-full" />
-            </div>
-          ) : filteredBySearch.length === 0 ? (
-            <Card>
-              <EmptyState
-                icon={<Undo2 className="w-8 h-8" />}
-                title="مرجوعی یافت نشد"
-                description="اولین مرجوعی را ثبت کنید"
-                action={<Button onClick={() => setDialogOpen(true)}><Plus className="w-4 h-4" /> مرجوعی جدید</Button>}
-              />
-            </Card>
-          ) : (
-            <Card>
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b bg-slate-50 text-slate-500 text-xs">
-                        <th className="text-right p-3 font-medium">شماره</th>
-                        <th className="text-right p-3 font-medium">نوع</th>
-                        <th className="text-right p-3 font-medium">{activeTab === 'sales' ? 'مشتری' : 'تأمین‌کننده'}</th>
-                        <th className="text-right p-3 font-medium">تاریخ</th>
-                        <th className="text-right p-3 font-medium">علت</th>
-                        <th className="text-right p-3 font-medium">مبلغ نهایی</th>
-                        <th className="text-right p-3 font-medium">وضعیت</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {filteredBySearch.map((r) => (
-                        <tr key={r.id} className="hover:bg-slate-50 transition-smooth">
-                          <td className="p-3 font-medium text-slate-800">{r.number}</td>
-                          <td className="p-3"><Badge variant="secondary">{TYPE_LABEL[r.type]}</Badge></td>
-                          <td className="p-3 text-slate-600">{activeTab === 'sales' ? getCustomerName(r.customerId) : r.supplierName || '—'}</td>
-                          <td className="p-3 text-slate-500">{formatJalali(r.issueDate)}</td>
-                          <td className="p-3 text-slate-500 max-w-[200px] truncate">{r.returnReason || '—'}</td>
-                          <td className="p-3 font-bold">{formatToman(Number(r.finalAmount))} ت</td>
-                          <td className="p-3"><Badge variant="outline">{r.status}</Badge></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
+        </div>
       </header>
 
       <section className="nb-stats-grid-v2">
