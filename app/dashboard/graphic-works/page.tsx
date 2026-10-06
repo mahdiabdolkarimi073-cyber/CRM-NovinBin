@@ -5,6 +5,7 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import Link from 'next/link';
 import {
   Loader2, Palette, Plus, FileText, Image as ImageIcon, Upload,
   Trash2, Pencil, X, Download, File as FileIcon,
@@ -290,10 +291,10 @@ export default function GraphicWorksPage() {
           </div>
         </div>
         <div className="nb-hero-right">
-          <Button onClick={openNew} className="nb-new-btn">
+          <Link href="/dashboard/graphic-works/new" className="nb-new-btn">
             <Plus className="h-[18px] w-[18px]" />
             کار جدید
-          </Button>
+          </Link>
         </div>
       </header>
 
@@ -319,10 +320,10 @@ export default function GraphicWorksPage() {
           </div>
           <h3>هنوز کاری ثبت نشده است</h3>
           <p>اولین کار گرافیک را ایجاد کنید</p>
-          <Button onClick={openNew} className="nb-empty-new-btn">
+          <Link href="/dashboard/graphic-works/new" className="nb-empty-new-btn">
             <Plus className="h-4 w-4" />
             اولین کار را شروع کنید
-          </Button>
+          </Link>
         </div>
       ) : (
         <div className="space-y-4">
@@ -339,13 +340,13 @@ export default function GraphicWorksPage() {
                   <div className="flex items-center gap-1">
                     {isSuperAdmin && (
                       <>
-                        <button
-                          onClick={() => openEditText(work)}
+                        <Link
+                          href={`/dashboard/graphic-works/${work.id}/edit`}
                           className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:text-sky-600 hover:border-sky-300 transition-colors"
-                          title="ویرایش متن"
+                          title="ویرایش"
                         >
                           <Pencil className="h-3.5 w-3.5" />
-                        </button>
+                        </Link>
                         <button
                           onClick={() => handleDeleteWork(work)}
                           className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:text-red-600 hover:border-red-300 transition-colors"

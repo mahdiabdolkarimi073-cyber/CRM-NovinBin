@@ -7,7 +7,6 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -49,8 +48,6 @@ export default function TasksPage() {
   const [filterCreator, setFilterCreator] = useState('all');
   const [filterDueDate, setFilterDueDate] = useState('all');
   const [visibleCount, setVisibleCount] = useState(5);
-  const [creating, setCreating] = useState(false);
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [detailTask, setDetailTask] = useState<Task | null>(null);
   const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState('');
@@ -62,12 +59,10 @@ export default function TasksPage() {
   const [referOpen, setReferOpen] = useState(false);
   const [referTargetId, setReferTargetId] = useState<string | null>(null);
   const [referTo, setReferTo] = useState('none');
-  const [form, setForm] = useState({ title: '', description: '', assignedTo: '', priority: 'medium', dueDate: '' });
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
   const [lastSeenComments, setLastSeenComments] = useState<Record<string, number>>({});
 
   const isSuperAdmin = profile?.role === 'super_admin';
-  const isAdmin = profile?.role === 'admin' || isSuperAdmin;
 
   const loadData = useCallback(async () => {
     if (!profile) return;
@@ -158,35 +153,7 @@ export default function TasksPage() {
 
   const displayTasks = activeTab === 'referrals' ? referredTasks : myTasks;
   const referOptions = useMemo(() => allStaff.filter((s) => s.id !== profile?.id), [allStaff, profile]);
-  const assigneeOptions = allStaff;
-
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!profile || !form.title) { toast.error('عنوان وظیفه را وارد کنید'); return; }
-    setCreating(true);
-    try {
-      await createData('tasks', { title: form.title, description: form.description || null, assignedTo: form.assignedTo || null, priority: form.priority, dueDate: form.dueDate ? new Date(form.dueDate).toISOString() : null, status: 'new', createdBy: profile.id });
-      if (form.assignedTo && form.assignedTo !== profile.id) {
-        const myName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
-        try { await createData('notifications', { profileId: form.assignedTo, title: 'وظیفه جدید به شما اختصاص داده شد', body: `یک تسک «${form.title}» توسط ${myName} به شما اختصاص داده شد`, type: 'task', priority: form.priority === 'urgent' ? 'urgent' : 'normal', link: '/dashboard/tasks' }); } catch {}
-      }
-      toast.success('وظیفه ایجاد شد');
-      setForm({ title: '', description: '', assignedTo: '', priority: 'medium', dueDate: '' });
-      loadData();
-    } catch (error: any) { toast.error('ایجاد ناموفق: ' + error.message); }
-    setCreating(false);
-  };
-
-  const handleEdit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingTask) return;
-    try {
-      await updateData('tasks', { id: editingTask.id }, { title: form.title, description: form.description || null, assignedTo: form.assignedTo || null, priority: form.priority, dueDate: form.dueDate ? new Date(form.dueDate).toISOString() : null });
-      toast.success('وظیفه ویرایش شد'); setEditingTask(null); setForm({ title: '', description: '', assignedTo: '', priority: 'medium', dueDate: '' }); loadData();
-    } catch (error: any) { toast.error('ویرایش ناموفق: ' + error.message); }
-  };
-
-  const handleDelete = async (taskId: string) => {
+ = async (taskId: string) => {
     try { await deleteData('tasks', { id: taskId }); toast.success('وظیفه حذف شد'); setDetailTask(null); loadData(); }
     catch (error: any) { toast.error('حذف ناموفق: ' + error.message); }
   };
@@ -232,7 +199,6 @@ export default function TasksPage() {
     catch (error: any) { toast.error('تغییر وضعیت ناموفق: ' + error.message); }
   };
 
-  const openEdit = (task: Task) => { setEditingTask(task); setForm({ title: task.title, description: task.description || '', assignedTo: task.assignedTo || '', priority: task.priority, dueDate: task.dueDate ? task.dueDate.split('T')[0] : '' }); };
   const openDetail = (task: Task) => { setDetailTask(task); loadComments(task.id); };
 
   const handleRefer = async () => {
@@ -356,7 +322,7 @@ export default function TasksPage() {
                 <span className="text-[11px] text-slate-500 dark:text-slate-400">{assignee}</span>
               </div>
             ) : unread ? <span className="flex items-center gap-1 text-[10px] font-medium text-sky-600"><span className="h-2 w-2 animate-pulse rounded-full bg-sky-500" />نظر جدید</span> : <Flag className="h-3.5 w-3.5 text-slate-400" />}
-            {canEdit(task) && <button onClick={(e) => { e.stopPropagation(); openEdit(task); }} className="text-slate-400 transition-colors hover:text-blue-600" title="ویرایش"><Edit className="h-3.5 w-3.5" /></button>}
+            {canEdit(task) && <Link href={`/dashboard/tasks/${task.id}/edit`} onClick={(e) => e.stopPropagation()} className="text-slate-400 transition-colors hover:text-blue-600" title="ویرایش"><Edit className="h-3.5 w-3.5" /></Link>}
           </div>
         </div>
       </div>
@@ -571,32 +537,6 @@ export default function TasksPage() {
         <Plus className="h-6 w-6" />
       </Link>
 
-      <Dialog open={!!editingTask} onOpenChange={(o) => !o && setEditingTask(null)}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>ویرایش وظیفه</DialogTitle></DialogHeader>
-          <form onSubmit={handleEdit} className="space-y-4">
-            <div className="space-y-2"><Label>عنوان *</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required /></div>
-            <div className="space-y-2"><Label>توضیحات</Label><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2"><Label>مسئول انجام</Label>
-                <Select value={form.assignedTo} onValueChange={(v) => setForm({ ...form, assignedTo: v === 'none' ? '' : v })}>
-                  <SelectTrigger><SelectValue placeholder="انتخاب..." /></SelectTrigger>
-                  <SelectContent><SelectItem value="none">بدون تخصیص</SelectItem>{assigneeOptions.map((s) => <SelectItem key={s.id} value={s.id}>{fullName(s.firstName, s.lastName)}{s.id === profile?.id ? ' (خودم)' : ''}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2"><Label>اولویت</Label>
-                <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{TASK_PRIORITIES.map((p) => <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="space-y-2"><Label>موعد انجام</Label><JalaliDatePicker value={form.dueDate ? new Date(form.dueDate) : null} onChange={(d) => setForm({ ...form, dueDate: d ? toLocalDateString(d) : '' })} /></div>
-            <DialogFooter><Button type="button" variant="outline" onClick={() => setEditingTask(null)}>انصراف</Button><Button type="submit">ذخیره تغییرات</Button></DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
       <Dialog open={!!detailTask} onOpenChange={(o) => !o && setDetailTask(null)}>
         <DialogContent className="max-h-[85vh] max-w-xl overflow-y-auto">
           {detailTask && (() => {
@@ -638,7 +578,7 @@ export default function TasksPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     {canRefer && <Button variant="outline" className="flex-1" onClick={() => { setDetailTask(null); openRefer(detailTask.id); }}><Forward className="h-4 w-4" /> ارجاع وظیفه</Button>}
-                    {canEdit(detailTask) && <Button variant="outline" className="flex-1" onClick={() => { setDetailTask(null); openEdit(detailTask); }}><Edit className="h-4 w-4" /> ویرایش وظیفه</Button>}
+                    {canEdit(detailTask) && <Link href={`/dashboard/tasks/${detailTask.id}/edit`} className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-slate-200 px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 flex-1"><Edit className="h-4 w-4" /> ویرایش وظیفه</Link>}
                   </div>
                 </div>
               </>

@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { fetchData, createData } from '@/lib/data-client';
+import { fetchData, updateData, createData, deleteData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
 import { Label } from '@/components/ui/label';
 import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
@@ -11,13 +11,13 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
-  ArrowRight, Clipboard, Calendar, Flag, Activity, Lightbulb,
+  ArrowRight, Clipboard, Flag, Activity, Lightbulb,
   Info, Type, AlignRight, Gauge, Clock, UserCheck, Loader2, Check,
 } from 'lucide-react';
 import { TASK_STATUSES, TASK_PRIORITIES, fullName } from '@/lib/constants';
 import { toLocalDateString } from '@/lib/format';
 import { toast } from 'sonner';
-import type { Profile, TaskAssignee } from '@/lib/types';
+import type { Profile, TaskAssignee, Task } from '@/lib/types';
 
 const MAX_DESC = 1000;
 
@@ -34,14 +34,18 @@ const inputStyle: React.CSSProperties = {
   padding: '0 14px', fontSize: 14, width: '100%', background: 'transparent', outline: 'none',
 };
 
-export default function NewTaskPage() {
+export default function EditTaskPage() {
+  const { id } = useParams<{ id: string }>();
   const { profile } = useAuth();
   const router = useRouter();
   const [staff, setStaff] = useState<Profile[]>([]);
   const [loadingStaff, setLoadingStaff] = useState(true);
+  const [loadingTask, setLoadingTask] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const [existingAssignees, setExistingAssignees] = useState<string[]>([]);
+  const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -50,7 +54,38 @@ export default function NewTaskPage() {
     status: 'new',
     dueDate: '',
   });
-  const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
+
+  const loadTask = useCallback(async () => {
+    if (!id) return;
+    try {
+      const [tasks, assignees] = await Promise.all([
+        fetchData<Task>('tasks', { where: { id } }),
+        fetchData<TaskAssignee>('task_assignees', { where: { taskId: id } }),
+      ]);
+
+      if (tasks && tasks.length > 0) {
+        const t = tasks[0];
+        setForm({
+          title: t.title || '',
+          description: t.description || '',
+          assignedTo: t.assignedTo || '',
+          priority: t.priority || 'medium',
+          status: t.status || 'new',
+          dueDate: t.dueDate ? t.dueDate.split('T')[0] : '',
+        });
+        const aIds = (assignees || []).map((a) => a.profileId);
+        setExistingAssignees(aIds);
+        setAssigneeIds(aIds);
+      } else {
+        toast.error('وظیفه یافت نشد');
+        router.push('/dashboard/tasks');
+      }
+    } catch (error: any) {
+      toast.error('بارگذاری وظیفه ناموفق: ' + error.message);
+    } finally {
+      setLoadingTask(false);
+    }
+  }, [id, router]);
 
   const loadStaff = useCallback(async () => {
     try {
@@ -70,8 +105,8 @@ export default function NewTaskPage() {
 
   useEffect(() => {
     loadStaff();
-    setTimeout(() => titleInputRef.current?.focus(), 100);
-  }, [loadStaff]);
+    loadTask();
+  }, [loadStaff, loadTask]);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -81,8 +116,8 @@ export default function NewTaskPage() {
     return Object.keys(e).length === 0;
   };
 
-  const toggleAssignee = (id: string) => {
-    setAssigneeIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  const toggleAssignee = (aid: string) => {
+    setAssigneeIds((prev) => prev.includes(aid) ? prev.filter((x) => x !== aid) : [...prev, aid]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -91,61 +126,47 @@ export default function NewTaskPage() {
     if (!validate()) return;
     setSubmitting(true);
     try {
-      const task = await createData<{ id: string }>('tasks', {
+      await updateData('tasks', { id }, {
         title: form.title.trim(),
         description: form.description || null,
         assignedTo: form.assignedTo || (assigneeIds.length > 0 ? assigneeIds[0] : null),
         priority: form.priority,
         status: form.status,
         dueDate: form.dueDate ? new Date(form.dueDate).toISOString() : null,
-        createdBy: profile.id,
       });
+
       const allAssignees = new Set<string>(assigneeIds);
       if (form.assignedTo) allAssignees.add(form.assignedTo);
-      const assigneePromises = Array.from(allAssignees).map((aid) =>
-        createData<TaskAssignee>('task_assignees', { taskId: task.id, profileId: aid }).catch(() => {})
-      );
-      await Promise.all(assigneePromises);
-      const myName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
-      const notifPromises: Promise<any>[] = [];
-      allAssignees.forEach((aid) => {
-        if (aid !== profile.id) {
-          notifPromises.push(
-            createData('notifications', {
-              profileId: aid,
-              title: 'وظیفه جدید به شما اختصاص داده شد',
-              body: `یک تسک «${form.title}» توسط ${myName} به شما اختصاص داده شد`,
-              type: 'task',
-              priority: form.priority === 'critical' ? 'urgent' : 'normal',
-              link: '/dashboard/tasks',
-            }).catch(() => {})
-          );
-        }
-      });
-      const superAdmins = staff.filter((s) => s.role === 'super_admin' || s.role === 'owner');
-      superAdmins.forEach((admin) => {
-        if (admin.id !== profile.id && !allAssignees.has(admin.id)) {
-          notifPromises.push(
-            createData('notifications', {
-              profileId: admin.id,
-              title: 'وظیفه جدید ایجاد شد',
-              body: `${myName} یک وظیفه جدید «${form.title}» ایجاد کرد${allAssignees.size > 0 ? ' و به افراد اختصاص داد' : ''}`,
-              type: 'task',
-              priority: 'normal',
-              link: '/dashboard/tasks',
-            }).catch(() => {})
-          );
-        }
-      });
-      await Promise.all(notifPromises);
-      toast.success('وظیفه با موفقیت ایجاد شد');
+
+      const toAdd = Array.from(allAssignees).filter((aid) => !existingAssignees.includes(aid));
+      const toRemove = existingAssignees.filter((aid) => !allAssignees.has(aid));
+
+      await Promise.all([
+        ...toAdd.map((aid) =>
+          createData('task_assignees', { taskId: id, profileId: aid }).catch(() => {})
+        ),
+        ...toRemove.map((aid) =>
+          deleteData('task_assignees', { taskId: id, profileId: aid }).catch(() => {})
+        ),
+      ]);
+
+      toast.success('وظیفه ویرایش شد');
       router.push('/dashboard/tasks');
     } catch (error: any) {
-      toast.error('ایجاد وظیفه ناموفق: ' + error.message);
+      toast.error('ویرایش وظیفه ناموفق: ' + error.message);
     } finally {
       setSubmitting(false);
     }
   };
+
+  if (loadingTask) {
+    return (
+      <div className="nb-editor-loading" dir="rtl">
+        <span />
+        <p>در حال بارگذاری وظیفه...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="nb-editor-page" dir="rtl">
@@ -155,30 +176,30 @@ export default function NewTaskPage() {
             <ArrowRight className="h-4 w-4" />
             بازگشت به وظایف
           </Link>
-          <span className="nb-editor-breadcrumb">داشبورد <b>←</b> وظایف <b>←</b> ایجاد وظیفه</span>
+          <span className="nb-editor-breadcrumb">داشبورد <b>←</b> وظایف <b>←</b> ویرایش وظیفه</span>
         </div>
         <div className="nb-editor-topbar-right">
           <button type="button" className="nb-editor-discard" onClick={() => router.push('/dashboard/tasks')} disabled={submitting}>
             انصراف
           </button>
-          <button type="submit" form="task-form" className="nb-editor-save-btn" disabled={submitting}>
+          <button type="submit" form="task-edit-form" className="nb-editor-save-btn" disabled={submitting}>
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-            {submitting ? 'در حال ایجاد...' : 'ایجاد وظیفه'}
+            {submitting ? 'در حال ذخیره...' : 'ذخیره تغییرات'}
           </button>
         </div>
       </div>
 
       <div className="nb-editor-main">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <form id="task-form" className="lg:col-span-2 nb-editor-canvas" onSubmit={handleSubmit}>
+          <form id="task-edit-form" className="lg:col-span-2 nb-editor-canvas" onSubmit={handleSubmit}>
             <div className="nb-editor-meta-row">
               <div className="flex items-center gap-3">
                 <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-50 text-orange-600 dark:bg-orange-900/20">
                   <Clipboard className="h-5 w-5" />
                 </span>
                 <div>
-                  <h2 className="font-bold text-slate-900 dark:text-slate-100" style={{ fontSize: 20 }}>اطلاعات وظیفه</h2>
-                  <p className="text-sm text-slate-400">لطفاً اطلاعات مربوط به وظیفه جدید را وارد کنید.</p>
+                  <h2 className="font-bold text-slate-900 dark:text-slate-100" style={{ fontSize: 20 }}>ویرایش وظیفه</h2>
+                  <p className="text-sm text-slate-400">اطلاعات وظیفه را ویرایش کنید.</p>
                 </div>
               </div>
             </div>
@@ -274,7 +295,7 @@ export default function NewTaskPage() {
                 </div>
 
                 <div className="nb-editor-field-group">
-                  <Label className="nb-editor-label">وضعیت اولیه <span className="text-red-500">*</span></Label>
+                  <Label className="nb-editor-label">وضعیت <span className="text-red-500">*</span></Label>
                   <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
                     <SelectTrigger className="h-11">
                       <Activity className="ml-1 h-4 w-4 text-slate-400" />
@@ -328,7 +349,7 @@ export default function NewTaskPage() {
                 </span>
                 <h2 className="font-bold text-slate-900 dark:text-slate-100">اطلاعات مفید</h2>
               </div>
-              <p className="text-sm text-slate-500 dark:text-slate-400">وظایف ایجاد شده در بخش «وظایف» قابل مشاهده و مدیریت هستند. می‌توانید آن‌ها را در برد کانبان یا حالت لیست ببینید و وضعیت را تغییر دهید.</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">پس از ویرایش وظیفه می‌توانید آن را در برد کانبان یا حالت لیست مشاهده و مدیریت کنید.</p>
             </div>
           </aside>
         </div>
