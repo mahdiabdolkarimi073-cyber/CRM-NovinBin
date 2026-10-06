@@ -1,24 +1,22 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { fetchData, createData } from '@/lib/data-client';
+import { fetchData, updateData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowRight, FileText, User, DollarSign, Calendar, Lightbulb, Info, Loader2, ShoppingCart, Check } from 'lucide-react';
+import { ArrowRight, FileText, User, DollarSign, Lightbulb, Info, Loader2, Check } from 'lucide-react';
 import { toLocalDateString } from '@/lib/format';
-import { fullName } from '@/lib/constants';
+import { fullName, INVOICE_STATUSES } from '@/lib/constants';
 import { toast } from 'sonner';
 
 const guideItems = [
-  { icon: User, title: 'انتخاب مشتری', desc: 'مشتری موردنظر را برای صدور فاکتور انتخاب کنید.' },
-  { icon: ShoppingCart, title: 'سفارش مرتبط', desc: 'در صورت وجود، سفارش مرتبط را انتخاب کنید.' },
-  { icon: DollarSign, title: 'مبلغ فاکتور', desc: 'مبلغ کل فاکتور را به تومان وارد کنید.' },
-  { icon: Calendar, title: 'تاریخ سررسید', desc: 'تاریخ سررسید پرداخت را مشخص کنید (اختیاری).' },
+  { icon: User, title: 'مشتری', desc: 'مشتری فاکتور را تغییر دهید.' },
+  { icon: DollarSign, title: 'مبلغ', desc: 'مبلغ فاکتور را اصلاح کنید.' },
+  { icon: FileText, title: 'وضعیت', desc: 'وضعیت فاکتور را به‌روزرسانی کنید.' },
 ];
 
 const inputStyle: React.CSSProperties = {
@@ -26,33 +24,53 @@ const inputStyle: React.CSSProperties = {
   padding: '0 14px', fontSize: 14, width: '100%', background: 'transparent', outline: 'none',
 };
 
-export default function NewInvoicePage() {
+export default function EditInvoicePage() {
+  const { id } = useParams<{ id: string }>();
   const { profile } = useAuth();
   const router = useRouter();
   const [customers, setCustomers] = useState<any[]>([]);
-  const [orders, setOrders] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [loadingInvoice, setLoadingInvoice] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [form, setForm] = useState({ customerId: '', orderId: '', amount: '', dueDate: '', notes: '' });
+  const [form, setForm] = useState({ customerId: '', amount: '', dueDate: '', notes: '', status: 'unpaid' });
 
   const loadData = useCallback(async () => {
     try {
-      const [cust, ords] = await Promise.all([
-        fetchData('customers', { where: {} }),
-        fetchData('orders', { where: {} }),
-      ]);
+      const cust = await fetchData('customers', { where: {} });
       setCustomers(cust || []);
-      setOrders(ords || []);
     } catch {
       setCustomers([]);
-      setOrders([]);
     } finally {
       setLoadingData(false);
     }
   }, []);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  const loadInvoice = useCallback(async () => {
+    if (!id) return;
+    try {
+      const invoices = await fetchData('invoices', { where: { id } });
+      if (invoices && invoices.length > 0) {
+        const inv = invoices[0];
+        setForm({
+          customerId: inv.customerId || '',
+          amount: String(Number(inv.amount)),
+          dueDate: inv.dueDate ? toLocalDateString(new Date(inv.dueDate)) : '',
+          notes: inv.notes || '',
+          status: inv.status || 'unpaid',
+        });
+      } else {
+        toast.error('فاکتور یافت نشد');
+        router.push('/dashboard/invoices');
+      }
+    } catch (error: any) {
+      toast.error('بارگذاری فاکتور ناموفق: ' + error.message);
+    } finally {
+      setLoadingInvoice(false);
+    }
+  }, [id, router]);
+
+  useEffect(() => { loadData(); loadInvoice(); }, [loadData, loadInvoice]);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -64,36 +82,30 @@ export default function NewInvoicePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile) { toast.error('اطلاعات کاربر بارگذاری نشده'); return; }
     if (!validate()) return;
     setSubmitting(true);
-    const invNum = 'INV-' + Date.now().toString().slice(-6);
     try {
-      await createData('invoices', {
-        number: invNum,
+      await updateData('invoices', { id }, {
         customerId: form.customerId,
-        orderId: form.orderId || null,
         amount: Number(form.amount.replace(/[^0-9]/g, '')) || 0,
-        paid: 0,
-        status: 'unpaid',
         dueDate: form.dueDate || null,
         notes: form.notes || null,
-        createdBy: profile.id,
+        status: form.status,
       });
-      toast.success('فاکتور با موفقیت صادر شد');
+      toast.success('فاکتور با موفقیت ویرایش شد');
       router.push('/dashboard/invoices');
     } catch (error: any) {
-      toast.error('صدور فاکتور ناموفق: ' + (error?.message || 'خطا'));
+      toast.error('ویرایش فاکتور ناموفق: ' + (error?.message || 'خطا'));
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loadingData) {
+  if (loadingInvoice) {
     return (
       <div className="nb-editor-loading" dir="rtl">
         <span />
-        <p>در حال بارگذاری...</p>
+        <p>در حال بارگذاری فاکتور...</p>
       </div>
     );
   }
@@ -106,30 +118,30 @@ export default function NewInvoicePage() {
             <ArrowRight className="h-4 w-4" />
             بازگشت به فاکتورها
           </Link>
-          <span className="nb-editor-breadcrumb">داشبورد <b>←</b> فاکتورها <b>←</b> صدور فاکتور</span>
+          <span className="nb-editor-breadcrumb">داشبورد <b>←</b> فاکتورها <b>←</b> ویرایش فاکتور</span>
         </div>
         <div className="nb-editor-topbar-right">
           <button type="button" className="nb-editor-discard" onClick={() => router.push('/dashboard/invoices')} disabled={submitting}>
             انصراف
           </button>
-          <button type="submit" form="invoice-form" className="nb-editor-save-btn" disabled={submitting}>
+          <button type="submit" form="invoice-edit-form" className="nb-editor-save-btn" disabled={submitting}>
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-            {submitting ? 'در حال صدور...' : 'صدور فاکتور'}
+            {submitting ? 'در حال ذخیره...' : 'ذخیره تغییرات'}
           </button>
         </div>
       </div>
 
       <div className="nb-editor-main">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <form id="invoice-form" className="lg:col-span-2 nb-editor-canvas" onSubmit={handleSubmit}>
+          <form id="invoice-edit-form" className="lg:col-span-2 nb-editor-canvas" onSubmit={handleSubmit}>
             <div className="nb-editor-meta-row">
               <div className="flex items-center gap-3">
                 <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20">
                   <FileText className="h-5 w-5" />
                 </span>
                 <div>
-                  <h2 className="font-bold text-slate-900 dark:text-slate-100" style={{ fontSize: 20 }}>اطلاعات فاکتور</h2>
-                  <p className="text-sm text-slate-400">جزئیات فاکتور را وارد کنید. فیلدهای ستاره‌دار الزامی هستند.</p>
+                  <h2 className="font-bold text-slate-900 dark:text-slate-100" style={{ fontSize: 20 }}>ویرایش فاکتور</h2>
+                  <p className="text-sm text-slate-400">اطلاعات فاکتور را ویرایش کنید.</p>
                 </div>
               </div>
             </div>
@@ -153,22 +165,6 @@ export default function NewInvoicePage() {
                 {errors.customerId && <span className="nb-editor-error">{errors.customerId}</span>}
               </div>
 
-              <div className="nb-editor-field-group">
-                <Label className="nb-editor-label">سفارش مرتبط</Label>
-                <Select value={form.orderId || 'none'} onValueChange={(v) => setForm({ ...form, orderId: v === 'none' ? '' : v })}>
-                  <SelectTrigger className="h-11">
-                    <ShoppingCart className="ml-1 h-4 w-4 text-slate-400" />
-                    <SelectValue placeholder="بدون سفارش" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">بدون سفارش</SelectItem>
-                    {orders.map((o) => (
-                      <SelectItem key={o.id} value={o.id}>{o.number || o.id.slice(0, 8)}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="nb-editor-field-group">
                   <Label className="nb-editor-label">مبلغ (تومان) <span className="text-red-500">*</span></Label>
@@ -183,14 +179,28 @@ export default function NewInvoicePage() {
                   {errors.amount && <span className="nb-editor-error">{errors.amount}</span>}
                 </div>
                 <div className="nb-editor-field-group">
-                  <Label className="nb-editor-label">تاریخ سررسید</Label>
-                  <JalaliDatePicker
-                    value={form.dueDate ? new Date(form.dueDate) : null}
-                    onChange={(d) => setForm({ ...form, dueDate: d ? toLocalDateString(d) : '' })}
-                    placeholder="اختیاری"
-                    className="h-11"
-                  />
+                  <Label className="nb-editor-label">وضعیت</Label>
+                  <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                    <SelectTrigger className="h-11">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {INVOICE_STATUSES.map((s) => (
+                        <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
+              </div>
+
+              <div className="nb-editor-field-group">
+                <Label className="nb-editor-label">تاریخ سررسید</Label>
+                <JalaliDatePicker
+                  value={form.dueDate ? new Date(form.dueDate) : null}
+                  onChange={(d) => setForm({ ...form, dueDate: d ? toLocalDateString(d) : '' })}
+                  placeholder="اختیاری"
+                  className="h-11"
+                />
               </div>
 
               <div className="nb-editor-field-group">
@@ -233,7 +243,7 @@ export default function NewInvoicePage() {
                 </span>
                 <h2 className="font-bold text-slate-900 dark:text-slate-100">اطلاعات مفید</h2>
               </div>
-              <p className="text-sm text-slate-500 dark:text-slate-400">فاکتورهای صادر شده در بخش «فاکتورها» قابل مدیریت هستند. شماره فاکتور به‌صورت خودکار تولید می‌شود و وضعیت اولیه «پرداخت‌نشده» خواهد بود.</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">پس از ویرایش، تغییرات در بخش «فاکتورها» قابل مشاهده است.</p>
             </div>
           </aside>
         </div>

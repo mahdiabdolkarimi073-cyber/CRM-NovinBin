@@ -258,7 +258,7 @@ export default function InvoicesPage() {
                       {isSuperAdmin && (
                         <div className="flex items-center gap-1 border-t border-slate-100 pt-2 dark:border-slate-700">
                           <button onClick={(e) => { e.stopPropagation(); openView(inv); }} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700" title="مشاهده"><Eye className="h-3.5 w-3.5" /></button>
-                          <button onClick={(e) => { e.stopPropagation(); openEdit(inv); }} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-700" title="ویرایش"><Edit className="h-3.5 w-3.5" /></button>
+                          <Link href={`/dashboard/invoices/${inv.id}/edit`} onClick={(e) => e.stopPropagation()} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-700" title="ویرایش"><Edit className="h-3.5 w-3.5" /></Link>
                           <button onClick={(e) => { e.stopPropagation(); handleDelete(inv); }} className="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500" title="حذف"><Trash2 className="h-3.5 w-3.5" /></button>
                         </div>
                       )}
@@ -304,7 +304,7 @@ export default function InvoicesPage() {
                         <td className="p-3" onClick={(e) => e.stopPropagation()}>
                           <div className="flex gap-1">
                             <button onClick={() => openView(inv)} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700" title="مشاهده"><Eye className="h-4 w-4" /></button>
-                            <button onClick={() => openEdit(inv)} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-700" title="ویرایش"><Edit className="h-4 w-4" /></button>
+                            <Link href={`/dashboard/invoices/${inv.id}/edit`} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-700" title="ویرایش"><Edit className="h-4 w-4" /></Link>
                             <button onClick={() => handleDelete(inv)} className="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500" title="حذف"><Trash2 className="h-4 w-4" /></button>
                           </div>
                         </td>

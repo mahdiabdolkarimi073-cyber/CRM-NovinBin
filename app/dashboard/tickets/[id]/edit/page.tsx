@@ -1,26 +1,23 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { fetchData, createData } from '@/lib/data-client';
+import { fetchData, updateData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
-  ArrowRight, MessageCircle, UploadCloud, Loader2, User, Flag,
+  ArrowRight, MessageCircle, Loader2, User, Flag,
   Lightbulb, Info, Type, AlignRight, Gauge, UserCheck, Headset, Check,
 } from 'lucide-react';
 import { TASK_PRIORITIES, fullName } from '@/lib/constants';
 import { toast } from 'sonner';
-import type { Profile, Customer, TicketDepartment } from '@/lib/types';
+import type { Profile, Customer, TicketDepartment, Ticket } from '@/lib/types';
 
 const MAX_DESC = 2000;
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 const guideItems = [
   { icon: Type, title: 'عنوان واضح', desc: 'عنوانی کوتاه و گویا برای تیکت بنویسید.' },
@@ -34,16 +31,25 @@ const inputStyle: React.CSSProperties = {
   padding: '0 14px', fontSize: 14, width: '100%', background: 'transparent', outline: 'none',
 };
 
-export default function NewTicketPage() {
+const TICKET_STATUSES = [
+  { key: 'open', label: 'باز' },
+  { key: 'in_progress', label: 'در حال انجام' },
+  { key: 'pending', label: 'در انتظار پاسخ' },
+  { key: 'resolved', label: 'حل شده' },
+  { key: 'closed', label: 'بسته شده' },
+];
+
+export default function EditTicketPage() {
+  const { id } = useParams<{ id: string }>();
   const { profile } = useAuth();
   const router = useRouter();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [staff, setStaff] = useState<Profile[]>([]);
   const [departments, setDepartments] = useState<TicketDepartment[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [loadingTicket, setLoadingTicket] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [fileName, setFileName] = useState<string | null>(null);
   const subjectInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
     subject: '',
@@ -51,6 +57,8 @@ export default function NewTicketPage() {
     customerId: '',
     priority: 'medium',
     departmentId: '',
+    status: 'open',
+    assignedTo: '',
   });
 
   const loadData = useCallback(async () => {
@@ -71,10 +79,37 @@ export default function NewTicketPage() {
     }
   }, []);
 
+  const loadTicket = useCallback(async () => {
+    if (!id) return;
+    try {
+      const tickets = await fetchData<Ticket>('tickets', { where: { id } });
+      if (tickets && tickets.length > 0) {
+        const t = tickets[0];
+        setForm({
+          subject: t.subject || '',
+          description: t.description || '',
+          customerId: t.customerId || '',
+          priority: t.priority || 'medium',
+          departmentId: t.departmentId || '',
+          status: t.status || 'open',
+          assignedTo: t.assignedTo || '',
+        });
+        setTimeout(() => subjectInputRef.current?.focus(), 100);
+      } else {
+        toast.error('تیکت یافت نشد');
+        router.push('/dashboard/tickets');
+      }
+    } catch (error: any) {
+      toast.error('بارگذاری تیکت ناموفق: ' + error.message);
+    } finally {
+      setLoadingTicket(false);
+    }
+  }, [id, router]);
+
   useEffect(() => {
     loadData();
-    setTimeout(() => subjectInputRef.current?.focus(), 100);
-  }, [loadData]);
+    loadTicket();
+  }, [loadData, loadTicket]);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -92,33 +127,33 @@ export default function NewTicketPage() {
     if (!validate()) return;
     setSubmitting(true);
     try {
-      await createData('tickets', {
+      await updateData('tickets', { id }, {
         subject: form.subject.trim(),
         description: form.description.trim(),
         customerId: form.customerId || null,
         departmentId: form.departmentId || null,
         priority: form.priority,
-        status: 'open',
-        channel: 'internal',
-        createdBy: profile.id,
+        status: form.status,
+        assignedTo: form.assignedTo || null,
+        updatedAt: new Date().toISOString(),
       });
-      toast.success('تیکت با موفقیت ایجاد شد');
+      toast.success('تیکت با موفقیت ویرایش شد');
       router.push('/dashboard/tickets');
     } catch (error: any) {
-      toast.error('ایجاد تیکت ناموفق: ' + error.message);
+      toast.error('ویرایش تیکت ناموفق: ' + error.message);
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleFile = (file: File | undefined) => {
-    if (!file) return;
-    if (file.size > MAX_FILE_SIZE) {
-      toast.error('حجم فایل نباید بیشتر از ۵ مگابایت باشد');
-      return;
-    }
-    setFileName(file.name);
-  };
+  if (loadingTicket) {
+    return (
+      <div className="nb-editor-loading" dir="rtl">
+        <span />
+        <p>در حال بارگذاری تیکت...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="nb-editor-page" dir="rtl">
@@ -128,30 +163,30 @@ export default function NewTicketPage() {
             <ArrowRight className="h-4 w-4" />
             بازگشت به تیکت‌ها
           </Link>
-          <span className="nb-editor-breadcrumb">داشبورد <b>←</b> تیکت‌ها <b>←</b> ایجاد تیکت</span>
+          <span className="nb-editor-breadcrumb">داشبورد <b>←</b> تیکت‌ها <b>←</b> ویرایش تیکت</span>
         </div>
         <div className="nb-editor-topbar-right">
           <button type="button" className="nb-editor-discard" onClick={() => router.push('/dashboard/tickets')} disabled={submitting}>
             انصراف
           </button>
-          <button type="submit" form="ticket-form" className="nb-editor-save-btn" disabled={submitting}>
+          <button type="submit" form="ticket-edit-form" className="nb-editor-save-btn" disabled={submitting}>
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-            {submitting ? 'در حال ایجاد...' : 'ایجاد تیکت'}
+            {submitting ? 'در حال ذخیره...' : 'ذخیره تغییرات'}
           </button>
         </div>
       </div>
 
       <div className="nb-editor-main">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <form id="ticket-form" className="lg:col-span-2 nb-editor-canvas" onSubmit={handleSubmit}>
+          <form id="ticket-edit-form" className="lg:col-span-2 nb-editor-canvas" onSubmit={handleSubmit}>
             <div className="nb-editor-meta-row">
               <div className="flex items-center gap-3">
                 <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-50 text-sky-600 dark:bg-sky-900/20">
                   <MessageCircle className="h-5 w-5" />
                 </span>
                 <div>
-                  <h2 className="font-bold text-slate-900 dark:text-slate-100" style={{ fontSize: 20 }}>اطلاعات تیکت</h2>
-                  <p className="text-sm text-slate-400">لطفاً اطلاعات مربوط به تیکت جدید را وارد کنید.</p>
+                  <h2 className="font-bold text-slate-900 dark:text-slate-100" style={{ fontSize: 20 }}>ویرایش تیکت</h2>
+                  <p className="text-sm text-slate-400">اطلاعات تیکت را ویرایش کنید.</p>
                 </div>
               </div>
             </div>
@@ -225,40 +260,60 @@ export default function NewTicketPage() {
                 </div>
               </div>
 
-              <div className="nb-editor-field-group">
-                <Label className="nb-editor-label">دپارتمان</Label>
-                <Select
-                  value={form.departmentId || 'none'}
-                  onValueChange={(v) => setForm({ ...form, departmentId: v === 'none' ? '' : v })}
-                >
-                  <SelectTrigger className="h-11">
-                    <Headset className="ml-1 h-4 w-4 text-slate-400" />
-                    <SelectValue placeholder="انتخاب دپارتمان..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">بدون دپارتمان</SelectItem>
-                    {departments.map((d) => (
-                      <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">دپارتمان</Label>
+                  <Select
+                    value={form.departmentId || 'none'}
+                    onValueChange={(v) => setForm({ ...form, departmentId: v === 'none' ? '' : v })}
+                  >
+                    <SelectTrigger className="h-11">
+                      <Headset className="ml-1 h-4 w-4 text-slate-400" />
+                      <SelectValue placeholder="انتخاب دپارتمان..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">بدون دپارتمان</SelectItem>
+                      {departments.map((d) => (
+                        <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">وضعیت</Label>
+                  <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                    <SelectTrigger className="h-11">
+                      <SelectValue placeholder="انتخاب وضعیت..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TICKET_STATUSES.map((s) => (
+                        <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="nb-editor-field-group">
-                <Label className="nb-editor-label">پیوست</Label>
-                <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-200 bg-slate-50/50 p-6 transition hover:border-sky-400 hover:bg-sky-50/30 dark:border-slate-700 dark:bg-slate-800/50">
-                  <input
-                    type="file"
-                    className="hidden"
-                    onChange={(e) => handleFile(e.target.files?.[0])}
-                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip"
-                  />
-                  <UploadCloud className="h-7 w-7 text-slate-400" />
-                  <span className="text-sm text-slate-500">
-                    {fileName ? fileName : 'فایل را اینجا رها کنید یا انتخاب کنید'}
-                  </span>
-                  <span className="text-xs text-slate-400">فرمت‌های مجاز: تصویر، PDF، Word، Excel، ZIP — حداکثر ۵ مگابایت</span>
-                </label>
+                <Label className="nb-editor-label">مسئول تیکت</Label>
+                <Select
+                  value={form.assignedTo || 'none'}
+                  onValueChange={(v) => setForm({ ...form, assignedTo: v === 'none' ? '' : v })}
+                >
+                  <SelectTrigger className="h-11">
+                    <UserCheck className="ml-1 h-4 w-4 text-slate-400" />
+                    <SelectValue placeholder="انتخاب مسئول..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">بدون تخصیص</SelectItem>
+                    {staff.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {fullName(s.firstName, s.lastName)}{s.id === profile?.id ? ' (خودم)' : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </form>
@@ -290,7 +345,7 @@ export default function NewTicketPage() {
                 </span>
                 <h2 className="font-bold text-slate-900 dark:text-slate-100">اطلاعات مفید</h2>
               </div>
-              <p className="text-sm text-slate-500 dark:text-slate-400">تیکت‌های ایجاد شده در بخش «تیکت‌ها» قابل مشاهده و مدیریت هستند. می‌توانید وضعیت آن‌ها را تغییر دهید و پاسخ‌گویی به درخواست‌ها را پیگیری کنید.</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">پس از ویرایش تیکت می‌توانید وضعیت آن را تغییر دهید و پاسخ‌گویی به درخواست‌ها را پیگیری کنید.</p>
             </div>
           </aside>
         </div>

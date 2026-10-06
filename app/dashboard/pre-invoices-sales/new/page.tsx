@@ -5,17 +5,18 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createData, fetchData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 import {
   ArrowRight, FileOutput, Loader2, Plus, Trash2,
-  Lightbulb, Info, Calendar, Hash,
+  Lightbulb, Info, Calendar, Hash, Check,
 } from 'lucide-react';
+import { fullName } from '@/lib/constants';
+import { formatToman, toEnglishDigits, parseNumber, toLocalDateString } from '@/lib/format';
+import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 import { toast } from 'sonner';
-import { formatToman, toEnglishDigits, parseNumber } from '@/lib/format';
 import type { Customer, Product, Profile } from '@/lib/types';
 
 interface ItemRow {
@@ -40,6 +41,11 @@ const guideItems = [
   { icon: Calendar, title: 'تاریخ انقضا', desc: 'تاریخ اعتبار پیش‌فاکتور را تعیین کنید.' },
   { icon: Lightbulb, title: 'لیست قیمت', desc: 'نوع لیست قیمت را انتخاب کنید.' },
 ];
+
+const inputStyle: React.CSSProperties = {
+  height: 44, borderRadius: 10, border: '1px solid #E2E8F0',
+  padding: '0 14px', fontSize: 14, width: '100%', background: 'transparent', outline: 'none',
+};
 
 export default function NewPreInvoiceSalesPage() {
   const { profile } = useAuth();
@@ -191,162 +197,287 @@ export default function NewPreInvoiceSalesPage() {
   };
 
   return (
-    <div className="w-full" dir="rtl">
-      <header className="mb-6 flex flex-col gap-4 mobile:flex-row mobile:items-center mobile:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <span className="h-10 w-[5px] rounded-full bg-[#FF7A00]" />
-            <h1 className="text-[28px] font-bold text-[#101828]">ثبت پیش فاکتور فروش جدید</h1>
-          </div>
-          <div className="mt-2 text-xs font-medium text-[#667085]">داشبورد <span className="mx-1.5 text-[#CBD5E1]">←</span> پیش فاکتور فروش <span className="mx-1.5 text-[#CBD5E1]">←</span> ثبت</div>
+    <div className="nb-editor-page" dir="rtl">
+      <div className="nb-editor-topbar">
+        <div className="nb-editor-topbar-left">
+          <Link href="/dashboard/pre-invoices-sales" className="nb-editor-back">
+            <ArrowRight className="h-4 w-4" />
+            بازگشت به پیش‌فاکتورهای فروش
+          </Link>
+          <span className="nb-editor-breadcrumb">داشبورد <b>←</b> پیش فاکتور فروش <b>←</b> ثبت پیش‌فاکتور</span>
         </div>
-        <Link href="/dashboard/pre-invoices-sales">
-          <Button variant="outline" className="h-[42px] rounded-[10px] border-[#DCE3EE] bg-white text-sm font-semibold text-[#344054] shadow-sm hover:bg-[#FAFBFF]">
-            <ArrowRight className="h-4 w-4" /> بازگشت
-          </Button>
-        </Link>
-      </header>
+        <div className="nb-editor-topbar-right">
+          <button type="button" className="nb-editor-discard" onClick={() => router.push('/dashboard/pre-invoices-sales')} disabled={submitting}>
+            انصراف
+          </button>
+          <button type="submit" form="pre-invoice-form" className="nb-editor-save-btn" disabled={submitting}>
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+            {submitting ? 'در حال ثبت...' : 'ثبت پیش‌فاکتور'}
+          </button>
+        </div>
+      </div>
 
-      <form onSubmit={handleSubmit}>
+      <div className="nb-editor-main">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2 space-y-6">
-            <Card>
-              <CardContent className="p-5">
-                <div className="mb-4 flex items-center gap-2">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#3155E7]/10 text-[#3155E7]"><FileOutput className="h-5 w-5" /></span>
-                  <div>
-                    <h2 className="text-base font-bold text-[#1D2939]">اطلاعات پیش‌فاکتور</h2>
-                    <p className="text-xs text-[#98A2B3]">جزئیات پیش‌فاکتور فروش را وارد کنید.</p>
-                  </div>
+          <form id="pre-invoice-form" className="lg:col-span-2 nb-editor-canvas" onSubmit={handleSubmit}>
+            <div className="nb-editor-meta-row">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-50 text-sky-600 dark:bg-sky-900/20">
+                  <FileOutput className="h-5 w-5" />
+                </span>
+                <div>
+                  <h2 className="font-bold text-slate-900 dark:text-slate-100" style={{ fontSize: 20 }}>اطلاعات پیش‌فاکتور</h2>
+                  <p className="text-sm text-slate-400">جزئیات پیش‌فاکتور فروش را وارد کنید.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-5">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">شماره پیش‌فاکتور</Label>
+                  <input
+                    type="text"
+                    value={number}
+                    readOnly
+                    className="nb-input"
+                    style={{ ...inputStyle, background: '#F8FAFC' }}
+                  />
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 tablet:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">شماره پیش‌فاکتور</Label>
-                    <Input value={number} readOnly className="h-[42px] rounded-[10px] border-[#DCE3EE] bg-slate-50" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">مشتری</Label>
-                    <select value={customerId} onChange={(e) => setCustomerId(e.target.value)} className="h-[42px] w-full rounded-[10px] border border-[#DCE3EE] bg-white px-3 text-sm text-[#344054]">
-                      <option value="">انتخاب مشتری...</option>
-                      {customers.map((c) => <option key={c.id} value={c.id}>{c.companyName || `${c.firstName || ''} ${c.lastName || ''}`.trim()}</option>)}
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">لیست قیمت</Label>
-                    <select value={priceList} onChange={(e) => setPriceList(e.target.value)} className="h-[42px] w-full rounded-[10px] border border-[#DCE3EE] bg-white px-3 text-sm text-[#344054]">
-                      {PRICE_LISTS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">فروشنده</Label>
-                    <select value={sellerId} onChange={(e) => setSellerId(e.target.value)} className="h-[42px] w-full rounded-[10px] border border-[#DCE3EE] bg-white px-3 text-sm text-[#344054]">
-                      <option value="">انتخاب شخص...</option>
-                      {staff.map((s) => <option key={s.id} value={s.id}>{s.firstName} {s.lastName}</option>)}
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">تاریخ صدور <span className="text-rose-500">*</span></Label>
-                    <Input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} className="h-[42px] rounded-[10px] border-[#DCE3EE]" />
-                    {errors.issueDate && <span className="text-xs text-rose-500">{errors.issueDate}</span>}
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">تاریخ انقضا</Label>
-                    <Input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} className="h-[42px] rounded-[10px] border-[#DCE3EE]" />
-                  </div>
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">مشتری</Label>
+                  <Select
+                    value={customerId || 'none'}
+                    onValueChange={(v) => setCustomerId(v === 'none' ? '' : v)}
+                  >
+                    <SelectTrigger className="h-11">
+                      <SelectValue placeholder="انتخاب مشتری..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">بدون مشتری</SelectItem>
+                      {customers.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.companyName || fullName(c.firstName, c.lastName)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                <div className="mt-4 space-y-2">
-                  <Label className="text-sm font-semibold text-[#344054]">توضیحات</Label>
-                  <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="توضیحات اختیاری..." className="rounded-[10px] border-[#DCE3EE]" />
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">لیست قیمت</Label>
+                  <Select value={priceList} onValueChange={setPriceList}>
+                    <SelectTrigger className="h-11">
+                      <SelectValue placeholder="انتخاب لیست قیمت..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PRICE_LISTS.map((p) => (
+                        <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              </CardContent>
-            </Card>
 
-            <Card>
-              <CardContent className="p-5">
-                <div className="mb-4 flex items-center justify-between">
-                  <h2 className="text-base font-bold text-[#1D2939]">اقلام کالا</h2>
-                  <Button type="button" size="sm" variant="outline" onClick={addItem}><Plus className="h-4 w-4" /> افزودن قلم</Button>
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">فروشنده</Label>
+                  <Select
+                    value={sellerId || 'none'}
+                    onValueChange={(v) => setSellerId(v === 'none' ? '' : v)}
+                  >
+                    <SelectTrigger className="h-11">
+                      <SelectValue placeholder="انتخاب شخص..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">بدون فروشنده</SelectItem>
+                      {staff.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>{s.firstName} {s.lastName}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">تاریخ صدور <span className="text-red-500">*</span></Label>
+                  <JalaliDatePicker
+                    value={issueDate ? new Date(issueDate) : null}
+                    onChange={(d) => setIssueDate(d ? toLocalDateString(d) : '')}
+                    placeholder="انتخاب تاریخ صدور"
+                    className="h-11"
+                  />
+                  {errors.issueDate && <span className="nb-editor-error">{errors.issueDate}</span>}
+                </div>
+
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">تاریخ انقضا</Label>
+                  <JalaliDatePicker
+                    value={expiryDate ? new Date(expiryDate) : null}
+                    onChange={(d) => setExpiryDate(d ? toLocalDateString(d) : '')}
+                    placeholder="انتخاب تاریخ انقضا"
+                    className="h-11"
+                  />
+                </div>
+              </div>
+
+              <div className="nb-editor-field-group">
+                <Label className="nb-editor-label">توضیحات</Label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="توضیحات اختیاری..."
+                  className="nb-input"
+                  style={{ minHeight: 100, borderRadius: 10, border: '1px solid #E2E8F0', padding: '12px 14px', fontSize: 14, width: '100%', background: 'transparent', outline: 'none', resize: 'vertical' }}
+                  rows={5}
+                />
+              </div>
+
+              {/* اقلام کالا */}
+              <div className="nb-editor-field-group">
+                <div className="mb-3 flex items-center justify-between">
+                  <Label className="nb-editor-label" style={{ marginBottom: 0 }}>اقلام کالا</Label>
+                  <button type="button" className="nb-editor-save-btn" style={{ height: 36, padding: '0 14px' }} onClick={addItem}>
+                    <Plus className="h-4 w-4" />
+                    افزودن قلم
+                  </button>
                 </div>
 
                 <div className="space-y-3">
                   {items.map((item, i) => {
                     const r = calcRow(item);
                     return (
-                      <div key={i} className="rounded-lg border border-[#E7ECF3] bg-slate-50 p-3">
+                      <div key={i} className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50">
                         <div className="mb-2 flex items-center justify-between">
-                          <span className="text-xs font-bold text-[#667085]">قلم {toEnglishDigits(String(i + 1))}</span>
-                          {items.length > 1 && <button type="button" onClick={() => removeItem(i)} className="text-rose-400 hover:text-rose-600"><Trash2 className="h-4 w-4" /></button>}
+                          <span className="text-xs font-bold text-slate-500 dark:text-slate-400">قلم {toEnglishDigits(String(i + 1))}</span>
+                          {items.length > 1 && (
+                            <button type="button" onClick={() => removeItem(i)} className="text-rose-400 hover:text-rose-600" title="حذف قلم">
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
                         </div>
-                        <div className="grid grid-cols-1 gap-2 tablet:grid-cols-2 lg:grid-cols-3">
-                          <select value={item.productId} onChange={(e) => updateItem(i, 'productId', e.target.value)} className="h-[38px] rounded-[8px] border border-[#DCE3EE] bg-white px-2 text-sm">
-                            <option value="">انتخاب محصول...</option>
-                            {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                          </select>
-                          <Input placeholder="نام محصول" value={item.productName} onChange={(e) => updateItem(i, 'productName', e.target.value)} className="h-[38px] rounded-[8px] border-[#DCE3EE] text-sm" />
-                          <Input placeholder="کد محصول" value={item.productCode} onChange={(e) => updateItem(i, 'productCode', e.target.value)} className="h-[38px] rounded-[8px] border-[#DCE3EE] text-sm" />
-                          <Input placeholder="واحد" value={item.unit} onChange={(e) => updateItem(i, 'unit', e.target.value)} className="h-[38px] rounded-[8px] border-[#DCE3EE] text-sm" />
-                          <Input type="number" placeholder="تعداد" value={item.qty} onChange={(e) => updateItem(i, 'qty', e.target.value)} className="h-[38px] rounded-[8px] border-[#DCE3EE] text-sm" />
-                          <Input type="number" placeholder="قیمت واحد" value={item.unitPrice} onChange={(e) => updateItem(i, 'unitPrice', e.target.value)} className="h-[38px] rounded-[8px] border-[#DCE3EE] text-sm" />
-                          <Input type="number" placeholder="درصد تخفیف" value={item.discountPct} onChange={(e) => updateItem(i, 'discountPct', e.target.value)} className="h-[38px] rounded-[8px] border-[#DCE3EE] text-sm" />
-                          <Input type="number" placeholder="درصد مالیات" value={item.taxPct} onChange={(e) => updateItem(i, 'taxPct', e.target.value)} className="h-[38px] rounded-[8px] border-[#DCE3EE] text-sm" />
-                          <div className="flex h-[38px] items-center justify-center rounded-[8px] bg-blue-50 px-3 text-sm font-bold text-blue-700">{formatToman(r.finalPrice)}</div>
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                          <Select
+                            value={item.productId || 'none'}
+                            onValueChange={(v) => updateItem(i, 'productId', v === 'none' ? '' : v)}
+                          >
+                            <SelectTrigger className="h-9">
+                              <SelectValue placeholder="انتخاب محصول..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">انتخاب دستی</SelectItem>
+                              {products.map((p) => (
+                                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <input
+                            type="text"
+                            placeholder="نام محصول"
+                            value={item.productName}
+                            onChange={(e) => updateItem(i, 'productName', e.target.value)}
+                            className="nb-input"
+                            style={{ height: 38, borderRadius: 8, border: '1px solid #E2E8F0', padding: '0 10px', fontSize: 13, width: '100%', background: 'transparent', outline: 'none' }}
+                          />
+                          <input
+                            type="text"
+                            placeholder="کد محصول"
+                            value={item.productCode}
+                            onChange={(e) => updateItem(i, 'productCode', e.target.value)}
+                            className="nb-input"
+                            style={{ height: 38, borderRadius: 8, border: '1px solid #E2E8F0', padding: '0 10px', fontSize: 13, width: '100%', background: 'transparent', outline: 'none' }}
+                          />
+                          <input
+                            type="text"
+                            placeholder="واحد"
+                            value={item.unit}
+                            onChange={(e) => updateItem(i, 'unit', e.target.value)}
+                            className="nb-input"
+                            style={{ height: 38, borderRadius: 8, border: '1px solid #E2E8F0', padding: '0 10px', fontSize: 13, width: '100%', background: 'transparent', outline: 'none' }}
+                          />
+                          <input
+                            type="number"
+                            placeholder="تعداد"
+                            value={item.qty}
+                            onChange={(e) => updateItem(i, 'qty', e.target.value)}
+                            className="nb-input"
+                            style={{ height: 38, borderRadius: 8, border: '1px solid #E2E8F0', padding: '0 10px', fontSize: 13, width: '100%', background: 'transparent', outline: 'none' }}
+                          />
+                          <input
+                            type="number"
+                            placeholder="قیمت واحد"
+                            value={item.unitPrice}
+                            onChange={(e) => updateItem(i, 'unitPrice', e.target.value)}
+                            className="nb-input"
+                            style={{ height: 38, borderRadius: 8, border: '1px solid #E2E8F0', padding: '0 10px', fontSize: 13, width: '100%', background: 'transparent', outline: 'none' }}
+                          />
+                          <input
+                            type="number"
+                            placeholder="درصد تخفیف"
+                            value={item.discountPct}
+                            onChange={(e) => updateItem(i, 'discountPct', e.target.value)}
+                            className="nb-input"
+                            style={{ height: 38, borderRadius: 8, border: '1px solid #E2E8F0', padding: '0 10px', fontSize: 13, width: '100%', background: 'transparent', outline: 'none' }}
+                          />
+                          <input
+                            type="number"
+                            placeholder="درصد مالیات"
+                            value={item.taxPct}
+                            onChange={(e) => updateItem(i, 'taxPct', e.target.value)}
+                            className="nb-input"
+                            style={{ height: 38, borderRadius: 8, border: '1px solid #E2E8F0', padding: '0 10px', fontSize: 13, width: '100%', background: 'transparent', outline: 'none' }}
+                          />
+                          <div className="flex h-[38px] items-center justify-center rounded-[8px] bg-blue-50 px-3 text-sm font-bold text-blue-700 dark:bg-blue-900/20 dark:text-blue-400">
+                            {formatToman(r.finalPrice)}
+                          </div>
                         </div>
                       </div>
                     );
                   })}
                 </div>
 
-                {errors.items && <span className="mt-2 block text-xs text-rose-500">{errors.items}</span>}
+                {errors.items && <span className="nb-editor-error">{errors.items}</span>}
 
-                <div className="mt-4 space-y-1.5 rounded-lg bg-blue-50 p-3">
-                  <div className="flex justify-between text-sm"><span className="text-blue-600">جمع کل:</span><span className="font-bold text-blue-700">{formatToman(subtotal)}</span></div>
-                  <div className="flex justify-between text-sm"><span className="text-blue-600">تخفیف:</span><span className="font-bold text-blue-700">{formatToman(totalDiscount)}</span></div>
-                  <div className="flex justify-between text-sm"><span className="text-blue-600">مالیات:</span><span className="font-bold text-blue-700">{formatToman(totalTax)}</span></div>
-                  <div className="flex justify-between border-t border-blue-200 pt-1.5"><span className="text-sm font-semibold text-blue-600">مبلغ نهایی:</span><span className="text-lg font-bold text-blue-700">{formatToman(finalAmount)} تومان</span></div>
+                <div className="mt-4 space-y-1.5 rounded-lg bg-blue-50 p-3 dark:bg-blue-900/10">
+                  <div className="flex justify-between text-sm"><span className="text-blue-600 dark:text-blue-400">جمع کل:</span><span className="font-bold text-blue-700 dark:text-blue-300">{formatToman(subtotal)}</span></div>
+                  <div className="flex justify-between text-sm"><span className="text-blue-600 dark:text-blue-400">تخفیف:</span><span className="font-bold text-blue-700 dark:text-blue-300">{formatToman(totalDiscount)}</span></div>
+                  <div className="flex justify-between text-sm"><span className="text-blue-600 dark:text-blue-400">مالیات:</span><span className="font-bold text-blue-700 dark:text-blue-300">{formatToman(totalTax)}</span></div>
+                  <div className="flex justify-between border-t border-blue-200 pt-1.5 dark:border-blue-800"><span className="text-sm font-semibold text-blue-600 dark:text-blue-400">مبلغ نهایی:</span><span className="text-lg font-bold text-blue-700 dark:text-blue-300">{formatToman(finalAmount)} تومان</span></div>
                 </div>
-              </CardContent>
-            </Card>
-
-            <div className="flex justify-end gap-3">
-              <Link href="/dashboard/pre-invoices-sales">
-                <Button type="button" variant="outline" className="h-[42px] rounded-[10px] border-[#DCE3EE]">انصراف</Button>
-              </Link>
-              <Button type="submit" disabled={submitting} className="h-[42px] rounded-[10px] bg-[#3155E7] px-[18px] text-sm font-semibold text-white shadow-sm hover:bg-[#2445C7]">
-                {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> در حال ثبت...</> : <><Plus className="h-4 w-4" /> ثبت پیش‌فاکتور</>}
-              </Button>
+              </div>
             </div>
-          </div>
+          </form>
 
-          <div className="space-y-4">
-            <Card>
-              <CardContent className="p-5">
-                <div className="mb-4 flex items-center gap-2">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 text-amber-500"><Lightbulb className="h-5 w-5" /></span>
-                  <h2 className="text-base font-bold text-[#1D2939]">راهنمای ثبت</h2>
-                </div>
-                <div className="space-y-3">
-                  {guideItems.map((item, i) => (
-                    <div key={i} className="flex items-start gap-3">
-                      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#F1F5F9] text-[#3155E7]"><item.icon className="h-3.5 w-3.5" /></span>
-                      <div>
-                        <div className="text-sm font-semibold text-[#344054]">{item.title}</div>
-                        <div className="mt-0.5 text-xs text-[#98A2B3]">{item.desc}</div>
-                      </div>
+          <aside className="space-y-4">
+            <div className="nb-editor-canvas" style={{ padding: 20 }}>
+              <div className="mb-3 flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-500 dark:bg-amber-900/20">
+                  <Lightbulb className="h-5 w-5" />
+                </span>
+                <h2 className="font-bold text-slate-900 dark:text-slate-100">راهنمای ثبت</h2>
+              </div>
+              <div className="space-y-3">
+                {guideItems.map((item, i) => (
+                  <div key={i} className="flex gap-2.5">
+                    <span className="mt-0.5 shrink-0 text-slate-300"><item.icon className="h-4 w-4" /></span>
+                    <div>
+                      <strong className="text-sm text-slate-700 dark:text-slate-300">{item.title}</strong>
+                      <p className="text-xs text-slate-400">{item.desc}</p>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="flex items-start gap-3 rounded-[12px] border border-blue-100 bg-blue-50 p-4">
-              <Info className="mt-0.5 h-5 w-5 shrink-0 text-blue-500" />
-              <p className="text-xs text-blue-700">پیش‌فاکتور فروش قبل از صدور فاکتور نهایی به مشتری ارسال می‌شود. چرخه: ایجاد ← ارسال ← تأیید ← تبدیل به فاکتور.</p>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+            <div className="rounded-xl border border-sky-100 bg-sky-50/50 p-5 dark:border-sky-900/30 dark:bg-sky-900/10">
+              <div className="mb-2 flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-100 text-sky-600 dark:bg-sky-900/30">
+                  <Info className="h-5 w-5" />
+                </span>
+                <h2 className="font-bold text-slate-900 dark:text-slate-100">اطلاعات مفید</h2>
+              </div>
+              <p className="text-sm text-slate-500 dark:text-slate-400">پیش‌فاکتور فروش قبل از صدور فاکتور نهایی به مشتری ارسال می‌شود. چرخه: ایجاد ← ارسال ← تأیید ← تبدیل به فاکتور.</p>
+            </div>
+          </aside>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

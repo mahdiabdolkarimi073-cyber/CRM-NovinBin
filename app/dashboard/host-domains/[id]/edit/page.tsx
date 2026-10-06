@@ -1,18 +1,18 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/components/providers/auth-provider';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 import { ArrowRight, Server, User, Phone, Hash, Calendar, Lightbulb, Info, Loader2, Check } from 'lucide-react';
 import { HOST_TYPES } from '@/lib/constants';
 import { toLocalDateString } from '@/lib/format';
-import { createData } from '@/lib/data-client';
+import { fetchData, updateData } from '@/lib/data-client';
 import { toast } from 'sonner';
+import type { HostDomain } from '@/lib/types';
 
 const guideItems = [
   { icon: Hash, title: 'شماره مشتری', desc: 'شماره مشتری را درست وارد کنید.' },
@@ -26,15 +26,46 @@ const inputStyle: React.CSSProperties = {
   padding: '0 14px', fontSize: 14, width: '100%', background: 'transparent', outline: 'none',
 };
 
-export default function NewHostDomainPage() {
+export default function EditHostDomainPage() {
   const { profile } = useAuth();
   const router = useRouter();
+  const params = useParams();
+  const id = params.id as string;
+
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [form, setForm] = useState({
     customerNumber: '', firstName: '', lastName: '', phoneNumber: '',
     domainName: '', hostType: 'host', startDate: '', expiryDate: '', notes: '',
   });
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await fetchData<HostDomain>('host_domains', { where: { id } });
+        const item = data?.[0];
+        if (!item) { toast.error('هاست/دامنه یافت نشد'); router.push('/dashboard/host-domains'); return; }
+        setForm({
+          customerNumber: item.customerNumber || '',
+          firstName: item.firstName || '',
+          lastName: item.lastName || '',
+          phoneNumber: item.phoneNumber || '',
+          domainName: item.domainName || '',
+          hostType: item.hostType || 'host',
+          startDate: item.startDate ? toLocalDateString(new Date(item.startDate)) : '',
+          expiryDate: item.expiryDate ? toLocalDateString(new Date(item.expiryDate)) : '',
+          notes: item.notes || '',
+        });
+      } catch (error: any) {
+        toast.error('بارگذاری هاست/دامنه ناموفق: ' + error.message);
+        router.push('/dashboard/host-domains');
+      } finally {
+        setLoading(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -54,21 +85,30 @@ export default function NewHostDomainPage() {
     if (!validate()) return;
     setSubmitting(true);
     try {
-      await createData('host_domains', {
+      await updateData('host_domains', { id }, {
         customerNumber: form.customerNumber.trim(), firstName: form.firstName.trim(),
         lastName: form.lastName.trim(), phoneNumber: form.phoneNumber.replace(/\s+/g, ''),
         domainName: form.domainName || null, hostType: form.hostType,
         startDate: form.startDate ? new Date(form.startDate).toISOString() : new Date().toISOString(),
         expiryDate: new Date(form.expiryDate).toISOString(), notes: form.notes || null,
       });
-      toast.success('هاست/دامنه با موفقیت ثبت شد');
+      toast.success('هاست/دامنه با موفقیت به‌روزرسانی شد');
       router.push('/dashboard/host-domains');
     } catch (error: any) {
-      toast.error('ثبت ناموفق: ' + error.message);
+      toast.error('به‌روزرسانی ناموفق: ' + error.message);
     } finally {
       setSubmitting(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-32" dir="rtl">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
+        <span className="mr-3 text-sm text-slate-500">در حال بارگذاری هاست/دامنه...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="nb-editor-page" dir="rtl">
@@ -78,13 +118,13 @@ export default function NewHostDomainPage() {
             <ArrowRight className="h-4 w-4" />
             بازگشت
           </Link>
-          <span className="nb-editor-breadcrumb">داشبورد <b>←</b> هاست و دامنه <b>←</b> ثبت جدید</span>
+          <span className="nb-editor-breadcrumb">داشبورد <b>←</b> هاست و دامنه <b>←</b> ویرایش هاست/دامنه</span>
         </div>
         <div className="nb-editor-topbar-right">
           <button type="button" className="nb-editor-discard" onClick={() => router.push('/dashboard/host-domains')} disabled={submitting}>انصراف</button>
           <button type="submit" form="host-form" className="nb-editor-save-btn" disabled={submitting}>
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-            {submitting ? 'در حال ثبت...' : 'ثبت هاست/دامنه'}
+            {submitting ? 'در حال به‌روزرسانی...' : 'ذخیره تغییرات'}
           </button>
         </div>
       </div>
@@ -99,7 +139,7 @@ export default function NewHostDomainPage() {
                 </span>
                 <div>
                   <h2 className="font-bold text-slate-900 dark:text-slate-100" style={{ fontSize: 20 }}>اطلاعات هاست/دامنه</h2>
-                  <p className="text-sm text-slate-400">جزئیات هاست یا دامنه مشتری را وارد کنید.</p>
+                  <p className="text-sm text-slate-400">جزئیات هاست یا دامنه مشتری را ویرایش کنید.</p>
                 </div>
               </div>
             </div>

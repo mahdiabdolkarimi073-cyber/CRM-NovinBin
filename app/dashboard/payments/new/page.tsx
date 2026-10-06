@@ -5,11 +5,10 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { fetchData, createData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowRight, CreditCard, DollarSign, Lightbulb, Info, Loader2, FileText, User, Calendar, Bell } from 'lucide-react';
+import { ArrowRight, CreditCard, DollarSign, Lightbulb, Info, Loader2, FileText, User, Calendar, Bell, Check } from 'lucide-react';
 import { toLocalDateString } from '@/lib/format';
 import { toast } from 'sonner';
 
@@ -20,7 +19,6 @@ const PAYMENT_METHODS = [
   { key: 'card', label: 'کارت' },
   { key: 'online', label: 'آنلاین' },
 ];
-
 const CASH_METHODS = [
   { key: 'direct', label: 'مستقیم' },
   { key: 'pos', label: 'POS' },
@@ -28,14 +26,12 @@ const CASH_METHODS = [
   { key: 'santna', label: 'سنتنا' },
   { key: 'paya', label: 'پایا' },
 ];
-
 const REMINDERS = [
   { key: 'none', label: 'بدون یادآوری' },
   { key: '1day', label: '۱ روز' },
   { key: '3day', label: '۳ روز' },
   { key: '7day', label: '۷ روز' },
 ];
-
 const PAYER_TYPES = [
   { key: 'customer', label: 'مشتری' },
   { key: 'supplier', label: 'تأمین‌کننده' },
@@ -47,6 +43,11 @@ const guideItems = [
   { icon: CreditCard, title: 'روش پرداخت', desc: 'نوع پرداخت (نقدی، چک، کارت و...) را انتخاب کنید.' },
   { icon: User, title: 'پرداخت‌کننده', desc: 'نوع و نام پرداخت‌کننده را مشخص کنید.' },
 ];
+
+const inputStyle: React.CSSProperties = {
+  height: 44, borderRadius: 10, border: '1px solid #E2E8F0',
+  padding: '0 14px', fontSize: 14, width: '100%', background: 'transparent', outline: 'none',
+};
 
 const emptyForm = () => ({
   invoiceId: '', amount: '', paymentMethod: 'cash', cashMethod: 'direct',
@@ -97,24 +98,16 @@ export default function NewPaymentPage() {
     const amount = Number(form.amount.replace(/[^0-9]/g, '')) || 0;
     try {
       await createData('payments', {
-        number,
-        invoiceId: form.invoiceId === 'none' || !form.invoiceId ? null : form.invoiceId,
-        amount,
-        method: form.paymentMethod,
+        number, invoiceId: form.invoiceId === 'none' || !form.invoiceId ? null : form.invoiceId,
+        amount, method: form.paymentMethod,
         reference: form.trackingNumber || form.chequeNumber || null,
-        date: new Date().toISOString(),
-        status: 'pending',
-        description: form.description || null,
-        cashMethod: form.cashMethod || null,
-        bankName: form.bankName || null,
-        chequeNumber: form.chequeNumber || null,
-        branchCode: form.branchCode || null,
-        trackingNumber: form.trackingNumber || null,
+        date: new Date().toISOString(), status: 'pending',
+        description: form.description || null, cashMethod: form.cashMethod || null,
+        bankName: form.bankName || null, chequeNumber: form.chequeNumber || null,
+        branchCode: form.branchCode || null, trackingNumber: form.trackingNumber || null,
         reminder: form.reminder === 'none' ? null : form.reminder,
-        payerType: form.payerType || null,
-        payerName: form.payerName || null,
-        receivedDate: form.receivedDate || null,
-        createdBy: profile.id,
+        payerType: form.payerType || null, payerName: form.payerName || null,
+        receivedDate: form.receivedDate || null, createdBy: profile.id,
       });
       toast.success('پرداخت با موفقیت ثبت شد');
       router.push('/dashboard/payments');
@@ -127,52 +120,55 @@ export default function NewPaymentPage() {
 
   if (loadingData) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin w-8 h-8 border-4 border-sky-500 border-t-transparent rounded-full" />
+      <div className="nb-editor-loading" dir="rtl">
+        <span />
+        <p>در حال بارگذاری...</p>
       </div>
     );
   }
 
   return (
-    <div className="create-task-page" dir="rtl">
-      <div className="create-task-container">
-        <header className="create-task-header">
-          <div>
-            <div className="create-task-title">
-              <span className="title-accent-bar" />
-              <h1>ثبت پرداخت جدید</h1>
-            </div>
-            <div className="create-task-breadcrumb">
-              داشبورد <b>←</b> پرداخت‌ها <b>←</b> ثبت پرداخت
-            </div>
-          </div>
-          <Link href="/dashboard/payments" className="back-button">
+    <div className="nb-editor-page" dir="rtl">
+      <div className="nb-editor-topbar">
+        <div className="nb-editor-topbar-left">
+          <Link href="/dashboard/payments" className="nb-editor-back">
             <ArrowRight className="h-4 w-4" />
             بازگشت به پرداخت‌ها
           </Link>
-        </header>
+          <span className="nb-editor-breadcrumb">داشبورد <b>←</b> پرداخت‌ها <b>←</b> ثبت پرداخت</span>
+        </div>
+        <div className="nb-editor-topbar-right">
+          <button type="button" className="nb-editor-discard" onClick={() => router.push('/dashboard/payments')} disabled={submitting}>
+            انصراف
+          </button>
+          <button type="submit" form="payment-form" className="nb-editor-save-btn" disabled={submitting}>
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+            {submitting ? 'در حال ثبت...' : 'ثبت پرداخت'}
+          </button>
+        </div>
+      </div>
 
-        <div className="create-task-grid">
-          <form className="task-form-card" onSubmit={handleSubmit}>
-            <div className="form-card-header">
-              <div className="form-card-title">
-                <span className="form-card-icon">
+      <div className="nb-editor-main">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <form id="payment-form" className="lg:col-span-2 nb-editor-canvas" onSubmit={handleSubmit}>
+            <div className="nb-editor-meta-row">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-50 text-violet-600 dark:bg-violet-900/20">
                   <CreditCard className="h-5 w-5" />
                 </span>
                 <div>
-                  <h2>اطلاعات پرداخت</h2>
-                  <p>جزئیات پرداخت را وارد کنید. فیلدهای ستاره‌دار الزامی هستند.</p>
+                  <h2 className="font-bold text-slate-900 dark:text-slate-100" style={{ fontSize: 20 }}>اطلاعات پرداخت</h2>
+                  <p className="text-sm text-slate-400">جزئیات پرداخت را وارد کنید.</p>
                 </div>
               </div>
             </div>
-            <div className="form-card-divider" />
 
-            <div className="form-fields">
-              <div className="field-group">
-                <Label className="field-label">فاکتور مرتبط</Label>
+            <div className="space-y-5">
+              <div className="nb-editor-field-group">
+                <Label className="nb-editor-label">فاکتور مرتبط</Label>
                 <Select value={form.invoiceId || 'none'} onValueChange={(v) => setForm({ ...form, invoiceId: v })}>
-                  <SelectTrigger className="task-select">
-                    <span className="select-icon-right"><FileText className="h-4 w-4" /></span>
+                  <SelectTrigger className="h-11">
+                    <FileText className="ml-1 h-4 w-4 text-slate-400" />
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -184,201 +180,121 @@ export default function NewPaymentPage() {
                 </Select>
               </div>
 
-              <div className="management-row">
-                <div className="field-group">
-                  <Label className="field-label">مبلغ (تومان) <span className="required-star">*</span></Label>
-                  <Input
-                    dir="ltr"
-                    value={form.amount}
-                    onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                    placeholder="0"
-                    className="task-input"
-                  />
-                  {errors.amount && <span className="field-error">{errors.amount}</span>}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">مبلغ (تومان) <span className="text-red-500">*</span></Label>
+                  <input dir="ltr" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="0" className="nb-input" style={inputStyle} />
+                  {errors.amount && <span className="nb-editor-error">{errors.amount}</span>}
                 </div>
-
-                <div className="field-group">
-                  <Label className="field-label">روش پرداخت <span className="required-star">*</span></Label>
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">روش پرداخت <span className="text-red-500">*</span></Label>
                   <Select value={form.paymentMethod} onValueChange={(v) => setForm({ ...form, paymentMethod: v })}>
-                    <SelectTrigger className="task-select">
-                      <span className="select-icon-right"><CreditCard className="h-4 w-4" /></span>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PAYMENT_METHODS.map((m) => (
-                        <SelectItem key={m.key} value={m.key}>{m.label}</SelectItem>
-                      ))}
-                    </SelectContent>
+                    <SelectTrigger className="h-11"><CreditCard className="ml-1 h-4 w-4 text-slate-400" /><SelectValue /></SelectTrigger>
+                    <SelectContent>{PAYMENT_METHODS.map((m) => <SelectItem key={m.key} value={m.key}>{m.label}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
               </div>
 
-              <div className="management-row">
-                <div className="field-group">
-                  <Label className="field-label">نوع پرداخت‌کننده</Label>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">نوع پرداخت‌کننده</Label>
                   <Select value={form.payerType} onValueChange={(v) => setForm({ ...form, payerType: v })}>
-                    <SelectTrigger className="task-select">
-                      <span className="select-icon-right"><User className="h-4 w-4" /></span>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PAYER_TYPES.map((p) => (
-                        <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>
-                      ))}
-                    </SelectContent>
+                    <SelectTrigger className="h-11"><User className="ml-1 h-4 w-4 text-slate-400" /><SelectValue /></SelectTrigger>
+                    <SelectContent>{PAYER_TYPES.map((p) => <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-
-                <div className="field-group">
-                  <Label className="field-label">نام پرداخت‌کننده</Label>
-                  <Input
-                    value={form.payerName}
-                    onChange={(e) => setForm({ ...form, payerName: e.target.value })}
-                    placeholder="نام..."
-                    className="task-input"
-                  />
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">نام پرداخت‌کننده</Label>
+                  <input value={form.payerName} onChange={(e) => setForm({ ...form, payerName: e.target.value })} placeholder="نام..." className="nb-input" style={inputStyle} />
                 </div>
               </div>
 
               {showCashMethod && (
-                <div className="field-group">
-                  <Label className="field-label">روش نقدی</Label>
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">روش نقدی</Label>
                   <Select value={form.cashMethod} onValueChange={(v) => setForm({ ...form, cashMethod: v })}>
-                    <SelectTrigger className="task-select">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CASH_METHODS.map((c) => (
-                        <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>
-                      ))}
-                    </SelectContent>
+                    <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+                    <SelectContent>{CASH_METHODS.map((c) => <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
               )}
 
               {showBankFields && (
-                <div className="management-row">
-                  <div className="field-group">
-                    <Label className="field-label">نام بانک</Label>
-                    <Input
-                      value={form.bankName}
-                      onChange={(e) => setForm({ ...form, bankName: e.target.value })}
-                      className="task-input"
-                    />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="nb-editor-field-group">
+                    <Label className="nb-editor-label">نام بانک</Label>
+                    <input value={form.bankName} onChange={(e) => setForm({ ...form, bankName: e.target.value })} className="nb-input" style={inputStyle} />
                   </div>
                   {form.paymentMethod === 'cheque' && (
                     <>
-                      <div className="field-group">
-                        <Label className="field-label">شماره چک</Label>
-                        <Input
-                          dir="ltr"
-                          value={form.chequeNumber}
-                          onChange={(e) => setForm({ ...form, chequeNumber: e.target.value })}
-                          className="task-input"
-                        />
+                      <div className="nb-editor-field-group">
+                        <Label className="nb-editor-label">شماره چک</Label>
+                        <input dir="ltr" value={form.chequeNumber} onChange={(e) => setForm({ ...form, chequeNumber: e.target.value })} className="nb-input" style={inputStyle} />
                       </div>
-                      <div className="field-group">
-                        <Label className="field-label">کد شعبه</Label>
-                        <Input
-                          dir="ltr"
-                          value={form.branchCode}
-                          onChange={(e) => setForm({ ...form, branchCode: e.target.value })}
-                          className="task-input"
-                        />
+                      <div className="nb-editor-field-group">
+                        <Label className="nb-editor-label">کد شعبه</Label>
+                        <input dir="ltr" value={form.branchCode} onChange={(e) => setForm({ ...form, branchCode: e.target.value })} className="nb-input" style={inputStyle} />
                       </div>
                     </>
                   )}
                   {['transfer', 'online', 'card'].includes(form.paymentMethod) && (
-                    <div className="field-group">
-                      <Label className="field-label">شماره پیگیری</Label>
-                      <Input
-                        dir="ltr"
-                        value={form.trackingNumber}
-                        onChange={(e) => setForm({ ...form, trackingNumber: e.target.value })}
-                        className="task-input"
-                      />
+                    <div className="nb-editor-field-group">
+                      <Label className="nb-editor-label">شماره پیگیری</Label>
+                      <input dir="ltr" value={form.trackingNumber} onChange={(e) => setForm({ ...form, trackingNumber: e.target.value })} className="nb-input" style={inputStyle} />
                     </div>
                   )}
                 </div>
               )}
 
-              <div className="management-row">
-                <div className="field-group">
-                  <Label className="field-label">تاریخ دریافت</Label>
-                  <div className="date-input-wrap">
-                    <span className="date-icon"><Calendar className="h-4 w-4" /></span>
-                    <JalaliDatePicker
-                      value={form.receivedDate ? new Date(form.receivedDate) : null}
-                      onChange={(d) => setForm({ ...form, receivedDate: d ? toLocalDateString(d) : '' })}
-                      className="task-date-input"
-                    />
-                  </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">تاریخ دریافت</Label>
+                  <JalaliDatePicker value={form.receivedDate ? new Date(form.receivedDate) : null} onChange={(d) => setForm({ ...form, receivedDate: d ? toLocalDateString(d) : '' })} className="h-11" />
                 </div>
-                <div className="field-group">
-                  <Label className="field-label">یادآوری</Label>
+                <div className="nb-editor-field-group">
+                  <Label className="nb-editor-label">یادآوری</Label>
                   <Select value={form.reminder} onValueChange={(v) => setForm({ ...form, reminder: v })}>
-                    <SelectTrigger className="task-select">
-                      <span className="select-icon-right"><Bell className="h-4 w-4" /></span>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {REMINDERS.map((r) => (
-                        <SelectItem key={r.key} value={r.key}>{r.label}</SelectItem>
-                      ))}
-                    </SelectContent>
+                    <SelectTrigger className="h-11"><Bell className="ml-1 h-4 w-4 text-slate-400" /><SelectValue /></SelectTrigger>
+                    <SelectContent>{REMINDERS.map((r) => <SelectItem key={r.key} value={r.key}>{r.label}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
               </div>
 
-              <div className="field-group">
-                <Label className="field-label">توضیحات</Label>
-                <Input
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  placeholder="توضیحات اختیاری..."
-                  className="task-input"
-                />
+              <div className="nb-editor-field-group">
+                <Label className="nb-editor-label">توضیحات</Label>
+                <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="توضیحات اختیاری..." className="nb-input" style={inputStyle} />
               </div>
-            </div>
-
-            <div className="form-actions-row">
-              <button type="button" className="cancel-btn" onClick={() => router.push('/dashboard/payments')} disabled={submitting}>
-                انصراف
-              </button>
-              <button type="submit" className="submit-btn" disabled={submitting}>
-                {submitting ? (<><Loader2 className="h-4 w-4 animate-spin" /> در حال ثبت...</>) : 'ثبت پرداخت'}
-              </button>
             </div>
           </form>
 
-          <aside className="task-sidebar">
-            <div className="guide-card">
-              <div className="guide-card-header">
-                <span className="guide-card-icon"><Lightbulb className="h-5 w-5" /></span>
-                <h2>راهنما و نکات</h2>
+          <aside className="space-y-4">
+            <div className="nb-editor-canvas" style={{ padding: 20 }}>
+              <div className="mb-3 flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-500 dark:bg-amber-900/20">
+                  <Lightbulb className="h-5 w-5" />
+                </span>
+                <h2 className="font-bold text-slate-900 dark:text-slate-100">راهنما و نکات</h2>
               </div>
-              <div className="guide-items">
+              <div className="space-y-3">
                 {guideItems.map((item, i) => (
-                  <div key={i}>
-                    <div className="guide-item">
-                      <span className="guide-item-icon"><item.icon className="h-5 w-5" /></span>
-                      <div className="guide-item-text">
-                        <strong>{item.title}</strong>
-                        <p>{item.desc}</p>
-                      </div>
+                  <div key={i} className="flex gap-2.5">
+                    <span className="mt-0.5 shrink-0 text-slate-300"><item.icon className="h-4 w-4" /></span>
+                    <div>
+                      <strong className="text-sm text-slate-700 dark:text-slate-300">{item.title}</strong>
+                      <p className="text-xs text-slate-400">{item.desc}</p>
                     </div>
-                    {i < guideItems.length - 1 && <div className="guide-item-divider" />}
                   </div>
                 ))}
               </div>
             </div>
-
-            <div className="info-card">
-              <div className="info-card-header">
-                <span className="info-card-icon"><Info className="h-5 w-5" /></span>
-                <h2>اطلاعات مفید</h2>
+            <div className="rounded-xl border border-sky-100 bg-sky-50/50 p-5 dark:border-sky-900/30 dark:bg-sky-900/10">
+              <div className="mb-2 flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-100 text-sky-600 dark:bg-sky-900/30">
+                  <Info className="h-5 w-5" />
+                </span>
+                <h2 className="font-bold text-slate-900 dark:text-slate-100">اطلاعات مفید</h2>
               </div>
-              <p>پرداخت‌های ثبت شده در بخش «پرداخت‌ها» قابل مدیریت هستند. شماره پرداخت خودکار تولید می‌شود و وضعیت اولیه «در انتظار» خواهد بود.</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">پرداخت‌های ثبت شده در بخش «پرداخت‌ها» قابل مدیریت هستند. شماره پرداخت خودکار تولید می‌شود و وضعیت اولیه «در انتظار» خواهد بود.</p>
             </div>
           </aside>
         </div>

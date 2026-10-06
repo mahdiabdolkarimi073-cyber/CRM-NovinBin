@@ -1,10 +1,9 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { fetchData, createData } from '@/lib/data-client';
-import { useAuth } from '@/components/providers/auth-provider';
+import { fetchData, updateData } from '@/lib/data-client';
 import { Label } from '@/components/ui/label';
 import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -31,10 +30,9 @@ const REMINDERS = [
 const PAYER_TYPES = [{ key: 'customer', label: 'مشتری' }, { key: 'supplier', label: 'تأمین‌کننده' }];
 
 const guideItems = [
-  { icon: FileText, title: 'فاکتور مرتبط', desc: 'در صورت وجود، فاکتور مرتبط را انتخاب کنید.' },
-  { icon: DollarSign, title: 'مبلغ رسید', desc: 'مبلغ رسید را به تومان وارد کنید.' },
-  { icon: Banknote, title: 'نوع رسید', desc: 'نوع رسید (نقدی، چک، انتقال و...) را انتخاب کنید.' },
-  { icon: Building, title: 'واریز به', desc: 'حساب یا شعبه واریز را مشخص کنید.' },
+  { icon: FileText, title: 'فاکتور مرتبط', desc: 'فاکتور مرتبط را تغییر دهید.' },
+  { icon: DollarSign, title: 'مبلغ رسید', desc: 'مبلغ رسید را اصلاح کنید.' },
+  { icon: Banknote, title: 'نوع رسید', desc: 'نوع رسید را تغییر دهید.' },
 ];
 
 const inputStyle: React.CSSProperties = {
@@ -42,30 +40,54 @@ const inputStyle: React.CSSProperties = {
   padding: '0 14px', fontSize: 14, width: '100%', background: 'transparent', outline: 'none',
 };
 
-const emptyForm = () => ({
-  invoice_id: '', amount: '', deposit_to: 'main_account', receipt_type: 'cash',
-  cash_method: 'direct', bank_name: '', cheque_number: '', branch_code: '',
-  tracking_number: '', received_date: toLocalDateString(new Date()), reminder: 'none',
-  payer_type: 'customer', payer_name: '', notes: '', manual_number: '',
-});
-
-export default function NewReceiptPage() {
-  const { profile } = useAuth();
+export default function EditReceiptPage() {
+  const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [invoices, setInvoices] = useState<any[]>([]);
-  const [loadingData, setLoadingData] = useState(true);
+  const [loadingReceipt, setLoadingReceipt] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [form, setForm] = useState(emptyForm());
+  const [form, setForm] = useState({
+    invoice_id: '', amount: '', deposit_to: 'main_account', receipt_type: 'cash',
+    cash_method: 'direct', bank_name: '', cheque_number: '', branch_code: '',
+    tracking_number: '', received_date: '', reminder: 'none',
+    payer_type: 'customer', payer_name: '', notes: '', manual_number: '',
+  });
 
   const loadData = useCallback(async () => {
     try {
       const inv = await fetchData('invoices', { where: {} });
       setInvoices(inv || []);
-    } catch { setInvoices([]); } finally { setLoadingData(false); }
+    } catch { setInvoices([]); }
   }, []);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  const loadReceipt = useCallback(async () => {
+    if (!id) return;
+    try {
+      const receipts = await fetchData('receipts', { where: { id } });
+      if (receipts && receipts.length > 0) {
+        const r = receipts[0];
+        setForm({
+          invoice_id: r.relatedInvoiceId || '', amount: String(Number(r.amount)),
+          deposit_to: r.depositTo || 'main_account', receipt_type: r.receiptType || 'cash',
+          cash_method: r.cashMethod || 'direct', bank_name: r.bankName || '',
+          cheque_number: r.chequeNumber || '', branch_code: r.branchCode || '',
+          tracking_number: r.trackingNumber || '', received_date: r.receivedDate || '',
+          reminder: r.reminder || 'none', payer_type: r.payerType || 'customer',
+          payer_name: r.payerName || '', notes: r.notes || '', manual_number: r.manualNumber || '',
+        });
+      } else {
+        toast.error('رسید یافت نشد');
+        router.push('/dashboard/receipts');
+      }
+    } catch (error: any) {
+      toast.error('بارگذاری رسید ناموفق: ' + error.message);
+    } finally {
+      setLoadingReceipt(false);
+    }
+  }, [id, router]);
+
+  useEffect(() => { loadData(); loadReceipt(); }, [loadData, loadReceipt]);
 
   const showBankFields = ['cheque', 'bank_transfer', 'card_to_card'].includes(form.receipt_type);
   const showCashMethod = ['cash', 'pos'].includes(form.receipt_type);
@@ -80,14 +102,12 @@ export default function NewReceiptPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile) { toast.error('اطلاعات کاربر بارگذاری نشده'); return; }
     if (!validate()) return;
     setSubmitting(true);
-    const number = 'REC-' + Date.now().toString().slice(-6);
     const amount = Number(form.amount.replace(/[^0-9]/g, '')) || 0;
     try {
-      await createData('receipts', {
-        number, relatedInvoiceId: form.invoice_id === 'none' || !form.invoice_id ? null : form.invoice_id,
+      await updateData('receipts', { id }, {
+        relatedInvoiceId: form.invoice_id === 'none' || !form.invoice_id ? null : form.invoice_id,
         amount, depositTo: form.deposit_to || null, receiptType: form.receipt_type,
         cashMethod: form.cash_method || null, bankName: form.bank_name || null,
         chequeNumber: form.cheque_number || null, branchCode: form.branch_code || null,
@@ -95,22 +115,21 @@ export default function NewReceiptPage() {
         reminder: form.reminder === 'none' ? null : form.reminder,
         payerType: form.payer_type || null, payerName: form.payer_name || null,
         notes: form.notes || null, manualNumber: form.manual_number || null,
-        receiptImageUrl: null, createdBy: profile.id,
       });
-      toast.success('رسید با موفقیت ثبت شد');
+      toast.success('رسید با موفقیت ویرایش شد');
       router.push('/dashboard/receipts');
     } catch (error: any) {
-      toast.error('ثبت رسید ناموفق: ' + (error?.message || 'خطا'));
+      toast.error('ویرایش رسید ناموفق: ' + (error?.message || 'خطا'));
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loadingData) {
+  if (loadingReceipt) {
     return (
       <div className="nb-editor-loading" dir="rtl">
         <span />
-        <p>در حال بارگذاری...</p>
+        <p>در حال بارگذاری رسید...</p>
       </div>
     );
   }
@@ -123,28 +142,28 @@ export default function NewReceiptPage() {
             <ArrowRight className="h-4 w-4" />
             بازگشت به رسیدها
           </Link>
-          <span className="nb-editor-breadcrumb">داشبورد <b>←</b> رسیدها <b>←</b> ثبت رسید</span>
+          <span className="nb-editor-breadcrumb">داشبورد <b>←</b> رسیدها <b>←</b> ویرایش رسید</span>
         </div>
         <div className="nb-editor-topbar-right">
           <button type="button" className="nb-editor-discard" onClick={() => router.push('/dashboard/receipts')} disabled={submitting}>انصراف</button>
-          <button type="submit" form="receipt-form" className="nb-editor-save-btn" disabled={submitting}>
+          <button type="submit" form="receipt-edit-form" className="nb-editor-save-btn" disabled={submitting}>
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-            {submitting ? 'در حال ثبت...' : 'ثبت رسید'}
+            {submitting ? 'در حال ذخیره...' : 'ذخیره تغییرات'}
           </button>
         </div>
       </div>
 
       <div className="nb-editor-main">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <form id="receipt-form" className="lg:col-span-2 nb-editor-canvas" onSubmit={handleSubmit}>
+          <form id="receipt-edit-form" className="lg:col-span-2 nb-editor-canvas" onSubmit={handleSubmit}>
             <div className="nb-editor-meta-row">
               <div className="flex items-center gap-3">
                 <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-50 text-teal-600 dark:bg-teal-900/20">
                   <Banknote className="h-5 w-5" />
                 </span>
                 <div>
-                  <h2 className="font-bold text-slate-900 dark:text-slate-100" style={{ fontSize: 20 }}>اطلاعات رسید</h2>
-                  <p className="text-sm text-slate-400">جزئیات رسید دریافتی را وارد کنید.</p>
+                  <h2 className="font-bold text-slate-900 dark:text-slate-100" style={{ fontSize: 20 }}>ویرایش رسید</h2>
+                  <p className="text-sm text-slate-400">اطلاعات رسید را ویرایش کنید.</p>
                 </div>
               </div>
             </div>
@@ -183,11 +202,6 @@ export default function NewReceiptPage() {
                 </div>
               </div>
 
-              <div className="nb-editor-field-group">
-                <Label className="nb-editor-label">شماره دستی</Label>
-                <input dir="ltr" value={form.manual_number} onChange={(e) => setForm({ ...form, manual_number: e.target.value })} placeholder="اختیاری..." className="nb-input" style={inputStyle} />
-              </div>
-
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="nb-editor-field-group">
                   <Label className="nb-editor-label">نوع پرداخت‌کننده</Label>
@@ -198,7 +212,7 @@ export default function NewReceiptPage() {
                 </div>
                 <div className="nb-editor-field-group">
                   <Label className="nb-editor-label">نام پرداخت‌کننده</Label>
-                  <input value={form.payer_name} onChange={(e) => setForm({ ...form, payer_name: e.target.value })} placeholder="نام..." className="nb-input" style={inputStyle} />
+                  <input value={form.payer_name} onChange={(e) => setForm({ ...form, payer_name: e.target.value })} className="nb-input" style={inputStyle} />
                 </div>
               </div>
 
@@ -255,7 +269,7 @@ export default function NewReceiptPage() {
 
               <div className="nb-editor-field-group">
                 <Label className="nb-editor-label">توضیحات</Label>
-                <input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="توضیحات اختیاری..." className="nb-input" style={inputStyle} />
+                <input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="nb-input" style={inputStyle} />
               </div>
             </div>
           </form>
@@ -287,7 +301,7 @@ export default function NewReceiptPage() {
                 </span>
                 <h2 className="font-bold text-slate-900 dark:text-slate-100">اطلاعات مفید</h2>
               </div>
-              <p className="text-sm text-slate-500 dark:text-slate-400">رسیدهای ثبت شده در بخش «رسیدها» قابل مشاهده و مدیریت هستند. شماره رسید به‌صورت خودکار تولید می‌شود.</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">پس از ویرایش، تغییرات در بخش «رسیدها» قابل مشاهده است.</p>
             </div>
           </aside>
         </div>

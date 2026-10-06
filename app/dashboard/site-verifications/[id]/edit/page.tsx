@@ -1,17 +1,17 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/components/providers/auth-provider';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowRight, Clipboard, FileText, Upload, Loader2, Check, X, Lightbulb, Info } from 'lucide-react';
 import { VERIFICATION_CATEGORIES } from '@/lib/constants';
 import { formatFileSize } from '@/lib/format';
-import { createData } from '@/lib/data-client';
+import { fetchData, updateData } from '@/lib/data-client';
 import { toast } from 'sonner';
+import type { SiteVerification } from '@/lib/types';
 
 const MAX_DESC = 1000;
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -27,14 +27,40 @@ const inputStyle: React.CSSProperties = {
   padding: '0 14px', fontSize: 14, width: '100%', background: 'transparent', outline: 'none',
 };
 
-export default function NewVerificationPage() {
+export default function EditVerificationPage() {
   const { profile } = useAuth();
   const router = useRouter();
+  const params = useParams();
+  const id = params.id as string;
+
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [form, setForm] = useState({ title: '', description: '', category: 'general' });
   const [file, setFile] = useState<{ url: string; name: string; type: string; size: number } | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await fetchData<SiteVerification>('site_verifications', { where: { id } });
+        const item = data?.[0];
+        if (!item) { toast.error('تاییدیه یافت نشد'); router.push('/dashboard/site-verifications'); return; }
+        setForm({
+          title: item.title || '',
+          description: item.description || '',
+          category: item.category || 'general',
+        });
+        setFile(item.fileUrl ? { url: item.fileUrl, name: item.fileName || 'فایل', type: item.fileType || '', size: Number(item.fileSize) || 0 } : null);
+      } catch (error: any) {
+        toast.error('بارگذاری تاییدیه ناموفق: ' + error.message);
+        router.push('/dashboard/site-verifications');
+      } finally {
+        setLoading(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -73,18 +99,27 @@ export default function NewVerificationPage() {
     if (!validate()) return;
     setSubmitting(true);
     try {
-      await createData('site_verifications', {
+      await updateData('site_verifications', { id }, {
         title: form.title.trim(), description: form.description || null, category: form.category,
         fileUrl: file!.url, fileName: file!.name, fileType: file!.type, fileSize: file!.size,
       });
-      toast.success('تاییدیه با موفقیت ارسال شد');
+      toast.success('تاییدیه با موفقیت به‌روزرسانی شد');
       router.push('/dashboard/site-verifications');
     } catch (error: any) {
-      toast.error('ارسال تاییدیه ناموفق: ' + error.message);
+      toast.error('به‌روزرسانی تاییدیه ناموفق: ' + error.message);
     } finally {
       setSubmitting(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-32" dir="rtl">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
+        <span className="mr-3 text-sm text-slate-500">در حال بارگذاری تاییدیه...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="nb-editor-page" dir="rtl">
@@ -94,13 +129,13 @@ export default function NewVerificationPage() {
             <ArrowRight className="h-4 w-4" />
             بازگشت به تاییدیه‌ها
           </Link>
-          <span className="nb-editor-breadcrumb">داشبورد <b>←</b> تاییدیه‌های سایت <b>←</b> تاییدیه جدید</span>
+          <span className="nb-editor-breadcrumb">داشبورد <b>←</b> تاییدیه‌های سایت <b>←</b> ویرایش تاییدیه</span>
         </div>
         <div className="nb-editor-topbar-right">
           <button type="button" className="nb-editor-discard" onClick={() => router.push('/dashboard/site-verifications')} disabled={submitting}>انصراف</button>
           <button type="submit" form="verification-form" className="nb-editor-save-btn" disabled={submitting || uploading}>
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-            {submitting ? 'در حال ارسال...' : 'ارسال تاییدیه'}
+            {submitting ? 'در حال به‌روزرسانی...' : 'ذخیره تغییرات'}
           </button>
         </div>
       </div>
@@ -115,7 +150,7 @@ export default function NewVerificationPage() {
                 </span>
                 <div>
                   <h2 className="font-bold text-slate-900 dark:text-slate-100" style={{ fontSize: 20 }}>اطلاعات تاییدیه</h2>
-                  <p className="text-sm text-slate-400">جزئیات تاییدیه جدید را وارد کنید.</p>
+                  <p className="text-sm text-slate-400">جزئیات تاییدیه را ویرایش کنید.</p>
                 </div>
               </div>
             </div>
