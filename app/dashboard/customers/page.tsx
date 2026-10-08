@@ -1,24 +1,19 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { fetchData, updateData, deleteData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
-import { PageHeader } from '@/components/dashboard/page-header';
-import { EmptyState } from '@/components/dashboard/empty-state';
 import { SuperAdminActions } from '@/components/dashboard/super-admin-actions';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
 } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users, Plus, Search, Building2, User, Phone, Mail, MapPin, Briefcase, Award, Check, X, KeyRound } from 'lucide-react';
+import { Users, Plus, Search, Building2, User, Phone, Mail, MapPin, Briefcase, Award, Check, X, KeyRound, Loader2 } from 'lucide-react';
 import { relativeTime } from '@/lib/format';
 import { fullName, CUSTOMER_LEVELS, SERVICE_TYPES, ACTIVITY_TYPES } from '@/lib/constants';
 import { toast } from 'sonner';
@@ -199,144 +194,197 @@ export default function CustomersPage() {
 
   const getLevelInfo = (level: string) => CUSTOMER_LEVELS.find((l) => l.key === level) || CUSTOMER_LEVELS[0];
 
-  return (
-    <div>
-      <PageHeader
-        title="مشتریان"
-        description="مدیریت مشتریان حقیقی و حقوقی"
-        action={
-          <Link href="/dashboard/customers/new">
-            <Button size="sm">
-              <Plus className="w-4 h-4" />
-              مشتری جدید
-            </Button>
-          </Link>
-        }
-      />
+  const stats = useMemo(() => [
+    {
+      label: 'کل مشتریان', value: customers.length, icon: Users,
+      filter: 'all',
+      gradient: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)',
+      glow: 'rgba(37,99,235,0.25)',
+    },
+    {
+      label: 'مشتریان حقیقی', value: customers.filter((c) => c.type === 'individual').length, icon: User,
+      filter: 'individual',
+      gradient: 'linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)',
+      glow: 'rgba(14,165,233,0.25)',
+    },
+    {
+      label: 'مشتریان حقوقی', value: customers.filter((c) => c.type === 'company').length, icon: Building2,
+      filter: 'company',
+      gradient: 'linear-gradient(135deg, #0891B2 0%, #0E7490 100%)',
+      glow: 'rgba(8,145,178,0.25)',
+    },
+  ], [customers]);
 
-      {/* Filters */}
-      <div className="flex flex-col gap-2 mobile:flex-row mobile:gap-3 mb-4">
-        <div className="relative flex-1">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <Input
-            placeholder="جستجو مشتری..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pr-10"
-          />
+  const handleStatClick = (f: string) => {
+    setFilterType(filterType === f ? 'all' : f);
+  };
+
+  if (loading) {
+    return (
+      <div className="nb-page" dir="rtl">
+        <div className="nb-empty">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
+          <p>در حال بارگذاری مشتریان...</p>
         </div>
-        <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-full mobile:w-40">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">همه مشتریان</SelectItem>
-            <SelectItem value="individual">حقیقی</SelectItem>
-            <SelectItem value="company">حقوقی</SelectItem>
-          </SelectContent>
-        </Select>
+      </div>
+    );
+  }
+
+  return (
+    <div className="nb-page" dir="rtl">
+      <header className="nb-hero">
+        <div className="nb-hero-left">
+          <div>
+            <div className="nb-hero-title-row">
+              <span className="nb-hero-marker" style={{ background: 'linear-gradient(180deg,#FF7A00,#E65100)', boxShadow: '0 0 12px rgba(255,122,0,.25)' }} />
+              <h1>مشتریان</h1>
+            </div>
+            <p>مدیریت مشتریان حقیقی و حقوقی</p>
+          </div>
+        </div>
+        <div className="nb-hero-right">
+          <Link href="/dashboard/customers/new" className="nb-new-btn">
+            <Plus className="h-[18px] w-[18px]" />
+            مشتری جدید
+          </Link>
+        </div>
+      </header>
+
+      <section className="nb-stats-grid-v2">
+        {stats.map((stat) => (
+          <button
+            type="button"
+            className={`nb-stat-card-v2 ${filterType === stat.filter ? 'is-active' : ''}`}
+            key={stat.label}
+            onClick={() => handleStatClick(stat.filter)}
+            style={{ '--stat-glow': stat.glow } as React.CSSProperties}
+          >
+            <div className="nb-stat-v2-icon" style={{ background: stat.gradient }}>
+              <stat.icon className="h-[22px] w-[22px] text-white" strokeWidth={2.5} />
+            </div>
+            <div className="nb-stat-v2-body">
+              <strong>{stat.value.toLocaleString('fa-IR')}</strong>
+              <span>{stat.label}</span>
+            </div>
+            <div className="nb-stat-v2-spark" style={{ background: stat.gradient }} />
+          </button>
+        ))}
+      </section>
+
+      <div className="nb-toolbar">
+        <div className="nb-toolbar-left">
+          <h2>همه مشتریان</h2>
+          <span className="nb-count-badge">{customers.length.toLocaleString('fa-IR')} مورد</span>
+        </div>
+        <div className="nb-toolbar-right">
+          <div className="nb-search-box">
+            <Search className="h-4 w-4" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="جستجوی مشتری..."
+            />
+            {search && <button onClick={() => setSearch('')}><X className="h-3.5 w-3.5" /></button>}
+          </div>
+          <Select value={filterType} onValueChange={setFilterType}>
+            <SelectTrigger className="nb-select-filter h-10 w-[140px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">همه مشتریان</SelectItem>
+              <SelectItem value="individual">حقیقی</SelectItem>
+              <SelectItem value="company">حقوقی</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      {/* List */}
-      {loading ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin w-8 h-8 border-3 border-sky-500 border-t-transparent rounded-full" />
+      {customers.length === 0 ? (
+        <div className="nb-empty">
+          <div className="sb-empty-icon"><Users className="h-12 w-12 text-muted-foreground/30" /></div>
+          <h3>مشتری‌ای یافت نشد</h3>
+          <p>برای شروع، اولین مشتری خود را اضافه کنید</p>
+          <Link href="/dashboard/customers/new" className="nb-empty-new-btn"><Plus className="h-4 w-4" /> افزودن مشتری</Link>
         </div>
-      ) : customers.length === 0 ? (
-        <Card>
-          <EmptyState
-            icon={<Users className="w-8 h-8" />}
-            title="مشتری‌ای یافت نشد"
-            description="برای شروع، اولین مشتری خود را اضافه کنید"
-            action={
-              <Link href="/dashboard/customers/new">
-                <Button>
-                  <Plus className="w-4 h-4" />
-                  افزودن مشتری
-                </Button>
-              </Link>
-            }
-          />
-        </Card>
       ) : (
         <div className="grid grid-cols-1 gap-3 mobile:gap-4 tablet:grid-cols-2 desktop:grid-cols-3">
           {customers.map((c) => {
             const level = getLevelInfo(c.level);
             const name = c.type === 'company' ? c.companyName : fullName(c.firstName, c.lastName);
             return (
-              <Card key={c.id} className="hover:shadow-md transition-smooth group h-full">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3 mb-3">
-                    <Avatar className="w-11 h-11">
-                      <AvatarFallback className={c.type === 'company' ? 'bg-blue-100 text-blue-700' : 'bg-sky-100 text-sky-700'}>
-                        {c.type === 'company' ? <Building2 className="w-5 h-5" /> : name?.[0] || <User className="w-5 h-5" />}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <Link href={`/dashboard/customers/${c.id}`}>
-                        <div className="font-semibold text-slate-900 truncate group-hover:text-sky-600 transition-smooth">{name}</div>
-                      </Link>
-                      <div className="text-xs text-slate-400 mt-0.5">{relativeTime(c.createdAt)}</div>
+              <div key={c.id} className="nb-card group h-full hover:shadow-md transition-smooth">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className={`flex h-11 w-11 items-center justify-center rounded-full shrink-0 ${c.type === 'company' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400'}`}>
+                    {c.type === 'company' ? <Building2 className="w-5 h-5" /> : name?.[0] || <User className="w-5 h-5" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <Link href={`/dashboard/customers/${c.id}`}>
+                      <div className="font-semibold text-slate-900 truncate group-hover:text-sky-600 transition-smooth dark:text-slate-100">{name}</div>
+                    </Link>
+                    <div className="text-xs text-slate-400 mt-0.5">{relativeTime(c.createdAt)}</div>
+                  </div>
+                  <Badge variant="outline" className="text-xs shrink-0" style={{ color: level.color, borderColor: level.color + '40' }}>
+                    {level.label}
+                  </Badge>
+                </div>
+                <div className="space-y-1.5 text-sm">
+                  {c.activityType && (
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                      <Briefcase className="w-3.5 h-3.5 text-slate-400" />
+                      {c.activityType}
                     </div>
-                    <Badge variant="outline" className="text-xs shrink-0" style={{ color: level.color, borderColor: level.color + '40' }}>
-                      {level.label}
-                    </Badge>
-                  </div>
-                  <div className="space-y-1.5 text-sm">
-                    {c.activityType && (
-                      <div className="flex items-center gap-2 text-slate-500">
-                        <Briefcase className="w-3.5 h-3.5 text-slate-400" />
-                        {c.activityType}
-                      </div>
-                    )}
-                    {c.mobile && isSuperAdmin && (
-                      <div className="flex items-center gap-2 text-slate-500">
-                        <Phone className="w-3.5 h-3.5 text-slate-400" />
-                        <span dir="ltr">{c.mobile}</span>
-                      </div>
-                    )}
-                    {c.mobile && !isSuperAdmin && (
-                      <div className="flex items-center gap-2 text-slate-500">
-                        <Phone className="w-3.5 h-3.5 text-slate-400" />
-                        <span dir="ltr" className="tracking-widest">••••••••</span>
-                      </div>
-                    )}
-                    {c.email && (
-                      <div className="flex items-center gap-2 text-slate-500">
-                        <Mail className="w-3.5 h-3.5 text-slate-400" />
-                        <span dir="ltr" className="truncate">{c.email}</span>
-                      </div>
-                    )}
-                    {c.city && (
-                      <div className="flex items-center gap-2 text-slate-500">
-                        <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                        {c.city}
-                      </div>
-                    )}
-                    {c.serviceTypes && c.serviceTypes.length > 0 && (
-                      <div className="flex flex-wrap gap-1 pt-1">
-                        {c.serviceTypes.map((s) => (
-                          <span key={s} className="text-[10px] bg-slate-100 text-slate-600 rounded px-1.5 py-0.5">{s}</span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
-                    <span className="text-xs text-slate-400">
-                      {c.type === 'company' ? 'مشتری حقوقی' : 'مشتری حقیقی'}
-                    </span>
-                    <SuperAdminActions
-                      onView={() => openView(c)}
-                      onEdit={() => openEdit(c)}
-                      onDelete={() => handleDelete(c)}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
+                  )}
+                  {c.mobile && isSuperAdmin && (
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                      <Phone className="w-3.5 h-3.5 text-slate-400" />
+                      <span dir="ltr">{c.mobile}</span>
+                    </div>
+                  )}
+                  {c.mobile && !isSuperAdmin && (
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                      <Phone className="w-3.5 h-3.5 text-slate-400" />
+                      <span dir="ltr" className="tracking-widest">••••••••</span>
+                    </div>
+                  )}
+                  {c.email && (
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                      <Mail className="w-3.5 h-3.5 text-slate-400" />
+                      <span dir="ltr" className="truncate">{c.email}</span>
+                    </div>
+                  )}
+                  {c.city && (
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                      <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                      {c.city}
+                    </div>
+                  )}
+                  {c.serviceTypes && c.serviceTypes.length > 0 && (
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      {c.serviceTypes.map((s) => (
+                        <span key={s} className="text-[10px] bg-slate-100 text-slate-600 rounded px-1.5 py-0.5 dark:bg-slate-700 dark:text-slate-300">{s}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+                  <span className="text-xs text-slate-400 dark:text-slate-500">
+                    {c.type === 'company' ? 'مشتری حقوقی' : 'مشتری حقیقی'}
+                  </span>
+                  <SuperAdminActions
+                    onView={() => openView(c)}
+                    onEdit={() => openEdit(c)}
+                    onDelete={() => handleDelete(c)}
+                  />
+                </div>
+              </div>
             );
           })}
         </div>
       )}
+
+      <Link href="/dashboard/customers/new" className="nb-fab" aria-label="مشتری جدید">
+        <Plus className="h-6 w-6" />
+      </Link>
 
       {/* View Dialog */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
@@ -345,13 +393,11 @@ export default function CustomersPage() {
           {viewCustomer && (
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <Avatar className="w-12 h-12">
-                  <AvatarFallback className={viewCustomer.type === 'company' ? 'bg-blue-100 text-blue-700' : 'bg-sky-100 text-sky-700'}>
-                    {viewCustomer.type === 'company' ? <Building2 className="w-6 h-6" /> : (fullName(viewCustomer.firstName, viewCustomer.lastName))?.[0] || <User className="w-6 h-6" />}
-                  </AvatarFallback>
-                </Avatar>
+                <div className={`flex h-12 w-12 items-center justify-center rounded-full ${viewCustomer.type === 'company' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400'}`}>
+                  {viewCustomer.type === 'company' ? <Building2 className="w-6 h-6" /> : (fullName(viewCustomer.firstName, viewCustomer.lastName))?.[0] || <User className="w-6 h-6" />}
+                </div>
                 <div>
-                  <div className="font-bold text-slate-900">{viewCustomer.type === 'company' ? viewCustomer.companyName : fullName(viewCustomer.firstName, viewCustomer.lastName)}</div>
+                  <div className="font-bold text-slate-900 dark:text-slate-100">{viewCustomer.type === 'company' ? viewCustomer.companyName : fullName(viewCustomer.firstName, viewCustomer.lastName)}</div>
                   <Badge variant="outline" className="text-xs mt-1" style={{ color: getLevelInfo(viewCustomer.level).color, borderColor: getLevelInfo(viewCustomer.level).color + '40' }}>{getLevelInfo(viewCustomer.level).label}</Badge>
                 </div>
               </div>
@@ -371,7 +417,7 @@ export default function CustomersPage() {
                   <span className="text-slate-400 block mb-1">شماره‌های اضافی:</span>
                   <div className="flex flex-wrap gap-2">
                     {viewCustomer.additionalPhones.map((p, i) => (
-                      <span key={i} dir="ltr" className="font-medium bg-slate-50 rounded px-2 py-1">{p}</span>
+                      <span key={i} dir="ltr" className="font-medium bg-slate-50 rounded px-2 py-1 dark:bg-slate-800">{p}</span>
                     ))}
                   </div>
                 </div>
@@ -381,19 +427,19 @@ export default function CustomersPage() {
                   <span className="text-slate-400 block mb-1">خدمات دریافتی:</span>
                   <div className="flex flex-wrap gap-1.5">
                     {viewCustomer.serviceTypes.map((s) => (
-                      <span key={s} className="text-xs bg-blue-50 text-blue-700 rounded px-2 py-1">{s}</span>
+                      <span key={s} className="text-xs bg-blue-50 text-blue-700 rounded px-2 py-1 dark:bg-blue-900/20 dark:text-blue-400">{s}</span>
                     ))}
                   </div>
                 </div>
               )}
               {viewCustomer.address && (
-                <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
+                <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                   <span className="text-slate-400 block mb-1">آدرس:</span>
                   {viewCustomer.address}
                 </div>
               )}
               {viewCustomer.notes && (
-                <div className="rounded-lg bg-amber-50 p-3 text-sm text-slate-600">
+                <div className="rounded-lg bg-amber-50 p-3 text-sm text-slate-600 dark:bg-amber-900/20 dark:text-amber-300">
                   <span className="text-slate-400 block mb-1">یادداشت:</span>
                   {viewCustomer.notes}
                 </div>
@@ -422,12 +468,12 @@ export default function CustomersPage() {
             {form.type === 'individual' ? (
               <div className="space-y-2">
                 <Label>نام و نام خانوادگی</Label>
-                <Input value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} placeholder="نام و نام خانوادگی" />
+                <input className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} placeholder="نام و نام خانوادگی" />
               </div>
             ) : (
               <div className="space-y-2">
                 <Label>نام شرکت</Label>
-                <Input value={form.companyName} onChange={(e) => setForm({ ...form, companyName: e.target.value })} />
+                <input className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" value={form.companyName} onChange={(e) => setForm({ ...form, companyName: e.target.value })} />
               </div>
             )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -457,7 +503,7 @@ export default function CustomersPage() {
             </div>
             <div className="space-y-2">
               <Label>خدمات دریافتی</Label>
-              <div className="flex flex-wrap gap-2 rounded-lg border border-slate-200 bg-white p-3">
+              <div className="flex flex-wrap gap-2 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-800">
                 {SERVICE_TYPES.map((service) => {
                   const checked = selectedServices.includes(service);
                   return (
@@ -465,7 +511,7 @@ export default function CustomersPage() {
                       key={service}
                       type="button"
                       onClick={() => toggleService(service)}
-                      className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${checked ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-400'}`}
+                      className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${checked ? 'border-blue-500 bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'}`}
                     >
                       {checked && <Check className="h-3 w-3" />}
                       {service}
@@ -477,11 +523,11 @@ export default function CustomersPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>موبایل</Label>
-                <Input dir="ltr" value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })} />
+                <input dir="ltr" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })} />
               </div>
               <div className="space-y-2">
                 <Label>تلفن ثابت</Label>
-                <Input dir="ltr" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+                <input dir="ltr" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
               </div>
             </div>
             <div className="space-y-2">
@@ -489,17 +535,17 @@ export default function CustomersPage() {
               <div className="space-y-2">
                 {additionalPhones.map((phone, index) => (
                   <div key={index} className="flex items-center gap-2">
-                    <Input
+                    <input
                       dir="ltr"
+                      className="flex h-10 flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                       value={phone}
                       onChange={(e) => updatePhone(index, e.target.value)}
                       placeholder="شماره تلفن اضافی"
-                      className="flex-1"
                     />
                     <button
                       type="button"
                       onClick={() => removePhone(index)}
-                      className="flex items-center justify-center w-11 h-11 rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-red-500 hover:border-red-300 transition-all shrink-0"
+                      className="flex items-center justify-center w-11 h-11 rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-red-500 hover:border-red-300 transition-all shrink-0 dark:border-slate-700 dark:bg-slate-800"
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -518,22 +564,22 @@ export default function CustomersPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>ایمیل</Label>
-                <Input type="email" dir="ltr" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+                <input type="email" dir="ltr" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
               </div>
               <div className="space-y-2">
                 <Label>شهر</Label>
-                <Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+                <input className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
               </div>
             </div>
             <div className="space-y-2">
               <Label>آدرس</Label>
-              <Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+              <input className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
             </div>
             <div className="space-y-2">
               <Label>یادداشت</Label>
-              <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+              <input className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
             </div>
-            <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
@@ -541,7 +587,7 @@ export default function CustomersPage() {
                   onChange={(e) => setCreateAccount(e.target.checked)}
                   className="w-4 h-4 rounded border-slate-300"
                 />
-                <span className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                   <KeyRound className="w-4 h-4" />
                   تنظیم / تغییر رمز عبور مشتری
                 </span>

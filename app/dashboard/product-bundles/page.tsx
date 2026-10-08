@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import {
   Boxes, Plus, Search, Trash2, Calendar, ChevronLeft, ChevronRight,
-  Eye, FileText, Tag, X, Loader2,
+  Eye, FileText, Tag, X, Loader2, Pencil,
 } from 'lucide-react';
 import { formatJalali, formatToman, toEnglishDigits } from '@/lib/format';
 import { toast } from 'sonner';
@@ -26,6 +26,7 @@ export default function ProductBundlesPage() {
   const [detailItems, setDetailItems] = useState<ProductBundleItem[]>([]);
   const [loading, setLoading] = useState(true);
   const pageSize = 10;
+  const [filterActive, setFilterActive] = useState(false);
 
   const isSuperAdmin = profile?.role === 'super_admin' || profile?.role === 'owner';
 
@@ -49,9 +50,10 @@ export default function ProductBundlesPage() {
     const q = search.trim().toLocaleLowerCase();
     return records.filter((r) => {
       const matches = !q || r.name?.toLocaleLowerCase().includes(q) || r.code?.toLocaleLowerCase().includes(q);
+      if (filterActive && !r.active) return false;
       return matches;
     });
-  }, [records, search]);
+  }, [records, search, filterActive]);
 
   const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, pages);
@@ -59,21 +61,26 @@ export default function ProductBundlesPage() {
 
   const stats = useMemo(() => [
     {
-      label: 'کل بسته‌ها', value: records.length.toLocaleString('fa-IR'), icon: Boxes,
+      label: 'کل بسته‌ها', value: records.length.toLocaleString('fa-IR'), icon: Boxes, filter: 'all',
       gradient: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)',
       glow: 'rgba(37,99,235,0.25)',
     },
     {
-      label: 'فعال', value: records.filter((r) => r.active).length.toLocaleString('fa-IR'), icon: Tag,
+      label: 'فعال', value: records.filter((r) => r.active).length.toLocaleString('fa-IR'), icon: Tag, filter: 'active',
       gradient: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)',
       glow: 'rgba(34,197,94,0.25)',
     },
     {
-      label: 'ارزش کل (تومان)', value: formatToman(records.reduce((sum, r) => sum + Number(r.finalPrice || 0), 0)), icon: FileText,
+      label: 'ارزش کل (تومان)', value: formatToman(records.reduce((sum, r) => sum + Number(r.finalPrice || 0), 0)), icon: FileText, filter: 'all',
       gradient: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
       glow: 'rgba(99,102,241,0.25)',
     },
   ], [records]);
+
+  const handleStatClick = (f: string) => {
+    if (f === 'all') { setFilterActive(false); return; }
+    if (f === 'active') { setFilterActive((v) => !v); }
+  };
 
   const handleDelete = async (id: string) => {
     if (!confirm('حذف این بسته محصول؟')) return;
@@ -112,7 +119,7 @@ export default function ProductBundlesPage() {
               <span className="nb-hero-marker" style={{ background: 'linear-gradient(180deg,#FF7A00,#E65100)', boxShadow: '0 0 12px rgba(255,122,0,.25)' }} />
               <h1>بسته محصول فروش</h1>
             </div>
-            <p>داشبورد ← فروش ← بسته محصول</p>
+            <p>مدیریت بسته‌های محصول، قیمت‌گذاری و تخفیفات</p>
           </div>
         </div>
         <div className="nb-hero-right">
@@ -125,20 +132,22 @@ export default function ProductBundlesPage() {
 
       <section className="nb-stats-grid-v2">
         {stats.map((stat) => (
-          <div
-            className="nb-stat-card-v2"
+          <button
+            type="button"
+            className={`nb-stat-card-v2 ${(stat.filter === 'active' && filterActive) || (stat.filter === 'all' && !filterActive) ? 'is-active' : ''}`}
             key={stat.label}
+            onClick={() => handleStatClick(stat.filter)}
             style={{ '--stat-glow': stat.glow } as React.CSSProperties}
           >
             <div className="nb-stat-v2-icon" style={{ background: stat.gradient }}>
-              <stat.icon className="h-[22px] w-[22px] text-white" />
+              <stat.icon className="h-[22px] w-[22px] text-white" strokeWidth={2.5} />
             </div>
             <div className="nb-stat-v2-body">
               <strong>{stat.value}</strong>
               <span>{stat.label}</span>
             </div>
             <div className="nb-stat-v2-spark" style={{ background: stat.gradient }} />
-          </div>
+          </button>
         ))}
       </section>
 
@@ -200,6 +209,7 @@ export default function ProductBundlesPage() {
                     <td className="p-3" onClick={(e) => e.stopPropagation()}>
                       <div className="flex gap-1">
                         <button onClick={() => loadDetail(r)} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700" title="مشاهده"><Eye className="h-4 w-4" /></button>
+                        {isSuperAdmin && <Link href={`/dashboard/product-bundles/${r.id}/edit`} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700" title="ویرایش"><Pencil className="h-4 w-4" /></Link>
                         {isSuperAdmin && <button onClick={() => handleDelete(r.id)} className="rounded p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-500" title="حذف"><Trash2 className="h-4 w-4" /></button>}
                       </div>
                     </td>

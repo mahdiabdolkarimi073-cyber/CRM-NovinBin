@@ -98,6 +98,7 @@ export default function CustomsDeclarationsPage() {
   const [staff, setStaff] = useState<Profile[]>([]);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [statFilter, setStatFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [detail, setDetail] = useState<CustomsDeclaration | null>(null);
   const [detailItems, setDetailItems] = useState<CustomsDeclarationItem[]>([]);
@@ -156,9 +157,14 @@ export default function CustomsDeclarationsPage() {
     return records.filter((r) => {
       const matches = !q || r.internalNumber?.toLocaleLowerCase().includes(q) || r.customsNumber?.toLocaleLowerCase().includes(q) || r.contactName?.toLocaleLowerCase().includes(q);
       const st = filterStatus === 'all' || r.status === filterStatus;
-      return matches && st;
+      const pendingStatuses = ['draft', 'completed_info'];
+      const clearedStatuses = ['cleared', 'finalized'];
+      const sf = statFilter === 'all'
+        || (statFilter === 'pending' && pendingStatuses.includes(r.status))
+        || (statFilter === 'cleared' && clearedStatuses.includes(r.status));
+      return matches && st && sf;
     });
-  }, [records, search, filterStatus]);
+  }, [records, search, filterStatus, statFilter]);
 
   const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, pages);
@@ -172,11 +178,15 @@ export default function CustomsDeclarationsPage() {
   }), [records]);
 
   const statsList = useMemo(() => [
-    { label: 'کل اظهارنامه‌ها', value: stats.total.toLocaleString('fa-IR'), icon: FileSearch, gradient: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)', glow: 'rgba(37,99,235,0.25)' },
-    { label: 'در انتظار', value: stats.pending.toLocaleString('fa-IR'), icon: Clock, gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', glow: 'rgba(245,158,11,0.25)' },
-    { label: 'ترخیص شده', value: stats.cleared.toLocaleString('fa-IR'), icon: CheckCircle, gradient: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)', glow: 'rgba(34,197,94,0.25)' },
-    { label: 'ارزش کل (ریال)', value: formatToman(stats.totalValue), icon: FileText, gradient: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', glow: 'rgba(99,102,241,0.25)' },
+    { label: 'کل اظهارنامه‌ها', value: stats.total.toLocaleString('fa-IR'), icon: FileSearch, filter: 'all', gradient: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)', glow: 'rgba(37,99,235,0.25)' },
+    { label: 'در انتظار', value: stats.pending.toLocaleString('fa-IR'), icon: Clock, filter: 'pending', gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', glow: 'rgba(245,158,11,0.25)' },
+    { label: 'ترخیص شده', value: stats.cleared.toLocaleString('fa-IR'), icon: CheckCircle, filter: 'cleared', gradient: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)', glow: 'rgba(34,197,94,0.25)' },
+    { label: 'ارزش کل (ریال)', value: formatToman(stats.totalValue), icon: FileText, filter: 'all', gradient: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', glow: 'rgba(99,102,241,0.25)' },
   ], [stats]);
+
+  const handleStatClick = (f: string) => {
+    setStatFilter(statFilter === f ? 'all' : f);
+  };
 
   const handleDelete = async (id: string) => {
     if (!confirm('حذف این اظهارنامه؟')) return;
@@ -286,12 +296,13 @@ export default function CustomsDeclarationsPage() {
         {statsList.map((stat) => (
           <button
             type="button"
-            className="nb-stat-card-v2"
+            className={`nb-stat-card-v2 ${statFilter === stat.filter ? 'is-active' : ''}`}
             key={stat.label}
+            onClick={() => handleStatClick(stat.filter)}
             style={{ '--stat-glow': stat.glow } as React.CSSProperties}
           >
             <div className="nb-stat-v2-icon" style={{ background: stat.gradient }}>
-              <stat.icon className="h-[22px] w-[22px] text-white" />
+              <stat.icon className="h-[22px] w-[22px] text-white" strokeWidth={2.5} />
             </div>
             <div className="nb-stat-v2-body">
               <strong>{stat.value}</strong>
@@ -337,31 +348,31 @@ export default function CustomsDeclarationsPage() {
           <Link href="/dashboard/customs-declarations/new" className="nb-empty-new-btn"><Plus className="h-4 w-4" /> افزودن اظهارنامه</Link>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
           <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[800px]">
-              <thead className="border-b border-slate-200 bg-slate-50">
+              <thead className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/50">
                 <tr>
-                  <th className="p-3 text-right font-medium text-slate-500">شماره</th>
-                  <th className="p-3 text-right font-medium text-slate-500">وضعیت</th>
-                  <th className="p-3 text-right font-medium text-slate-500">نوع</th>
-                  <th className="p-3 text-right font-medium text-slate-500">گمرک</th>
-                  <th className="p-3 text-right font-medium text-slate-500">تاریخ</th>
-                  <th className="p-3 text-right font-medium text-slate-500">طرف حساب</th>
-                  <th className="p-3 text-right font-medium text-slate-500">ارزش</th>
-                  <th className="p-3 text-right font-medium text-slate-500">عملیات</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">شماره</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">وضعیت</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">نوع</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">گمرک</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">تاریخ</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">طرف حساب</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">ارزش</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">عملیات</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                 {pageItems.map((r) => {
                   const stColor = CD_STATUS_COLOR[r.status] || '#64748b';
                   return (
-                    <tr key={r.id} className="cursor-pointer transition hover:bg-slate-50" onClick={() => loadDetail(r)}>
+                    <tr key={r.id} className="cursor-pointer transition hover:bg-slate-50 dark:hover:bg-slate-700/50" onClick={() => loadDetail(r)}>
                       <td className="p-3">
                         <div className="flex items-center gap-2">
                           <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: stColor }} />
                           <div>
-                            <div className="font-medium text-slate-800">{r.internalNumber}</div>
+                            <div className="font-medium text-slate-800 dark:text-slate-100">{r.internalNumber}</div>
                             {r.customsNumber && <div className="text-xs text-slate-400">({r.customsNumber})</div>}
                           </div>
                         </div>
@@ -372,20 +383,20 @@ export default function CustomsDeclarationsPage() {
                       <td className="p-3">
                         <Badge variant="outline" className="text-xs text-slate-500">{OP_TYPE[r.operationType] || r.operationType}</Badge>
                       </td>
-                      <td className="p-3 text-xs text-slate-500">
+                      <td className="p-3 text-xs text-slate-500 dark:text-slate-400">
                         {r.customsOffice ? (
                           <span className="flex items-center gap-1"><Building2 className="h-3 w-3" />{r.customsOffice}</span>
                         ) : '—'}
                       </td>
-                      <td className="p-3 text-xs text-slate-500">
+                      <td className="p-3 text-xs text-slate-500 dark:text-slate-400">
                         <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{formatJalali(r.declarationDate)}</span>
                       </td>
-                      <td className="p-3 text-xs text-slate-500">{r.contactName || '—'}</td>
-                      <td className="p-3 text-xs font-medium text-slate-600">{formatToman(Number(r.totalRialValue))} ریال</td>
+                      <td className="p-3 text-xs text-slate-500 dark:text-slate-400">{r.contactName || '—'}</td>
+                      <td className="p-3 text-xs font-medium text-slate-600 dark:text-slate-300">{formatToman(Number(r.totalRialValue))} ریال</td>
                       <td className="p-3" onClick={(e) => e.stopPropagation()}>
                         <div className="flex gap-1">
-                          <button onClick={() => loadDetail(r)} className="rounded p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600" title="مشاهده"><Eye className="h-4 w-4" /></button>
-                          {isSuperAdmin && <Link href={`/dashboard/customs-declarations/${r.id}/edit`} className="rounded p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600" title="ویرایش"><Pencil className="h-4 w-4" /></Link>}
+                          <button onClick={() => loadDetail(r)} className="rounded p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700" title="مشاهده"><Eye className="h-4 w-4" /></button>
+                          {isSuperAdmin && <Link href={`/dashboard/customs-declarations/${r.id}/edit`} className="rounded p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700" title="ویرایش"><Pencil className="h-4 w-4" /></Link>}
                           {isSuperAdmin && <button onClick={() => handleDelete(r.id)} className="rounded p-1.5 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-500" title="حذف"><Trash2 className="h-4 w-4" /></button>}
                         </div>
                       </td>
@@ -394,18 +405,18 @@ export default function CustomsDeclarationsPage() {
                 })}
                 {pageItems.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="py-12 text-center text-sm text-slate-300">نتیجه‌ای یافت نشد</td>
+                    <td colSpan={8} className="py-12 text-center text-sm text-slate-300 dark:text-slate-600">نتیجه‌ای یافت نشد</td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
           {pages > 1 && (
-            <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3">
-              <span className="text-xs text-slate-500">صفحه {currentPage.toLocaleString('fa-IR')} از {pages.toLocaleString('fa-IR')}</span>
+            <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 dark:border-slate-700">
+              <span className="text-xs text-slate-500 dark:text-slate-400">صفحه {currentPage.toLocaleString('fa-IR')} از {pages.toLocaleString('fa-IR')}</span>
               <div className="flex items-center gap-2">
-                <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:bg-slate-100 disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button>
-                <button onClick={() => setPage((p) => Math.min(pages, p + 1))} disabled={currentPage === pages} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:bg-slate-100 disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button>
+                <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:bg-slate-100 disabled:opacity-40 dark:border-slate-700 dark:hover:bg-slate-700"><ChevronRight className="h-4 w-4" /></button>
+                <button onClick={() => setPage((p) => Math.min(pages, p + 1))} disabled={currentPage === pages} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:bg-slate-100 disabled:opacity-40 dark:border-slate-700 dark:hover:bg-slate-700"><ChevronLeft className="h-4 w-4" /></button>
               </div>
             </div>
           )}
