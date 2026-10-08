@@ -6,7 +6,8 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Award, Wallet, Star, TrendingUp } from 'lucide-react';
+import { Award, Wallet, Star, TrendingUp, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 import { formatToman, relativeTime } from '@/lib/format';
 import { CUSTOMER_LEVELS } from '@/lib/constants';
 import type { Customer, LoyaltyTransaction } from '@/lib/types';
@@ -40,6 +41,12 @@ export default function PortalLoyaltyPage() {
 
   return (
     <div>
+      <div className="mb-4 hidden md:flex">
+        <Link href="/portal" className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-base font-bold text-primary-foreground shadow-premium transition-all hover:bg-primary/90 hover:shadow-lg">
+          <ArrowLeft className="h-5 w-5" />
+          بازگشت به داشبورد باشگاه
+        </Link>
+      </div>
       <PageHeader title="باشگاه مشتریان" description="امتیازات و سطح شما" />
 
       {customer && level && (

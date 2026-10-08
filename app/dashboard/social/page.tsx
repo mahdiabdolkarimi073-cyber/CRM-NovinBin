@@ -782,9 +782,9 @@ function SocialNetworkDesktop({ chat }: { chat: ReturnType<typeof useSocialChat>
             <p>پیام‌رسانی داخلی و گروهی</p>
           </div>
         </div>
-        <Link href="/dashboard" className="social-back-to-crm">
-          <ArrowLeft className="h-4 w-4" />
-          بازگشت به CRM
+        <Link href="/dashboard" className="social-back-to-crm hidden md:inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-base font-bold text-primary-foreground shadow-premium transition-all hover:bg-primary/90 hover:shadow-lg">
+          <ArrowLeft className="h-5 w-5" />
+          بازگشت به داشبورد
         </Link>
       </header>
 
@@ -944,8 +944,9 @@ function SocialNetworkDesktop({ chat }: { chat: ReturnType<typeof useSocialChat>
 
         <aside className={cn('social-network-users', isUsersOpen && 'is-open')}>
           <div className="staff-chat-users-toolbar">
-            <Link href="/dashboard" className="social-desktop-back" aria-label="بازگشت به داشبورد">
+            <Link href="/dashboard" className="social-desktop-back hidden md:inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground shadow-premium transition-all hover:bg-primary/90" aria-label="بازگشت به داشبورد">
               <ArrowLeft className="w-5 h-5" />
+              <span>بازگشت به داشبورد</span>
             </Link>
             <div className="staff-chat-search">
               <Search />

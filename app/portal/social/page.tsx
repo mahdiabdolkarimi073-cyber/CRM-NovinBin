@@ -587,9 +587,9 @@ export default function PortalSocialPage() {
             <p>ارتباط با پرسنل و مدیران از طریق چت و تماس</p>
           </div>
         </div>
-        <a href="/portal" className="social-network-close">
-          <ArrowLeft className="h-4 w-4" />
-          بازگشت به باشگاه
+        <a href="/portal" className="social-network-close hidden md:inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-base font-bold text-primary-foreground shadow-premium transition-all hover:bg-primary/90 hover:shadow-lg">
+          <ArrowLeft className="h-5 w-5" />
+          بازگشت به داشبورد
         </a>
       </header>
 
@@ -797,8 +797,9 @@ export default function PortalSocialPage() {
 
         <aside className={cn('social-network-users', isUsersOpen && 'is-open')}>
           <div className="staff-chat-users-toolbar">
-            <Link href="/portal" className="social-desktop-back" aria-label="بازگشت به باشگاه">
+            <Link href="/portal" className="social-desktop-back hidden md:inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground shadow-premium transition-all hover:bg-primary/90" aria-label="بازگشت به داشبورد">
               <ArrowLeft className="w-5 h-5" />
+              <span>بازگشت به داشبورد</span>
             </Link>
             <button className="social-desktop-hamburger" aria-label="منو" onClick={() => setTab(tab === 'dm' ? 'folders' : 'dm')}>
               <Menu style={{ width: 20, height: 20 }} />
