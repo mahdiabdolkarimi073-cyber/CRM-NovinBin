@@ -8,8 +8,6 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -112,123 +110,121 @@ export default function NewCardReaderPage() {
   };
 
   return (
-    <div className="w-full" dir="rtl">
-      <header className="mb-6 flex flex-col gap-4 mobile:flex-row mobile:items-center mobile:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <span className="h-10 w-[5px] rounded-full bg-[#FF7A00]" />
-            <h1 className="text-[28px] font-bold text-[#101828]">ثبت کارتخوان جدید</h1>
-          </div>
-          <div className="mt-2 text-xs font-medium text-[#667085]">داشبورد <span className="mx-1.5 text-[#CBD5E1]">←</span> کارتخوان <span className="mx-1.5 text-[#CBD5E1]">←</span> ثبت</div>
-        </div>
-        <Link href="/dashboard/card-readers">
-          <Button variant="outline" className="h-[42px] rounded-[10px] border-[#DCE3EE] bg-white text-sm font-semibold text-[#344054] shadow-sm hover:bg-[#FAFBFF]">
-            <ArrowRight className="h-4 w-4" /> بازگشت
-          </Button>
-        </Link>
-      </header>
-
-      <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Main form */}
-          <div className="lg:col-span-2 space-y-6">
-            <Card>
-              <CardContent className="p-5">
-                <div className="mb-4 flex items-center gap-2">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#3155E7]/10 text-[#3155E7]"><CreditCard className="h-5 w-5" /></span>
-                  <div>
-                    <h2 className="text-base font-bold text-[#1D2939]">اطلاعات کارتخوان</h2>
-                    <p className="text-xs text-[#98A2B3]">شناسه‌های ترمینال و پذیرنده را وارد کنید. این مقادیر باید یکتا باشند.</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 tablet:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">شماره داخلی</Label>
-                    <Input value={number} onChange={(e) => setNumber(e.target.value)} placeholder="CR-..." className="h-[42px] rounded-[10px] border-[#DCE3EE] bg-slate-50" readOnly />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">نام بانک / شرکت پرداخت <span className="text-rose-500">*</span></Label>
-                    <Input value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="مثلاً: ملت، سامان، آپ..." className="h-[42px] rounded-[10px] border-[#DCE3EE]" />
-                    {errors.bankName && <span className="text-xs text-rose-500">{errors.bankName}</span>}
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">شماره ترمینال (TID) <span className="text-rose-500">*</span></Label>
-                    <Input value={tid} onChange={(e) => setTid(e.target.value)} placeholder="TID..." className="h-[42px] rounded-[10px] border-[#DCE3EE]" />
-                    {errors.tid && <span className="text-xs text-rose-500">{errors.tid}</span>}
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">شماره پذیرنده (MID) <span className="text-rose-500">*</span></Label>
-                    <Input value={mid} onChange={(e) => setMid(e.target.value)} placeholder="MID..." className="h-[42px] rounded-[10px] border-[#DCE3EE]" />
-                    {errors.mid && <span className="text-xs text-rose-500">{errors.mid}</span>}
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">شعبه / محل استفاده</Label>
-                    <Input value={branchName} onChange={(e) => setBranchName(e.target.value)} placeholder="شعبه یا محل..." className="h-[42px] rounded-[10px] border-[#DCE3EE]" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">مالک / واحد استفاده‌کننده</Label>
-                    <Input value={owner} onChange={(e) => setOwner(e.target.value)} placeholder="مالک یا واحد..." className="h-[42px] rounded-[10px] border-[#DCE3EE]" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">حساب بانکی متصل</Label>
-                    <select value={bankAccountId} onChange={(e) => setBankAccountId(e.target.value)} className="h-[42px] w-full rounded-[10px] border border-[#DCE3EE] bg-white px-3 text-sm text-[#344054]">
-                      <option value="">انتخاب حساب...</option>
-                      {bankAccounts.map((b) => <option key={b.id} value={b.id}>{b.bankName} - {b.accountNo}</option>)}
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">تاریخ شروع استفاده</Label>
-                    <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="h-[42px] rounded-[10px] border-[#DCE3EE]" />
-                  </div>
-                </div>
-
-                <div className="mt-4 space-y-2">
-                  <Label className="text-sm font-semibold text-[#344054]">توضیحات</Label>
-                  <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="توضیحات اختیاری..." className="rounded-[10px] border-[#DCE3EE]" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="flex justify-end gap-3">
-              <Link href="/dashboard/card-readers">
-                <Button type="button" variant="outline" className="h-[42px] rounded-[10px] border-[#DCE3EE]">انصراف</Button>
-              </Link>
-              <Button type="submit" disabled={submitting} className="h-[42px] rounded-[10px] bg-[#3155E7] px-[18px] text-sm font-semibold text-white shadow-sm hover:bg-[#2445C7]">
-                {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> در حال ثبت...</> : <><Plus className="h-4 w-4" /> ثبت کارتخوان</>}
-              </Button>
+    <div className="create-task-page" dir="rtl">
+      <div className="create-task-container">
+        <header className="create-task-header">
+          <div>
+            <div className="create-task-title">
+              <span className="title-accent-bar" />
+              <h1>ثبت کارتخوان جدید</h1>
             </div>
+            <div className="create-task-breadcrumb">داشبورد <b>←</b> کارتخوان <b>←</b> ثبت</div>
           </div>
+          <Link href="/dashboard/card-readers" className="back-button">
+            <ArrowRight className="h-4 w-4" /> بازگشت به کارتخوان
+          </Link>
+        </header>
 
-          {/* Guide */}
-          <div className="space-y-4">
-            <Card>
-              <CardContent className="p-5">
-                <div className="mb-4 flex items-center gap-2">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 text-amber-500"><Lightbulb className="h-5 w-5" /></span>
-                  <h2 className="text-base font-bold text-[#1D2939]">راهنمای ثبت</h2>
+        <div className="create-task-grid">
+          <form className="task-form-card" onSubmit={handleSubmit}>
+            <div className="form-card-header">
+              <div className="form-card-title">
+                <span className="form-card-icon"><CreditCard className="h-5 w-5" /></span>
+                <div>
+                  <h2>اطلاعات کارتخوان</h2>
+                  <p>شناسه‌های ترمینال و پذیرنده را وارد کنید. این مقادیر باید یکتا باشند.</p>
                 </div>
-                <div className="space-y-3">
-                  {guideItems.map((item, i) => (
-                    <div key={i} className="flex items-start gap-3">
-                      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#F1F5F9] text-[#3155E7]"><item.icon className="h-3.5 w-3.5" /></span>
-                      <div>
-                        <div className="text-sm font-semibold text-[#344054]">{item.title}</div>
-                        <div className="mt-0.5 text-xs text-[#98A2B3]">{item.desc}</div>
-                      </div>
+              </div>
+            </div>
+            <div className="form-card-divider" />
+
+            <div className="form-fields">
+              <div className="grid grid-cols-1 gap-4 tablet:grid-cols-2">
+                <div className="field-group">
+                  <Label className="field-label">شماره داخلی</Label>
+                  <Input value={number} onChange={(e) => setNumber(e.target.value)} placeholder="CR-..." className="task-input bg-slate-50 dark:bg-slate-800" readOnly />
+                </div>
+                <div className="field-group">
+                  <Label className="field-label">نام بانک / شرکت پرداخت <span className="required-star">*</span></Label>
+                  <Input value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="مثلاً: ملت، سامان، آپ..." className="task-input" />
+                  {errors.bankName && <span className="field-error">{errors.bankName}</span>}
+                </div>
+                <div className="field-group">
+                  <Label className="field-label">شماره ترمینال (TID) <span className="required-star">*</span></Label>
+                  <Input value={tid} onChange={(e) => setTid(e.target.value)} placeholder="TID..." className="task-input" />
+                  {errors.tid && <span className="field-error">{errors.tid}</span>}
+                </div>
+                <div className="field-group">
+                  <Label className="field-label">شماره پذیرنده (MID) <span className="required-star">*</span></Label>
+                  <Input value={mid} onChange={(e) => setMid(e.target.value)} placeholder="MID..." className="task-input" />
+                  {errors.mid && <span className="field-error">{errors.mid}</span>}
+                </div>
+                <div className="field-group">
+                  <Label className="field-label">شعبه / محل استفاده</Label>
+                  <Input value={branchName} onChange={(e) => setBranchName(e.target.value)} placeholder="شعبه یا محل..." className="task-input" />
+                </div>
+                <div className="field-group">
+                  <Label className="field-label">مالک / واحد استفاده‌کننده</Label>
+                  <Input value={owner} onChange={(e) => setOwner(e.target.value)} placeholder="مالک یا واحد..." className="task-input" />
+                </div>
+                <div className="field-group">
+                  <Label className="field-label">حساب بانکی متصل</Label>
+                  <Select value={bankAccountId || '__none__'} onValueChange={(v) => setBankAccountId(v === '__none__' ? '' : v)}>
+                    <SelectTrigger className="task-select"><Building2 className="ml-1 h-4 w-4 text-slate-400" /><SelectValue placeholder="انتخاب حساب..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">بدون حساب</SelectItem>
+                      {bankAccounts.map((b) => <SelectItem key={b.id} value={b.id}>{b.bankName} - {b.accountNo}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="field-group">
+                  <Label className="field-label">تاریخ شروع استفاده</Label>
+                  <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="task-input" />
+                </div>
+              </div>
+
+              <div className="field-group">
+                <Label className="field-label">توضیحات</Label>
+                <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="توضیحات اختیاری..." className="task-textarea" />
+              </div>
+            </div>
+
+            <div className="form-actions-row">
+              <button type="button" className="cancel-btn" onClick={() => router.push('/dashboard/card-readers')} disabled={submitting}>انصراف</button>
+              <button type="submit" className="submit-btn" disabled={submitting}>
+                {submitting ? (<><Loader2 className="h-4 w-4 animate-spin" /> در حال ثبت...</>) : (<><Plus className="h-4 w-4" /> ثبت کارتخوان</>)}
+              </button>
+            </div>
+          </form>
+
+          <aside className="task-sidebar">
+            <div className="guide-card">
+              <div className="guide-card-header">
+                <span className="guide-card-icon"><Lightbulb className="h-5 w-5" /></span>
+                <h2>راهنمای ثبت</h2>
+              </div>
+              <div className="guide-items">
+                {guideItems.map((item, i) => (
+                  <div key={i}>
+                    <div className="guide-item">
+                      <span className="guide-item-icon"><item.icon className="h-5 w-5" /></span>
+                      <div className="guide-item-text"><strong>{item.title}</strong><p>{item.desc}</p></div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="flex items-start gap-3 rounded-[12px] border border-blue-100 bg-blue-50 p-4">
-              <Info className="mt-0.5 h-5 w-5 shrink-0 text-blue-500" />
-              <p className="text-xs text-blue-700">پس از ثبت کارتخوان، می‌توانید تراکنش‌های آن را ثبت کنید و سپس سند تسویه ایجاد نمایید. چرخه کامل: تعریف کارتخوان ← ثبت تراکنش ← تأیید تراکنش ← ایجاد تسویه ← تأیید و ثبت نهایی.</p>
+                    {i < guideItems.length - 1 && <div className="guide-item-divider" />}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+            <div className="info-card">
+              <div className="info-card-header">
+                <span className="info-card-icon"><Info className="h-5 w-5" /></span>
+                <h2>اطلاعات مفید</h2>
+              </div>
+              <p>پس از ثبت کارتخوان، می‌توانید تراکنش‌های آن را ثبت کنید و سپس سند تسویه ایجاد نمایید. چرخه کامل: تعریف کارتخوان ← ثبت تراکنش ← تأیید تراکنش ← ایجاد تسویه ← تأیید و ثبت نهایی.</p>
+            </div>
+          </aside>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

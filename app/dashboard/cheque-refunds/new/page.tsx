@@ -8,8 +8,6 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -50,7 +48,6 @@ const CHEQUE_STATUS_COLOR: Record<string, string> = {
   transferred: '#0ea5e9',
 };
 
-// Only cheques in these statuses can be refunded
 const REFUNDABLE_STATUSES = ['received', 'in_custody', 'pending_due', 'deposited', 'returned'];
 
 const guideItems = [
@@ -101,7 +98,6 @@ export default function NewChequeRefundPage() {
     return p.companyName || 'بدون نام';
   };
 
-  // Filter cheques: only refundable ones AND no pending refund
   const refundableCheques = useMemo(() => {
     const pendingChequeIds = new Set(
       existingRefunds
@@ -128,7 +124,6 @@ export default function NewChequeRefundPage() {
     if (!profile) { toast.error('اطلاعات کاربر بارگذاری نشده'); return; }
     if (!validate()) return;
 
-    // Double-check cheque is refundable
     if (!selectedCheque) { toast.error('چک یافت نشد'); return; }
     if (!REFUNDABLE_STATUSES.includes(selectedCheque.status)) {
       toast.error(`چک در وضعیت «${CHEQUE_STATUS[selectedCheque.status]}» قابل استرداد نیست`);
@@ -175,222 +170,214 @@ export default function NewChequeRefundPage() {
   };
 
   return (
-    <div className="w-full" dir="rtl">
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <span className="h-10 w-[5px] rounded-full bg-[#FF7A00]" />
-            <h1 className="text-[28px] font-bold text-[#101828]">ثبت درخواست استرداد چک</h1>
+    <div className="create-task-page" dir="rtl">
+      <div className="create-task-container">
+        <header className="create-task-header">
+          <div>
+            <div className="create-task-title">
+              <span className="title-accent-bar" />
+              <h1>ثبت درخواست استرداد چک</h1>
+            </div>
+            <div className="create-task-breadcrumb">داشبورد <b>←</b> استرداد چک <b>←</b> ثبت</div>
           </div>
-          <div className="mt-2 text-xs font-medium text-[#667085]">داشبورد <span className="mx-1.5 text-[#CBD5E1]">←</span> استرداد چک <span className="mx-1.5 text-[#CBD5E1]">←</span> ثبت</div>
-        </div>
-        <Link href="/dashboard/cheque-refunds">
-          <Button variant="outline" className="h-[42px] rounded-[10px] border-[#DCE3EE] bg-white text-sm font-semibold text-[#344054] shadow-sm hover:bg-[#FAFBFF]">
-            <ArrowRight className="h-4 w-4" /> بازگشت
-          </Button>
-        </Link>
-      </header>
+          <Link href="/dashboard/cheque-refunds" className="back-button">
+            <ArrowRight className="h-4 w-4" /> بازگشت به استرداد چک
+          </Link>
+        </header>
 
-      <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Main form */}
-          <div className="lg:col-span-2 space-y-6">
+        <div className="create-task-grid">
+          <form className="task-form-card" onSubmit={handleSubmit}>
             {/* Cheque selection */}
-            <Card>
-              <CardContent className="p-5">
-                <div className="mb-4 flex items-center gap-2">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#3155E7]/10 text-[#3155E7]"><WalletCards className="h-5 w-5" /></span>
-                  <div>
-                    <h2 className="text-base font-bold text-[#1D2939]">انتخاب چک</h2>
-                    <p className="text-xs text-[#98A2B3]">چکی که می‌خواهید مسترد کنید را انتخاب نمایید. فقط چک‌های قابل استرداد نمایش داده می‌شوند.</p>
-                  </div>
+            <div className="form-card-header">
+              <div className="form-card-title">
+                <span className="form-card-icon"><WalletCards className="h-5 w-5" /></span>
+                <div>
+                  <h2>انتخاب چک</h2>
+                  <p>چکی که می‌خواهید مسترد کنید را انتخاب نمایید. فقط چک‌های قابل استرداد نمایش داده می‌شوند.</p>
                 </div>
+              </div>
+            </div>
+            <div className="form-card-divider" />
 
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold text-[#344054]">چک مورد استرداد <span className="text-rose-500">*</span></Label>
-                  <Select value={chequeId} onValueChange={setChequeId}>
-                    <SelectTrigger className="h-[42px] rounded-[10px] border-[#DCE3EE]"><WalletCards className="h-4 w-4 text-[#98A2B3]" /><SelectValue placeholder="انتخاب چک..." /></SelectTrigger>
+            <div className="form-fields">
+              <div className="field-group">
+                <Label className="field-label">چک مورد استرداد <span className="required-star">*</span></Label>
+                <Select value={chequeId} onValueChange={setChequeId}>
+                  <SelectTrigger className="task-select"><WalletCards className="ml-1 h-4 w-4 text-slate-400" /><SelectValue placeholder="انتخاب چک..." /></SelectTrigger>
+                  <SelectContent>
+                    {refundableCheques.length === 0 ? (
+                      <SelectItem value="__none__" disabled>چک قابل استردادی موجود نیست</SelectItem>
+                    ) : (
+                      refundableCheques.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.chequeNumber} - {c.bankName} - {formatToman(Number(c.amount))} تومان ({CHEQUE_STATUS[c.status]})
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                {errors.chequeId && <span className="field-error">{errors.chequeId}</span>}
+              </div>
+
+              {selectedCheque && (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  <div className="rounded-[10px] bg-sky-50 p-3 dark:bg-sky-900/20"><div className="text-xs text-slate-400">شماره چک</div><div className="mt-1 text-sm font-bold text-sky-600 dark:text-sky-400">{selectedCheque.chequeNumber}</div></div>
+                  <div className="rounded-[10px] bg-amber-50 p-3 dark:bg-amber-900/20"><div className="text-xs text-slate-400">مبلغ</div><div className="mt-1 text-sm font-bold text-amber-600 dark:text-amber-400">{formatToman(Number(selectedCheque.amount))} تومان</div></div>
+                  <div className="rounded-[10px] bg-green-50 p-3 dark:bg-green-900/20"><div className="text-xs text-slate-400">بانک</div><div className="mt-1 text-sm font-bold text-green-600 dark:text-green-400">{selectedCheque.bankName}</div></div>
+                  <div className="rounded-[10px] bg-slate-100 p-3 dark:bg-slate-800"><div className="text-xs text-slate-400">سررسید</div><div className="mt-1 text-sm font-bold text-slate-700 dark:text-slate-300">{formatJalali(selectedCheque.dueDate)}</div></div>
+                  <div className="rounded-[10px] bg-slate-100 p-3 dark:bg-slate-800"><div className="text-xs text-slate-400">وضعیت</div><div className="mt-1"><Badge variant="outline" style={{ color: CHEQUE_STATUS_COLOR[selectedCheque.status], borderColor: `${CHEQUE_STATUS_COLOR[selectedCheque.status]}35` }}>{CHEQUE_STATUS[selectedCheque.status]}</Badge></div></div>
+                  <div className="rounded-[10px] bg-slate-100 p-3 dark:bg-slate-800"><div className="text-xs text-slate-400">صادرکننده</div><div className="mt-1 text-sm font-bold text-slate-700 dark:text-slate-300">{selectedCheque.issuerName || '—'}</div></div>
+                </div>
+              )}
+
+              {refundableCheques.length === 0 && (
+                <div className="flex items-center gap-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
+                  <AlertCircle className="h-4 w-4" />
+                  چک قابل استردادی موجود نیست. چک‌های وصول‌شده، باطل‌شده، استردادشده یا منتقل‌شده قابل استرداد مجدد نیستند.
+                </div>
+              )}
+            </div>
+
+            {/* Recipient section */}
+            <div className="form-card-divider" />
+            <div className="form-card-header">
+              <div className="form-card-title">
+                <span className="form-card-icon"><User className="h-5 w-5" /></span>
+                <div>
+                  <h2>گیرنده استرداد</h2>
+                  <p>شخص یا طرف حسابی که چک به او مسترد می‌شود را مشخص کنید.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="form-fields">
+              <div className="grid grid-cols-1 gap-4 tablet:grid-cols-2">
+                <div className="field-group">
+                  <Label className="field-label">طرف حساب دریافت‌کننده</Label>
+                  <Select value={recipientPartyId || '__none__'} onValueChange={(v) => setRecipientPartyId(v === '__none__' ? '' : v)}>
+                    <SelectTrigger className="task-select"><User className="ml-1 h-4 w-4 text-slate-400" /><SelectValue placeholder="انتخاب طرف حساب..." /></SelectTrigger>
                     <SelectContent>
-                      {refundableCheques.length === 0 ? (
-                        <SelectItem value="__none__" disabled>چک قابل استردادی موجود نیست</SelectItem>
-                      ) : (
-                        refundableCheques.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.chequeNumber} - {c.bankName} - {formatToman(Number(c.amount))} تومان ({CHEQUE_STATUS[c.status]})
-                          </SelectItem>
-                        ))
-                      )}
+                      <SelectItem value="__none__">بدون طرف حساب</SelectItem>
+                      {contactParties.map((p) => <SelectItem key={p.id} value={p.id}>{partyName(p)}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                  {errors.chequeId && <span className="text-xs text-rose-500">{errors.chequeId}</span>}
                 </div>
 
-                {/* Selected cheque details */}
-                {selectedCheque && (
-                  <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    <div className="rounded-[10px] bg-[#EFF4FF] p-3"><div className="text-xs text-[#667085]">شماره چک</div><div className="mt-1 text-sm font-bold text-[#3155E7]">{selectedCheque.chequeNumber}</div></div>
-                    <div className="rounded-[10px] bg-[#FEF3C7] p-3"><div className="text-xs text-[#667085]">مبلغ</div><div className="mt-1 text-sm font-bold text-[#92400E]">{formatToman(Number(selectedCheque.amount))} تومان</div></div>
-                    <div className="rounded-[10px] bg-[#DCFCE7] p-3"><div className="text-xs text-[#667085]">بانک</div><div className="mt-1 text-sm font-bold text-[#16A34A]">{selectedCheque.bankName}</div></div>
-                    <div className="rounded-[10px] bg-[#F1F5F9] p-3"><div className="text-xs text-[#667085]">سررسید</div><div className="mt-1 text-sm font-bold text-[#344054]">{formatJalali(selectedCheque.dueDate)}</div></div>
-                    <div className="rounded-[10px] bg-[#F1F5F9] p-3"><div className="text-xs text-[#667085]">وضعیت</div><div className="mt-1"><Badge variant="outline" style={{ color: CHEQUE_STATUS_COLOR[selectedCheque.status], borderColor: `${CHEQUE_STATUS_COLOR[selectedCheque.status]}35` }}>{CHEQUE_STATUS[selectedCheque.status]}</Badge></div></div>
-                    <div className="rounded-[10px] bg-[#F1F5F9] p-3"><div className="text-xs text-[#667085]">صادرکننده</div><div className="mt-1 text-sm font-bold text-[#344054]">{selectedCheque.issuerName || '—'}</div></div>
-                  </div>
-                )}
-
-                {refundableCheques.length === 0 && (
-                  <div className="mt-4 flex items-center gap-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-700">
-                    <AlertCircle className="h-4 w-4" />
-                    چک قابل استردادی موجود نیست. چک‌های وصول‌شده، باطل‌شده، استردادشده یا منتقل‌شده قابل استرداد مجدد نیستند.
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Recipient info */}
-            <Card>
-              <CardContent className="p-5">
-                <div className="mb-4 flex items-center gap-2">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#10b981]/10 text-[#10b981]"><User className="h-5 w-5" /></span>
-                  <div>
-                    <h2 className="text-base font-bold text-[#1D2939]">گیرنده استرداد</h2>
-                    <p className="text-xs text-[#98A2B3]">شخص یا طرف حسابی که چک به او مسترد می‌شود را مشخص کنید.</p>
-                  </div>
+                <div className="field-group">
+                  <Label className="field-label">نام دریافت‌کننده (دستی)</Label>
+                  <Input value={recipientName} onChange={(e) => setRecipientName(e.target.value)} placeholder="اگر طرف حساب انتخاب نشده..." className="task-input" />
                 </div>
-
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">طرف حساب دریافت‌کننده</Label>
-                    <Select value={recipientPartyId || '__none__'} onValueChange={(v) => setRecipientPartyId(v === '__none__' ? '' : v)}>
-                      <SelectTrigger className="h-[42px] rounded-[10px] border-[#DCE3EE]"><User className="h-4 w-4 text-[#98A2B3]" /><SelectValue placeholder="انتخاب طرف حساب..." /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">بدون طرف حساب</SelectItem>
-                        {contactParties.map((p) => <SelectItem key={p.id} value={p.id}>{partyName(p)}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">نام دریافت‌کننده (دستی)</Label>
-                    <Input value={recipientName} onChange={(e) => setRecipientName(e.target.value)} placeholder="اگر طرف حساب انتخاب نشده..." className="h-[42px] rounded-[10px] border-[#DCE3EE]" />
-                  </div>
-                </div>
-                {errors.recipient && <span className="mt-2 block text-xs text-rose-500">{errors.recipient}</span>}
-              </CardContent>
-            </Card>
+              </div>
+              {errors.recipient && <span className="field-error">{errors.recipient}</span>}
+            </div>
 
             {/* Refund details */}
-            <Card>
-              <CardContent className="p-5">
-                <div className="mb-4 flex items-center gap-2">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#f97316]/10 text-[#f97316]"><RotateCcw className="h-5 w-5" /></span>
-                  <div>
-                    <h2 className="text-base font-bold text-[#1D2939]">جزئیات استرداد</h2>
-                    <p className="text-xs text-[#98A2B3]">تاریخ، علت و توضیحات استرداد را وارد کنید.</p>
-                  </div>
+            <div className="form-card-divider" />
+            <div className="form-card-header">
+              <div className="form-card-title">
+                <span className="form-card-icon"><RotateCcw className="h-5 w-5" /></span>
+                <div>
+                  <h2>جزئیات استرداد</h2>
+                  <p>تاریخ، علت و توضیحات استرداد را وارد کنید.</p>
                 </div>
-
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">تاریخ استرداد <span className="text-rose-500">*</span></Label>
-                    <div className="date-input-wrap">
-                      <span className="flex h-[42px] items-center gap-2 rounded-[10px] border border-[#DCE3EE] bg-white px-3">
-                        <Calendar className="h-4 w-4 text-[#98A2B3]" />
-                        <JalaliDatePicker value={refundDate ? new Date(refundDate) : null} onChange={(d) => setRefundDate(d ? toLocalDateString(d) : '')} placeholder="انتخاب تاریخ" className="h-[42px] flex-1 border-0 p-0 focus:ring-0" />
-                      </span>
-                    </div>
-                    {errors.refundDate && <span className="text-xs text-rose-500">{errors.refundDate}</span>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">مبلغ چک</Label>
-                    <div className="relative">
-                      <Banknote className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98A2B3]" />
-                      <Input value={selectedCheque ? formatToman(Number(selectedCheque.amount)) : '—'} readOnly className="h-[42px] rounded-[10px] border-[#DCE3EE] bg-[#F8FAFD] pr-9" />
-                    </div>
-                    <span className="text-[10px] text-[#98A2B3]">مبلغ به‌صورت خودکار از چک انتخاب شده</span>
-                  </div>
-                </div>
-
-                <div className="mt-4 space-y-2">
-                  <Label className="text-sm font-semibold text-[#344054]">علت استرداد <span className="text-rose-500">*</span></Label>
-                  <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="علت استرداد چک..." className="rounded-[10px] border-[#DCE3EE]" />
-                  {errors.reason && <span className="text-xs text-rose-500">{errors.reason}</span>}
-                </div>
-
-                <div className="mt-4 space-y-2">
-                  <Label className="text-sm font-semibold text-[#344054]">توضیحات</Label>
-                  <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="توضیحات اضافی..." className="rounded-[10px] border-[#DCE3EE]" />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Actions */}
-            <div className="flex items-center justify-end gap-3">
-              <Link href="/dashboard/cheque-refunds"><Button type="button" variant="outline" className="h-[42px] rounded-[10px]">انصراف</Button></Link>
-              <Button type="submit" disabled={submitting || refundableCheques.length === 0} className="h-[42px] rounded-[10px] bg-[#3155E7] px-6 text-sm font-semibold text-white hover:bg-[#2445C7]">
-                {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> در حال ثبت...</> : <><Plus className="h-4 w-4" /> ثبت درخواست استرداد</>}
-              </Button>
-            </div>
-          </div>
-
-          {/* Sidebar */}
-          <aside className="space-y-4">
-            <div className="rounded-[14px] border border-[#E6EBF2] bg-white p-4 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-              <div className="mb-3 flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f59e0b]/10 text-[#f59e0b]"><Lightbulb className="h-5 w-5" /></span>
-                <h2 className="text-sm font-bold text-[#101828]">راهنما و نکات</h2>
               </div>
-              <div className="space-y-3">
+            </div>
+
+            <div className="form-fields">
+              <div className="grid grid-cols-1 gap-4 tablet:grid-cols-2">
+                <div className="field-group">
+                  <Label className="field-label">تاریخ استرداد <span className="required-star">*</span></Label>
+                  <div className="date-input-wrap">
+                    <span className="date-icon"><Calendar className="h-4 w-4" /></span>
+                    <JalaliDatePicker value={refundDate ? new Date(refundDate) : null} onChange={(d) => setRefundDate(d ? toLocalDateString(d) : '')} placeholder="انتخاب تاریخ" className="task-date-input" />
+                  </div>
+                  {errors.refundDate && <span className="field-error">{errors.refundDate}</span>}
+                </div>
+
+                <div className="field-group">
+                  <Label className="field-label">مبلغ چک</Label>
+                  <Input value={selectedCheque ? formatToman(Number(selectedCheque.amount)) : '—'} readOnly className="task-input bg-slate-50 dark:bg-slate-800" />
+                  <span className="text-[10px] text-slate-400">مبلغ به‌صورت خودکار از چک انتخاب شده</span>
+                </div>
+              </div>
+
+              <div className="field-group">
+                <Label className="field-label">علت استرداد <span className="required-star">*</span></Label>
+                <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="علت استرداد چک..." className="task-textarea" />
+                {errors.reason && <span className="field-error">{errors.reason}</span>}
+              </div>
+
+              <div className="field-group">
+                <Label className="field-label">توضیحات</Label>
+                <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="توضیحات اضافی..." className="task-textarea" />
+              </div>
+            </div>
+
+            <div className="form-actions-row">
+              <button type="button" className="cancel-btn" onClick={() => router.push('/dashboard/cheque-refunds')} disabled={submitting}>انصراف</button>
+              <button type="submit" className="submit-btn" disabled={submitting || refundableCheques.length === 0}>
+                {submitting ? (<><Loader2 className="h-4 w-4 animate-spin" /> در حال ثبت...</>) : (<><Plus className="h-4 w-4" /> ثبت درخواست استرداد</>)}
+              </button>
+            </div>
+          </form>
+
+          <aside className="task-sidebar">
+            <div className="guide-card">
+              <div className="guide-card-header">
+                <span className="guide-card-icon"><Lightbulb className="h-5 w-5" /></span>
+                <h2>راهنما و نکات</h2>
+              </div>
+              <div className="guide-items">
                 {guideItems.map((item, i) => (
                   <div key={i}>
-                    <div className="flex items-start gap-2">
-                      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#F1F5F9] text-[#667085]"><item.icon className="h-4 w-4" /></span>
-                      <div>
-                        <strong className="text-xs text-[#344054]">{item.title}</strong>
-                        <p className="mt-0.5 text-[11px] leading-5 text-[#98A2B3]">{item.desc}</p>
-                      </div>
+                    <div className="guide-item">
+                      <span className="guide-item-icon"><item.icon className="h-5 w-5" /></span>
+                      <div className="guide-item-text"><strong>{item.title}</strong><p>{item.desc}</p></div>
                     </div>
-                    {i < guideItems.length - 1 && <div className="my-2 border-t border-[#F1F5F9]" />}
+                    {i < guideItems.length - 1 && <div className="guide-item-divider" />}
                   </div>
                 ))}
               </div>
             </div>
-
-            <div className="rounded-[14px] border border-[#BFD0FF] bg-[#EFF4FF] p-4">
-              <div className="mb-2 flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#3155E7]/10 text-[#3155E7]"><Info className="h-5 w-5" /></span>
-                <h2 className="text-sm font-bold text-[#101828]">اطلاعات مفید</h2>
+            <div className="info-card">
+              <div className="info-card-header">
+                <span className="info-card-icon"><Info className="h-5 w-5" /></span>
+                <h2>اطلاعات مفید</h2>
               </div>
-              <p className="text-xs leading-6 text-[#344054]">درخواست استرداد پس از ثبت در وضعیت «پیش‌نویس» قرار می‌گیرد. پس از ارسال برای تأیید و تأیید توسط مسئول، ثبت نهایی انجام می‌شود و وضعیت چک به «استردادشده» تغییر می‌کند. چک مستردشده از چک‌های دریافتی فعال خارج می‌شود اما سابقه آن حفظ می‌گردد. در صورت اشتباه، می‌توان استرداد را ابطال کرد تا چک به وضعیت قبلی برگردد.</p>
+              <p>درخواست استرداد پس از ثبت در وضعیت «پیش‌نویس» قرار می‌گیرد. پس از ارسال برای تأیید و تأیید توسط مسئول، ثبت نهایی انجام می‌شود و وضعیت چک به «استردادشده» تغییر می‌کند. چک مستردشده از چک‌های دریافتی فعال خارج می‌شود اما سابقه آن حفظ می‌گردد. در صورت اشتباه، می‌توان استرداد را ابطال کرد تا چک به وضعیت قبلی برگردد.</p>
             </div>
 
-            {/* Blocked cheques info */}
-            <div className="rounded-[14px] border border-[#E6EBF2] bg-white p-4 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-              <h2 className="mb-3 text-sm font-bold text-[#101828]">چک‌های غیرقابل استرداد</h2>
-              <div className="space-y-2 text-xs text-[#667085]">
-                <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#10b981]" />وصول‌شده</div>
-                <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#f97316]" />استردادشده</div>
-                <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#64748b]" />باطل‌شده</div>
-                <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#0ea5e9]" />منتقل‌شده</div>
+            <div className="guide-card">
+              <div className="guide-card-header">
+                <span className="guide-card-icon"><AlertCircle className="h-5 w-5" /></span>
+                <h2>چک‌های غیرقابل استرداد</h2>
               </div>
-              <p className="mt-3 text-[11px] leading-5 text-[#98A2B3]">این چک‌ها قابل استرداد مجدد نیستند.</p>
+              <div className="space-y-2 text-xs text-slate-500 dark:text-slate-400">
+                <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-green-500" />وصول‌شده</div>
+                <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-orange-500" />استردادشده</div>
+                <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-slate-400" />باطل‌شده</div>
+                <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-sky-500" />منتقل‌شده</div>
+              </div>
+              <p className="mt-3 text-[11px] leading-5 text-slate-400">این چک‌ها قابل استرداد مجدد نیستند.</p>
             </div>
 
-            {/* Summary */}
             {selectedCheque && (
-              <div className="rounded-[14px] border border-[#E6EBF2] bg-white p-4 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-                <h2 className="mb-3 text-sm font-bold text-[#101828]">خلاصه</h2>
+              <div className="guide-card">
+                <div className="guide-card-header">
+                  <span className="guide-card-icon"><CheckSquare className="h-5 w-5" /></span>
+                  <h2>خلاصه</h2>
+                </div>
                 <div className="space-y-2 text-xs">
-                  <div className="flex justify-between"><span className="text-[#98A2B3]">شماره چک</span><span className="font-bold text-[#344054]">{selectedCheque.chequeNumber}</span></div>
-                  <div className="flex justify-between"><span className="text-[#98A2B3]">بانک</span><span className="font-bold text-[#344054]">{selectedCheque.bankName}</span></div>
-                  <div className="flex justify-between"><span className="text-[#98A2B3]">مبلغ</span><span className="font-bold text-[#3155E7]">{formatToman(Number(selectedCheque.amount))} تومان</span></div>
-                  <div className="flex justify-between"><span className="text-[#98A2B3]">گیرنده</span><span className="font-bold text-[#344054]">{recipientName || '—'}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-400">شماره چک</span><span className="font-bold text-slate-700 dark:text-slate-300">{selectedCheque.chequeNumber}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-400">بانک</span><span className="font-bold text-slate-700 dark:text-slate-300">{selectedCheque.bankName}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-400">مبلغ</span><span className="font-bold text-sky-600 dark:text-sky-400">{formatToman(Number(selectedCheque.amount))} تومان</span></div>
+                  <div className="flex justify-between"><span className="text-slate-400">گیرنده</span><span className="font-bold text-slate-700 dark:text-slate-300">{recipientName || '—'}</span></div>
                 </div>
               </div>
             )}
           </aside>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

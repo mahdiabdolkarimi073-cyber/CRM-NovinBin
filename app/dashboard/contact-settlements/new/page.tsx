@@ -8,8 +8,6 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -17,10 +15,10 @@ import {
 import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 import {
   ArrowRight, Handshake, User, Calendar, Landmark, Loader2, Plus,
-  Lightbulb, Info, AlignRight, FileCheck, AlertCircle, CheckSquare,
+  Lightbulb, Info, FileCheck, AlertCircle, CheckSquare,
   Hash, Wallet, Banknote, TrendingUp, TrendingDown, Trash2,
 } from 'lucide-react';
-import { toLocalDateString, formatToman, formatJalali } from '@/lib/format';
+import { toLocalDateString, formatToman } from '@/lib/format';
 import { toast } from 'sonner';
 import type {
   ContactParty, FiscalYear, CostCenter, BankAccount, CashFund,
@@ -325,336 +323,306 @@ export default function NewContactSettlementPage() {
   };
 
   return (
-    <div className="w-full" dir="rtl">
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <span className="h-10 w-[5px] rounded-full bg-[#FF7A00]" />
-            <h1 className="text-[28px] font-bold text-[#101828]">ایجاد تسویه حساب طرف مقابل</h1>
+    <div className="create-task-page" dir="rtl">
+      <div className="create-task-container">
+        <header className="create-task-header">
+          <div>
+            <div className="create-task-title">
+              <span className="title-accent-bar" />
+              <h1>ایجاد تسویه حساب طرف مقابل</h1>
+            </div>
+            <div className="create-task-breadcrumb">داشبورد <b>←</b> تسویه حساب طرف مقابل <b>←</b> ایجاد</div>
           </div>
-          <div className="mt-2 text-xs font-medium text-[#667085]">داشبورد <span className="mx-1.5 text-[#CBD5E1]">←</span> تسویه حساب طرف مقابل <span className="mx-1.5 text-[#CBD5E1]">←</span> ایجاد</div>
-        </div>
-        <Link href="/dashboard/contact-settlements">
-          <Button variant="outline" className="h-[42px] rounded-[10px] border-[#DCE3EE] bg-white text-sm font-semibold text-[#344054] shadow-sm hover:bg-[#FAFBFF]">
+          <Link href="/dashboard/contact-settlements" className="back-button">
             <ArrowRight className="h-4 w-4" /> بازگشت
-          </Button>
-        </Link>
-      </header>
+          </Link>
+        </header>
 
-      <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Main form */}
-          <div className="lg:col-span-2 space-y-6">
-            <Card>
-              <CardContent className="p-5">
-                <div className="mb-4 flex items-center gap-2">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#3155E7]/10 text-[#3155E7]"><Handshake className="h-5 w-5" /></span>
-                  <div>
-                    <h2 className="text-base font-bold text-[#1D2939]">اطلاعات سربرگ</h2>
-                    <p className="text-xs text-[#98A2B3]">اطلاعات اصلی تسویه را وارد کنید. فیلدهای ستاره‌دار الزامی هستند.</p>
-                  </div>
+        <div className="create-task-grid">
+          <form className="task-form-card" onSubmit={handleSubmit}>
+            {/* اطلاعات سربرگ */}
+            <div className="form-card-header">
+              <div className="form-card-title">
+                <span className="form-card-icon"><Handshake className="h-5 w-5" /></span>
+                <div>
+                  <h2>اطلاعات سربرگ</h2>
+                  <p>اطلاعات اصلی تسویه را وارد کنید. فیلدهای ستاره‌دار الزامی هستند.</p>
+                </div>
+              </div>
+            </div>
+            <div className="form-card-divider" />
+
+            <div className="form-fields">
+              <div className="grid grid-cols-1 gap-4 tablet:grid-cols-2">
+                <div className="field-group">
+                  <Label className="field-label">طرف مقابل <span className="required-star">*</span></Label>
+                  <Select value={contactPartyId} onValueChange={setContactPartyId}>
+                    <SelectTrigger className="task-select"><SelectValue placeholder="انتخاب طرف مقابل..." /></SelectTrigger>
+                    <SelectContent>
+                      {contactParties.map((p) => <SelectItem key={p.id} value={p.id}>{partyName(p)}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  {errors.contactPartyId && <span className="field-error">{errors.contactPartyId}</span>}
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">طرف مقابل <span className="text-rose-500">*</span></Label>
-                    <Select value={contactPartyId} onValueChange={setContactPartyId}>
-                      <SelectTrigger className="h-[42px] rounded-[10px] border-[#DCE3EE]">
-                        <span className="flex items-center gap-2"><User className="h-4 w-4 text-[#98A2B3]" /></span>
-                        <SelectValue placeholder="انتخاب طرف مقابل..." />
-                      </SelectTrigger>
+                <div className="field-group">
+                  <Label className="field-label">تاریخ تسویه <span className="required-star">*</span></Label>
+                  <div className="date-input-wrap">
+                    <span className="date-icon"><Calendar className="h-4 w-4" /></span>
+                    <JalaliDatePicker
+                      value={date ? new Date(date) : null}
+                      onChange={(d) => setDate(d ? toLocalDateString(d) : '')}
+                      placeholder="انتخاب تاریخ"
+                      className="task-date-input"
+                    />
+                  </div>
+                  {errors.date && <span className="field-error">{errors.date}</span>}
+                </div>
+
+                <div className="field-group">
+                  <Label className="field-label">نوع تسویه</Label>
+                  <Select value={settlementType} onValueChange={setSettlementType}>
+                    <SelectTrigger className="task-select"><SelectValue placeholder="نوع تسویه..." /></SelectTrigger>
+                    <SelectContent>
+                      {SETTLEMENT_TYPE_OPTIONS.map((opt) => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="field-group">
+                  <Label className="field-label">دوره مالی</Label>
+                  <Select value={fiscalYearId || '__none__'} onValueChange={(v) => setFiscalYearId(v === '__none__' ? '' : v)}>
+                    <SelectTrigger className="task-select"><SelectValue placeholder="انتخاب دوره مالی..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">بدون دوره</SelectItem>
+                      {fiscalYears.map((fy) => <SelectItem key={fy.id} value={fy.id}>{fy.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="field-group">
+                  <Label className="field-label">مرکز هزینه</Label>
+                  <Select value={costCenterId || '__none__'} onValueChange={(v) => setCostCenterId(v === '__none__' ? '' : v)}>
+                    <SelectTrigger className="task-select"><SelectValue placeholder="انتخاب مرکز هزینه..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">بدون مرکز هزینه</SelectItem>
+                      {costCenters.map((cc) => <SelectItem key={cc.id} value={cc.id}>{cc.code} - {cc.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="field-group">
+                <Label className="field-label">شرح کلی</Label>
+                <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="شرح کلی تسویه..." className="task-textarea" />
+              </div>
+            </div>
+
+            {/* نحوه تسویه */}
+            <div className="form-card-divider" />
+            <div className="form-card-header">
+              <div className="form-card-title">
+                <span className="form-card-icon"><Wallet className="h-5 w-5" /></span>
+                <div>
+                  <h2>نحوه تسویه</h2>
+                  <p>صندوق یا حساب بانکی مورد استفاده در تسویه را مشخص کنید.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="form-fields">
+              <div className="grid grid-cols-1 gap-4 tablet:grid-cols-2">
+                <div className="field-group">
+                  <Label className="field-label">نوع تسویه مالی</Label>
+                  <Select value={fundType} onValueChange={setFundType}>
+                    <SelectTrigger className="task-select"><SelectValue placeholder="نوع تسویه مالی..." /></SelectTrigger>
+                    <SelectContent>
+                      {FUND_TYPE_OPTIONS.map((opt) => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {fundType === 'bank' && (
+                  <div className="field-group">
+                    <Label className="field-label">حساب بانکی <span className="required-star">*</span></Label>
+                    <Select value={bankAccountId} onValueChange={setBankAccountId}>
+                      <SelectTrigger className="task-select"><SelectValue placeholder="انتخاب حساب بانکی..." /></SelectTrigger>
                       <SelectContent>
-                        {contactParties.map((p) => <SelectItem key={p.id} value={p.id}>{partyName(p)}</SelectItem>)}
+                        {bankAccounts.map((ba) => <SelectItem key={ba.id} value={ba.id}>{ba.name} ({ba.bankName})</SelectItem>)}
                       </SelectContent>
                     </Select>
-                    {errors.contactPartyId && <span className="text-xs text-rose-500">{errors.contactPartyId}</span>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">تاریخ تسویه <span className="text-rose-500">*</span></Label>
-                    <div className="date-input-wrap">
-                      <span className="flex h-[42px] items-center gap-2 rounded-[10px] border border-[#DCE3EE] bg-white px-3">
-                        <Calendar className="h-4 w-4 text-[#98A2B3]" />
-                        <JalaliDatePicker
-                          value={date ? new Date(date) : null}
-                          onChange={(d) => setDate(d ? toLocalDateString(d) : '')}
-                          placeholder="انتخاب تاریخ"
-                          className="h-[42px] flex-1 border-0 p-0 focus:ring-0"
-                        />
-                      </span>
-                    </div>
-                    {errors.date && <span className="text-xs text-rose-500">{errors.date}</span>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">نوع تسویه</Label>
-                    <Select value={settlementType} onValueChange={setSettlementType}>
-                      <SelectTrigger className="h-[42px] rounded-[10px] border-[#DCE3EE]">
-                        <span className="flex items-center gap-2"><Handshake className="h-4 w-4 text-[#98A2B3]" /></span>
-                        <SelectValue placeholder="نوع تسویه..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {SETTLEMENT_TYPE_OPTIONS.map((opt) => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">دوره مالی</Label>
-                    <Select value={fiscalYearId || '__none__'} onValueChange={(v) => setFiscalYearId(v === '__none__' ? '' : v)}>
-                      <SelectTrigger className="h-[42px] rounded-[10px] border-[#DCE3EE]">
-                        <span className="flex items-center gap-2"><Landmark className="h-4 w-4 text-[#98A2B3]" /></span>
-                        <SelectValue placeholder="انتخاب دوره مالی..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">بدون دوره</SelectItem>
-                        {fiscalYears.map((fy) => <SelectItem key={fy.id} value={fy.id}>{fy.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">مرکز هزینه</Label>
-                    <Select value={costCenterId || '__none__'} onValueChange={(v) => setCostCenterId(v === '__none__' ? '' : v)}>
-                      <SelectTrigger className="h-[42px] rounded-[10px] border-[#DCE3EE]">
-                        <span className="flex items-center gap-2"><Landmark className="h-4 w-4 text-[#98A2B3]" /></span>
-                        <SelectValue placeholder="انتخاب مرکز هزینه..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">بدون مرکز هزینه</SelectItem>
-                        {costCenters.map((cc) => <SelectItem key={cc.id} value={cc.id}>{cc.code} - {cc.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="mt-4 space-y-2">
-                  <Label className="text-sm font-semibold text-[#344054]">شرح کلی</Label>
-                  <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="شرح کلی تسویه..." className="rounded-[10px] border-[#DCE3EE]" />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Fund selection */}
-            <Card>
-              <CardContent className="p-5">
-                <div className="mb-4 flex items-center gap-2">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#10b981]/10 text-[#10b981]"><Wallet className="h-5 w-5" /></span>
-                  <div>
-                    <h2 className="text-base font-bold text-[#1D2939]">نحوه تسویه</h2>
-                    <p className="text-xs text-[#98A2B3]">صندوق یا حساب بانکی مورد استفاده در تسویه را مشخص کنید.</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">نوع تسویه مالی</Label>
-                    <Select value={fundType} onValueChange={setFundType}>
-                      <SelectTrigger className="h-[42px] rounded-[10px] border-[#DCE3EE]">
-                        <span className="flex items-center gap-2"><Banknote className="h-4 w-4 text-[#98A2B3]" /></span>
-                        <SelectValue placeholder="نوع تسویه مالی..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {FUND_TYPE_OPTIONS.map((opt) => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {fundType === 'bank' && (
-                    <div className="space-y-2">
-                      <Label className="text-sm font-semibold text-[#344054]">حساب بانکی <span className="text-rose-500">*</span></Label>
-                      <Select value={bankAccountId} onValueChange={setBankAccountId}>
-                        <SelectTrigger className="h-[42px] rounded-[10px] border-[#DCE3EE]">
-                          <span className="flex items-center gap-2"><Landmark className="h-4 w-4 text-[#98A2B3]" /></span>
-                          <SelectValue placeholder="انتخاب حساب بانکی..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {bankAccounts.map((ba) => <SelectItem key={ba.id} value={ba.id}>{ba.name} ({ba.bankName})</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                      {errors.bankAccountId && <span className="text-xs text-rose-500">{errors.bankAccountId}</span>}
-                    </div>
-                  )}
-
-                  {fundType === 'cash' && (
-                    <div className="space-y-2">
-                      <Label className="text-sm font-semibold text-[#344054]">صندوق نقدی <span className="text-rose-500">*</span></Label>
-                      <Select value={cashFundId} onValueChange={setCashFundId}>
-                        <SelectTrigger className="h-[42px] rounded-[10px] border-[#DCE3EE]">
-                          <span className="flex items-center gap-2"><Wallet className="h-4 w-4 text-[#98A2B3]" /></span>
-                          <SelectValue placeholder="انتخاب صندوق..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {cashFunds.map((cf) => <SelectItem key={cf.id} value={cf.id}>{cf.name}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                      {errors.cashFundId && <span className="text-xs text-rose-500">{errors.cashFundId}</span>}
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Items */}
-            <Card>
-              <CardContent className="p-5">
-                <div className="mb-4 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#3155E7]/10 text-[#3155E7]"><FileCheck className="h-5 w-5" /></span>
-                    <div>
-                      <h2 className="text-base font-bold text-[#1D2939]">اقلام تسویه</h2>
-                      <p className="text-xs text-[#98A2B3]">فاکتورها، پرداخت‌ها و سایر اقلام را اضافه کنید.</p>
-                    </div>
-                  </div>
-                  <Button type="button" variant="outline" size="sm" onClick={addManualItem}>
-                    <Plus className="h-4 w-4" /> افزودن قلم
-                  </Button>
-                </div>
-
-                {/* Quick add from existing documents */}
-                {contactPartyId && (availableInvoices.length > 0 || availablePayments.length > 0 || availableReceipts.length > 0) && (
-                  <div className="mb-4 rounded-[10px] border border-[#E6EBF2] bg-[#F8FAFD] p-3">
-                    <div className="mb-2 text-xs font-semibold text-[#667085]">افزودن سریع از اسناد موجود:</div>
-                    <div className="flex flex-wrap gap-2">
-                      {availableInvoices.slice(0, 5).map((inv) => (
-                        <button key={inv.id} type="button" onClick={() => addInvoiceItem(inv)} className="rounded-lg border border-[#DCE3EE] bg-white px-3 py-1.5 text-xs text-[#344054] transition-colors hover:border-[#3155E7] hover:bg-[#EFF4FF]">
-                          <span className="flex items-center gap-1"><Hash className="h-3 w-3" />{inv.number}</span>
-                          <span className="mr-2 text-[#98A2B3]">{formatToman(Number(inv.amount) - Number(inv.paid))}</span>
-                        </button>
-                      ))}
-                      {availablePayments.slice(0, 3).map((pay) => (
-                        <button key={pay.id} type="button" onClick={() => addPaymentItem(pay)} className="rounded-lg border border-[#DCE3EE] bg-white px-3 py-1.5 text-xs text-[#344054] transition-colors hover:border-[#3155E7] hover:bg-[#EFF4FF]">
-                          <span className="flex items-center gap-1"><TrendingDown className="h-3 w-3" />{pay.number}</span>
-                          <span className="mr-2 text-[#98A2B3]">{formatToman(Number(pay.amount))}</span>
-                        </button>
-                      ))}
-                      {availableReceipts.slice(0, 3).map((rec) => (
-                        <button key={rec.id} type="button" onClick={() => addReceiptItem(rec)} className="rounded-lg border border-[#DCE3EE] bg-white px-3 py-1.5 text-xs text-[#344054] transition-colors hover:border-[#3155E7] hover:bg-[#EFF4FF]">
-                          <span className="flex items-center gap-1"><TrendingUp className="h-3 w-3" />{rec.number}</span>
-                          <span className="mr-2 text-[#98A2B3]">{formatToman(Number(rec.amount))}</span>
-                        </button>
-                      ))}
-                    </div>
+                    {errors.bankAccountId && <span className="field-error">{errors.bankAccountId}</span>}
                   </div>
                 )}
 
-                {errors.items && <div className="mb-3 rounded-md bg-rose-50 px-3 py-2 text-xs text-rose-600">{errors.items}</div>}
+                {fundType === 'cash' && (
+                  <div className="field-group">
+                    <Label className="field-label">صندوق نقدی <span className="required-star">*</span></Label>
+                    <Select value={cashFundId} onValueChange={setCashFundId}>
+                      <SelectTrigger className="task-select"><SelectValue placeholder="انتخاب صندوق..." /></SelectTrigger>
+                      <SelectContent>
+                        {cashFunds.map((cf) => <SelectItem key={cf.id} value={cf.id}>{cf.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    {errors.cashFundId && <span className="field-error">{errors.cashFundId}</span>}
+                  </div>
+                )}
+              </div>
+            </div>
 
-                {items.length === 0 ? (
-                  <div className="rounded-[12px] border border-dashed border-[#DCE3EE] py-12 text-center text-sm text-[#CBD5E1]">هنوز قلمی اضافه نشده است. روی «افزودن قلم» کلیک کنید یا از اسناد موجود انتخاب کنید.</div>
-                ) : (
-                  <div className="space-y-3">
-                    {items.map((item) => (
-                      <div key={item.key} className="rounded-[10px] border border-[#E6EBF2] bg-white p-3">
-                        <div className="mb-3 flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-[10px] text-[#667085]">{ITEM_TYPE_OPTIONS.find((o) => o.value === item.itemType)?.label || item.itemType}</Badge>
-                            {item.referenceNumber && <span className="text-sm font-semibold text-[#1D2939]">{item.referenceNumber}</span>}
-                          </div>
-                          <button type="button" onClick={() => removeItem(item.key)} className="flex h-7 w-7 items-center justify-center rounded-lg text-[#98A2B3] transition-colors hover:bg-rose-50 hover:text-rose-500"><Trash2 className="h-3.5 w-3.5" /></button>
+            {/* اقلام تسویه */}
+            <div className="form-card-divider" />
+            <div className="form-card-header">
+              <div className="form-card-title">
+                <span className="form-card-icon"><FileCheck className="h-5 w-5" /></span>
+                <div>
+                  <h2>اقلام تسویه</h2>
+                  <p>فاکتورها، پرداخت‌ها و سایر اقلام را اضافه کنید.</p>
+                </div>
+              </div>
+              <button type="button" onClick={addManualItem} className="cancel-btn"><Plus className="h-4 w-4" /> افزودن قلم</button>
+            </div>
+
+            <div className="form-fields">
+              {/* Quick add from existing documents */}
+              {contactPartyId && (availableInvoices.length > 0 || availablePayments.length > 0 || availableReceipts.length > 0) && (
+                <div className="rounded-[10px] border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50">
+                  <div className="mb-2 text-xs font-semibold text-slate-500 dark:text-slate-400">افزودن سریع از اسناد موجود:</div>
+                  <div className="flex flex-wrap gap-2">
+                    {availableInvoices.slice(0, 5).map((inv) => (
+                      <button key={inv.id} type="button" onClick={() => addInvoiceItem(inv)} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 transition-colors hover:border-sky-400 hover:bg-sky-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-sky-500 dark:hover:bg-sky-900/30">
+                        <span className="flex items-center gap-1"><Hash className="h-3 w-3" />{inv.number}</span>
+                        <span className="mr-2 text-slate-400">{formatToman(Number(inv.amount) - Number(inv.paid))}</span>
+                      </button>
+                    ))}
+                    {availablePayments.slice(0, 3).map((pay) => (
+                      <button key={pay.id} type="button" onClick={() => addPaymentItem(pay)} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 transition-colors hover:border-sky-400 hover:bg-sky-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-sky-500 dark:hover:bg-sky-900/30">
+                        <span className="flex items-center gap-1"><TrendingDown className="h-3 w-3" />{pay.number}</span>
+                        <span className="mr-2 text-slate-400">{formatToman(Number(pay.amount))}</span>
+                      </button>
+                    ))}
+                    {availableReceipts.slice(0, 3).map((rec) => (
+                      <button key={rec.id} type="button" onClick={() => addReceiptItem(rec)} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 transition-colors hover:border-sky-400 hover:bg-sky-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-sky-500 dark:hover:bg-sky-900/30">
+                        <span className="flex items-center gap-1"><TrendingUp className="h-3 w-3" />{rec.number}</span>
+                        <span className="mr-2 text-slate-400">{formatToman(Number(rec.amount))}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {errors.items && <span className="field-error">{errors.items}</span>}
+
+              {items.length === 0 ? (
+                <div className="rounded-[12px] border border-dashed border-slate-300 py-12 text-center text-sm text-slate-400 dark:border-slate-600 dark:text-slate-500">هنوز قلمی اضافه نشده است. روی «افزودن قلم» کلیک کنید یا از اسناد موجود انتخاب کنید.</div>
+              ) : (
+                <div className="space-y-3">
+                  {items.map((item) => (
+                    <div key={item.key} className="rounded-[12px] border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+                      <div className="mb-3 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-[10px] text-slate-500 dark:text-slate-400">{ITEM_TYPE_OPTIONS.find((o) => o.value === item.itemType)?.label || item.itemType}</Badge>
+                          {item.referenceNumber && <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{item.referenceNumber}</span>}
                         </div>
-                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                          <div className="space-y-1">
-                            <label className="text-[11px] text-[#98A2B3]">نوع قلم</label>
-                            <select value={item.itemType} onChange={(e) => updateItem(item.key, 'itemType', e.target.value)} className="h-[36px] w-full rounded-lg border border-[#DCE3EE] bg-white px-2 text-xs text-[#344054]">
-                              {ITEM_TYPE_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                            </select>
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-[11px] text-[#98A2B3]">اصل مبلغ</label>
-                            <Input type="number" value={item.originalAmount} onChange={(e) => updateItem(item.key, 'originalAmount', Number(e.target.value))} className="h-[36px] rounded-lg border-[#DCE3EE] text-xs" />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-[11px] text-[#98A2B3]">پرداخت‌شده</label>
-                            <Input type="number" value={item.paidAmount} onChange={(e) => updateItem(item.key, 'paidAmount', Number(e.target.value))} className="h-[36px] rounded-lg border-[#DCE3EE] text-xs" />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-[11px] text-[#98A2B3]">مانده</label>
-                            <Input type="number" value={item.balance} onChange={(e) => updateItem(item.key, 'balance', Number(e.target.value))} className="h-[36px] rounded-lg border-[#DCE3EE] text-xs" />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-[11px] font-semibold text-[#3155E7]">مبلغ تخصیص</label>
-                            <Input type="number" value={item.allocationAmount} onChange={(e) => updateItem(item.key, 'allocationAmount', Number(e.target.value))} className="h-[36px] rounded-lg border-[#3155E7]/30 bg-[#EFF4FF] text-xs font-semibold text-[#3155E7]" />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-[11px] text-[#98A2B3]">تخفیف</label>
-                            <Input type="number" value={item.discount} onChange={(e) => updateItem(item.key, 'discount', Number(e.target.value))} className="h-[36px] rounded-lg border-[#DCE3EE] text-xs" />
-                          </div>
-                          <div className="col-span-2 space-y-1">
-                            <label className="text-[11px] text-[#98A2B3]">شرح</label>
-                            <Input value={item.description} onChange={(e) => updateItem(item.key, 'description', e.target.value)} placeholder="شرح قلم..." className="h-[36px] rounded-lg border-[#DCE3EE] text-xs" />
-                          </div>
+                        <button type="button" onClick={() => removeItem(item.key)} className="text-slate-400 transition-colors hover:text-rose-500"><Trash2 className="h-4 w-4" /></button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 tablet:grid-cols-4">
+                        <div className="field-group">
+                          <Label className="field-label">نوع قلم</Label>
+                          <select value={item.itemType} onChange={(e) => updateItem(item.key, 'itemType', e.target.value)} className="task-input">
+                            {ITEM_TYPE_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                          </select>
+                        </div>
+                        <div className="field-group">
+                          <Label className="field-label">اصل مبلغ</Label>
+                          <Input type="number" value={item.originalAmount} onChange={(e) => updateItem(item.key, 'originalAmount', Number(e.target.value))} className="task-input" />
+                        </div>
+                        <div className="field-group">
+                          <Label className="field-label">پرداخت‌شده</Label>
+                          <Input type="number" value={item.paidAmount} onChange={(e) => updateItem(item.key, 'paidAmount', Number(e.target.value))} className="task-input" />
+                        </div>
+                        <div className="field-group">
+                          <Label className="field-label">مانده</Label>
+                          <Input type="number" value={item.balance} onChange={(e) => updateItem(item.key, 'balance', Number(e.target.value))} className="task-input" />
+                        </div>
+                        <div className="field-group">
+                          <Label className="field-label">مبلغ تخصیص</Label>
+                          <Input type="number" value={item.allocationAmount} onChange={(e) => updateItem(item.key, 'allocationAmount', Number(e.target.value))} className="task-input" />
+                        </div>
+                        <div className="field-group">
+                          <Label className="field-label">تخفیف</Label>
+                          <Input type="number" value={item.discount} onChange={(e) => updateItem(item.key, 'discount', Number(e.target.value))} className="task-input" />
+                        </div>
+                        <div className="col-span-2 field-group">
+                          <Label className="field-label">شرح</Label>
+                          <Input value={item.description} onChange={(e) => updateItem(item.key, 'description', e.target.value)} placeholder="شرح قلم..." className="task-input" />
                         </div>
                       </div>
-                    ))}
-
-                    {/* Totals */}
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                      <div className="rounded-[10px] bg-[#FEE2E2] p-3"><div className="text-xs text-[#667085]">بدهکاری</div><div className="mt-1 text-sm font-bold text-[#DC2626]">{formatToman(totals.totalDebit)}</div></div>
-                      <div className="rounded-[10px] bg-[#DCFCE7] p-3"><div className="text-xs text-[#667085]">بستانکاری</div><div className="mt-1 text-sm font-bold text-[#16A34A]">{formatToman(totals.totalCredit)}</div></div>
-                      <div className="rounded-[10px] bg-[#FEF3C7] p-3"><div className="text-xs text-[#667085]">تخفیف</div><div className="mt-1 text-sm font-bold text-[#92400E]">{formatToman(totals.totalDiscount)}</div></div>
-                      <div className="rounded-[10px] bg-[#EFF4FF] p-3"><div className="text-xs text-[#667085]">مبلغ خالص</div><div className="mt-1 text-sm font-bold text-[#3155E7]">{formatToman(totals.totalAmount)}</div></div>
                     </div>
+                  ))}
+
+                  {/* Totals */}
+                  <div className="grid grid-cols-2 gap-3 tablet:grid-cols-4">
+                    <div className="rounded-[10px] bg-rose-50 p-3 dark:bg-rose-900/20"><div className="text-xs text-slate-500 dark:text-slate-400">بدهکاری</div><div className="mt-1 text-sm font-bold text-rose-600 dark:text-rose-400">{formatToman(totals.totalDebit)}</div></div>
+                    <div className="rounded-[10px] bg-emerald-50 p-3 dark:bg-emerald-900/20"><div className="text-xs text-slate-500 dark:text-slate-400">بستانکاری</div><div className="mt-1 text-sm font-bold text-emerald-600 dark:text-emerald-400">{formatToman(totals.totalCredit)}</div></div>
+                    <div className="rounded-[10px] bg-amber-50 p-3 dark:bg-amber-900/20"><div className="text-xs text-slate-500 dark:text-slate-400">تخفیف</div><div className="mt-1 text-sm font-bold text-amber-700 dark:text-amber-400">{formatToman(totals.totalDiscount)}</div></div>
+                    <div className="rounded-[10px] bg-sky-50 p-3 dark:bg-sky-900/20"><div className="text-xs text-slate-500 dark:text-slate-400">مبلغ خالص</div><div className="mt-1 text-sm font-bold text-sky-600 dark:text-sky-400">{formatToman(totals.totalAmount)}</div></div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Actions */}
-            <div className="flex items-center justify-end gap-3">
-              <Link href="/dashboard/contact-settlements"><Button type="button" variant="outline" className="h-[42px] rounded-[10px]">انصراف</Button></Link>
-              <Button type="submit" disabled={submitting || items.length === 0} className="h-[42px] rounded-[10px] bg-[#3155E7] px-6 text-sm font-semibold text-white hover:bg-[#2445C7]">
-                {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> در حال ایجاد...</> : <><Plus className="h-4 w-4" /> ایجاد تسویه حساب</>}
-              </Button>
+                </div>
+              )}
             </div>
-          </div>
 
-          {/* Sidebar */}
-          <aside className="space-y-4">
-            <div className="rounded-[14px] border border-[#E6EBF2] bg-white p-4 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-              <div className="mb-3 flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f59e0b]/10 text-[#f59e0b]"><Lightbulb className="h-5 w-5" /></span>
-                <h2 className="text-sm font-bold text-[#101828]">راهنما و نکات</h2>
+            <div className="form-actions-row">
+              <button type="button" className="cancel-btn" onClick={() => router.push('/dashboard/contact-settlements')} disabled={submitting}>انصراف</button>
+              <button type="submit" className="submit-btn" disabled={submitting || items.length === 0}>
+                {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> در حال ایجاد...</> : <><Plus className="h-4 w-4" /> ایجاد تسویه حساب</>}
+              </button>
+            </div>
+          </form>
+
+          <aside className="task-sidebar">
+            <div className="guide-card">
+              <div className="guide-card-header">
+                <span className="guide-card-icon"><Lightbulb className="h-5 w-5" /></span>
+                <h2>راهنما و نکات</h2>
               </div>
-              <div className="space-y-3">
+              <div className="guide-items">
                 {guideItems.map((item, i) => (
                   <div key={i}>
-                    <div className="flex items-start gap-2">
-                      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#F1F5F9] text-[#667085]"><item.icon className="h-4 w-4" /></span>
-                      <div>
-                        <strong className="text-xs text-[#344054]">{item.title}</strong>
-                        <p className="mt-0.5 text-[11px] leading-5 text-[#98A2B3]">{item.desc}</p>
-                      </div>
+                    <div className="guide-item">
+                      <span className="guide-item-icon"><item.icon className="h-5 w-5" /></span>
+                      <div className="guide-item-text"><strong>{item.title}</strong><p>{item.desc}</p></div>
                     </div>
-                    {i < guideItems.length - 1 && <div className="my-2 border-t border-[#F1F5F9]" />}
+                    {i < guideItems.length - 1 && <div className="guide-item-divider" />}
                   </div>
                 ))}
               </div>
             </div>
-
-            <div className="rounded-[14px] border border-[#BFD0FF] bg-[#EFF4FF] p-4">
-              <div className="mb-2 flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#3155E7]/10 text-[#3155E7]"><Info className="h-5 w-5" /></span>
-                <h2 className="text-sm font-bold text-[#101828]">اطلاعات مفید</h2>
+            <div className="info-card">
+              <div className="info-card-header">
+                <span className="info-card-icon"><Info className="h-5 w-5" /></span>
+                <h2>اطلاعات مفید</h2>
               </div>
-              <p className="text-xs leading-6 text-[#344054]">تسویه حساب طرف مقابل، مانده حساب مشتری یا تأمین‌کننده را با تخصیص پرداخت‌ها و دریافت‌ها به فاکتورها و اسناد مالی صفر یا کاهش می‌دهد. پس از ایجاد، می‌توانید آن را برای تأیید ارسال کنید.</p>
+              <p>تسویه حساب طرف مقابل، مانده حساب مشتری یا تأمین‌کننده را با تخصیص پرداخت‌ها و دریافت‌ها به فاکتورها و اسناد مالی صفر یا کاهش می‌دهد. پس از ایجاد، می‌توانید آن را برای تأیید ارسال کنید.</p>
             </div>
-
             {items.length > 0 && (
-              <div className="rounded-[14px] border border-[#E6EBF2] bg-white p-4 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-                <h2 className="mb-3 text-sm font-bold text-[#101828]">خلاصه تسویه</h2>
+              <div className="info-card">
+                <div className="info-card-header">
+                  <span className="info-card-icon"><FileCheck className="h-5 w-5" /></span>
+                  <h2>خلاصه تسویه</h2>
+                </div>
                 <div className="space-y-2 text-xs">
-                  <div className="flex justify-between"><span className="text-[#98A2B3]">تعداد اقلام</span><span className="font-bold text-[#344054]">{items.length.toLocaleString('fa-IR')}</span></div>
-                  <div className="flex justify-between"><span className="text-[#98A2B3]">بدهکاری</span><span className="font-bold text-[#DC2626]">{formatToman(totals.totalDebit)}</span></div>
-                  <div className="flex justify-between"><span className="text-[#98A2B3]">بستانکاری</span><span className="font-bold text-[#16A34A]">{formatToman(totals.totalCredit)}</span></div>
-                  <div className="flex justify-between"><span className="text-[#98A2B3]">تخفیف</span><span className="font-bold text-[#92400E]">{formatToman(totals.totalDiscount)}</span></div>
-                  <div className="mt-2 border-t border-[#F1F5F9] pt-2 flex justify-between"><span className="text-[#344054]">مبلغ خالص</span><span className="font-bold text-[#3155E7]">{formatToman(totals.totalAmount)} تومان</span></div>
+                  <div className="flex justify-between"><span className="text-slate-400">تعداد اقلام</span><span className="font-bold text-slate-600 dark:text-slate-300">{items.length.toLocaleString('fa-IR')}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-400">بدهکاری</span><span className="font-bold text-rose-500">{formatToman(totals.totalDebit)}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-400">بستانکاری</span><span className="font-bold text-emerald-500">{formatToman(totals.totalCredit)}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-400">تخفیف</span><span className="font-bold text-amber-600">{formatToman(totals.totalDiscount)}</span></div>
+                  <div className="mt-2 border-t border-slate-200 pt-2 flex justify-between dark:border-slate-700"><span className="text-slate-600 dark:text-slate-300">مبلغ خالص</span><span className="font-bold text-sky-600 dark:text-sky-400">{formatToman(totals.totalAmount)} تومان</span></div>
                 </div>
               </div>
             )}
           </aside>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

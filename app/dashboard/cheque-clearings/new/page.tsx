@@ -8,8 +8,6 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -47,7 +45,7 @@ const CLEARABLE_STATUSES = ['issued', 'in_clearing'];
 
 const guideItems = [
   { icon: CheckSquare, title: 'انتخاب چک قابل وصول', desc: 'فقط چک‌های پرداختی در وضعیت صادرشده یا در حال وصول قابل انتخاب هستند.' },
-  { icon: Building2, title: 'حساب بانکی مقصد', desc: 'حساب بانکی که چک به آن وصول می‌شود را انتخاب کنید. حساب باید فعال باشد.' },
+  { icon: Building2, title: 'حساب بانکی مقصد', desc: 'حساب بانکی که چک به آن وصل می‌شود را انتخاب کنید. حساب باید فعال باشد.' },
   { icon: Calendar, title: 'کنترل سررسید', desc: 'تاریخ وصول نسبت به سررسید چک کنترل می‌شود. وصول قبل از سررسید با هشدار همراه است.' },
   { icon: ShieldCheck, title: 'کنترل مبلغ', desc: 'مبلغ وصول نباید بیشتر از مانده چک باشد. وصول جزئی امکان‌پذیر است.' },
   { icon: TrendingUp, title: 'اثر حسابداری', desc: 'پس از ثبت نهایی، وضعیت چک به وصول‌شده تغییر می‌کند و تعهد مرتبط بسته می‌شود.' },
@@ -93,7 +91,6 @@ export default function NewChequeClearingPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  // Filter cheques: only clearable ones AND no pending clearing
   const clearableCheques = useMemo(() => {
     const pendingChequeIds = new Set(
       existingClearings
@@ -105,7 +102,6 @@ export default function NewChequeClearingPage() {
 
   const selectedCheque = useMemo(() => cheques.find((c) => c.id === chequeId), [cheques, chequeId]);
 
-  // Auto-fill amount and payee when cheque selected
   useEffect(() => {
     if (selectedCheque) {
       const remaining = Number(selectedCheque.amount) - Number(selectedCheque.clearedAmount || 0);
@@ -208,7 +204,6 @@ export default function NewChequeClearingPage() {
     }
   };
 
-  // Due date check
   const dueDateCheck = useMemo(() => {
     if (!selectedCheque?.dueDate || !clearingDate) return null;
     const due = new Date(selectedCheque.dueDate);
@@ -217,222 +212,210 @@ export default function NewChequeClearingPage() {
   }, [selectedCheque, clearingDate]);
 
   return (
-    <div className="w-full" dir="rtl">
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <span className="h-10 w-[5px] rounded-full bg-[#FF7A00]" />
-            <h1 className="text-[28px] font-bold text-[#101828]">ثبت درخواست وصول چک پرداختی</h1>
+    <div className="create-task-page" dir="rtl">
+      <div className="create-task-container">
+        <header className="create-task-header">
+          <div>
+            <div className="create-task-title">
+              <span className="title-accent-bar" />
+              <h1>ثبت درخواست وصول چک پرداختی</h1>
+            </div>
+            <div className="create-task-breadcrumb">داشبورد <b>←</b> وصول چک پرداختی <b>←</b> ثبت</div>
           </div>
-          <div className="mt-2 text-xs font-medium text-[#667085]">داشبورد <span className="mx-1.5 text-[#CBD5E1]">←</span> وصول چک پرداختی <span className="mx-1.5 text-[#CBD5E1]">←</span> ثبت</div>
-        </div>
-        <Link href="/dashboard/cheque-clearings">
-          <Button variant="outline" className="h-[42px] rounded-[10px] border-[#DCE3EE] bg-white text-sm font-semibold text-[#344054] shadow-sm hover:bg-[#FAFBFF]">
-            <ArrowRight className="h-4 w-4" /> بازگشت
-          </Button>
-        </Link>
-      </header>
+          <Link href="/dashboard/cheque-clearings" className="back-button">
+            <ArrowRight className="h-4 w-4" /> بازگشت به وصول چک
+          </Link>
+        </header>
 
-      <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Main form */}
-          <div className="lg:col-span-2 space-y-6">
+        <div className="create-task-grid">
+          <form className="task-form-card" onSubmit={handleSubmit}>
             {/* Cheque selection */}
-            <Card>
-              <CardContent className="p-5">
-                <div className="mb-4 flex items-center gap-2">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#3155E7]/10 text-[#3155E7]"><WalletCards className="h-5 w-5" /></span>
-                  <div>
-                    <h2 className="text-base font-bold text-[#1D2939]">انتخاب چک پرداختی</h2>
-                    <p className="text-xs text-[#98A2B3]">چک پرداختی که می‌خواهید وصول کنید را انتخاب نمایید. فقط چک‌های قابل وصول نمایش داده می‌شوند.</p>
-                  </div>
+            <div className="form-card-header">
+              <div className="form-card-title">
+                <span className="form-card-icon"><WalletCards className="h-5 w-5" /></span>
+                <div>
+                  <h2>انتخاب چک پرداختی</h2>
+                  <p>چک پرداختی که می‌خواهید وصل کنید را انتخاب نمایید. فقط چک‌های قابل وصول نمایش داده می‌شوند.</p>
                 </div>
+              </div>
+            </div>
+            <div className="form-card-divider" />
 
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold text-[#344054]">چک مورد وصول <span className="text-rose-500">*</span></Label>
-                  <Select value={chequeId} onValueChange={setChequeId}>
-                    <SelectTrigger className="h-[42px] rounded-[10px] border-[#DCE3EE]"><WalletCards className="h-4 w-4 text-[#98A2B3]" /><SelectValue placeholder="انتخاب چک..." /></SelectTrigger>
-                    <SelectContent>
-                      {clearableCheques.length === 0 ? (
-                        <SelectItem value="__none__" disabled>چک قابل وصولی موجود نیست</SelectItem>
-                      ) : (
-                        clearableCheques.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.chequeNumber} - {c.bankAccount?.bankName || 'بدون بانک'} - {formatToman(Number(c.amount))} تومان ({CHEQUE_STATUS[c.status]})
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                  {errors.chequeId && <span className="text-xs text-rose-500">{errors.chequeId}</span>}
+            <div className="form-fields">
+              <div className="field-group">
+                <Label className="field-label">چک مورد وصول <span className="required-star">*</span></Label>
+                <Select value={chequeId} onValueChange={setChequeId}>
+                  <SelectTrigger className="task-select"><WalletCards className="ml-1 h-4 w-4 text-slate-400" /><SelectValue placeholder="انتخاب چک..." /></SelectTrigger>
+                  <SelectContent>
+                    {clearableCheques.length === 0 ? (
+                      <SelectItem value="__none__" disabled>چک قابل وصولی موجود نیست</SelectItem>
+                    ) : (
+                      clearableCheques.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.chequeNumber} - {c.bankAccount?.bankName || 'بدون بانک'} - {formatToman(Number(c.amount))} تومان ({CHEQUE_STATUS[c.status]})
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                {errors.chequeId && <span className="field-error">{errors.chequeId}</span>}
+              </div>
+
+              {selectedCheque && (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  <div className="rounded-[10px] bg-sky-50 p-3 dark:bg-sky-900/20"><div className="text-xs text-slate-400">شماره چک</div><div className="mt-1 text-sm font-bold text-sky-600 dark:text-sky-400">{selectedCheque.chequeNumber}</div></div>
+                  <div className="rounded-[10px] bg-amber-50 p-3 dark:bg-amber-900/20"><div className="text-xs text-slate-400">مبلغ چک</div><div className="mt-1 text-sm font-bold text-amber-600 dark:text-amber-400">{formatToman(Number(selectedCheque.amount))} تومان</div></div>
+                  <div className="rounded-[10px] bg-green-50 p-3 dark:bg-green-900/20"><div className="text-xs text-slate-400">بانک</div><div className="mt-1 text-sm font-bold text-green-600 dark:text-green-400">{selectedCheque.bankAccount?.bankName || '—'}</div></div>
+                  <div className="rounded-[10px] bg-slate-100 p-3 dark:bg-slate-800"><div className="text-xs text-slate-400">سررسید</div><div className="mt-1 text-sm font-bold text-slate-700 dark:text-slate-300">{selectedCheque.dueDate ? formatJalali(selectedCheque.dueDate) : '—'}</div></div>
+                  <div className="rounded-[10px] bg-slate-100 p-3 dark:bg-slate-800"><div className="text-xs text-slate-400">وضعیت</div><div className="mt-1"><Badge variant="outline" style={{ color: CHEQUE_STATUS_COLOR[selectedCheque.status], borderColor: `${CHEQUE_STATUS_COLOR[selectedCheque.status]}35` }}>{CHEQUE_STATUS[selectedCheque.status]}</Badge></div></div>
+                  <div className="rounded-[10px] bg-slate-100 p-3 dark:bg-slate-800"><div className="text-xs text-slate-400">مانده قابل وصول</div><div className="mt-1 text-sm font-bold text-sky-600 dark:text-sky-400">{formatToman(remainingAmount)} تومان</div></div>
                 </div>
+              )}
 
-                {/* Selected cheque details */}
-                {selectedCheque && (
-                  <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    <div className="rounded-[10px] bg-[#EFF4FF] p-3"><div className="text-xs text-[#667085]">شماره چک</div><div className="mt-1 text-sm font-bold text-[#3155E7]">{selectedCheque.chequeNumber}</div></div>
-                    <div className="rounded-[10px] bg-[#FEF3C7] p-3"><div className="text-xs text-[#667085]">مبلغ چک</div><div className="mt-1 text-sm font-bold text-[#92400E]">{formatToman(Number(selectedCheque.amount))} تومان</div></div>
-                    <div className="rounded-[10px] bg-[#DCFCE7] p-3"><div className="text-xs text-[#667085]">بانک</div><div className="mt-1 text-sm font-bold text-[#16A34A]">{selectedCheque.bankAccount?.bankName || '—'}</div></div>
-                    <div className="rounded-[10px] bg-[#F1F5F9] p-3"><div className="text-xs text-[#667085]">سررسید</div><div className="mt-1 text-sm font-bold text-[#344054]">{selectedCheque.dueDate ? formatJalali(selectedCheque.dueDate) : '—'}</div></div>
-                    <div className="rounded-[10px] bg-[#F1F5F9] p-3"><div className="text-xs text-[#667085]">وضعیت</div><div className="mt-1"><Badge variant="outline" style={{ color: CHEQUE_STATUS_COLOR[selectedCheque.status], borderColor: `${CHEQUE_STATUS_COLOR[selectedCheque.status]}35` }}>{CHEQUE_STATUS[selectedCheque.status]}</Badge></div></div>
-                    <div className="rounded-[10px] bg-[#F1F5F9] p-3"><div className="text-xs text-[#667085]">مانده قابل وصول</div><div className="mt-1 text-sm font-bold text-[#3155E7]">{formatToman(remainingAmount)} تومان</div></div>
-                  </div>
-                )}
-
-                {clearableCheques.length === 0 && (
-                  <div className="mt-4 flex items-center gap-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-700">
-                    <AlertCircle className="h-4 w-4" />
-                    چک قابل وصولی موجود نیست. چک‌های وصول‌شده، باطل‌شده یا برگشت‌خورده قابل وصول مجدد نیستند.
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+              {clearableCheques.length === 0 && (
+                <div className="flex items-center gap-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
+                  <AlertCircle className="h-4 w-4" />
+                  چک قابل وصولی موجود نیست. چک‌های وصول‌شده، باطل‌شده یا برگشت‌خورده قابل وصول مجدد نیستند.
+                </div>
+              )}
+            </div>
 
             {/* Clearing details */}
-            <Card>
-              <CardContent className="p-5">
-                <div className="mb-4 flex items-center gap-2">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#3b82f6]/10 text-[#3b82f6]"><Banknote className="h-5 w-5" /></span>
-                  <div>
-                    <h2 className="text-base font-bold text-[#1D2939]">جزئیات وصول</h2>
-                    <p className="text-xs text-[#98A2B3]">تاریخ، مبلغ و حساب بانکی مقصد را وارد کنید.</p>
-                  </div>
+            <div className="form-card-divider" />
+            <div className="form-card-header">
+              <div className="form-card-title">
+                <span className="form-card-icon"><Banknote className="h-5 w-5" /></span>
+                <div>
+                  <h2>جزئیات وصول</h2>
+                  <p>تاریخ، مبلغ و حساب بانکی مقصد را وارد کنید.</p>
                 </div>
-
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">تاریخ وصول <span className="text-rose-500">*</span></Label>
-                    <div className="date-input-wrap">
-                      <span className="flex h-[42px] items-center gap-2 rounded-[10px] border border-[#DCE3EE] bg-white px-3">
-                        <Calendar className="h-4 w-4 text-[#98A2B3]" />
-                        <JalaliDatePicker value={clearingDate ? new Date(clearingDate) : null} onChange={(d) => setClearingDate(d ? toLocalDateString(d) : '')} placeholder="انتخاب تاریخ" className="h-[42px] flex-1 border-0 p-0 focus:ring-0" />
-                      </span>
-                    </div>
-                    {errors.clearingDate && <span className="text-xs text-rose-500">{errors.clearingDate}</span>}
-                    {dueDateCheck === true && (
-                      <div className="flex items-center gap-1 rounded-md bg-amber-50 px-2 py-1 text-[11px] text-amber-700"><AlertCircle className="h-3 w-3" /> تاریخ وصول قبل از سررسید چک است</div>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">حساب بانکی مقصد <span className="text-rose-500">*</span></Label>
-                    <Select value={bankAccountId || '__none__'} onValueChange={(v) => setBankAccountId(v === '__none__' ? '' : v)}>
-                      <SelectTrigger className="h-[42px] rounded-[10px] border-[#DCE3EE]"><Building2 className="h-4 w-4 text-[#98A2B3]" /><SelectValue placeholder="انتخاب حساب بانکی..." /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">بدون حساب</SelectItem>
-                        {bankAccounts.map((ba) => <SelectItem key={ba.id} value={ba.id}>{ba.bankName} - {ba.accountNo}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    {errors.bankAccountId && <span className="text-xs text-rose-500">{errors.bankAccountId}</span>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">مبلغ وصول <span className="text-rose-500">*</span></Label>
-                    <div className="relative">
-                      <Banknote className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98A2B3]" />
-                      <Input value={amount} onChange={(e) => setAmount(e.target.value)} type="number" placeholder="مبلغ وصول..." className="h-[42px] rounded-[10px] border-[#DCE3EE] pr-9" />
-                    </div>
-                    <span className="text-[10px] text-[#98A2B3]">مانده قابل وصول: {formatToman(remainingAmount)} تومان</span>
-                    {errors.amount && <span className="text-xs text-rose-500">{errors.amount}</span>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">دریافت‌کننده چک</Label>
-                    <div className="relative">
-                      <User className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98A2B3]" />
-                      <Input value={payee} onChange={(e) => setPayee(e.target.value)} placeholder="نام دریافت‌کننده..." className="h-[42px] rounded-[10px] border-[#DCE3EE] pr-9" />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Partial clearing indicator */}
-                {selectedCheque && amount && Number(amount) < remainingAmount && (
-                  <div className="mt-4 flex items-center gap-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-700">
-                    <AlertCircle className="h-4 w-4" />
-                    این یک وصول جزئی است. مبلغ {formatToman(remainingAmount - Number(amount))} تومان از چک باقی می‌ماند و وضعیت چک به «در حال وصول» تغییر می‌کند.
-                  </div>
-                )}
-
-                <div className="mt-4 space-y-2">
-                  <Label className="text-sm font-semibold text-[#344054]">علت وصول <span className="text-rose-500">*</span></Label>
-                  <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="علت وصول چک..." className="rounded-[10px] border-[#DCE3EE]" />
-                  {errors.reason && <span className="text-xs text-rose-500">{errors.reason}</span>}
-                </div>
-
-                <div className="mt-4 space-y-2">
-                  <Label className="text-sm font-semibold text-[#344054]">توضیحات</Label>
-                  <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="توضیحات اضافی..." className="rounded-[10px] border-[#DCE3EE]" />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Actions */}
-            <div className="flex items-center justify-end gap-3">
-              <Link href="/dashboard/cheque-clearings"><Button type="button" variant="outline" className="h-[42px] rounded-[10px]">انصراف</Button></Link>
-              <Button type="submit" disabled={submitting || clearableCheques.length === 0} className="h-[42px] rounded-[10px] bg-[#3155E7] px-6 text-sm font-semibold text-white hover:bg-[#2445C7]">
-                {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> در حال ثبت...</> : <><Plus className="h-4 w-4" /> ثبت درخواست وصول</>}
-              </Button>
-            </div>
-          </div>
-
-          {/* Sidebar */}
-          <aside className="space-y-4">
-            <div className="rounded-[14px] border border-[#E6EBF2] bg-white p-4 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-              <div className="mb-3 flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f59e0b]/10 text-[#f59e0b]"><Lightbulb className="h-5 w-5" /></span>
-                <h2 className="text-sm font-bold text-[#101828]">راهنما و نکات</h2>
               </div>
-              <div className="space-y-3">
+            </div>
+
+            <div className="form-fields">
+              <div className="grid grid-cols-1 gap-4 tablet:grid-cols-2">
+                <div className="field-group">
+                  <Label className="field-label">تاریخ وصول <span className="required-star">*</span></Label>
+                  <div className="date-input-wrap">
+                    <span className="date-icon"><Calendar className="h-4 w-4" /></span>
+                    <JalaliDatePicker value={clearingDate ? new Date(clearingDate) : null} onChange={(d) => setClearingDate(d ? toLocalDateString(d) : '')} placeholder="انتخاب تاریخ" className="task-date-input" />
+                  </div>
+                  {errors.clearingDate && <span className="field-error">{errors.clearingDate}</span>}
+                  {dueDateCheck === true && (
+                    <div className="flex items-center gap-1 rounded-md bg-amber-50 px-2 py-1 text-[11px] text-amber-700 dark:bg-amber-900/20 dark:text-amber-400"><AlertCircle className="h-3 w-3" /> تاریخ وصول قبل از سررسید چک است</div>
+                  )}
+                </div>
+
+                <div className="field-group">
+                  <Label className="field-label">حساب بانکی مقصد <span className="required-star">*</span></Label>
+                  <Select value={bankAccountId || '__none__'} onValueChange={(v) => setBankAccountId(v === '__none__' ? '' : v)}>
+                    <SelectTrigger className="task-select"><Building2 className="ml-1 h-4 w-4 text-slate-400" /><SelectValue placeholder="انتخاب حساب بانکی..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">بدون حساب</SelectItem>
+                      {bankAccounts.map((ba) => <SelectItem key={ba.id} value={ba.id}>{ba.bankName} - {ba.accountNo}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  {errors.bankAccountId && <span className="field-error">{errors.bankAccountId}</span>}
+                </div>
+
+                <div className="field-group">
+                  <Label className="field-label">مبلغ وصول <span className="required-star">*</span></Label>
+                  <Input value={amount} onChange={(e) => setAmount(e.target.value)} type="number" placeholder="مبلغ وصول..." className="task-input" />
+                  <span className="text-[10px] text-slate-400">مانده قابل وصول: {formatToman(remainingAmount)} تومان</span>
+                  {errors.amount && <span className="field-error">{errors.amount}</span>}
+                </div>
+
+                <div className="field-group">
+                  <Label className="field-label">دریافت‌کننده چک</Label>
+                  <Input value={payee} onChange={(e) => setPayee(e.target.value)} placeholder="نام دریافت‌کننده..." className="task-input" />
+                </div>
+              </div>
+
+              {selectedCheque && amount && Number(amount) < remainingAmount && (
+                <div className="flex items-center gap-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
+                  <AlertCircle className="h-4 w-4" />
+                  این یک وصول جزئی است. مبلغ {formatToman(remainingAmount - Number(amount))} تومان از چک باقی می‌ماند و وضعیت چک به «در حال وصول» تغییر می‌کند.
+                </div>
+              )}
+
+              <div className="field-group">
+                <Label className="field-label">علت وصول <span className="required-star">*</span></Label>
+                <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="علت وصول چک..." className="task-textarea" />
+                {errors.reason && <span className="field-error">{errors.reason}</span>}
+              </div>
+
+              <div className="field-group">
+                <Label className="field-label">توضیحات</Label>
+                <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="توضیحات اضافی..." className="task-textarea" />
+              </div>
+            </div>
+
+            <div className="form-actions-row">
+              <button type="button" className="cancel-btn" onClick={() => router.push('/dashboard/cheque-clearings')} disabled={submitting}>انصراف</button>
+              <button type="submit" className="submit-btn" disabled={submitting || clearableCheques.length === 0}>
+                {submitting ? (<><Loader2 className="h-4 w-4 animate-spin" /> در حال ثبت...</>) : (<><Plus className="h-4 w-4" /> ثبت درخواست وصول</>)}
+              </button>
+            </div>
+          </form>
+
+          <aside className="task-sidebar">
+            <div className="guide-card">
+              <div className="guide-card-header">
+                <span className="guide-card-icon"><Lightbulb className="h-5 w-5" /></span>
+                <h2>راهنما و نکات</h2>
+              </div>
+              <div className="guide-items">
                 {guideItems.map((item, i) => (
                   <div key={i}>
-                    <div className="flex items-start gap-2">
-                      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#F1F5F9] text-[#667085]"><item.icon className="h-4 w-4" /></span>
-                      <div>
-                        <strong className="text-xs text-[#344054]">{item.title}</strong>
-                        <p className="mt-0.5 text-[11px] leading-5 text-[#98A2B3]">{item.desc}</p>
-                      </div>
+                    <div className="guide-item">
+                      <span className="guide-item-icon"><item.icon className="h-5 w-5" /></span>
+                      <div className="guide-item-text"><strong>{item.title}</strong><p>{item.desc}</p></div>
                     </div>
-                    {i < guideItems.length - 1 && <div className="my-2 border-t border-[#F1F5F9]" />}
+                    {i < guideItems.length - 1 && <div className="guide-item-divider" />}
                   </div>
                 ))}
               </div>
             </div>
-
-            <div className="rounded-[14px] border border-[#BFD0FF] bg-[#EFF4FF] p-4">
-              <div className="mb-2 flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#3155E7]/10 text-[#3155E7]"><Info className="h-5 w-5" /></span>
-                <h2 className="text-sm font-bold text-[#101828]">اطلاعات مفید</h2>
+            <div className="info-card">
+              <div className="info-card-header">
+                <span className="info-card-icon"><Info className="h-5 w-5" /></span>
+                <h2>اطلاعات مفید</h2>
               </div>
-              <p className="text-xs leading-6 text-[#344054]">درخواست وصول پس از ثبت در وضعیت «پیش‌نویس» قرار می‌گیرد. پس از ارسال برای تأیید و تأیید توسط مسئول، ثبت نهایی انجام می‌شود. با ثبت نهایی، وضعیت چک به «وصول‌شده» (یا «در حال وصول» برای وصول جزئی) تغییر می‌کند. در صورت برگشت بانکی، می‌توان وصول را برگشت داد تا چک به وضعیت قبلی بازگردد.</p>
+              <p>درخواست وصول پس از ثبت در وضعیت «پیش‌نویس» قرار می‌گیرد. پس از ارسال برای تأیید و تأیید توسط مسئول، ثبت نهایی انجام می‌شود. با ثبت نهایی، وضعیت چک به «وصول‌شده» (یا «در حال وصول» برای وصول جزئی) تغییر می‌کند. در صورت برگشت بانکی، می‌توان وصول را برگشت داد تا چک به وضعیت قبلی بازگردد.</p>
             </div>
 
-            <div className="rounded-[14px] border border-[#E6EBF2] bg-white p-4 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-              <h2 className="mb-3 text-sm font-bold text-[#101828]">چک‌های غیرقابل وصول</h2>
-              <div className="space-y-2 text-xs text-[#667085]">
-                <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#10b981]" />وصول‌شده</div>
-                <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#64748b]" />باطل‌شده</div>
-                <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#8b5cf6]" />برگشت‌خورده</div>
+            <div className="guide-card">
+              <div className="guide-card-header">
+                <span className="guide-card-icon"><AlertCircle className="h-5 w-5" /></span>
+                <h2>چک‌های غیرقابل وصول</h2>
               </div>
-              <p className="mt-3 text-[11px] leading-5 text-[#98A2B3]">این چک‌ها قابل وصول مجدد نیستند.</p>
+              <div className="space-y-2 text-xs text-slate-500 dark:text-slate-400">
+                <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-green-500" />وصول‌شده</div>
+                <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-slate-400" />باطل‌شده</div>
+                <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-violet-500" />برگشت‌خورده</div>
+              </div>
+              <p className="mt-3 text-[11px] leading-5 text-slate-400">این چک‌ها قابل وصول مجدد نیستند.</p>
             </div>
 
-            {/* Summary */}
             {selectedCheque && (
-              <div className="rounded-[14px] border border-[#E6EBF2] bg-white p-4 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-                <h2 className="mb-3 text-sm font-bold text-[#101828]">خلاصه</h2>
+              <div className="guide-card">
+                <div className="guide-card-header">
+                  <span className="guide-card-icon"><CheckSquare className="h-5 w-5" /></span>
+                  <h2>خلاصه</h2>
+                </div>
                 <div className="space-y-2 text-xs">
-                  <div className="flex justify-between"><span className="text-[#98A2B3]">شماره چک</span><span className="font-bold text-[#344054]">{selectedCheque.chequeNumber}</span></div>
-                  <div className="flex justify-between"><span className="text-[#98A2B3]">مبلغ چک</span><span className="font-bold text-[#344054]">{formatToman(Number(selectedCheque.amount))} تومان</span></div>
-                  <div className="flex justify-between"><span className="text-[#98A2B3]">مانده قابل وصول</span><span className="font-bold text-[#3155E7]">{formatToman(remainingAmount)} تومان</span></div>
-                  <div className="flex justify-between"><span className="text-[#98A2B3]">مبلغ وصول</span><span className="font-bold text-[#3155E7]">{amount ? formatToman(Number(amount)) : '—'}</span></div>
-                  <div className="flex justify-between"><span className="text-[#98A2B3]">دریافت‌کننده</span><span className="font-bold text-[#344054]">{payee || '—'}</span></div>
-                  {amount && Number(amount) < remainingAmount && <div className="flex justify-between"><span className="text-[#98A2B3]">مانده پس از وصول</span><span className="font-bold text-amber-600">{formatToman(remainingAmount - Number(amount))} تومان</span></div>}
+                  <div className="flex justify-between"><span className="text-slate-400">شماره چک</span><span className="font-bold text-slate-700 dark:text-slate-300">{selectedCheque.chequeNumber}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-400">مبلغ چک</span><span className="font-bold text-slate-700 dark:text-slate-300">{formatToman(Number(selectedCheque.amount))} تومان</span></div>
+                  <div className="flex justify-between"><span className="text-slate-400">مانده قابل وصول</span><span className="font-bold text-sky-600 dark:text-sky-400">{formatToman(remainingAmount)} تومان</span></div>
+                  <div className="flex justify-between"><span className="text-slate-400">مبلغ وصول</span><span className="font-bold text-sky-600 dark:text-sky-400">{amount ? formatToman(Number(amount)) : '—'}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-400">دریافت‌کننده</span><span className="font-bold text-slate-700 dark:text-slate-300">{payee || '—'}</span></div>
+                  {amount && Number(amount) < remainingAmount && <div className="flex justify-between"><span className="text-slate-400">مانده پس از وصول</span><span className="font-bold text-amber-600">{formatToman(remainingAmount - Number(amount))} تومان</span></div>}
                 </div>
               </div>
             )}
           </aside>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -171,216 +170,209 @@ export default function NewPettyCashMergePage() {
   };
 
   return (
-    <div className="w-full" dir="rtl">
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <span className="h-10 w-[5px] rounded-full bg-[#FF7A00]" />
-            <h1 className="text-[28px] font-bold text-[#101828]">ایجاد صورت ادغام اسناد</h1>
+    <div className="create-task-page" dir="rtl">
+      <div className="create-task-container">
+        <header className="create-task-header">
+          <div>
+            <div className="create-task-title">
+              <span className="title-accent-bar" />
+              <h1>ایجاد صورت ادغام اسناد</h1>
+            </div>
+            <div className="create-task-breadcrumb">داشبورد <b>←</b> صورت ادغام اسناد <b>←</b> ایجاد</div>
           </div>
-          <div className="mt-2 text-xs font-medium text-[#667085]">داشبورد <span className="mx-1.5 text-[#CBD5E1]">←</span> صورت ادغام اسناد <span className="mx-1.5 text-[#CBD5E1]">←</span> ایجاد</div>
-        </div>
-        <Link href="/dashboard/petty-cash-merge">
-          <Button variant="outline" className="h-[42px] rounded-[10px] border-[#DCE3EE] bg-white text-sm font-semibold text-[#344054] shadow-sm hover:bg-[#FAFBFF]">
-            <ArrowRight className="h-4 w-4" /> بازگشت
-          </Button>
-        </Link>
-      </header>
+          <Link href="/dashboard/petty-cash-merge" className="back-button">
+            <ArrowRight className="h-4 w-4" /> بازگشت به صورت ادغام
+          </Link>
+        </header>
 
-      <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Main form */}
-          <div className="lg:col-span-2 space-y-6">
-            <Card>
-              <CardContent className="p-5">
-                <div className="mb-4 flex items-center gap-2">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#3155E7]/10 text-[#3155E7]"><Layers className="h-5 w-5" /></span>
-                  <div>
-                    <h2 className="text-base font-bold text-[#1D2939]">اطلاعات سربرگ</h2>
-                    <p className="text-xs text-[#98A2B3]">اطلاعات اصلی صورت ادغام را وارد کنید. فیلدهای ستاره‌دار الزامی هستند.</p>
-                  </div>
+        <div className="create-task-grid">
+          <form className="task-form-card" onSubmit={handleSubmit}>
+            <div className="form-card-header">
+              <div className="form-card-title">
+                <span className="form-card-icon"><Layers className="h-5 w-5" /></span>
+                <div>
+                  <h2>اطلاعات سربرگ</h2>
+                  <p>اطلاعات اصلی صورت ادغام را وارد کنید. فیلدهای ستاره‌دار الزامی هستند.</p>
+                </div>
+              </div>
+            </div>
+            <div className="form-card-divider" />
+
+            <div className="form-fields">
+              <div className="grid grid-cols-1 gap-4 tablet:grid-cols-2">
+                <div className="field-group">
+                  <Label className="field-label">تنخواه‌دار <span className="required-star">*</span></Label>
+                  <Select value={custodianId} onValueChange={setCustodianId}>
+                    <SelectTrigger className="task-select">
+                      <Wallet className="ml-1 h-4 w-4 text-slate-400" />
+                      <SelectValue placeholder="انتخاب تنخواه‌دار..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {custodians.map((c) => <SelectItem key={c.id} value={c.id}>{custodianName(c)} ({c.code})</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  {errors.custodianId && <span className="field-error">{errors.custodianId}</span>}
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">تنخواه‌دار <span className="text-rose-500">*</span></Label>
-                    <Select value={custodianId} onValueChange={setCustodianId}>
-                      <SelectTrigger className="h-[42px] rounded-[10px] border-[#DCE3EE]">
-                        <span className="flex items-center gap-2"><Wallet className="h-4 w-4 text-[#98A2B3]" /></span>
-                        <SelectValue placeholder="انتخاب تنخواه‌دار..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {custodians.map((c) => <SelectItem key={c.id} value={c.id}>{custodianName(c)} ({c.code})</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    {errors.custodianId && <span className="text-xs text-rose-500">{errors.custodianId}</span>}
+                <div className="field-group">
+                  <Label className="field-label">تاریخ صورت ادغام <span className="required-star">*</span></Label>
+                  <div className="date-input-wrap">
+                    <span className="date-icon"><Calendar className="h-4 w-4" /></span>
+                    <JalaliDatePicker
+                      value={date ? new Date(date) : null}
+                      onChange={(d) => setDate(d ? toLocalDateString(d) : '')}
+                      placeholder="انتخاب تاریخ"
+                      className="task-date-input"
+                    />
                   </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">تاریخ صورت ادغام <span className="text-rose-500">*</span></Label>
-                    <div className="date-input-wrap">
-                      <span className="flex h-[42px] items-center gap-2 rounded-[10px] border border-[#DCE3EE] bg-white px-3">
-                        <Calendar className="h-4 w-4 text-[#98A2B3]" />
-                        <JalaliDatePicker
-                          value={date ? new Date(date) : null}
-                          onChange={(d) => setDate(d ? toLocalDateString(d) : '')}
-                          placeholder="انتخاب تاریخ"
-                          className="h-[42px] flex-1 border-0 p-0 focus:ring-0"
-                        />
-                      </span>
-                    </div>
-                    {errors.date && <span className="text-xs text-rose-500">{errors.date}</span>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">دوره مالی</Label>
-                    <Select value={fiscalYearId || '__none__'} onValueChange={(v) => setFiscalYearId(v === '__none__' ? '' : v)}>
-                      <SelectTrigger className="h-[42px] rounded-[10px] border-[#DCE3EE]">
-                        <span className="flex items-center gap-2"><Landmark className="h-4 w-4 text-[#98A2B3]" /></span>
-                        <SelectValue placeholder="انتخاب دوره مالی..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">بدون دوره</SelectItem>
-                        {fiscalYears.map((fy) => <SelectItem key={fy.id} value={fy.id}>{fy.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">مرکز هزینه</Label>
-                    <Select value={costCenterId || '__none__'} onValueChange={(v) => setCostCenterId(v === '__none__' ? '' : v)}>
-                      <SelectTrigger className="h-[42px] rounded-[10px] border-[#DCE3EE]">
-                        <span className="flex items-center gap-2"><Landmark className="h-4 w-4 text-[#98A2B3]" /></span>
-                        <SelectValue placeholder="انتخاب مرکز هزینه..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">بدون مرکز هزینه</SelectItem>
-                        {costCenters.map((cc) => <SelectItem key={cc.id} value={cc.id}>{cc.code} - {cc.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {errors.date && <span className="field-error">{errors.date}</span>}
                 </div>
 
-                <div className="mt-4 space-y-2">
-                  <Label className="text-sm font-semibold text-[#344054]">شرح کلی</Label>
-                  <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="شرح کلی صورت ادغام..." className="rounded-[10px] border-[#DCE3EE]" />
+                <div className="field-group">
+                  <Label className="field-label">دوره مالی</Label>
+                  <Select value={fiscalYearId || '__none__'} onValueChange={(v) => setFiscalYearId(v === '__none__' ? '' : v)}>
+                    <SelectTrigger className="task-select">
+                      <Landmark className="ml-1 h-4 w-4 text-slate-400" />
+                      <SelectValue placeholder="انتخاب دوره مالی..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">بدون دوره</SelectItem>
+                      {fiscalYears.map((fy) => <SelectItem key={fy.id} value={fy.id}>{fy.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
-              </CardContent>
-            </Card>
+
+                <div className="field-group">
+                  <Label className="field-label">مرکز هزینه</Label>
+                  <Select value={costCenterId || '__none__'} onValueChange={(v) => setCostCenterId(v === '__none__' ? '' : v)}>
+                    <SelectTrigger className="task-select">
+                      <Landmark className="ml-1 h-4 w-4 text-slate-400" />
+                      <SelectValue placeholder="انتخاب مرکز هزینه..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">بدون مرکز هزینه</SelectItem>
+                      {costCenters.map((cc) => <SelectItem key={cc.id} value={cc.id}>{cc.code} - {cc.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="field-group">
+                <Label className="field-label">شرح کلی</Label>
+                <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="شرح کلی صورت ادغام..." className="task-textarea" />
+              </div>
+            </div>
 
             {/* Expense selection */}
-            <Card>
-              <CardContent className="p-5">
-                <div className="mb-4 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#3155E7]/10 text-[#3155E7]"><FileCheck className="h-5 w-5" /></span>
-                    <div>
-                      <h2 className="text-base font-bold text-[#1D2939]">انتخاب اسناد قابل ادغام</h2>
-                      <p className="text-xs text-[#98A2B3]">اسناد تأییدشده و قابل ادغام این تنخواه‌دار را انتخاب کنید.</p>
-                    </div>
-                  </div>
-                  {availableExpenses.length > 0 && (
-                    <Button type="button" variant="outline" size="sm" onClick={selectAll}>
-                      {selectedExpenses.size === availableExpenses.length ? 'لغو همه' : 'انتخاب همه'}
-                    </Button>
-                  )}
+            <div className="form-card-divider" />
+            <div className="form-card-header">
+              <div className="form-card-title">
+                <span className="form-card-icon"><FileCheck className="h-5 w-5" /></span>
+                <div>
+                  <h2>انتخاب اسناد قابل ادغام</h2>
+                  <p>اسناد تأییدشده و قابل ادغام این تنخواه‌دار را انتخاب کنید.</p>
+                </div>
+              </div>
+              {availableExpenses.length > 0 && (
+                <Button type="button" variant="outline" size="sm" onClick={selectAll} className="mr-auto">
+                  {selectedExpenses.size === availableExpenses.length ? 'لغو همه' : 'انتخاب همه'}
+                </Button>
+              )}
+            </div>
+
+            {!custodianId ? (
+              <div className="rounded-[12px] border border-dashed border-slate-200 py-12 text-center text-sm text-slate-400 dark:border-slate-700">ابتدا تنخواه‌دار را انتخاب کنید تا اسناد قابل ادغام نمایش داده شوند.</div>
+            ) : availableExpenses.length === 0 ? (
+              <div className="rounded-[12px] border border-dashed border-slate-200 py-12 text-center text-sm text-slate-400 dark:border-slate-700">سند قابل ادغامی برای این تنخواه‌دار وجود ندارد. فقط اسناد تأییدشده و ادغام‌نشده قابل انتخاب هستند.</div>
+            ) : (
+              <>
+                {errors.expenses && <div className="mb-3 rounded-md bg-rose-50 px-3 py-2 text-xs text-rose-600">{errors.expenses}</div>}
+                <div className="space-y-2">
+                  {availableExpenses.map((exp) => {
+                    const isSelected = selectedExpenses.has(exp.id);
+                    return (
+                      <label key={exp.id} className={`flex cursor-pointer items-center gap-3 rounded-[10px] border p-3 transition-colors ${isSelected ? 'border-sky-500 bg-sky-50 dark:bg-sky-900/20' : 'border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800'}`}>
+                        <Checkbox checked={isSelected} onCheckedChange={() => toggleExpense(exp.id)} />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="flex items-center gap-1 text-sm font-semibold text-slate-800 dark:text-slate-200"><Hash className="h-3 w-3 text-slate-400" />{exp.number}</span>
+                            <Badge variant="outline" className="border-green-200 text-[10px] text-green-600">قابل ادغام</Badge>
+                          </div>
+                          <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-400">
+                            <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{formatJalali(exp.date)}</span>
+                            <span>{exp.expenseType}</span>
+                            {exp.description && <span className="truncate">{exp.description}</span>}
+                          </div>
+                        </div>
+                        <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{formatToman(Number(exp.amount))} تومان</span>
+                      </label>
+                    );
+                  })}
                 </div>
 
-                {!custodianId ? (
-                  <div className="rounded-[12px] border border-dashed border-[#DCE3EE] py-12 text-center text-sm text-[#CBD5E1]">ابتدا تنخواه‌دار را انتخاب کنید تا اسناد قابل ادغام نمایش داده شوند.</div>
-                ) : availableExpenses.length === 0 ? (
-                  <div className="rounded-[12px] border border-dashed border-[#DCE3EE] py-12 text-center text-sm text-[#CBD5E1]">سند قابل ادغامی برای این تنخواه‌دار وجود ندارد. فقط اسناد تأییدشده و ادغام‌نشده قابل انتخاب هستند.</div>
-                ) : (
-                  <>
-                    {errors.expenses && <div className="mb-3 rounded-md bg-rose-50 px-3 py-2 text-xs text-rose-600">{errors.expenses}</div>}
-                    <div className="space-y-2">
-                      {availableExpenses.map((exp) => {
-                        const isSelected = selectedExpenses.has(exp.id);
-                        return (
-                          <label key={exp.id} className={`flex cursor-pointer items-center gap-3 rounded-[10px] border p-3 transition-colors ${isSelected ? 'border-[#3155E7] bg-[#EFF4FF]' : 'border-[#E6EBF2] bg-white hover:bg-[#F8FAFD]'}`}>
-                            <Checkbox checked={isSelected} onCheckedChange={() => toggleExpense(exp.id)} />
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
-                                <span className="flex items-center gap-1 text-sm font-semibold text-[#1D2939]"><Hash className="h-3 w-3 text-[#98A2B3]" />{exp.number}</span>
-                                <Badge variant="outline" className="border-green-200 text-[10px] text-green-600">قابل ادغام</Badge>
-                              </div>
-                              <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-[#98A2B3]">
-                                <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{formatJalali(exp.date)}</span>
-                                <span>{exp.expenseType}</span>
-                                {exp.description && <span className="truncate">{exp.description}</span>}
-                              </div>
-                            </div>
-                            <span className="text-sm font-bold text-[#1D2939]">{formatToman(Number(exp.amount))} تومان</span>
-                          </label>
-                        );
-                      })}
-                    </div>
+                {/* Total */}
+                <div className="mt-4 flex items-center justify-between rounded-[10px] bg-sky-50 px-4 py-3 dark:bg-sky-900/20">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">جمع اسناد انتخاب‌شده:</span>
+                    <Badge variant="secondary" className="text-xs">{selectedExpenses.size.toLocaleString('fa-IR')} سند</Badge>
+                  </div>
+                  <span className="text-lg font-bold text-sky-600 dark:text-sky-400">{formatToman(totalAmount)} تومان</span>
+                </div>
+              </>
+            )}
 
-                    {/* Total */}
-                    <div className="mt-4 flex items-center justify-between rounded-[10px] bg-[#EFF4FF] px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-[#344054]">جمع اسناد انتخاب‌شده:</span>
-                        <Badge variant="secondary" className="text-xs">{selectedExpenses.size.toLocaleString('fa-IR')} سند</Badge>
-                      </div>
-                      <span className="text-lg font-bold text-[#3155E7]">{formatToman(totalAmount)} تومان</span>
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Actions */}
-            <div className="flex items-center justify-end gap-3">
-              <Link href="/dashboard/petty-cash-merge"><Button type="button" variant="outline" className="h-[42px] rounded-[10px]">انصراف</Button></Link>
-              <Button type="submit" disabled={submitting || selectedExpenses.size === 0} className="h-[42px] rounded-[10px] bg-[#3155E7] px-6 text-sm font-semibold text-white hover:bg-[#2445C7]">
-                {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> در حال ایجاد...</> : <><Plus className="h-4 w-4" /> ایجاد صورت ادغام</>}
-              </Button>
+            <div className="form-actions-row">
+              <button type="button" className="cancel-btn" onClick={() => router.push('/dashboard/petty-cash-merge')} disabled={submitting}>انصراف</button>
+              <button type="submit" className="submit-btn" disabled={submitting || selectedExpenses.size === 0}>
+                {submitting ? (<><Loader2 className="h-4 w-4 animate-spin" /> در حال ایجاد...</>) : (<><Plus className="h-4 w-4" /> ایجاد صورت ادغام</>)}
+              </button>
             </div>
-          </div>
+          </form>
 
-          {/* Sidebar */}
-          <aside className="space-y-4">
-            <div className="rounded-[14px] border border-[#E6EBF2] bg-white p-4 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-              <div className="mb-3 flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f59e0b]/10 text-[#f59e0b]"><Lightbulb className="h-5 w-5" /></span>
-                <h2 className="text-sm font-bold text-[#101828]">راهنما و نکات</h2>
+          <aside className="task-sidebar">
+            <div className="guide-card">
+              <div className="guide-card-header">
+                <span className="guide-card-icon"><Lightbulb className="h-5 w-5" /></span>
+                <h2>راهنما و نکات</h2>
               </div>
-              <div className="space-y-3">
+              <div className="guide-items">
                 {guideItems.map((item, i) => (
                   <div key={i}>
-                    <div className="flex items-start gap-2">
-                      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#F1F5F9] text-[#667085]"><item.icon className="h-4 w-4" /></span>
-                      <div>
-                        <strong className="text-xs text-[#344054]">{item.title}</strong>
-                        <p className="mt-0.5 text-[11px] leading-5 text-[#98A2B3]">{item.desc}</p>
+                    <div className="guide-item">
+                      <span className="guide-item-icon"><item.icon className="h-5 w-5" /></span>
+                      <div className="guide-item-text">
+                        <strong>{item.title}</strong>
+                        <p>{item.desc}</p>
                       </div>
                     </div>
-                    {i < guideItems.length - 1 && <div className="my-2 border-t border-[#F1F5F9]" />}
+                    {i < guideItems.length - 1 && <div className="guide-item-divider" />}
                   </div>
                 ))}
               </div>
             </div>
-
-            <div className="rounded-[14px] border border-[#BFD0FF] bg-[#EFF4FF] p-4">
-              <div className="mb-2 flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#3155E7]/10 text-[#3155E7]"><Info className="h-5 w-5" /></span>
-                <h2 className="text-sm font-bold text-[#101828]">اطلاعات مفید</h2>
+            <div className="info-card">
+              <div className="info-card-header">
+                <span className="info-card-icon"><Info className="h-5 w-5" /></span>
+                <h2>اطلاعات مفید</h2>
               </div>
-              <p className="text-xs leading-6 text-[#344054]">صورت ادغام اسناد، چند سند هزینه را زیر یک سند اصلی تجمیع می‌کند. اسناد اصلی حفظ می‌شوند و ارتباط بین سند اصلی و اسناد ادغام‌شده نگه‌داری می‌شود. پس از ایجاد، می‌توانید آن را برای تأیید ارسال کنید.</p>
+              <p>صورت ادغام اسناد، چند سند هزینه را زیر یک سند اصلی تجمیع می‌کند. اسناد اصلی حفظ می‌شوند و ارتباط بین سند اصلی و اسناد ادغام‌شده نگه‌داری می‌شود. پس از ایجاد، می‌توانید آن را برای تأیید ارسال کنید.</p>
             </div>
 
             {selectedExpenses.size > 0 && (
-              <div className="rounded-[14px] border border-[#E6EBF2] bg-white p-4 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-                <h2 className="mb-3 text-sm font-bold text-[#101828]">خلاصه انتخاب</h2>
+              <div className="guide-card">
+                <div className="guide-card-header">
+                  <span className="guide-card-icon"><CheckSquare className="h-5 w-5" /></span>
+                  <h2>خلاصه انتخاب</h2>
+                </div>
                 <div className="space-y-2 text-xs">
-                  <div className="flex justify-between"><span className="text-[#98A2B3]">تعداد اسناد</span><span className="font-bold text-[#344054]">{selectedExpenses.size.toLocaleString('fa-IR')}</span></div>
-                  <div className="flex justify-between"><span className="text-[#98A2B3]">جمع مبلغ</span><span className="font-bold text-[#3155E7]">{formatToman(totalAmount)} تومان</span></div>
+                  <div className="flex justify-between"><span className="text-slate-400">تعداد اسناد</span><span className="font-bold text-slate-700 dark:text-slate-300">{selectedExpenses.size.toLocaleString('fa-IR')}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-400">جمع مبلغ</span><span className="font-bold text-sky-600 dark:text-sky-400">{formatToman(totalAmount)} تومان</span></div>
                 </div>
               </div>
             )}
           </aside>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

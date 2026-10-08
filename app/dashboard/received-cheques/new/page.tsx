@@ -8,9 +8,6 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -144,233 +141,217 @@ export default function NewReceivedChequePage() {
   };
 
   return (
-    <div className="w-full" dir="rtl">
-      <header className="mb-6 flex flex-col gap-4 mobile:flex-row mobile:items-center mobile:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <span className="h-10 w-[5px] rounded-full bg-[#FF7A00]" />
-            <h1 className="text-[28px] font-bold text-[#101828]">ثبت چک دریافتی</h1>
-          </div>
-          <div className="mt-2 text-xs font-medium text-[#667085]">داشبورد <span className="mx-1.5 text-[#CBD5E1]">←</span> چک‌های دریافتی <span className="mx-1.5 text-[#CBD5E1]">←</span> ثبت</div>
-        </div>
-        <Link href="/dashboard/received-cheques">
-          <Button variant="outline" className="h-[42px] rounded-[10px] border-[#DCE3EE] bg-white text-sm font-semibold text-[#344054] shadow-sm hover:bg-[#FAFBFF]">
-            <ArrowRight className="h-4 w-4" /> بازگشت
-          </Button>
-        </Link>
-      </header>
-
-      <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Main form */}
-          <div className="lg:col-span-2 space-y-6">
-            <Card>
-              <CardContent className="p-5">
-                <div className="mb-4 flex items-center gap-2">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#3155E7]/10 text-[#3155E7]"><WalletCards className="h-5 w-5" /></span>
-                  <div>
-                    <h2 className="text-base font-bold text-[#1D2939]">اطلاعات چک</h2>
-                    <p className="text-xs text-[#98A2B3]">اطلاعات پایه و مالی چک را وارد کنید. فیلدهای ستاره‌دار الزامی هستند.</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 tablet:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">شماره چک <span className="text-rose-500">*</span></Label>
-                    <div className="relative">
-                      <Hash className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98A2B3]" />
-                      <Input value={chequeNumber} onChange={(e) => setChequeNumber(e.target.value)} placeholder="شماره چک..." className="h-[42px] rounded-[10px] border-[#DCE3EE] pr-9" />
-                    </div>
-                    {errors.chequeNumber && <span className="text-xs text-rose-500">{errors.chequeNumber}</span>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">شناسه صیادی</Label>
-                    <Input value={sayadiNumber} onChange={(e) => setSayadiNumber(e.target.value)} placeholder="شناسه صیادی (اختیاری)..." className="h-[42px] rounded-[10px] border-[#DCE3EE]" />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">بانک <span className="text-rose-500">*</span></Label>
-                    <div className="relative">
-                      <Building2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98A2B3]" />
-                      <Input value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="نام بانک..." className="h-[42px] rounded-[10px] border-[#DCE3EE] pr-9" />
-                    </div>
-                    {errors.bankName && <span className="text-xs text-rose-500">{errors.bankName}</span>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">شعبه</Label>
-                    <Input value={branchName} onChange={(e) => setBranchName(e.target.value)} placeholder="نام شعبه..." className="h-[42px] rounded-[10px] border-[#DCE3EE]" />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">شماره حساب صادرکننده</Label>
-                    <Input value={issuerAccountNo} onChange={(e) => setIssuerAccountNo(e.target.value)} placeholder="شماره حساب..." className="h-[42px] rounded-[10px] border-[#DCE3EE]" />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">مبلغ <span className="text-rose-500">*</span></Label>
-                    <div className="relative">
-                      <Banknote className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98A2B3]" />
-                      <Input type="number" value={amount || ''} onChange={(e) => setAmount(Number(e.target.value))} placeholder="مبلغ چک (تومان)..." className="h-[42px] rounded-[10px] border-[#DCE3EE] pr-9" />
-                    </div>
-                    {amount > 0 && <span className="text-xs text-[#3155E7] font-semibold">{formatToman(amount)} تومان</span>}
-                    {errors.amount && <span className="text-xs text-rose-500">{errors.amount}</span>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">تاریخ صدور <span className="text-rose-500">*</span></Label>
-                    <div className="date-input-wrap">
-                      <span className="flex h-[42px] items-center gap-2 rounded-[10px] border border-[#DCE3EE] bg-white px-3">
-                        <Calendar className="h-4 w-4 text-[#98A2B3]" />
-                        <JalaliDatePicker value={issueDate ? new Date(issueDate) : null} onChange={(d) => setIssueDate(d ? toLocalDateString(d) : '')} placeholder="انتخاب تاریخ" className="h-[42px] flex-1 border-0 p-0 focus:ring-0" />
-                      </span>
-                    </div>
-                    {errors.issueDate && <span className="text-xs text-rose-500">{errors.issueDate}</span>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">تاریخ سررسید <span className="text-rose-500">*</span></Label>
-                    <div className="date-input-wrap">
-                      <span className="flex h-[42px] items-center gap-2 rounded-[10px] border border-[#DCE3EE] bg-white px-3">
-                        <Calendar className="h-4 w-4 text-[#98A2B3]" />
-                        <JalaliDatePicker value={dueDate ? new Date(dueDate) : null} onChange={(d) => setDueDate(d ? toLocalDateString(d) : '')} placeholder="انتخاب تاریخ" className="h-[42px] flex-1 border-0 p-0 focus:ring-0" />
-                      </span>
-                    </div>
-                    {errors.dueDate && <span className="text-xs text-rose-500">{errors.dueDate}</span>}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Parties */}
-            <Card>
-              <CardContent className="p-5">
-                <div className="mb-4 flex items-center gap-2">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#10b981]/10 text-[#10b981]"><User className="h-5 w-5" /></span>
-                  <div>
-                    <h2 className="text-base font-bold text-[#1D2939]">اطلاعات طرفین</h2>
-                    <p className="text-xs text-[#98A2B3]">صادرکننده و دریافت‌کننده چک را مشخص کنید.</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 tablet:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">صادرکننده (طرف حساب)</Label>
-                    <Select value={issuerPartyId} onValueChange={setIssuerPartyId}>
-                      <SelectTrigger className="h-[42px] rounded-[10px] border-[#DCE3EE]"><User className="h-4 w-4 text-[#98A2B3]" /><SelectValue placeholder="انتخاب طرف حساب..." /></SelectTrigger>
-                      <SelectContent>{contactParties.map((p) => <SelectItem key={p.id} value={p.id}>{partyName(p)}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">نام صادرکننده (دستی)</Label>
-                    <Input value={issuerName} onChange={(e) => setIssuerName(e.target.value)} placeholder="اگر طرف حساب انتخاب نشده..." className="h-[42px] rounded-[10px] border-[#DCE3EE]" />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">دریافت‌کننده</Label>
-                    <Input value={receiverName} onChange={(e) => setReceiverName(e.target.value)} placeholder="نام دریافت‌کننده..." className="h-[42px] rounded-[10px] border-[#DCE3EE]" />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">بابت</Label>
-                    <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="بابت..." className="h-[42px] rounded-[10px] border-[#DCE3EE]" />
-                  </div>
-                </div>
-                {errors.issuer && <span className="mt-2 block text-xs text-rose-500">{errors.issuer}</span>}
-              </CardContent>
-            </Card>
-
-            {/* Storage */}
-            <Card>
-              <CardContent className="p-5">
-                <div className="mb-4 flex items-center gap-2">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#f59e0b]/10 text-[#f59e0b]"><Landmark className="h-5 w-5" /></span>
-                  <div>
-                    <h2 className="text-base font-bold text-[#1D2939]">محل نگهداری</h2>
-                    <p className="text-xs text-[#98A2B3]">محل فعلی نگهداری چک را مشخص کنید.</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 tablet:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">صندوق نقدی</Label>
-                    <Select value={cashFundId || '__none__'} onValueChange={(v) => setCashFundId(v === '__none__' ? '' : v)}>
-                      <SelectTrigger className="h-[42px] rounded-[10px] border-[#DCE3EE]"><WalletCards className="h-4 w-4 text-[#98A2B3]" /><SelectValue placeholder="انتخاب صندوق..." /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">بدون صندوق</SelectItem>
-                        {cashFunds.map((cf) => <SelectItem key={cf.id} value={cf.id}>{cf.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">محل نگهداری (متنی)</Label>
-                    <Input value={storageLocation} onChange={(e) => setStorageLocation(e.target.value)} placeholder="مثلاً: صندوق، خزانه..." className="h-[42px] rounded-[10px] border-[#DCE3EE]" />
-                  </div>
-                </div>
-
-                <div className="mt-4 space-y-2">
-                  <Label className="text-sm font-semibold text-[#344054]">توضیحات</Label>
-                  <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="توضیحات..." className="rounded-[10px] border-[#DCE3EE]" />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Actions */}
-            <div className="flex items-center justify-end gap-3">
-              <Link href="/dashboard/received-cheques"><Button type="button" variant="outline" className="h-[42px] rounded-[10px]">انصراف</Button></Link>
-              <Button type="submit" disabled={submitting} className="h-[42px] rounded-[10px] bg-[#3155E7] px-6 text-sm font-semibold text-white hover:bg-[#2445C7]">
-                {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> در حال ثبت...</> : <><Plus className="h-4 w-4" /> ثبت چک دریافتی</>}
-              </Button>
+    <div className="create-task-page" dir="rtl">
+      <div className="create-task-container">
+        <header className="create-task-header">
+          <div>
+            <div className="create-task-title">
+              <span className="title-accent-bar" />
+              <h1>ثبت چک دریافتی</h1>
             </div>
+            <div className="create-task-breadcrumb">داشبورد <b>←</b> چک‌های دریافتی <b>←</b> ثبت</div>
           </div>
+          <Link href="/dashboard/received-cheques" className="back-button">
+            <ArrowRight className="h-4 w-4" /> بازگشت به چک‌های دریافتی
+          </Link>
+        </header>
 
-          {/* Sidebar */}
-          <aside className="space-y-4">
-            <div className="rounded-[14px] border border-[#E6EBF2] bg-white p-4 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-              <div className="mb-3 flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f59e0b]/10 text-[#f59e0b]"><Lightbulb className="h-5 w-5" /></span>
-                <h2 className="text-sm font-bold text-[#101828]">راهنما و نکات</h2>
+        <div className="create-task-grid">
+          <form className="task-form-card" onSubmit={handleSubmit}>
+            <div className="form-card-header">
+              <div className="form-card-title">
+                <span className="form-card-icon"><WalletCards className="h-5 w-5" /></span>
+                <div>
+                  <h2>اطلاعات چک</h2>
+                  <p>اطلاعات پایه و مالی چک را وارد کنید. فیلدهای ستاره‌دار الزامی هستند.</p>
+                </div>
               </div>
-              <div className="space-y-3">
+            </div>
+            <div className="form-card-divider" />
+
+            <div className="form-fields">
+              <div className="grid grid-cols-1 gap-4 tablet:grid-cols-2">
+                <div className="field-group">
+                  <Label className="field-label">شماره چک <span className="required-star">*</span></Label>
+                  <Input value={chequeNumber} onChange={(e) => setChequeNumber(e.target.value)} placeholder="شماره چک..." className="task-input" />
+                  {errors.chequeNumber && <span className="field-error">{errors.chequeNumber}</span>}
+                </div>
+
+                <div className="field-group">
+                  <Label className="field-label">شناسه صیادی</Label>
+                  <Input value={sayadiNumber} onChange={(e) => setSayadiNumber(e.target.value)} placeholder="شناسه صیادی (اختیاری)..." className="task-input" />
+                </div>
+
+                <div className="field-group">
+                  <Label className="field-label">بانک <span className="required-star">*</span></Label>
+                  <Input value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="نام بانک..." className="task-input" />
+                  {errors.bankName && <span className="field-error">{errors.bankName}</span>}
+                </div>
+
+                <div className="field-group">
+                  <Label className="field-label">شعبه</Label>
+                  <Input value={branchName} onChange={(e) => setBranchName(e.target.value)} placeholder="نام شعبه..." className="task-input" />
+                </div>
+
+                <div className="field-group">
+                  <Label className="field-label">شماره حساب صادرکننده</Label>
+                  <Input value={issuerAccountNo} onChange={(e) => setIssuerAccountNo(e.target.value)} placeholder="شماره حساب..." className="task-input" />
+                </div>
+
+                <div className="field-group">
+                  <Label className="field-label">مبلغ <span className="required-star">*</span></Label>
+                  <Input type="number" value={amount || ''} onChange={(e) => setAmount(Number(e.target.value))} placeholder="مبلغ چک (تومان)..." className="task-input" />
+                  {amount > 0 && <span className="text-xs font-semibold text-sky-600 dark:text-sky-400">{formatToman(amount)} تومان</span>}
+                  {errors.amount && <span className="field-error">{errors.amount}</span>}
+                </div>
+
+                <div className="field-group">
+                  <Label className="field-label">تاریخ صدور <span className="required-star">*</span></Label>
+                  <div className="date-input-wrap">
+                    <span className="date-icon"><Calendar className="h-4 w-4" /></span>
+                    <JalaliDatePicker value={issueDate ? new Date(issueDate) : null} onChange={(d) => setIssueDate(d ? toLocalDateString(d) : '')} placeholder="انتخاب تاریخ" className="task-date-input" />
+                  </div>
+                  {errors.issueDate && <span className="field-error">{errors.issueDate}</span>}
+                </div>
+
+                <div className="field-group">
+                  <Label className="field-label">تاریخ سررسید <span className="required-star">*</span></Label>
+                  <div className="date-input-wrap">
+                    <span className="date-icon"><Calendar className="h-4 w-4" /></span>
+                    <JalaliDatePicker value={dueDate ? new Date(dueDate) : null} onChange={(d) => setDueDate(d ? toLocalDateString(d) : '')} placeholder="انتخاب تاریخ" className="task-date-input" />
+                  </div>
+                  {errors.dueDate && <span className="field-error">{errors.dueDate}</span>}
+                </div>
+              </div>
+            </div>
+
+            {/* Parties section */}
+            <div className="form-card-divider" />
+            <div className="form-card-header">
+              <div className="form-card-title">
+                <span className="form-card-icon"><User className="h-5 w-5" /></span>
+                <div>
+                  <h2>اطلاعات طرفین</h2>
+                  <p>صادرکننده و دریافت‌کننده چک را مشخص کنید.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="form-fields">
+              <div className="grid grid-cols-1 gap-4 tablet:grid-cols-2">
+                <div className="field-group">
+                  <Label className="field-label">صادرکننده (طرف حساب)</Label>
+                  <Select value={issuerPartyId} onValueChange={setIssuerPartyId}>
+                    <SelectTrigger className="task-select"><User className="ml-1 h-4 w-4 text-slate-400" /><SelectValue placeholder="انتخاب طرف حساب..." /></SelectTrigger>
+                    <SelectContent>{contactParties.map((p) => <SelectItem key={p.id} value={p.id}>{partyName(p)}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+
+                <div className="field-group">
+                  <Label className="field-label">نام صادرکننده (دستی)</Label>
+                  <Input value={issuerName} onChange={(e) => setIssuerName(e.target.value)} placeholder="اگر طرف حساب انتخاب نشده..." className="task-input" />
+                </div>
+
+                <div className="field-group">
+                  <Label className="field-label">دریافت‌کننده</Label>
+                  <Input value={receiverName} onChange={(e) => setReceiverName(e.target.value)} placeholder="نام دریافت‌کننده..." className="task-input" />
+                </div>
+
+                <div className="field-group">
+                  <Label className="field-label">بابت</Label>
+                  <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="بابت..." className="task-input" />
+                </div>
+              </div>
+              {errors.issuer && <span className="field-error">{errors.issuer}</span>}
+            </div>
+
+            {/* Storage section */}
+            <div className="form-card-divider" />
+            <div className="form-card-header">
+              <div className="form-card-title">
+                <span className="form-card-icon"><Landmark className="h-5 w-5" /></span>
+                <div>
+                  <h2>محل نگهداری</h2>
+                  <p>محل فعلی نگهداری چک را مشخص کنید.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="form-fields">
+              <div className="grid grid-cols-1 gap-4 tablet:grid-cols-2">
+                <div className="field-group">
+                  <Label className="field-label">صندوق نقدی</Label>
+                  <Select value={cashFundId || '__none__'} onValueChange={(v) => setCashFundId(v === '__none__' ? '' : v)}>
+                    <SelectTrigger className="task-select"><WalletCards className="ml-1 h-4 w-4 text-slate-400" /><SelectValue placeholder="انتخاب صندوق..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">بدون صندوق</SelectItem>
+                      {cashFunds.map((cf) => <SelectItem key={cf.id} value={cf.id}>{cf.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="field-group">
+                  <Label className="field-label">محل نگهداری (متنی)</Label>
+                  <Input value={storageLocation} onChange={(e) => setStorageLocation(e.target.value)} placeholder="مثلاً: صندوق، خزانه..." className="task-input" />
+                </div>
+              </div>
+
+              <div className="field-group">
+                <Label className="field-label">توضیحات</Label>
+                <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="توضیحات..." className="task-textarea" />
+              </div>
+            </div>
+
+            <div className="form-actions-row">
+              <button type="button" className="cancel-btn" onClick={() => router.push('/dashboard/received-cheques')} disabled={submitting}>انصراف</button>
+              <button type="submit" className="submit-btn" disabled={submitting}>
+                {submitting ? (<><Loader2 className="h-4 w-4 animate-spin" /> در حال ثبت...</>) : (<><Plus className="h-4 w-4" /> ثبت چک دریافتی</>)}
+              </button>
+            </div>
+          </form>
+
+          <aside className="task-sidebar">
+            <div className="guide-card">
+              <div className="guide-card-header">
+                <span className="guide-card-icon"><Lightbulb className="h-5 w-5" /></span>
+                <h2>راهنما و نکات</h2>
+              </div>
+              <div className="guide-items">
                 {guideItems.map((item, i) => (
                   <div key={i}>
-                    <div className="flex items-start gap-2">
-                      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#F1F5F9] text-[#667085]"><item.icon className="h-4 w-4" /></span>
-                      <div>
-                        <strong className="text-xs text-[#344054]">{item.title}</strong>
-                        <p className="mt-0.5 text-[11px] leading-5 text-[#98A2B3]">{item.desc}</p>
-                      </div>
+                    <div className="guide-item">
+                      <span className="guide-item-icon"><item.icon className="h-5 w-5" /></span>
+                      <div className="guide-item-text"><strong>{item.title}</strong><p>{item.desc}</p></div>
                     </div>
-                    {i < guideItems.length - 1 && <div className="my-2 border-t border-[#F1F5F9]" />}
+                    {i < guideItems.length - 1 && <div className="guide-item-divider" />}
                   </div>
                 ))}
               </div>
             </div>
-
-            <div className="rounded-[14px] border border-[#BFD0FF] bg-[#EFF4FF] p-4">
-              <div className="mb-2 flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#3155E7]/10 text-[#3155E7]"><Info className="h-5 w-5" /></span>
-                <h2 className="text-sm font-bold text-[#101828]">اطلاعات مفید</h2>
+            <div className="info-card">
+              <div className="info-card-header">
+                <span className="info-card-icon"><Info className="h-5 w-5" /></span>
+                <h2>اطلاعات مفید</h2>
               </div>
-              <p className="text-xs leading-6 text-[#344054]">چک دریافتی پس از ثبت در وضعیت «دریافت‌شده» قرار می‌گیرد. سپس می‌توانید آن را به بانک واگذار کنید، وصول کنید، یا در صورت نیاز برگشت، استرداد یا انتقال دهید. تمام عملیات در گردش چک ثبت می‌شود.</p>
+              <p>چک دریافتی پس از ثبت در وضعیت «دریافت‌شده» قرار می‌گیرد. سپس می‌توانید آن را به بانک واگذار کنید، وصل کنید، یا در صورت نیاز برگشت، استرداد یا انتقال دهید. تمام عملیات در گردش چک ثبت می‌شود.</p>
             </div>
 
             {amount > 0 && (
-              <div className="rounded-[14px] border border-[#E6EBF2] bg-white p-4 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-                <h2 className="mb-3 text-sm font-bold text-[#101828]">خلاصه</h2>
+              <div className="guide-card">
+                <div className="guide-card-header">
+                  <span className="guide-card-icon"><Banknote className="h-5 w-5" /></span>
+                  <h2>خلاصه</h2>
+                </div>
                 <div className="space-y-2 text-xs">
-                  <div className="flex justify-between"><span className="text-[#98A2B3]">شماره چک</span><span className="font-bold text-[#344054]">{chequeNumber || '—'}</span></div>
-                  <div className="flex justify-between"><span className="text-[#98A2B3]">بانک</span><span className="font-bold text-[#344054]">{bankName || '—'}</span></div>
-                  <div className="flex justify-between"><span className="text-[#98A2B3]">مبلغ</span><span className="font-bold text-[#3155E7]">{formatToman(amount)} تومان</span></div>
+                  <div className="flex justify-between"><span className="text-slate-400">شماره چک</span><span className="font-bold text-slate-700 dark:text-slate-300">{chequeNumber || '—'}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-400">بانک</span><span className="font-bold text-slate-700 dark:text-slate-300">{bankName || '—'}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-400">مبلغ</span><span className="font-bold text-sky-600 dark:text-sky-400">{formatToman(amount)} تومان</span></div>
                 </div>
               </div>
             )}
           </aside>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

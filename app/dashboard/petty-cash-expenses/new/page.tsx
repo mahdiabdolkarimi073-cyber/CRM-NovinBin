@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -17,7 +16,7 @@ import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 import {
   ArrowRight, FileText, Wallet, Calendar, Landmark,
   Loader2, Plus, Hash, Trash2, Lightbulb, Info,
-  Type, AlignRight, FileCheck, AlertCircle, Upload,
+  Type, AlignRight, FileCheck, AlertCircle,
 } from 'lucide-react';
 import { toLocalDateString, formatToman } from '@/lib/format';
 import { fullName } from '@/lib/constants';
@@ -192,250 +191,250 @@ export default function NewPettyCashExpensePage() {
   };
 
   return (
-    <div className="w-full" dir="rtl">
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <span className="h-10 w-[5px] rounded-full bg-[#FF7A00]" />
-            <h1 className="text-[28px] font-bold text-[#101828]">ایجاد صورت هزینه تنخواه</h1>
+    <div className="create-task-page" dir="rtl">
+      <div className="create-task-container">
+        <header className="create-task-header">
+          <div>
+            <div className="create-task-title">
+              <span className="title-accent-bar" />
+              <h1>ایجاد صورت هزینه تنخواه</h1>
+            </div>
+            <div className="create-task-breadcrumb">داشبورد <b>←</b> صورت هزینه تنخواه <b>←</b> ایجاد</div>
           </div>
-          <div className="mt-2 text-xs font-medium text-[#667085]">داشبورد <span className="mx-1.5 text-[#CBD5E1]">←</span> صورت هزینه تنخواه <span className="mx-1.5 text-[#CBD5E1]">←</span> ایجاد</div>
-        </div>
-        <Link href="/dashboard/petty-cash-expenses">
-          <Button variant="outline" className="h-[42px] rounded-[10px] border-[#DCE3EE] bg-white text-sm font-semibold text-[#344054] shadow-sm hover:bg-[#FAFBFF]">
-            <ArrowRight className="h-4 w-4" /> بازگشت
-          </Button>
-        </Link>
-      </header>
+          <Link href="/dashboard/petty-cash-expenses" className="back-button">
+            <ArrowRight className="h-4 w-4" /> بازگشت به صورت هزینه‌ها
+          </Link>
+        </header>
 
-      <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Main form */}
-          <div className="lg:col-span-2 space-y-6">
-            <Card>
-              <CardContent className="p-5">
-                <div className="mb-4 flex items-center gap-2">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#3155E7]/10 text-[#3155E7]"><FileText className="h-5 w-5" /></span>
-                  <div>
-                    <h2 className="text-base font-bold text-[#1D2939]">اطلاعات سربرگ</h2>
-                    <p className="text-xs text-[#98A2B3]">اطلاعات اصلی صورت هزینه را وارد کنید. فیلدهای ستاره‌دار الزامی هستند.</p>
-                  </div>
+        <div className="create-task-grid">
+          <form className="task-form-card" onSubmit={handleSubmit}>
+            <div className="form-card-header">
+              <div className="form-card-title">
+                <span className="form-card-icon"><FileText className="h-5 w-5" /></span>
+                <div>
+                  <h2>اطلاعات سربرگ</h2>
+                  <p>اطلاعات اصلی صورت هزینه را وارد کنید. فیلدهای ستاره‌دار الزامی هستند.</p>
                 </div>
+              </div>
+            </div>
+            <div className="form-card-divider" />
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">تنخواه‌دار <span className="text-rose-500">*</span></Label>
-                    <Select value={custodianId} onValueChange={setCustodianId}>
-                      <SelectTrigger className="h-[42px] rounded-[10px] border-[#DCE3EE]">
-                        <span className="flex items-center gap-2"><Wallet className="h-4 w-4 text-[#98A2B3]" /></span>
-                        <SelectValue placeholder="انتخاب تنخواه‌دار..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {custodians.map((c) => <SelectItem key={c.id} value={c.id}>{custodianName(c)} ({c.code})</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    {errors.custodianId && <span className="text-xs text-rose-500">{errors.custodianId}</span>}
-                    {selectedCustodian && (
-                      <div className="mt-1 rounded-md bg-[#EFF4FF] px-3 py-2 text-xs text-[#344054]">
-                        مانده تنخواه: <span className="font-bold text-[#3155E7]">{formatToman(custodianBalance)}</span> تومان
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">تاریخ صورت هزینه <span className="text-rose-500">*</span></Label>
-                    <div className="date-input-wrap">
-                      <span className="flex h-[42px] items-center gap-2 rounded-[10px] border border-[#DCE3EE] bg-white px-3">
-                        <Calendar className="h-4 w-4 text-[#98A2B3]" />
-                        <JalaliDatePicker
-                          value={date ? new Date(date) : null}
-                          onChange={(d) => setDate(d ? toLocalDateString(d) : '')}
-                          placeholder="انتخاب تاریخ"
-                          className="h-[42px] flex-1 border-0 p-0 focus:ring-0"
-                        />
-                      </span>
+            <div className="form-fields">
+              <div className="grid grid-cols-1 gap-4 tablet:grid-cols-2">
+                <div className="field-group">
+                  <Label className="field-label">تنخواه‌دار <span className="required-star">*</span></Label>
+                  <Select value={custodianId} onValueChange={setCustodianId}>
+                    <SelectTrigger className="task-select">
+                      <Wallet className="ml-1 h-4 w-4 text-slate-400" />
+                      <SelectValue placeholder="انتخاب تنخواه‌دار..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {custodians.map((c) => <SelectItem key={c.id} value={c.id}>{custodianName(c)} ({c.code})</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  {errors.custodianId && <span className="field-error">{errors.custodianId}</span>}
+                  {selectedCustodian && (
+                    <div className="rounded-md bg-sky-50 px-3 py-2 text-xs text-slate-600 dark:bg-sky-900/20 dark:text-slate-300">
+                      مانده تنخواه: <span className="font-bold text-sky-600 dark:text-sky-400">{formatToman(custodianBalance)}</span> تومان
                     </div>
-                    {errors.date && <span className="text-xs text-rose-500">{errors.date}</span>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">دوره مالی</Label>
-                    <Select value={fiscalYearId || '__none__'} onValueChange={(v) => setFiscalYearId(v === '__none__' ? '' : v)}>
-                      <SelectTrigger className="h-[42px] rounded-[10px] border-[#DCE3EE]">
-                        <span className="flex items-center gap-2"><Landmark className="h-4 w-4 text-[#98A2B3]" /></span>
-                        <SelectValue placeholder="انتخاب دوره مالی..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">بدون دوره</SelectItem>
-                        {fiscalYears.map((fy) => <SelectItem key={fy.id} value={fy.id}>{fy.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-[#344054]">مرکز هزینه</Label>
-                    <Select value={costCenterId || '__none__'} onValueChange={(v) => setCostCenterId(v === '__none__' ? '' : v)}>
-                      <SelectTrigger className="h-[42px] rounded-[10px] border-[#DCE3EE]">
-                        <span className="flex items-center gap-2"><Landmark className="h-4 w-4 text-[#98A2B3]" /></span>
-                        <SelectValue placeholder="انتخاب مرکز هزینه..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">بدون مرکز هزینه</SelectItem>
-                        {costCenters.map((cc) => <SelectItem key={cc.id} value={cc.id}>{cc.code} - {cc.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  )}
                 </div>
 
-                <div className="mt-4 space-y-2">
-                  <Label className="text-sm font-semibold text-[#344054]">شرح کلی</Label>
-                  <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="شرح کلی صورت هزینه..." className="rounded-[10px] border-[#DCE3EE]" />
+                <div className="field-group">
+                  <Label className="field-label">تاریخ صورت هزینه <span className="required-star">*</span></Label>
+                  <div className="date-input-wrap">
+                    <span className="date-icon"><Calendar className="h-4 w-4" /></span>
+                    <JalaliDatePicker
+                      value={date ? new Date(date) : null}
+                      onChange={(d) => setDate(d ? toLocalDateString(d) : '')}
+                      placeholder="انتخاب تاریخ"
+                      className="task-date-input"
+                    />
+                  </div>
+                  {errors.date && <span className="field-error">{errors.date}</span>}
                 </div>
-              </CardContent>
-            </Card>
+
+                <div className="field-group">
+                  <Label className="field-label">دوره مالی</Label>
+                  <Select value={fiscalYearId || '__none__'} onValueChange={(v) => setFiscalYearId(v === '__none__' ? '' : v)}>
+                    <SelectTrigger className="task-select">
+                      <Landmark className="ml-1 h-4 w-4 text-slate-400" />
+                      <SelectValue placeholder="انتخاب دوره مالی..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">بدون دوره</SelectItem>
+                      {fiscalYears.map((fy) => <SelectItem key={fy.id} value={fy.id}>{fy.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="field-group">
+                  <Label className="field-label">مرکز هزینه</Label>
+                  <Select value={costCenterId || '__none__'} onValueChange={(v) => setCostCenterId(v === '__none__' ? '' : v)}>
+                    <SelectTrigger className="task-select">
+                      <Landmark className="ml-1 h-4 w-4 text-slate-400" />
+                      <SelectValue placeholder="انتخاب مرکز هزینه..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">بدون مرکز هزینه</SelectItem>
+                      {costCenters.map((cc) => <SelectItem key={cc.id} value={cc.id}>{cc.code} - {cc.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="field-group">
+                <Label className="field-label">شرح کلی</Label>
+                <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="شرح کلی صورت هزینه..." className="task-textarea" />
+              </div>
+            </div>
 
             {/* Expense rows */}
-            <Card>
-              <CardContent className="p-5">
-                <div className="mb-4 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#3155E7]/10 text-[#3155E7]"><FileCheck className="h-5 w-5" /></span>
-                    <div>
-                      <h2 className="text-base font-bold text-[#1D2939]">ردیف‌های هزینه</h2>
-                      <p className="text-xs text-[#98A2B3]">هر هزینه را به‌عنوان یک ردیف اضافه کنید.</p>
-                    </div>
-                  </div>
-                  <Button type="button" variant="outline" size="sm" onClick={addRow}><Plus className="h-4 w-4" /> افزودن ردیف</Button>
+            <div className="form-card-divider" />
+            <div className="form-card-header">
+              <div className="form-card-title">
+                <span className="form-card-icon"><FileCheck className="h-5 w-5" /></span>
+                <div>
+                  <h2>ردیف‌های هزینه</h2>
+                  <p>هر هزینه را به‌عنوان یک ردیف اضافه کنید.</p>
                 </div>
-
-                {errors.rows && <div className="mb-3 rounded-md bg-rose-50 px-3 py-2 text-xs text-rose-600">{errors.rows}</div>}
-
-                <div className="space-y-3">
-                  {rows.map((row, idx) => (
-                    <div key={row.id} className="rounded-[12px] border border-[#E6EBF2] bg-[#FAFBFC] p-4">
-                      <div className="mb-3 flex items-center justify-between">
-                        <span className="text-sm font-bold text-[#344054]">ردیف {(idx + 1).toLocaleString('fa-IR')}</span>
-                        <button type="button" onClick={() => removeRow(row.id)} className="text-[#98A2B3] transition-colors hover:text-rose-500"><Trash2 className="h-4 w-4" /></button>
-                      </div>
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <div className="space-y-1.5">
-                          <Label className="text-xs text-[#667085]">نوع هزینه *</Label>
-                          <Input value={row.expenseType} onChange={(e) => updateRow(row.id, 'expenseType', e.target.value)} placeholder="مثال: لوازم اداری" className="h-[38px] rounded-[8px] border-[#DCE3EE] text-sm" />
-                          {errors[`row_${row.id}_type`] && <span className="text-[10px] text-rose-500">{errors[`row_${row.id}_type`]}</span>}
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs text-[#667085]">حساب هزینه</Label>
-                          <Select value={row.accountId || '__none__'} onValueChange={(v) => updateRow(row.id, 'accountId', v === '__none__' ? '' : v)}>
-                            <SelectTrigger className="h-[38px] rounded-[8px] border-[#DCE3EE] text-sm"><SelectValue placeholder="انتخاب حساب..." /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="__none__">بدون حساب</SelectItem>
-                              {accounts.map((a) => <SelectItem key={a.id} value={a.id}>{a.code} - {a.name}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs text-[#667085]">مبلغ (تومان) *</Label>
-                          <Input type="number" value={row.amount} onChange={(e) => updateRow(row.id, 'amount', e.target.value)} placeholder="مثال: 2000000" className="h-[38px] rounded-[8px] border-[#DCE3EE] text-sm" />
-                          {errors[`row_${row.id}_amount`] && <span className="text-[10px] text-rose-500">{errors[`row_${row.id}_amount`]}</span>}
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs text-[#667085]">تاریخ هزینه</Label>
-                          <JalaliDatePicker value={row.date ? new Date(row.date) : null} onChange={(d) => updateRow(row.id, 'date', d ? toLocalDateString(d) : '')} placeholder="انتخاب تاریخ" className="h-[38px] rounded-[8px] border-[#DCE3EE] text-sm" />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs text-[#667085]">مرکز هزینه</Label>
-                          <Select value={row.costCenterId || '__none__'} onValueChange={(v) => updateRow(row.id, 'costCenterId', v === '__none__' ? '' : v)}>
-                            <SelectTrigger className="h-[38px] rounded-[8px] border-[#DCE3EE] text-sm"><SelectValue placeholder="انتخاب..." /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="__none__">بدون مرکز هزینه</SelectItem>
-                              {costCenters.map((cc) => <SelectItem key={cc.id} value={cc.id}>{cc.code} - {cc.name}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs text-[#667085]">طرف حساب / فروشنده</Label>
-                          <Input value={row.vendorName} onChange={(e) => updateRow(row.id, 'vendorName', e.target.value)} placeholder="اختیاری" className="h-[38px] rounded-[8px] border-[#DCE3EE] text-sm" />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs text-[#667085]">شماره فاکتور / رسید</Label>
-                          <Input value={row.invoiceNumber} onChange={(e) => updateRow(row.id, 'invoiceNumber', e.target.value)} placeholder="اختیاری" className="h-[38px] rounded-[8px] border-[#DCE3EE] text-sm" />
-                        </div>
-                        <div className="space-y-1.5 sm:col-span-2">
-                          <Label className="text-xs text-[#667085]">شرح هزینه</Label>
-                          <Input value={row.description} onChange={(e) => updateRow(row.id, 'description', e.target.value)} placeholder="شرح هزینه..." className="h-[38px] rounded-[8px] border-[#DCE3EE] text-sm" />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  {rows.length === 0 && <div className="rounded-[12px] border border-dashed border-[#DCE3EE] py-8 text-center text-sm text-[#CBD5E1]">هنوز ردیف هزینه‌ای اضافه نشده است. روی «افزودن ردیف» کلیک کنید.</div>}
-                </div>
-
-                {/* Total */}
-                <div className="mt-4 flex items-center justify-between rounded-[10px] bg-[#EFF4FF] px-4 py-3">
-                  <span className="text-sm font-semibold text-[#344054]">جمع کل هزینه‌ها:</span>
-                  <span className={`text-lg font-bold ${overBalance ? 'text-rose-600' : 'text-[#3155E7]'}`}>{formatToman(totalAmount)} تومان</span>
-                </div>
-                {overBalance && <div className="mt-2 rounded-[10px] bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700">جمع هزینه‌ها از مانده تنخواه ({formatToman(custodianBalance)} تومان) بیشتر است!</div>}
-                {errors.balance && <div className="mt-2 text-xs text-rose-500">{errors.balance}</div>}
-              </CardContent>
-            </Card>
-
-            {/* Actions */}
-            <div className="flex items-center justify-end gap-3">
-              <Link href="/dashboard/petty-cash-expenses"><Button type="button" variant="outline" className="h-[42px] rounded-[10px]">انصراف</Button></Link>
-              <Button type="submit" disabled={submitting} className="h-[42px] rounded-[10px] bg-[#3155E7] px-6 text-sm font-semibold text-white hover:bg-[#2445C7]">
-                {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> در حال ایجاد...</> : <><Plus className="h-4 w-4" /> ایجاد صورت هزینه</>}
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={addRow} className="mr-auto">
+                <Plus className="h-4 w-4" /> افزودن ردیف
               </Button>
             </div>
-          </div>
 
-          {/* Sidebar */}
-          <aside className="space-y-4">
-            <div className="rounded-[14px] border border-[#E6EBF2] bg-white p-4 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-              <div className="mb-3 flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f59e0b]/10 text-[#f59e0b]"><Lightbulb className="h-5 w-5" /></span>
-                <h2 className="text-sm font-bold text-[#101828]">راهنما و نکات</h2>
-              </div>
-              <div className="space-y-3">
-                {guideItems.map((item, i) => (
-                  <div key={i}>
-                    <div className="flex items-start gap-2">
-                      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#F1F5F9] text-[#667085]"><item.icon className="h-4 w-4" /></span>
-                      <div>
-                        <strong className="text-xs text-[#344054]">{item.title}</strong>
-                        <p className="mt-0.5 text-[11px] leading-5 text-[#98A2B3]">{item.desc}</p>
+            {errors.rows && <div className="mb-3 rounded-md bg-rose-50 px-3 py-2 text-xs text-rose-600">{errors.rows}</div>}
+
+            <div className="space-y-3">
+              {rows.map((row, idx) => (
+                <div key={row.id} className="rounded-[12px] border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">ردیف {(idx + 1).toLocaleString('fa-IR')}</span>
+                    <button type="button" onClick={() => removeRow(row.id)} className="text-slate-400 transition-colors hover:text-rose-500">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="field-group">
+                      <Label className="field-label">نوع هزینه <span className="required-star">*</span></Label>
+                      <Input value={row.expenseType} onChange={(e) => updateRow(row.id, 'expenseType', e.target.value)} placeholder="مثال: لوازم اداری" className="task-input" />
+                      {errors[`row_${row.id}_type`] && <span className="field-error">{errors[`row_${row.id}_type`]}</span>}
+                    </div>
+                    <div className="field-group">
+                      <Label className="field-label">حساب هزینه</Label>
+                      <Select value={row.accountId || '__none__'} onValueChange={(v) => updateRow(row.id, 'accountId', v === '__none__' ? '' : v)}>
+                        <SelectTrigger className="task-select"><SelectValue placeholder="انتخاب حساب..." /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">بدون حساب</SelectItem>
+                          {accounts.map((a) => <SelectItem key={a.id} value={a.id}>{a.code} - {a.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="field-group">
+                      <Label className="field-label">مبلغ (تومان) <span className="required-star">*</span></Label>
+                      <Input type="number" value={row.amount} onChange={(e) => updateRow(row.id, 'amount', e.target.value)} placeholder="مثال: 2000000" className="task-input" />
+                      {errors[`row_${row.id}_amount`] && <span className="field-error">{errors[`row_${row.id}_amount`]}</span>}
+                    </div>
+                    <div className="field-group">
+                      <Label className="field-label">تاریخ هزینه</Label>
+                      <div className="date-input-wrap">
+                        <span className="date-icon"><Calendar className="h-4 w-4" /></span>
+                        <JalaliDatePicker value={row.date ? new Date(row.date) : null} onChange={(d) => updateRow(row.id, 'date', d ? toLocalDateString(d) : '')} placeholder="انتخاب تاریخ" className="task-date-input" />
                       </div>
                     </div>
-                    {i < guideItems.length - 1 && <div className="my-2 border-t border-[#F1F5F9]" />}
+                    <div className="field-group">
+                      <Label className="field-label">مرکز هزینه</Label>
+                      <Select value={row.costCenterId || '__none__'} onValueChange={(v) => updateRow(row.id, 'costCenterId', v === '__none__' ? '' : v)}>
+                        <SelectTrigger className="task-select"><SelectValue placeholder="انتخاب..." /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">بدون مرکز هزینه</SelectItem>
+                          {costCenters.map((cc) => <SelectItem key={cc.id} value={cc.id}>{cc.code} - {cc.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="field-group">
+                      <Label className="field-label">طرف حساب / فروشنده</Label>
+                      <Input value={row.vendorName} onChange={(e) => updateRow(row.id, 'vendorName', e.target.value)} placeholder="اختیاری" className="task-input" />
+                    </div>
+                    <div className="field-group">
+                      <Label className="field-label">شماره فاکتور / رسید</Label>
+                      <Input value={row.invoiceNumber} onChange={(e) => updateRow(row.id, 'invoiceNumber', e.target.value)} placeholder="اختیاری" className="task-input" />
+                    </div>
+                    <div className="field-group sm:col-span-2">
+                      <Label className="field-label">شرح هزینه</Label>
+                      <Input value={row.description} onChange={(e) => updateRow(row.id, 'description', e.target.value)} placeholder="شرح هزینه..." className="task-input" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {rows.length === 0 && <div className="rounded-[12px] border border-dashed border-slate-200 py-8 text-center text-sm text-slate-400 dark:border-slate-700">هنوز ردیف هزینه‌ای اضافه نشده است. روی «افزودن ردیف» کلیک کنید.</div>}
+            </div>
+
+            {/* Total */}
+            <div className="mt-4 flex items-center justify-between rounded-[10px] bg-sky-50 px-4 py-3 dark:bg-sky-900/20">
+              <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">جمع کل هزینه‌ها:</span>
+              <span className={`text-lg font-bold ${overBalance ? 'text-rose-600' : 'text-sky-600 dark:text-sky-400'}`}>{formatToman(totalAmount)} تومان</span>
+            </div>
+            {overBalance && <div className="mt-2 rounded-[10px] bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 dark:bg-rose-900/20 dark:text-rose-400">جمع هزینه‌ها از مانده تنخواه ({formatToman(custodianBalance)} تومان) بیشتر است!</div>}
+            {errors.balance && <div className="mt-2 text-xs text-rose-500">{errors.balance}</div>}
+
+            <div className="form-actions-row">
+              <button type="button" className="cancel-btn" onClick={() => router.push('/dashboard/petty-cash-expenses')} disabled={submitting}>انصراف</button>
+              <button type="submit" className="submit-btn" disabled={submitting}>
+                {submitting ? (<><Loader2 className="h-4 w-4 animate-spin" /> در حال ایجاد...</>) : (<><Plus className="h-4 w-4" /> ایجاد صورت هزینه</>)}
+              </button>
+            </div>
+          </form>
+
+          <aside className="task-sidebar">
+            <div className="guide-card">
+              <div className="guide-card-header">
+                <span className="guide-card-icon"><Lightbulb className="h-5 w-5" /></span>
+                <h2>راهنما و نکات</h2>
+              </div>
+              <div className="guide-items">
+                {guideItems.map((item, i) => (
+                  <div key={i}>
+                    <div className="guide-item">
+                      <span className="guide-item-icon"><item.icon className="h-5 w-5" /></span>
+                      <div className="guide-item-text">
+                        <strong>{item.title}</strong>
+                        <p>{item.desc}</p>
+                      </div>
+                    </div>
+                    {i < guideItems.length - 1 && <div className="guide-item-divider" />}
                   </div>
                 ))}
               </div>
             </div>
-
-            <div className="rounded-[14px] border border-[#BFD0FF] bg-[#EFF4FF] p-4">
-              <div className="mb-2 flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#3155E7]/10 text-[#3155E7]"><Info className="h-5 w-5" /></span>
-                <h2 className="text-sm font-bold text-[#101828]">اطلاعات مفید</h2>
+            <div className="info-card">
+              <div className="info-card-header">
+                <span className="info-card-icon"><Info className="h-5 w-5" /></span>
+                <h2>اطلاعات مفید</h2>
               </div>
-              <p className="text-xs leading-6 text-[#344054]">صورت هزینه تنخواه، هزینه‌کرد تنخواه را ثبت و قابل تسویه می‌کند. پس از ایجاد، می‌توانید آن را برای تأیید ارسال کنید. پس از تأیید، سند حسابداری ثبت شده و مانده تنخواه کاهش می‌یابد.</p>
+              <p>صورت هزینه تنخواه، هزینه‌کرد تنخواه را ثبت و قابل تسویه می‌کند. پس از ایجاد، می‌توانید آن را برای تأیید ارسال کنید. پس از تأیید، سند حسابداری ثبت شده و مانده تنخواه کاهش می‌یابد.</p>
             </div>
 
             {selectedCustodian && (
-              <div className="rounded-[14px] border border-[#E6EBF2] bg-white p-4 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-                <h2 className="mb-3 text-sm font-bold text-[#101828]">وضعیت تنخواه</h2>
+              <div className="guide-card">
+                <div className="guide-card-header">
+                  <span className="guide-card-icon"><Wallet className="h-5 w-5" /></span>
+                  <h2>وضعیت تنخواه</h2>
+                </div>
                 <div className="space-y-2 text-xs">
-                  <div className="flex justify-between"><span className="text-[#98A2B3]">سقف تنخواه</span><span className="font-bold text-[#344054]">{formatToman(Number(selectedCustodian.ceiling))}</span></div>
-                  <div className="flex justify-between"><span className="text-[#98A2B3]">مانده فعلی</span><span className="font-bold text-[#3155E7]">{formatToman(custodianBalance)}</span></div>
-                  <div className="flex justify-between"><span className="text-[#98A2B3]">جمع این صورت</span><span className={`font-bold ${overBalance ? 'text-rose-600' : 'text-[#344054]'}`}>{formatToman(totalAmount)}</span></div>
-                  <div className="border-t border-[#F1F5F9] pt-2">
-                    <div className="flex justify-between"><span className="text-[#98A2B3]">باقی‌مانده پس از ثبت</span><span className={`font-bold ${custodianBalance - totalAmount < 0 ? 'text-rose-600' : 'text-[#16A34A]'}`}>{formatToman(custodianBalance - totalAmount)}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-400">سقف تنخواه</span><span className="font-bold text-slate-700 dark:text-slate-300">{formatToman(Number(selectedCustodian.ceiling))}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-400">مانده فعلی</span><span className="font-bold text-sky-600 dark:text-sky-400">{formatToman(custodianBalance)}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-400">جمع این صورت</span><span className={`font-bold ${overBalance ? 'text-rose-600' : 'text-slate-700 dark:text-slate-300'}`}>{formatToman(totalAmount)}</span></div>
+                  <div className="border-t border-slate-100 pt-2 dark:border-slate-700">
+                    <div className="flex justify-between"><span className="text-slate-400">باقی‌مانده پس از ثبت</span><span className={`font-bold ${custodianBalance - totalAmount < 0 ? 'text-rose-600' : 'text-green-600'}`}>{formatToman(custodianBalance - totalAmount)}</span></div>
                   </div>
                 </div>
               </div>
             )}
           </aside>
         </div>
-      </form>
+      </div>
     </div>
   );
 }
