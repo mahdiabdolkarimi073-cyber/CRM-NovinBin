@@ -3,16 +3,13 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { fetchData, createData, deleteData } from '@/lib/data-client';
-import { PageHeader } from '@/components/dashboard/page-header';
-import { EmptyState } from '@/components/dashboard/empty-state';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -23,7 +20,7 @@ import {
 } from '@/components/ui/table';
 import {
   Plus, Users, Sparkles, Trash2, UserPlus, Crown, Heart, AlertTriangle,
-  Search, X, Tag, Layers, Target,
+  Search, X, Target, Layers, Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { formatJalali, relativeTime } from '@/lib/format';
@@ -143,6 +140,7 @@ export default function CustomerSegmentsPage() {
   const [members, setMembers] = useState<SegmentMember[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
 
   // Create dialog
   const [createOpen, setCreateOpen] = useState(false);
@@ -235,6 +233,48 @@ export default function CustomerSegmentsPage() {
     if (!detailSegment) return 0;
     return customers.filter((c) => matchesCriteria(c, detailSegment.criteria, ordersByCustomer)).length;
   }, [detailSegment, customers, ordersByCustomer]);
+
+  // Filtered segments for search
+  const filteredSegments = useMemo(() => {
+    if (!search.trim()) return segments;
+    const q = search.trim().toLowerCase();
+    return segments.filter((s) =>
+      s.name.toLowerCase().includes(q) ||
+      (s.description || '').toLowerCase().includes(q) ||
+      criteriaSummary(s.criteria).toLowerCase().includes(q)
+    );
+  }, [segments, search]);
+
+  const totalMembers = useMemo(() => members.length, [members]);
+
+  // ---------- Stats ----------
+
+  const stats = useMemo(() => [
+    {
+      label: 'کل بخش‌ها', value: segments.length, icon: Layers,
+      filter: 'all',
+      gradient: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)',
+      glow: 'rgba(37,99,235,0.25)',
+    },
+    {
+      label: 'کل اعضا', value: totalMembers, icon: Users,
+      filter: 'members',
+      gradient: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)',
+      glow: 'rgba(34,197,94,0.25)',
+    },
+    {
+      label: 'کل مشتریان', value: customers.length, icon: Target,
+      filter: 'customers',
+      gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+      glow: 'rgba(245,158,11,0.25)',
+    },
+    {
+      label: 'بخش‌های فعال', value: segments.filter((s) => s.active).length, icon: Sparkles,
+      filter: 'active',
+      gradient: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
+      glow: 'rgba(139,92,246,0.25)',
+    },
+  ], [segments, totalMembers, customers.length]);
 
   // ---------- Handlers ----------
 
@@ -362,157 +402,195 @@ export default function CustomerSegmentsPage() {
 
   // ---------- Render ----------
 
-  return (
-    <div>
-      <PageHeader
-        title="بخش‌بندی مشتریان"
-        description="تقسیم‌بندی مشتریان بر اساس رفتار، ارزش و سطح"
-        action={
-          <Link href="/dashboard/customer-segments/new">
-            <Button size="sm" disabled={customers.length === 0}>
-              <Plus className="w-4 h-4" />
-              ایجاد بخش جدید
-            </Button>
-          </Link>
-        }
-      />
-
-      {loading ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin w-8 h-8 border-3 border-emerald-500 border-t-transparent rounded-full" />
+  if (loading) {
+    return (
+      <div className="nb-page" dir="rtl">
+        <div className="nb-empty">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
+          <p>در حال بارگذاری بخش‌بندی مشتریان...</p>
         </div>
-      ) : customers.length === 0 ? (
-        <Card>
-          <EmptyState
-            icon={<Users className="w-8 h-8" />}
-            title="مشتری‌ای موجود نیست"
-            description="ابتدا مشتری ثبت کنید تا بخش‌بندی انجام شود"
-          />
-        </Card>
-      ) : (
-        <>
-          {/* Preset suggestions */}
-          <div className="mb-6">
-              <div className="flex items-center gap-2 mb-3">
-                <Sparkles className="w-4 h-4 text-amber-500" />
-                <h2 className="text-sm font-semibold text-slate-700">پیشنهادهای آماده</h2>
+      </div>
+    );
+  }
+
+  if (customers.length === 0) {
+    return (
+      <div className="nb-page" dir="rtl">
+        <header className="nb-hero">
+          <div className="nb-hero-left">
+            <div>
+              <div className="nb-hero-title-row">
+                <span className="nb-hero-marker" style={{ background: 'linear-gradient(180deg,#2563EB,#3B82F6)', boxShadow: '0 0 12px rgba(37,99,235,.25)' }} />
+                <h1>بخش‌بندی مشتریان</h1>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {PRESET_SUGGESTIONS.map((preset) => {
-                  const exists = segments.some((s) => s.name === preset.name);
-                  const PresetIcon = preset.icon;
-                  return (
-                    <Card
-                      key={preset.key}
-                      className={cn(
-                        'border-slate-200 transition-all',
-                        exists ? 'opacity-60' : 'hover:shadow-md hover:border-slate-300'
-                      )}
+              <p>تقسیم‌بندی مشتریان بر اساس رفتار، ارزش و سطح</p>
+            </div>
+          </div>
+          <div className="nb-hero-right" />
+        </header>
+        <div className="nb-empty">
+          <div className="sb-empty-icon"><Users className="h-12 w-12 text-muted-foreground/30" /></div>
+          <h3>مشتری‌ای موجود نیست</h3>
+          <p>ابتدا مشتری ثبت کنید تا بخش‌بندی انجام شود</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="nb-page" dir="rtl">
+      <header className="nb-hero">
+        <div className="nb-hero-left">
+          <div>
+            <div className="nb-hero-title-row">
+              <span className="nb-hero-marker" style={{ background: 'linear-gradient(180deg,#2563EB,#3B82F6)', boxShadow: '0 0 12px rgba(37,99,235,.25)' }} />
+              <h1>بخش‌بندی مشتریان</h1>
+            </div>
+            <p>تقسیم‌بندی مشتریان بر اساس رفتار، ارزش و سطح</p>
+          </div>
+        </div>
+        <div className="nb-hero-right">
+          <Link href="/dashboard/customer-segments/new" className="nb-new-btn" aria-disabled={customers.length === 0} style={customers.length === 0 ? { opacity: 0.5, pointerEvents: 'none' } : undefined}>
+            <Plus className="h-[18px] w-[18px]" />
+            ایجاد بخش جدید
+          </Link>
+        </div>
+      </header>
+
+      <section className="nb-stats-grid-v2">
+        {stats.map((stat) => (
+          <div
+            className="nb-stat-card-v2"
+            key={stat.label}
+            style={{ '--stat-glow': stat.glow } as React.CSSProperties}
+          >
+            <div className="nb-stat-v2-icon" style={{ background: stat.gradient }}>
+              <stat.icon className="h-[22px] w-[22px] text-white" strokeWidth={2.5} />
+            </div>
+            <div className="nb-stat-v2-body">
+              <strong>{stat.value.toLocaleString('fa-IR')}</strong>
+              <span>{stat.label}</span>
+            </div>
+            <div className="nb-stat-v2-spark" style={{ background: stat.gradient }} />
+          </div>
+        ))}
+      </section>
+
+      {/* Preset suggestions */}
+      <div className="nb-section-divider">
+        <Sparkles className="h-4 w-4 text-amber-500" />
+        <span>پیشنهادهای آماده</span>
+      </div>
+      <div className="nb-grid nb-grid-grid mb-6">
+        {PRESET_SUGGESTIONS.map((preset) => {
+          const exists = segments.some((s) => s.name === preset.name);
+          const PresetIcon = preset.icon;
+          return (
+            <div
+              key={preset.key}
+              className={cn(
+                'nb-card cursor-default',
+                exists && 'opacity-60'
+              )}
+            >
+              <div className="nb-card-top">
+                <div className="nb-card-tags">
+                  <span className="nb-card-tag" style={{ background: `${preset.color}15`, color: preset.color }}>
+                    <PresetIcon className="h-2.5 w-2.5" /> {preset.summary}
+                  </span>
+                </div>
+              </div>
+              <h3 className="nb-card-title">{preset.name}</h3>
+              <p className="nb-card-excerpt">{preset.description}</p>
+              <div className="nb-card-footer">
+                <div className="nb-card-quick">
+                  {exists ? (
+                    <span className="text-[11px] text-slate-400">ایجاد شده</span>
+                  ) : (
+                    <button
+                      className="text-xs font-semibold transition-colors hover:opacity-80"
+                      style={{ color: preset.color }}
+                      onClick={() => createPreset(preset)}
                     >
-                      <CardContent className="p-4">
-                        <div className="flex items-start gap-3">
-                          <div
-                            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                            style={{ backgroundColor: preset.color + '1a', color: preset.color }}
-                          >
-                            <PresetIcon className="w-5 h-5" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-slate-900 text-sm">{preset.name}</div>
-                            <div className="text-xs text-slate-500 mt-0.5 leading-5">{preset.description}</div>
-                            <div className="flex items-center justify-between mt-3">
-                              <Badge variant="outline" className="text-[11px] border-slate-200 text-slate-500">
-                                {preset.summary}
-                              </Badge>
-                              {exists ? (
-                                <span className="text-xs text-slate-400">ایجاد شده</span>
-                              ) : (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-7 text-xs px-2"
-                                  style={{ color: preset.color }}
-                                  onClick={() => createPreset(preset)}
-                                >
-                                  <Plus className="w-3.5 h-3.5" />
-                                  ایجاد
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                      <Plus className="h-3.5 w-3.5" /> ایجاد
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
+          );
+        })}
+      </div>
 
-          {/* Segments grid */}
-          {segments.length === 0 ? (
-            <Card>
-              <EmptyState
-                icon={<Layers className="w-8 h-8" />}
-                title="بخشی ایجاد نشده"
-                description="از پیشنهادهای آماده استفاده کنید یا بخش دلخواه بسازید"
-                action={<Link href="/dashboard/customer-segments/new"><Button><Plus className="w-4 h-4" />ایجاد بخش</Button></Link>}
-              />
-            </Card>
-          ) : (
-            <>
-              <div className="flex items-center gap-2 mb-3">
-                <Layers className="w-4 h-4 text-slate-400" />
-                <h2 className="text-sm font-semibold text-slate-700">بخش‌های شما</h2>
-                <Badge variant="secondary" className="text-xs">{segments.length.toLocaleString('fa-IR')}</Badge>
+      {/* Toolbar */}
+      <div className="nb-toolbar">
+        <div className="nb-toolbar-left">
+          <h2>بخش‌های شما</h2>
+          <span className="nb-count-badge">{segments.length.toLocaleString('fa-IR')} مورد</span>
+        </div>
+        <div className="nb-toolbar-right">
+          <div className="nb-search-box">
+            <Search className="h-4 w-4" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="جستجوی بخش..."
+            />
+            {search && <button onClick={() => setSearch('')}><X className="h-3.5 w-3.5" /></button>}
+          </div>
+        </div>
+      </div>
+
+      {/* Segments grid */}
+      {segments.length === 0 ? (
+        <div className="nb-empty">
+          <div className="sb-empty-icon"><Layers className="h-12 w-12 text-muted-foreground/30" /></div>
+          <h3>بخشی ایجاد نشده</h3>
+          <p>از پیشنهادهای آماده استفاده کنید یا بخش دلخواه بسازید</p>
+          <Link href="/dashboard/customer-segments/new" className="nb-empty-new-btn">
+            <Plus className="h-4 w-4" /> ایجاد بخش
+          </Link>
+        </div>
+      ) : (
+        <div className="nb-grid nb-grid-grid">
+          {filteredSegments.map((seg) => {
+            const count = memberCount(seg.id);
+            return (
+              <div
+                key={seg.id}
+                className="nb-card cursor-pointer group"
+                onClick={() => { setDetailSegment(seg); setMemberSearch(''); setAddMemberId(''); }}
+              >
+                <div className="nb-card-top">
+                  <div className="nb-card-tags">
+                    <span className="nb-card-tag" style={{ background: `${seg.color}15`, color: seg.color }}>
+                      <Target className="h-2.5 w-2.5" /> {criteriaSummary(seg.criteria)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-1 dark:bg-slate-700/40">
+                    <Users className="h-3.5 w-3.5 text-slate-400" />
+                    <span className="text-sm font-bold text-slate-700 dark:text-slate-200">{count.toLocaleString('fa-IR')}</span>
+                  </div>
+                </div>
+                <h3 className="nb-card-title group-hover:text-blue-600 transition-colors">
+                  <span className="inline-block w-3 h-3 rounded-full ml-2 align-middle" style={{ backgroundColor: seg.color }} />
+                  {seg.name}
+                </h3>
+                {seg.description && <p className="nb-card-excerpt">{seg.description}</p>}
+                <div className="nb-card-footer">
+                  <div className="nb-card-date">
+                    {relativeTime(seg.createdAt)}
+                  </div>
+                </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {segments.map((seg) => {
-                  const count = memberCount(seg.id);
-                  return (
-                    <Card
-                      key={seg.id}
-                      className="border-slate-200 hover:shadow-md hover:border-slate-300 transition-all cursor-pointer group"
-                      onClick={() => { setDetailSegment(seg); setMemberSearch(''); setAddMemberId(''); }}
-                    >
-                      <CardContent className="p-5">
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div
-                              className="w-3.5 h-3.5 rounded-full shrink-0 ring-4"
-                              style={{ backgroundColor: seg.color, boxShadow: `0 0 0 4px ${seg.color}22` }}
-                            />
-                            <div className="min-w-0">
-                              <h3 className="font-semibold text-slate-900 truncate group-hover:text-blue-600 transition-colors">
-                                {seg.name}
-                              </h3>
-                              <div className="text-xs text-slate-400 mt-0.5">{relativeTime(seg.createdAt)}</div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1.5 bg-slate-50 rounded-lg px-2.5 py-1">
-                            <Users className="w-3.5 h-3.5 text-slate-400" />
-                            <span className="text-sm font-bold text-slate-700">{count.toLocaleString('fa-IR')}</span>
-                          </div>
-                        </div>
-
-                        {seg.description && (
-                          <p className="text-sm text-slate-500 leading-6 mb-3 line-clamp-2">{seg.description}</p>
-                        )}
-
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Badge variant="outline" className="text-[11px] gap-1 border-slate-200 text-slate-600">
-                            <Target className="w-3 h-3 text-slate-400" />
-                            {criteriaSummary(seg.criteria)}
-                          </Badge>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            </>
-          )}
-        </>
+            );
+          })}
+        </div>
       )}
+
+      <Link href="/dashboard/customer-segments/new" className="nb-fab" aria-label="ایجاد بخش جدید">
+        <Plus className="h-6 w-6" />
+      </Link>
 
       {/* ---------- Create segment dialog ---------- */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
@@ -562,8 +640,8 @@ export default function CustomerSegmentsPage() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
-              <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
+            <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3 dark:border-slate-700 dark:bg-slate-800/40">
+              <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
                 <Target className="w-4 h-4 text-slate-400" />
                 معیارهای بخش‌بندی
               </div>
@@ -662,9 +740,9 @@ export default function CustomerSegmentsPage() {
               </DialogHeader>
 
               {/* Criteria summary + auto-populate */}
-              <div className="flex items-center justify-between gap-3 flex-wrap bg-slate-50 rounded-xl px-4 py-3">
+              <div className="flex items-center justify-between gap-3 flex-wrap bg-slate-50 rounded-xl px-4 py-3 dark:bg-slate-800/40">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Badge variant="outline" className="gap-1 border-slate-200 text-slate-600">
+                  <Badge variant="outline" className="gap-1 border-slate-200 text-slate-600 dark:border-slate-700 dark:text-slate-300">
                     <Target className="w-3 h-3 text-slate-400" />
                     {criteriaSummary(detailSegment.criteria)}
                   </Badge>
@@ -708,7 +786,7 @@ export default function CustomerSegmentsPage() {
               </div>
 
               {/* Members table */}
-              <div className="rounded-xl border border-slate-200 overflow-hidden">
+              <div className="rounded-xl border border-slate-200 overflow-hidden dark:border-slate-700">
                 {detailMembers.length === 0 ? (
                   <div className="py-12 text-center">
                     <Users className="w-8 h-8 mx-auto mb-2 text-slate-300" />
@@ -719,7 +797,7 @@ export default function CustomerSegmentsPage() {
                   <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow className="bg-slate-50 hover:bg-slate-50">
+                      <TableRow className="bg-slate-50 hover:bg-slate-50 dark:bg-slate-800/50">
                         <TableHead className="text-xs">مشتری</TableHead>
                         <TableHead className="text-xs">سطح</TableHead>
                         <TableHead className="text-xs">امتیاز</TableHead>
@@ -734,7 +812,7 @@ export default function CustomerSegmentsPage() {
                         const level = CUSTOMER_LEVELS.find((l) => l.key === c.level);
                         const orderCount = ordersByCustomer.get(c.id) || 0;
                         return (
-                          <TableRow key={mem.id} className="hover:bg-slate-50">
+                          <TableRow key={mem.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
                             <TableCell>
                               <div className="flex items-center gap-2.5">
                                 <Avatar className="w-8 h-8">
@@ -742,7 +820,7 @@ export default function CustomerSegmentsPage() {
                                     {customerName(c)?.[0] || '؟'}
                                   </AvatarFallback>
                                 </Avatar>
-                                <span className="text-sm font-medium text-slate-700">{customerName(c)}</span>
+                                <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{customerName(c)}</span>
                               </div>
                             </TableCell>
                             <TableCell>
@@ -752,8 +830,8 @@ export default function CustomerSegmentsPage() {
                                 </Badge>
                               )}
                             </TableCell>
-                            <TableCell className="text-sm text-slate-600">{Number(c.score || 0).toLocaleString('fa-IR')}</TableCell>
-                            <TableCell className="text-sm text-slate-600">{orderCount.toLocaleString('fa-IR')}</TableCell>
+                            <TableCell className="text-sm text-slate-600 dark:text-slate-300">{Number(c.score || 0).toLocaleString('fa-IR')}</TableCell>
+                            <TableCell className="text-sm text-slate-600 dark:text-slate-300">{orderCount.toLocaleString('fa-IR')}</TableCell>
                             <TableCell className="text-xs text-slate-400">{formatJalali(mem.addedAt)}</TableCell>
                             <TableCell>
                               <button

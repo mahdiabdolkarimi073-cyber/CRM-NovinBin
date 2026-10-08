@@ -4,10 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { fetchData, deleteData, updateData, createData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
-import { EmptyState } from '@/components/dashboard/empty-state';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +14,7 @@ import {
 import {
   ArrowUpFromLine, Plus, Search, Trash2, Calendar, ChevronLeft, ChevronRight,
   CheckCircle, Clock, Eye, Ban, FileText, Building2, Send,
+  Loader2, X,
 } from 'lucide-react';
 import { formatJalali, formatToman, relativeTime } from '@/lib/format';
 import { fullName } from '@/lib/constants';
@@ -212,96 +210,157 @@ export default function WarehouseExitsPage() {
     setDetailHistory(we.history || []);
   };
 
-  return (
-    <div className="w-full" dir="rtl">
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <span className="h-10 w-[5px] rounded-full bg-[#FF7A00]" />
-            <h1 className="text-[28px] font-bold text-[#101828]">خروج از انبار</h1>
-          </div>
-          <div className="mt-2 text-xs font-medium text-[#667085]">داشبورد <span className="mx-1.5 text-[#CBD5E1]">←</span> انبارداری <span className="mx-1.5 text-[#CBD5E1]">←</span> خروج از انبار</div>
+  const statCards = useMemo(() => [
+    {
+      label: 'کل خروج‌ها', value: stats.total, icon: ArrowUpFromLine,
+      gradient: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)',
+      glow: 'rgba(37,99,235,0.25)',
+    },
+    {
+      label: 'در انتظار', value: stats.pending, icon: Clock,
+      gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+      glow: 'rgba(245,158,11,0.25)',
+    },
+    {
+      label: 'تأیید شده', value: stats.confirmed, icon: CheckCircle,
+      gradient: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)',
+      glow: 'rgba(34,197,94,0.25)',
+    },
+    {
+      label: 'ارزش کل (تومان)', value: formatToman(stats.totalValue), icon: FileText,
+      gradient: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+      glow: 'rgba(99,102,241,0.25)',
+    },
+  ], [stats]);
+
+  if (loading) {
+    return (
+      <div className="nb-page" dir="rtl">
+        <div className="nb-empty">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
+          <p>در حال بارگذاری خروج‌ها...</p>
         </div>
-        <Link href="/dashboard/warehouse-exits/new">
-          <Button className="h-[42px] rounded-[10px] bg-[#3155E7] px-[18px] text-sm font-semibold text-white shadow-sm hover:bg-[#2445C7]">
-            <Plus className="h-4 w-4" /> ثبت خروج
-          </Button>
-        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="nb-page" dir="rtl">
+      <header className="nb-hero">
+        <div className="nb-hero-left">
+          <div>
+            <div className="nb-hero-title-row">
+              <span className="nb-hero-marker" style={{ background: 'linear-gradient(180deg,#FF7A00,#E65100)', boxShadow: '0 0 12px rgba(255,122,0,.25)' }} />
+              <h1>خروج از انبار</h1>
+            </div>
+            <p>مدیریت حواله‌های خروج از انبار</p>
+          </div>
+        </div>
+        <div className="nb-hero-right">
+          <Link href="/dashboard/warehouse-exits/new" className="nb-new-btn">
+            <Plus className="h-[18px] w-[18px]" />
+            ثبت خروج
+          </Link>
+        </div>
       </header>
 
-      <div className="mb-5 grid grid-cols-2 gap-4 xl:grid-cols-4">
-        <div className="flex min-h-[120px] flex-col justify-between rounded-[14px] border border-[#E7ECF3] bg-white p-5 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-          <span className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#3155E7]/10 text-[#3155E7]"><ArrowUpFromLine className="h-5 w-5" strokeWidth={2.5} /></span>
-          <div><div className="text-[26px] font-bold leading-none text-[#101828]">{stats.total.toLocaleString('fa-IR')}</div><div className="mt-1.5 text-[13px] font-bold text-[#344054]">کل خروج‌ها</div></div>
-        </div>
-        <div className="flex min-h-[120px] flex-col justify-between rounded-[14px] border border-[#E7ECF3] bg-white p-5 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-          <span className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#f59e0b]/10 text-[#f59e0b]"><Clock className="h-5 w-5" strokeWidth={2.5} /></span>
-          <div><div className="text-[26px] font-bold leading-none text-[#101828]">{stats.pending.toLocaleString('fa-IR')}</div><div className="mt-1.5 text-[13px] font-bold text-[#344054]">در انتظار</div></div>
-        </div>
-        <div className="flex min-h-[120px] flex-col justify-between rounded-[14px] border border-[#E7ECF3] bg-white p-5 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-          <span className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#10b981]/10 text-[#10b981]"><CheckCircle className="h-5 w-5" strokeWidth={2.5} /></span>
-          <div><div className="text-[26px] font-bold leading-none text-[#101828]">{stats.confirmed.toLocaleString('fa-IR')}</div><div className="mt-1.5 text-[13px] font-bold text-[#344054]">تأیید شده</div></div>
-        </div>
-        <div className="flex min-h-[120px] flex-col justify-between rounded-[14px] border border-[#E7ECF3] bg-white p-5 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-          <span className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#6366f1]/10 text-[#6366f1]"><FileText className="h-5 w-5" strokeWidth={2.5} /></span>
-          <div><div className="text-[20px] font-bold leading-none text-[#101828]">{formatToman(stats.totalValue)}</div><div className="mt-1.5 text-[13px] font-bold text-[#344054]">ارزش کل (تومان)</div></div>
-        </div>
-      </div>
-
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative">
-          <Search className="absolute right-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#98A2B3]" />
-          <Input placeholder="جستجو بر اساس شماره یا طرف..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-[42px] w-full rounded-[10px] border-[#DCE3EE] bg-white pr-9 text-sm sm:w-[320px]" />
-        </div>
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="h-[42px] rounded-[10px] border border-[#DCE3EE] bg-white px-3 text-sm text-[#344054]">
-          <option value="all">همه وضعیت‌ها</option>
-          {Object.entries(WE_STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-        </select>
-      </div>
-
-      {loading ? (
-        <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-[3px] border-[#2563EB] border-t-transparent" /></div>
-      ) : records.length === 0 ? (
-        <Card><EmptyState icon={<ArrowUpFromLine className="h-8 w-8" />} title="خروجی یافت نشد" description="برای شروع، اولین خروج از انبار را ثبت کنید" action={<Link href="/dashboard/warehouse-exits/new"><Button><Plus className="h-4 w-4" /> افزودن خروج</Button></Link>} /></Card>
-      ) : (
-        <Card><CardContent className="p-0">
-          <div className="divide-y divide-[#F1F5F9]">
-            {pageItems.map((r) => {
-              const stColor = WE_STATUS_COLOR[r.status] || '#64748b';
-              return (
-                <div key={r.id} className="flex cursor-pointer items-center gap-3 p-4 transition-colors hover:bg-[#F8FAFD]" onClick={() => loadDetail(r)}>
-                  <div className="h-10 w-2 rounded-full" style={{ backgroundColor: stColor }} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <div className="truncate text-sm font-bold text-[#1D2939]">{r.number}</div>
-                      <Badge variant="outline" className="shrink-0 text-[10px]" style={{ color: stColor, borderColor: `${stColor}35`, backgroundColor: `${stColor}10` }}>{WE_STATUS[r.status]}</Badge>
-                      <Badge variant="outline" className="shrink-0 text-[10px] text-[#667085]">{EXIT_TYPE[r.exitType] || r.exitType}</Badge>
-                    </div>
-                    <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-[#98A2B3]">
-                      <span className="flex items-center gap-1"><Building2 className="h-3 w-3" />{warehouseName(r.warehouseId)}</span>
-                      <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{formatJalali(r.exitDate)}</span>
-                      {r.contactName && <span>{r.contactName}</span>}
-                      <span>{formatToman(Number(r.totalValue))} تومان</span>
-                    </div>
-                  </div>
-                  <button onClick={(e) => { e.stopPropagation(); loadDetail(r); }} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#98A2B3] transition-colors hover:bg-[#EFF4FF] hover:text-[#2563EB]"><Eye className="h-4 w-4" /></button>
-                  {isSuperAdmin && <button onClick={(e) => { e.stopPropagation(); handleDelete(r.id); }} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#98A2B3] transition-colors hover:bg-rose-50 hover:text-rose-500"><Trash2 className="h-4 w-4" /></button>}
-                </div>
-              );
-            })}
-            {pageItems.length === 0 && <div className="py-12 text-center text-sm text-[#CBD5E1]">نتیجه‌ای یافت نشد</div>}
-          </div>
-          {pages > 1 && (
-            <div className="flex items-center justify-between border-t border-[#F1F5F9] px-4 py-3">
-              <span className="text-xs text-[#667085]">صفحه {currentPage.toLocaleString('fa-IR')} از {pages.toLocaleString('fa-IR')}</span>
-              <div className="flex items-center gap-2">
-                <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE3EE] text-[#667085] transition-colors hover:bg-[#F1F5F9] disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button>
-                <button onClick={() => setPage((p) => Math.min(pages, p + 1))} disabled={currentPage === pages} className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE3EE] text-[#667085] transition-colors hover:bg-[#F1F5F9] disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button>
-              </div>
+      <section className="nb-stats-grid-v2">
+        {statCards.map((stat) => (
+          <div
+            className="nb-stat-card-v2"
+            key={stat.label}
+            style={{ '--stat-glow': stat.glow } as React.CSSProperties}
+          >
+            <div className="nb-stat-v2-icon" style={{ background: stat.gradient }}>
+              <stat.icon className="h-[22px] w-[22px] text-white" strokeWidth={2.5} />
             </div>
-          )}
-        </CardContent></Card>
+            <div className="nb-stat-v2-body">
+              <strong>{typeof stat.value === 'number' ? stat.value.toLocaleString('fa-IR') : stat.value}</strong>
+              <span>{stat.label}</span>
+            </div>
+            <div className="nb-stat-v2-spark" style={{ background: stat.gradient }} />
+          </div>
+        ))}
+      </section>
+
+      {records.length === 0 ? (
+        <div className="nb-empty">
+          <div className="sb-empty-icon"><ArrowUpFromLine className="h-12 w-12 text-muted-foreground/30" /></div>
+          <h3>خروجی یافت نشد</h3>
+          <p>برای شروع، اولین خروج از انبار را ثبت کنید</p>
+          <Link href="/dashboard/warehouse-exits/new" className="nb-empty-new-btn"><Plus className="h-4 w-4" /> افزودن خروج</Link>
+        </div>
+      ) : (
+        <>
+          <div className="nb-toolbar">
+            <div className="nb-toolbar-left">
+              <h2>همه خروج‌ها</h2>
+              <span className="nb-count-badge">{filtered.length.toLocaleString('fa-IR')} مورد</span>
+            </div>
+            <div className="nb-toolbar-right">
+              <div className="nb-search-box">
+                <Search className="h-4 w-4" />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="جستجو بر اساس شماره یا طرف..."
+                />
+                {search && <button onClick={() => setSearch('')}><X className="h-3.5 w-3.5" /></button>}
+              </div>
+              <select
+                className="nb-select-filter"
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+              >
+                <option value="all">همه وضعیت‌ها</option>
+                {Object.entries(WE_STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+            <div className="divide-y divide-slate-100 dark:divide-slate-700">
+              {pageItems.map((r) => {
+                const stColor = WE_STATUS_COLOR[r.status] || '#64748b';
+                return (
+                  <div key={r.id} className="flex cursor-pointer items-center gap-3 p-4 transition-colors hover:bg-slate-50 dark:hover:bg-slate-700/50" onClick={() => loadDetail(r)}>
+                    <div className="h-10 w-2 rounded-full" style={{ backgroundColor: stColor }} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <div className="truncate text-sm font-bold text-slate-800 dark:text-slate-100">{r.number}</div>
+                        <Badge variant="outline" className="shrink-0 text-[10px]" style={{ color: stColor, borderColor: `${stColor}35`, backgroundColor: `${stColor}10` }}>{WE_STATUS[r.status]}</Badge>
+                        <Badge variant="outline" className="shrink-0 text-[10px] text-slate-500 dark:text-slate-400">{EXIT_TYPE[r.exitType] || r.exitType}</Badge>
+                      </div>
+                      <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-400 dark:text-slate-500">
+                        <span className="flex items-center gap-1"><Building2 className="h-3 w-3" />{warehouseName(r.warehouseId)}</span>
+                        <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{formatJalali(r.exitDate)}</span>
+                        {r.contactName && <span>{r.contactName}</span>}
+                        <span>{formatToman(Number(r.totalValue))} تومان</span>
+                      </div>
+                    </div>
+                    <button onClick={(e) => { e.stopPropagation(); loadDetail(r); }} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20"><Eye className="h-4 w-4" /></button>
+                    {isSuperAdmin && <button onClick={(e) => { e.stopPropagation(); handleDelete(r.id); }} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-900/20"><Trash2 className="h-4 w-4" /></button>}
+                  </div>
+                );
+              })}
+              {pageItems.length === 0 && <div className="py-12 text-center text-sm text-slate-300 dark:text-slate-600">نتیجه‌ای یافت نشد</div>}
+            </div>
+            {pages > 1 && (
+              <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-700 px-4 py-3">
+                <span className="text-xs text-slate-500 dark:text-slate-400">صفحه {currentPage.toLocaleString('fa-IR')} از {pages.toLocaleString('fa-IR')}</span>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 transition-colors hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button>
+                  <button onClick={() => setPage((p) => Math.min(pages, p + 1))} disabled={currentPage === pages} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 transition-colors hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button>
+                </div>
+              </div>
+            )}
+          </div>
+        </>
       )}
+
+      <Link href="/dashboard/warehouse-exits/new" className="nb-fab" aria-label="ثبت خروج">
+        <Plus className="h-6 w-6" />
+      </Link>
 
       <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
         <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
@@ -313,36 +372,36 @@ export default function WarehouseExitsPage() {
                   <div className="flex items-start justify-between gap-3">
                     <DialogTitle className="text-lg">خروج {detail.number}</DialogTitle>
                     <div className="flex items-center gap-1">
-                      <Button size="sm" variant="ghost" className="h-8 shrink-0 text-slate-500 hover:bg-slate-50" onClick={() => setHistoryDialog(detail)}><FileText className="h-4 w-4" /> تاریخچه</Button>
-                      {isSuperAdmin && <Button size="sm" variant="ghost" className="h-8 shrink-0 text-rose-500 hover:bg-rose-50 hover:text-rose-600" onClick={() => handleDelete(detail.id)}><Trash2 className="h-4 w-4" /></Button>}
+                      <Button size="sm" variant="ghost" className="h-8 shrink-0 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700" onClick={() => setHistoryDialog(detail)}><FileText className="h-4 w-4" /> تاریخچه</Button>
+                      {isSuperAdmin && <Button size="sm" variant="ghost" className="h-8 shrink-0 text-rose-500 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-900/20" onClick={() => handleDelete(detail.id)}><Trash2 className="h-4 w-4" /></Button>}
                     </div>
                   </div>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge style={{ backgroundColor: `${stColor}20`, color: stColor }}>{WE_STATUS[detail.status]}</Badge>
-                    <Badge variant="outline" className="text-[#667085]">{EXIT_TYPE[detail.exitType] || detail.exitType}</Badge>
+                    <Badge variant="outline" className="text-slate-500 dark:text-slate-400">{EXIT_TYPE[detail.exitType] || detail.exitType}</Badge>
                   </div>
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    <div className="rounded-[10px] bg-[#EFF4FF] p-3"><div className="text-xs text-[#667085]">شماره</div><div className="mt-1 text-sm font-bold text-[#3155E7]">{detail.number}</div></div>
-                    <div className="rounded-[10px] bg-[#F1F5F9] p-3"><div className="text-xs text-[#667085]">انبار</div><div className="mt-1 text-sm font-bold text-[#344054]">{warehouseName(detail.warehouseId)}</div></div>
-                    <div className="rounded-[10px] bg-[#F1F5F9] p-3"><div className="text-xs text-[#667085]">طرف حساب</div><div className="mt-1 text-sm font-bold text-[#344054]">{detail.contactName || '—'}</div></div>
-                    <div className="rounded-[10px] bg-[#DCFCE7] p-3"><div className="text-xs text-[#667085]">تاریخ خروج</div><div className="mt-1 text-sm font-bold text-[#16A34A]">{formatJalali(detail.exitDate)}</div></div>
-                    <div className="rounded-[10px] bg-[#F1F5F9] p-3"><div className="text-xs text-[#667085]">ایجادکننده</div><div className="mt-1 text-sm font-bold text-[#344054]">{staffName(detail.createdBy)}</div></div>
-                    <div className="rounded-[10px] bg-blue-50 p-3"><div className="text-xs text-[#667085]">ارزش کل</div><div className="mt-1 text-sm font-bold text-blue-700">{formatToman(Number(detail.totalValue))}</div></div>
+                    <div className="rounded-[10px] bg-blue-50 dark:bg-blue-900/20 p-3"><div className="text-xs text-slate-500 dark:text-slate-400">شماره</div><div className="mt-1 text-sm font-bold text-blue-600 dark:text-blue-400">{detail.number}</div></div>
+                    <div className="rounded-[10px] bg-slate-50 dark:bg-slate-700/50 p-3"><div className="text-xs text-slate-500 dark:text-slate-400">انبار</div><div className="mt-1 text-sm font-bold text-slate-700 dark:text-slate-200">{warehouseName(detail.warehouseId)}</div></div>
+                    <div className="rounded-[10px] bg-slate-50 dark:bg-slate-700/50 p-3"><div className="text-xs text-slate-500 dark:text-slate-400">طرف حساب</div><div className="mt-1 text-sm font-bold text-slate-700 dark:text-slate-200">{detail.contactName || '—'}</div></div>
+                    <div className="rounded-[10px] bg-emerald-50 dark:bg-emerald-900/20 p-3"><div className="text-xs text-slate-500 dark:text-slate-400">تاریخ خروج</div><div className="mt-1 text-sm font-bold text-emerald-600 dark:text-emerald-400">{formatJalali(detail.exitDate)}</div></div>
+                    <div className="rounded-[10px] bg-slate-50 dark:bg-slate-700/50 p-3"><div className="text-xs text-slate-500 dark:text-slate-400">ایجادکننده</div><div className="mt-1 text-sm font-bold text-slate-700 dark:text-slate-200">{staffName(detail.createdBy)}</div></div>
+                    <div className="rounded-[10px] bg-blue-50 dark:bg-blue-900/20 p-3"><div className="text-xs text-slate-500 dark:text-slate-400">ارزش کل</div><div className="mt-1 text-sm font-bold text-blue-600 dark:text-blue-400">{formatToman(Number(detail.totalValue))}</div></div>
                   </div>
-                  {detail.recipientUnit && <div className="rounded-[10px] bg-[#F1F5F9] p-3"><div className="text-xs text-[#667085]">واحد دریافت‌کننده</div><div className="mt-1 text-sm font-bold text-[#344054]">{detail.recipientUnit}</div></div>}
-                  {detail.description && <div className="rounded-lg border border-slate-200 bg-slate-50 p-3"><p className="whitespace-pre-wrap text-sm text-slate-600">{detail.description}</p></div>}
+                  {detail.recipientUnit && <div className="rounded-[10px] bg-slate-50 dark:bg-slate-700/50 p-3"><div className="text-xs text-slate-500 dark:text-slate-400">واحد دریافت‌کننده</div><div className="mt-1 text-sm font-bold text-slate-700 dark:text-slate-200">{detail.recipientUnit}</div></div>}
+                  {detail.description && <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50 p-3"><p className="whitespace-pre-wrap text-sm text-slate-600 dark:text-slate-300">{detail.description}</p></div>}
 
                   <div>
-                    <h3 className="mb-2 text-sm font-bold text-[#1D2939]">اقلام ({detailItems.length})</h3>
-                    {detailItems.length === 0 ? <p className="py-3 text-center text-xs text-slate-400">قلمی ثبت نشده است</p> : (
+                    <h3 className="mb-2 text-sm font-bold text-slate-800 dark:text-slate-100">اقلام ({detailItems.length})</h3>
+                    {detailItems.length === 0 ? <p className="py-3 text-center text-xs text-slate-400 dark:text-slate-500">قلمی ثبت نشده است</p> : (
                       <div className="space-y-1.5">
                         {detailItems.map((item) => (
-                          <div key={item.id} className="flex items-center justify-between rounded-lg bg-slate-50 p-3 text-xs">
+                          <div key={item.id} className="flex items-center justify-between rounded-lg bg-slate-50 dark:bg-slate-700/50 p-3 text-xs">
                             <div className="min-w-0 flex-1">
-                              <div className="font-semibold text-slate-700">{item.productName || '—'}</div>
-                              <div className="mt-0.5 flex gap-3 text-slate-400">
+                              <div className="font-semibold text-slate-700 dark:text-slate-200">{item.productName || '—'}</div>
+                              <div className="mt-0.5 flex gap-3 text-slate-400 dark:text-slate-500">
                                 <span>{formatToman(Number(item.qty))} {item.unit || ''}</span>
                                 <span>قیمت واحد: {formatToman(Number(item.unitPrice))}</span>
                                 <span>مبلغ: {formatToman(Number(item.totalValue))}</span>
@@ -354,24 +413,24 @@ export default function WarehouseExitsPage() {
                     )}
                   </div>
 
-                  <div className="flex flex-wrap gap-2 border-t border-slate-200 pt-4">
+                  <div className="flex flex-wrap gap-2 border-t border-slate-200 dark:border-slate-700 pt-4">
                     {detail.status === 'draft' && isSuperAdmin && (
-                      <Button variant="outline" className="border-cyan-200 text-cyan-600 hover:bg-cyan-50" onClick={() => handleStatusChange(detail.id, 'completed', 'completed')}><CheckCircle className="h-4 w-4" /> تکمیل</Button>
+                      <Button variant="outline" className="border-cyan-200 text-cyan-600 hover:bg-cyan-50 dark:border-cyan-800 dark:hover:bg-cyan-900/20" onClick={() => handleStatusChange(detail.id, 'completed', 'completed')}><CheckCircle className="h-4 w-4" /> تکمیل</Button>
                     )}
                     {detail.status === 'completed' && isSuperAdmin && (
-                      <Button variant="outline" className="border-amber-200 text-amber-600 hover:bg-amber-50" onClick={() => handleStatusChange(detail.id, 'pending_approval', 'submitted')}><Send className="h-4 w-4" /> ارسال برای تأیید</Button>
+                      <Button variant="outline" className="border-amber-200 text-amber-600 hover:bg-amber-50 dark:border-amber-800 dark:hover:bg-amber-900/20" onClick={() => handleStatusChange(detail.id, 'pending_approval', 'submitted')}><Send className="h-4 w-4" /> ارسال برای تأیید</Button>
                     )}
                     {detail.status === 'pending_approval' && isSuperAdmin && (
-                      <Button variant="outline" className="border-green-200 text-green-600 hover:bg-green-50" onClick={() => handleStatusChange(detail.id, 'approved', 'approved')}><CheckCircle className="h-4 w-4" /> تأیید</Button>
+                      <Button variant="outline" className="border-green-200 text-green-600 hover:bg-green-50 dark:border-green-800 dark:hover:bg-green-900/20" onClick={() => handleStatusChange(detail.id, 'approved', 'approved')}><CheckCircle className="h-4 w-4" /> تأیید</Button>
                     )}
                     {detail.status === 'approved' && isSuperAdmin && (
-                      <Button variant="outline" className="border-blue-200 text-blue-600 hover:bg-blue-50" onClick={() => handleStatusChange(detail.id, 'applied', 'applied')}><Send className="h-4 w-4" /> اعمال خروج</Button>
+                      <Button variant="outline" className="border-blue-200 text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:hover:bg-blue-900/20" onClick={() => handleStatusChange(detail.id, 'applied', 'applied')}><Send className="h-4 w-4" /> اعمال خروج</Button>
                     )}
                     {detail.status === 'applied' && isSuperAdmin && (
-                      <Button variant="outline" className="border-green-200 text-green-600 hover:bg-green-50" onClick={() => handleStatusChange(detail.id, 'finalized', 'finalized')}><CheckCircle className="h-4 w-4" /> نهایی‌سازی</Button>
+                      <Button variant="outline" className="border-green-200 text-green-600 hover:bg-green-50 dark:border-green-800 dark:hover:bg-green-900/20" onClick={() => handleStatusChange(detail.id, 'finalized', 'finalized')}><CheckCircle className="h-4 w-4" /> نهایی‌سازی</Button>
                     )}
                     {isSuperAdmin && detail.status !== 'voided' && detail.status !== 'finalized' && (
-                      <Button variant="outline" className="border-rose-200 text-rose-600 hover:bg-rose-50" onClick={() => setVoidDialog({ id: detail.id, reason: '' })}><Ban className="h-4 w-4" /> باطل کردن</Button>
+                      <Button variant="outline" className="border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-800 dark:hover:bg-rose-900/20" onClick={() => setVoidDialog({ id: detail.id, reason: '' })}><Ban className="h-4 w-4" /> باطل کردن</Button>
                     )}
                   </div>
                 </div>
@@ -385,8 +444,8 @@ export default function WarehouseExitsPage() {
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>باطل کردن خروج</DialogTitle></DialogHeader>
           <div className="space-y-2">
-            <Label className="text-sm font-semibold text-[#344054]">دلیل ابطال</Label>
-            <Textarea value={voidDialog?.reason || ''} onChange={(e) => setVoidDialog((d) => d ? { ...d, reason: e.target.value } : null)} placeholder="دلیل..." className="rounded-[10px] border-[#DCE3EE]" />
+            <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">دلیل ابطال</Label>
+            <Textarea value={voidDialog?.reason || ''} onChange={(e) => setVoidDialog((d) => d ? { ...d, reason: e.target.value } : null)} placeholder="دلیل..." className="rounded-[10px] border-slate-200 dark:border-slate-700" />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setVoidDialog(null)}>انصراف</Button>
@@ -398,17 +457,17 @@ export default function WarehouseExitsPage() {
       <Dialog open={!!historyDialog} onOpenChange={(o) => !o && setHistoryDialog(null)}>
         <DialogContent className="max-h-[80vh] max-w-lg overflow-y-auto">
           <DialogHeader><DialogTitle>تاریخچه خروج</DialogTitle></DialogHeader>
-          {detailHistory.length === 0 ? <p className="py-4 text-center text-xs text-slate-400">تاریخچه‌ای ثبت نشده است</p> : (
+          {detailHistory.length === 0 ? <p className="py-4 text-center text-xs text-slate-400 dark:text-slate-500">تاریخچه‌ای ثبت نشده است</p> : (
             <div className="space-y-2">
               {detailHistory.map((h) => (
-                <div key={h.id} className="flex items-start gap-3 rounded-lg border border-slate-100 bg-slate-50 p-3">
-                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-slate-500"><FileText className="h-3.5 w-3.5" /></span>
+                <div key={h.id} className="flex items-start gap-3 rounded-lg border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50 p-3">
+                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400"><FileText className="h-3.5 w-3.5" /></span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-slate-700">{ACTION_LABEL[h.action] || h.action}</span>
-                      <span className="text-xs text-slate-400">{relativeTime(h.actionAt)}</span>
+                      <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{ACTION_LABEL[h.action] || h.action}</span>
+                      <span className="text-xs text-slate-400 dark:text-slate-500">{relativeTime(h.actionAt)}</span>
                     </div>
-                    <div className="mt-1 text-xs text-slate-500">
+                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                       توسط {staffName(h.actionBy)}
                       {h.fromStatus && h.toStatus && <span> • {WE_STATUS[h.fromStatus] || h.fromStatus} ← {WE_STATUS[h.toStatus] || h.toStatus}</span>}
                     </div>

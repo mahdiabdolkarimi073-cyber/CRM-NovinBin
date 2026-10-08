@@ -3,15 +3,13 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { fetchData, createData, updateData, deleteData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
-import { PageHeader } from '@/components/dashboard/page-header';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -22,7 +20,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import {
   Gift, Plus, Pencil, Trash2, Package, Percent, Truck, Wrench, Star,
-  Inbox, CheckCircle2, XCircle, Coins, ShoppingBag, MoreVertical,
+  Inbox, CheckCircle2, XCircle, Coins, ShoppingBag, Search, X, Loader2,
 } from 'lucide-react';
 import { formatToman, formatJalaliDateTime } from '@/lib/format';
 import { toast } from 'sonner';
@@ -94,6 +92,7 @@ export default function LoyaltyRewardsPage() {
   // Catalog state
   const [rewards, setRewards] = useState<LoyaltyReward[]>([]);
   const [loadingRewards, setLoadingRewards] = useState(true);
+  const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<LoyaltyReward | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -234,7 +233,7 @@ export default function LoyaltyRewardsPage() {
   const handleToggleActive = async (r: LoyaltyReward) => {
     try {
       await updateData('loyalty_rewards', { id: r.id }, { active: !r.active });
-      setRewards((prev) => prev.map((x) => x.id === r.id ? { ...x, active: !x.active } : x));
+      setRewards((prev) => prev.map((x) => x.id === r.id ? { ...x, active: !r.active } : x));
       toast.success(r.active ? 'جایزه غیرفعال شد' : 'جایزه فعال شد');
     } catch (error: any) {
       toast.error('تغییر وضعیت ناموفق: ' + (error?.message || 'خطا'));
@@ -293,6 +292,16 @@ export default function LoyaltyRewardsPage() {
 
   const rewardName = (id: string) => rewardMap.get(id)?.name || 'جایزه حذف شده';
 
+  const filteredRewards = useMemo(() => {
+    if (!search.trim()) return rewards;
+    const q = search.trim().toLowerCase();
+    return rewards.filter((r) =>
+      r.name.toLowerCase().includes(q) ||
+      (r.description || '').toLowerCase().includes(q) ||
+      REWARD_TYPES[r.type]?.label.toLowerCase().includes(q)
+    );
+  }, [rewards, search]);
+
   const filteredRedemptions = useMemo(() => {
     if (statusFilter === 'all') return redemptions;
     return redemptions.filter((r) => r.status === statusFilter);
@@ -305,19 +314,80 @@ export default function LoyaltyRewardsPage() {
     pointsSpent: redemptions.reduce((s, r) => s + r.pointsSpent, 0),
   }), [redemptions]);
 
+  const catalogStats = useMemo(() => [
+    {
+      label: 'کل جوایز', value: rewards.length, icon: Gift,
+      gradient: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)',
+      glow: 'rgba(37,99,235,0.25)',
+    },
+    {
+      label: 'جوایز فعال', value: rewards.filter((r) => r.active).length, icon: CheckCircle2,
+      gradient: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)',
+      glow: 'rgba(34,197,94,0.25)',
+    },
+    {
+      label: 'کل درخواست‌ها', value: redemptionStats.total, icon: ShoppingBag,
+      gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+      glow: 'rgba(245,158,11,0.25)',
+    },
+    {
+      label: 'امتیاز مصرفی', value: redemptionStats.pointsSpent, icon: Coins,
+      gradient: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
+      glow: 'rgba(139,92,246,0.25)',
+    },
+  ], [rewards, redemptionStats]);
+
   // ============ Render ============
 
+  if (loadingRewards && tab === 'catalog') {
+    return (
+      <div className="nb-page" dir="rtl">
+        <div className="nb-empty">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
+          <p>در حال بارگذاری جوایز...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div>
-      <PageHeader
-        title="جوایز باشگاه مشتریان"
-        description="مدیریت کاتالوگ جوایز و درخواست‌های بازخرجی"
-        action={
-          <Button size="sm" onClick={openCreate}>
-            <Plus className="w-4 h-4" /> جایزه جدید
-          </Button>
-        }
-      />
+    <div className="nb-page" dir="rtl">
+      <header className="nb-hero">
+        <div className="nb-hero-left">
+          <div>
+            <div className="nb-hero-title-row">
+              <span className="nb-hero-marker" style={{ background: 'linear-gradient(180deg,#f59e0b,#d97706)', boxShadow: '0 0 12px rgba(245,158,11,.25)' }} />
+              <h1>جوایز باشگاه مشتریان</h1>
+            </div>
+            <p>مدیریت کاتالوگ جوایز و درخواست‌های بازخرجی</p>
+          </div>
+        </div>
+        <div className="nb-hero-right">
+          <button className="nb-new-btn" onClick={openCreate}>
+            <Plus className="h-[18px] w-[18px]" />
+            جایزه جدید
+          </button>
+        </div>
+      </header>
+
+      <section className="nb-stats-grid-v2">
+        {catalogStats.map((stat) => (
+          <div
+            className="nb-stat-card-v2"
+            key={stat.label}
+            style={{ '--stat-glow': stat.glow } as React.CSSProperties}
+          >
+            <div className="nb-stat-v2-icon" style={{ background: stat.gradient }}>
+              <stat.icon className="h-[22px] w-[22px] text-white" strokeWidth={2.5} />
+            </div>
+            <div className="nb-stat-v2-body">
+              <strong>{stat.value.toLocaleString('fa-IR')}</strong>
+              <span>{stat.label}</span>
+            </div>
+            <div className="nb-stat-v2-spark" style={{ background: stat.gradient }} />
+          </div>
+        ))}
+      </section>
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="mb-6">
@@ -326,39 +396,59 @@ export default function LoyaltyRewardsPage() {
           </TabsTrigger>
           <TabsTrigger value="redemptions">
             <ShoppingBag className="w-4 h-4 ml-1.5" /> درخواست‌های جایزه
+            <Badge variant="secondary" className="mr-1 text-xs">{redemptionStats.total.toLocaleString('fa-IR')}</Badge>
           </TabsTrigger>
         </TabsList>
 
         {/* ===== Tab 1: Catalog ===== */}
         <TabsContent value="catalog">
-          {loadingRewards ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="animate-spin w-8 h-8 border-3 border-sky-500 border-t-transparent rounded-full" />
+          {/* Toolbar */}
+          <div className="nb-toolbar">
+            <div className="nb-toolbar-left">
+              <h2>همه جوایز</h2>
+              <span className="nb-count-badge">{filteredRewards.length.toLocaleString('fa-IR')} مورد</span>
             </div>
-          ) : rewards.length === 0 ? (
-            <Card>
-              <CardContent className="py-16 flex flex-col items-center text-center">
-                <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
-                  <Gift className="w-8 h-8 text-slate-300" />
-                </div>
-                <h3 className="font-semibold text-slate-700 mb-1">جایزه‌ای تعریف نشده</h3>
-                <p className="text-sm text-slate-400 mb-4">اولین جایزه باشگاه مشتریان را ایجاد کنید</p>
-                <Button onClick={openCreate}><Plus className="w-4 h-4" /> افزودن جایزه</Button>
-              </CardContent>
-            </Card>
+            <div className="nb-toolbar-right">
+              <div className="nb-search-box">
+                <Search className="h-4 w-4" />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="جستجوی جایزه..."
+                />
+                {search && <button onClick={() => setSearch('')}><X className="h-3.5 w-3.5" /></button>}
+              </div>
+            </div>
+          </div>
+
+          {rewards.length === 0 ? (
+            <div className="nb-empty">
+              <div className="sb-empty-icon"><Gift className="h-12 w-12 text-muted-foreground/30" /></div>
+              <h3>جایزه‌ای تعریف نشده</h3>
+              <p>اولین جایزه باشگاه مشتریان را ایجاد کنید</p>
+              <button className="nb-empty-new-btn" onClick={openCreate}>
+                <Plus className="h-4 w-4" /> افزودن جایزه
+              </button>
+            </div>
+          ) : filteredRewards.length === 0 ? (
+            <div className="nb-empty">
+              <div className="sb-empty-icon"><Search className="h-12 w-12 text-muted-foreground/30" /></div>
+              <h3>نتیجه‌ای یافت نشد</h3>
+              <p>عبارت دیگری را جستجو کنید</p>
+            </div>
           ) : (
-            <div className="grid grid-cols-1 tablet:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-              {rewards.map((r) => {
+            <div className="nb-grid nb-grid-grid">
+              {filteredRewards.map((r) => {
                 const ti = REWARD_TYPES[r.type] || REWARD_TYPES.product;
                 const Icon = ti.icon;
                 const unlimited = r.stock === -1;
                 const out = !unlimited && r.stock <= 0;
                 return (
-                  <Card key={r.id} className="group hover:shadow-lg transition-shadow overflow-hidden flex flex-col">
+                  <div key={r.id} className="nb-card group overflow-hidden flex flex-col cursor-default" style={{ borderBottomWidth: 0 }}>
                     {/* Image placeholder / icon banner */}
-                    <div className={cn('relative h-32 flex items-center justify-center', ti.bg.split(' ')[0])}>
+                    <div className={cn('relative h-32 flex items-center justify-center rounded-t-xl', ti.bg.split(' ')[0])}>
                       {r.imageUrl ? (
-                        <img src={r.imageUrl} alt={r.name} className="w-full h-full object-cover" />
+                        <img src={r.imageUrl} alt={r.name} className="w-full h-full object-cover rounded-t-xl" />
                       ) : (
                         <Icon className={cn('w-12 h-12', ti.bg.split(' ')[1])} />
                       )}
@@ -368,15 +458,15 @@ export default function LoyaltyRewardsPage() {
                         </Badge>
                       </div>
                       {!r.active && (
-                        <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center">
+                        <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center rounded-t-xl">
                           <Badge className="bg-slate-700 text-white">غیرفعال</Badge>
                         </div>
                       )}
                     </div>
 
-                    <CardContent className="p-4 flex flex-col flex-1">
-                      <h3 className="font-semibold text-slate-900 mb-1 line-clamp-1">{r.name}</h3>
-                      <p className="text-xs text-slate-500 line-clamp-2 mb-3 min-h-[2rem]">{r.description || '—'}</p>
+                    <div className="p-4 flex flex-col flex-1">
+                      <h3 className="font-semibold text-slate-900 mb-1 line-clamp-1 dark:text-slate-100">{r.name}</h3>
+                      <p className="text-xs text-slate-500 line-clamp-2 mb-3 min-h-[2rem] dark:text-slate-400">{r.description || '—'}</p>
 
                       <div className="flex items-center gap-2 mb-3">
                         <div className="flex items-center gap-1 text-amber-600">
@@ -394,13 +484,13 @@ export default function LoyaltyRewardsPage() {
                       <div className="flex items-center justify-between mb-4">
                         <span className={cn(
                           'text-xs font-medium px-2 py-1 rounded-full',
-                          unlimited ? 'bg-emerald-50 text-emerald-600' : out ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-600'
+                          unlimited ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400' : out ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
                         )}>
                           {unlimited ? 'نامحدود' : out ? 'ناموجود' : `${r.stock.toLocaleString('fa-IR')} موجود`}
                         </span>
                       </div>
 
-                      <div className="flex items-center justify-between gap-2 mt-auto pt-3 border-t border-slate-100">
+                      <div className="flex items-center justify-between gap-2 mt-auto pt-3 border-t border-slate-100 dark:border-slate-700">
                         <div className="flex items-center gap-2">
                           <Switch checked={r.active} onCheckedChange={() => handleToggleActive(r)} />
                           <span className="text-xs text-slate-400">{r.active ? 'فعال' : 'غیرفعال'}</span>
@@ -414,8 +504,8 @@ export default function LoyaltyRewardsPage() {
                           </Button>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 );
               })}
             </div>
@@ -424,87 +514,44 @@ export default function LoyaltyRewardsPage() {
 
         {/* ===== Tab 2: Redemptions ===== */}
         <TabsContent value="redemptions">
-          {/* Summary cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <Card>
-              <CardContent className="p-4 flex items-center justify-between">
-                <div>
-                  <div className="text-xs text-slate-400">کل درخواست‌ها</div>
-                  <div className="text-2xl font-bold text-slate-900">{redemptionStats.total.toLocaleString('fa-IR')}</div>
-                </div>
-                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                  <ShoppingBag className="w-5 h-5" />
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 flex items-center justify-between">
-                <div>
-                  <div className="text-xs text-slate-400">در انتظار</div>
-                  <div className="text-2xl font-bold text-amber-600">{redemptionStats.pending.toLocaleString('fa-IR')}</div>
-                </div>
-                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                  <Inbox className="w-5 h-5" />
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 flex items-center justify-between">
-                <div>
-                  <div className="text-xs text-slate-400">تکمیل شده</div>
-                  <div className="text-2xl font-bold text-emerald-600">{redemptionStats.fulfilled.toLocaleString('fa-IR')}</div>
-                </div>
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                  <CheckCircle2 className="w-5 h-5" />
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 flex items-center justify-between">
-                <div>
-                  <div className="text-xs text-slate-400">امتیاز مصرفی</div>
-                  <div className="text-2xl font-bold text-slate-900">{redemptionStats.pointsSpent.toLocaleString('fa-IR')}</div>
-                </div>
-                <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center">
-                  <Coins className="w-5 h-5" />
-                </div>
-              </CardContent>
-            </Card>
+          {/* Status filter tabs */}
+          <div className="nb-toolbar">
+            <div className="nb-toolbar-left">
+              <h2>درخواست‌های بازخرجی</h2>
+              <span className="nb-count-badge">{filteredRedemptions.length.toLocaleString('fa-IR')} مورد</span>
+            </div>
+            <div className="nb-toolbar-right">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="nb-select-filter h-10 w-[150px]">
+                  <SelectValue placeholder="وضعیت" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">همه وضعیت‌ها</SelectItem>
+                  <SelectItem value="pending">در انتظار</SelectItem>
+                  <SelectItem value="fulfilled">تکمیل شده</SelectItem>
+                  <SelectItem value="cancelled">لغو شده</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {/* Status filter tabs */}
-          <Tabs value={statusFilter} onValueChange={setStatusFilter}>
-            <TabsList className="mb-4">
-              <TabsTrigger value="all">همه</TabsTrigger>
-              <TabsTrigger value="pending">در انتظار</TabsTrigger>
-              <TabsTrigger value="fulfilled">تکمیل شده</TabsTrigger>
-              <TabsTrigger value="cancelled">لغو شده</TabsTrigger>
-            </TabsList>
-          </Tabs>
-
           {loadingRedemptions ? (
-            <div className="flex items-center justify-center h-48">
-              <div className="animate-spin w-8 h-8 border-3 border-sky-500 border-t-transparent rounded-full" />
+            <div className="nb-empty">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
+              <p>در حال بارگذاری درخواست‌ها...</p>
             </div>
           ) : filteredRedemptions.length === 0 ? (
-            <Card>
-              <CardContent className="py-16 flex flex-col items-center text-center">
-                <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
-                  <ShoppingBag className="w-8 h-8 text-slate-300" />
-                </div>
-                <h3 className="font-semibold text-slate-700 mb-1">درخواستی یافت نشد</h3>
-                <p className="text-sm text-slate-400">
-                  {statusFilter !== 'all' ? 'برای این وضعیت درخواستی وجود ندارد' : 'هنوز درخواست بازخرجی ثبت نشده'}
-                </p>
-              </CardContent>
-            </Card>
+            <div className="nb-empty">
+              <div className="sb-empty-icon"><ShoppingBag className="h-12 w-12 text-muted-foreground/30" /></div>
+              <h3>درخواستی یافت نشد</h3>
+              <p>{statusFilter !== 'all' ? 'برای این وضعیت درخواستی وجود ندارد' : 'هنوز درخواست بازخرجی ثبت نشده'}</p>
+            </div>
           ) : (
-            <Card>
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+              <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow>
+                    <TableRow className="bg-slate-50 dark:bg-slate-900/50">
                       <TableHead>مشتری</TableHead>
                       <TableHead>جایزه</TableHead>
                       <TableHead>امتیاز مصرفی</TableHead>
@@ -518,9 +565,9 @@ export default function LoyaltyRewardsPage() {
                       const si = REDEMPTION_STATUS[r.status] || REDEMPTION_STATUS.pending;
                       const Icon = si.icon;
                       return (
-                        <TableRow key={r.id} className="hover:bg-slate-50">
-                          <TableCell className="font-medium text-slate-800">{customerName(r.customerId)}</TableCell>
-                          <TableCell className="text-slate-600">{rewardName(r.rewardId)}</TableCell>
+                        <TableRow key={r.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
+                          <TableCell className="font-medium text-slate-800 dark:text-slate-200">{customerName(r.customerId)}</TableCell>
+                          <TableCell className="text-slate-600 dark:text-slate-300">{rewardName(r.rewardId)}</TableCell>
                           <TableCell>
                             <span className="inline-flex items-center gap-1 text-amber-600 font-semibold">
                               <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
@@ -532,7 +579,7 @@ export default function LoyaltyRewardsPage() {
                               <Icon className="w-3 h-3 ml-1" /> {si.label}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-sm text-slate-500">{formatJalaliDateTime(r.createdAt)}</TableCell>
+                          <TableCell className="text-sm text-slate-500 dark:text-slate-400">{formatJalaliDateTime(r.createdAt)}</TableCell>
                           <TableCell>
                             <div className="flex items-center justify-center gap-2">
                               {r.status === 'pending' && (
@@ -567,12 +614,15 @@ export default function LoyaltyRewardsPage() {
                     })}
                   </TableBody>
                 </Table>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
         </TabsContent>
       </Tabs>
+
+      <button className="nb-fab" aria-label="جایزه جدید" onClick={openCreate}>
+        <Plus className="h-6 w-6" />
+      </button>
 
       {/* ===== Create/Edit Dialog ===== */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -655,9 +705,9 @@ export default function LoyaltyRewardsPage() {
                 placeholder="https://..."
               />
             </div>
-            <div className="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-3">
+            <div className="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-3 dark:border-slate-700">
               <div>
-                <div className="text-sm font-medium text-slate-700">فعال بودن جایزه</div>
+                <div className="text-sm font-medium text-slate-700 dark:text-slate-300">فعال بودن جایزه</div>
                 <div className="text-xs text-slate-400">جایزه‌های غیرفعال در کاتالوگ نمایش داده نمی‌شوند</div>
               </div>
               <Switch checked={form.active} onCheckedChange={(v) => setForm({ ...form, active: v })} />
@@ -678,7 +728,7 @@ export default function LoyaltyRewardsPage() {
           <DialogHeader>
             <DialogTitle>حذف جایزه</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-slate-600 py-2">
+          <p className="text-sm text-slate-600 py-2 dark:text-slate-300">
             آیا از حذف این جایزه مطمئن هستید؟ این عملیات قابل بازگشت نیست.
           </p>
           <DialogFooter>
