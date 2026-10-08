@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { fetchData } from '@/lib/data-client';
-import { PageHeader } from '@/components/dashboard/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -76,12 +75,12 @@ function AccountRow({ node, depth }: { node: AccountNode; depth: number }) {
   const isGroup = node.isGroup || node.children.length > 0;
   return (
     <>
-      <TableRow className={cn('hover:bg-slate-50/60 transition-colors', isGroup && 'bg-slate-50/40 font-medium')}>
+      <TableRow className={cn('transition-colors hover:bg-[#F8FAFD]', isGroup && 'bg-[#F8FAFD] font-medium')}>
         <TableCell className="py-2.5">
           <div className="flex items-center gap-2" style={{ paddingRight: depth * 20 }}>
-            {depth > 0 && <ChevronLeft className="w-3 h-3 text-slate-300 shrink-0" />}
-            <span className="text-xs text-slate-400 font-mono" dir="ltr">{node.code}</span>
-            <span className={cn('text-sm', isGroup ? 'font-semibold text-slate-800' : 'text-slate-600')}>
+            {depth > 0 && <ChevronLeft className="w-3 h-3 text-[#CBD5E1] shrink-0" />}
+            <span className="text-xs text-[#98A2B3] font-mono" dir="ltr">{node.code}</span>
+            <span className={cn('text-sm', isGroup ? 'font-semibold text-[#1D2939]' : 'text-[#344054]')}>
               {node.name}
             </span>
             {isGroup && <Badge variant="secondary" className="text-[10px] h-4 px-1.5">گروه</Badge>}
@@ -343,70 +342,75 @@ export default function FinancialReportsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full" />
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-[#2563EB] border-t-transparent" />
       </div>
     );
   }
 
   // ---- summary card component ----
+  const accentBg: Record<string, string> = {
+    'text-emerald-600': 'bg-[#10b981]/10 text-[#10b981]',
+    'text-amber-600': 'bg-[#f59e0b]/10 text-[#f59e0b]',
+    'text-blue-600': 'bg-[#3155E7]/10 text-[#3155E7]',
+    'text-red-600': 'bg-[#ef4444]/10 text-[#ef4444]',
+  };
   const StatCard = ({
     title, value, icon, accent, subtitle,
   }: { title: string; value: string; icon: React.ReactNode; accent: string; subtitle?: string }) => (
-    <Card className="overflow-hidden border-slate-200/70 hover:shadow-md transition-shadow">
-      <CardContent className="p-5">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-slate-500">{title}</p>
-            <p className={cn('text-xl font-bold tabular-nums', accent)} dir="ltr">{value}</p>
-            {subtitle && <p className="text-[11px] text-slate-400">{subtitle}</p>}
-          </div>
-          <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center shrink-0', accent.replace('text-', 'bg-').replace('-600', '-50'))}>
-            {icon}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="flex min-h-[120px] flex-col justify-between rounded-[14px] border border-[#E7ECF3] bg-white p-5 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
+      <span className={cn('flex h-[42px] w-[42px] items-center justify-center rounded-full', accentBg[accent] || 'bg-[#3155E7]/10 text-[#3155E7]')}>{icon}</span>
+      <div>
+        <div className={cn('text-[26px] font-bold leading-none tabular-nums', accent)} dir="ltr">{value}</div>
+        <div className="mt-1.5 text-[13px] font-bold text-[#344054]">{title}</div>
+        {subtitle && <div className="mt-0.5 text-[11px] text-[#98A2B3]">{subtitle}</div>}
+      </div>
+    </div>
   );
 
   const balanced = Math.abs(balanceData.totalAssets - (balanceData.totalLiab + balanceData.totalEquity)) < 1;
 
   return (
-    <div>
-      <PageHeader
-        title="گزارش‌های مالی"
-        description="ترازنامه، صورت سود و زیان، جریان وجوه نقد، فروش و مطالبات"
-      />
+    <div className="w-full" dir="rtl">
+      <header className="mb-6 flex flex-col gap-4 mobile:flex-row mobile:items-center mobile:justify-between">
+        <div>
+          <div className="flex items-center gap-3">
+            <span className="h-10 w-[5px] rounded-full bg-[#FF7A00]" />
+            <h1 className="text-[28px] font-bold text-[#101828]">گزارش‌های مالی</h1>
+          </div>
+          <div className="mt-2 text-xs font-medium text-[#667085]">داشبورد <span className="mx-1.5 text-[#CBD5E1]">←</span> مالی <span className="mx-1.5 text-[#CBD5E1]">←</span> گزارش‌های مالی</div>
+        </div>
+      </header>
 
       {/* Global date filter — applies to tabs 3-5 */}
-      <Card className="mb-5 border-blue-100 bg-gradient-to-l from-blue-50/50 to-transparent">
-        <CardContent className="p-4 flex flex-wrap items-end gap-3">
-          <div className="flex items-center gap-2 text-sm font-medium text-slate-600 ml-2">
-            <Calendar className="w-4 h-4 text-blue-500" />
+      <div className="mb-5 rounded-[14px] border border-[#E7ECF3] bg-white p-4 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex items-center gap-2 text-sm font-medium text-[#344054] ml-2">
+            <Calendar className="w-4 h-4 text-[#3155E7]" />
             فیلتر بازه زمانی
-            <span className="text-[11px] text-slate-400 font-normal">(برای جریان وجوه، فروش و مطالبات)</span>
+            <span className="text-[11px] text-[#98A2B3] font-normal">(برای جریان وجوه، فروش و مطالبات)</span>
           </div>
           <div className="space-y-1">
-            <Label className="text-xs text-slate-500">از تاریخ</Label>
+            <Label className="text-xs text-[#667085]">از تاریخ</Label>
             <JalaliDatePicker value={dateFrom ? new Date(dateFrom) : null} onChange={(d) => setDateFrom(d ? toLocalDateString(d) : '')} className="w-40" />
           </div>
           <div className="space-y-1">
-            <Label className="text-xs text-slate-500">تا تاریخ</Label>
+            <Label className="text-xs text-[#667085]">تا تاریخ</Label>
             <JalaliDatePicker value={dateTo ? new Date(dateTo) : null} onChange={(d) => setDateTo(d ? toLocalDateString(d) : '')} className="w-40" />
           </div>
           <Button variant="outline" size="sm" onClick={() => { setDateFrom(defaultFrom()); setDateTo(defaultTo()); }}>
             بازنشانی
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="flex-wrap h-auto">
-          <TabsTrigger value="balance"><Scale className="w-4 h-4 ml-1" />ترازنامه</TabsTrigger>
-          <TabsTrigger value="pnl"><TrendingUp className="w-4 h-4 ml-1" />صورت سود و زیان</TabsTrigger>
-          <TabsTrigger value="cashflow"><Wallet className="w-4 h-4 ml-1" />جریان وجوه نقد</TabsTrigger>
-          <TabsTrigger value="sales"><ShoppingCart className="w-4 h-4 ml-1" />گزارش فروش</TabsTrigger>
-          <TabsTrigger value="rp"><BookOpen className="w-4 h-4 ml-1" />مطالبات و بدهی‌ها</TabsTrigger>
+        <TabsList className="flex-wrap h-auto gap-1">
+          <TabsTrigger value="balance" className="rounded-[8px] text-[13px] font-semibold"><Scale className="w-4 h-4 ml-1" />ترازنامه</TabsTrigger>
+          <TabsTrigger value="pnl" className="rounded-[8px] text-[13px] font-semibold"><TrendingUp className="w-4 h-4 ml-1" />صورت سود و زیان</TabsTrigger>
+          <TabsTrigger value="cashflow" className="rounded-[8px] text-[13px] font-semibold"><Wallet className="w-4 h-4 ml-1" />جریان وجوه نقد</TabsTrigger>
+          <TabsTrigger value="sales" className="rounded-[8px] text-[13px] font-semibold"><ShoppingCart className="w-4 h-4 ml-1" />گزارش فروش</TabsTrigger>
+          <TabsTrigger value="rp" className="rounded-[8px] text-[13px] font-semibold"><BookOpen className="w-4 h-4 ml-1" />مطالبات و بدهی‌ها</TabsTrigger>
         </TabsList>
 
         {/* ====================== TAB 1: BALANCE SHEET ====================== */}
@@ -437,43 +441,41 @@ export default function FinancialReportsPage() {
           </div>
 
           {/* balance check banner */}
-          <Card className={cn('mb-6 border-2', balanced ? 'border-emerald-200 bg-emerald-50/40' : 'border-red-200 bg-red-50/40')}>
-            <CardContent className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {balanced ? (
-                  <CheckCircle2 className="w-6 h-6 text-emerald-600" />
-                ) : (
-                  <AlertCircle className="w-6 h-6 text-red-600" />
-                )}
-                <div>
-                  <p className={cn('font-bold', balanced ? 'text-emerald-800' : 'text-red-800')}>
-                    {balanced ? 'ترازنامه متوازن است' : 'ترازنامه متوازن نیست'}
-                  </p>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    دارایی = بدهی + سرمایه
-                  </p>
-                </div>
-              </div>
-              <div className="text-left">
-                <p className="text-xs text-slate-500">تفاوت</p>
-                <p className={cn('text-lg font-bold tabular-nums', balanced ? 'text-emerald-600' : 'text-red-600')} dir="ltr">
-                  {formatToman(Math.abs(balanceData.totalAssets - (balanceData.totalLiab + balanceData.totalEquity)))}
+          <div className={cn('mb-6 flex items-center justify-between rounded-[14px] border-2 p-4', balanced ? 'border-emerald-200 bg-emerald-50/40' : 'border-red-200 bg-red-50/40')}>
+            <div className="flex items-center gap-3">
+              {balanced ? (
+                <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+              ) : (
+                <AlertCircle className="w-6 h-6 text-red-600" />
+              )}
+              <div>
+                <p className={cn('font-bold', balanced ? 'text-emerald-800' : 'text-red-800')}>
+                  {balanced ? 'ترازنامه متوازن است' : 'ترازنامه متوازن نیست'}
+                </p>
+                <p className="text-xs text-[#667085] mt-0.5">
+                  دارایی = بدهی + سرمایه
                 </p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+            <div className="text-left">
+              <p className="text-xs text-[#667085]">تفاوت</p>
+              <p className={cn('text-lg font-bold tabular-nums', balanced ? 'text-emerald-600' : 'text-red-600')} dir="ltr">
+                {formatToman(Math.abs(balanceData.totalAssets - (balanceData.totalLiab + balanceData.totalEquity)))}
+              </p>
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
             {/* Assets */}
-            <Card className="border-emerald-100">
-              <CardHeader className="pb-3 border-b border-emerald-50 bg-emerald-50/30">
+            <Card className="rounded-[14px] border-[#E7ECF3] shadow-[0_3px_14px_rgba(20,40,80,.05)]">
+              <CardHeader className="pb-3 border-b border-emerald-50 bg-emerald-50/30 rounded-t-[14px]">
                 <CardTitle className="text-base flex items-center gap-2 text-emerald-700">
                   <Landmark className="w-4 h-4" /> دارایی‌ها
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 {balanceData.assetTree.length === 0 ? (
-                  <p className="text-sm text-slate-400 text-center py-8">حساب دارایی‌ای ثبت نشده</p>
+                  <p className="py-8 text-center text-sm text-[#98A2B3]">حساب دارایی‌ای ثبت نشده</p>
                 ) : (
                   <Table>
                     <TableBody>
@@ -483,7 +485,7 @@ export default function FinancialReportsPage() {
                     </TableBody>
                   </Table>
                 )}
-                <div className="border-t border-emerald-100 bg-emerald-50/30 p-3 flex justify-between items-center">
+                <div className="flex items-center justify-between border-t border-[#E7ECF3] bg-emerald-50/30 p-3">
                   <span className="text-sm font-semibold text-emerald-800">جمع کل</span>
                   <span className="text-base font-bold text-emerald-700 tabular-nums" dir="ltr">{formatToman(balanceData.totalAssets)}</span>
                 </div>
@@ -491,15 +493,15 @@ export default function FinancialReportsPage() {
             </Card>
 
             {/* Liabilities */}
-            <Card className="border-amber-100">
-              <CardHeader className="pb-3 border-b border-amber-50 bg-amber-50/30">
+            <Card className="rounded-[14px] border-[#E7ECF3] shadow-[0_3px_14px_rgba(20,40,80,.05)]">
+              <CardHeader className="pb-3 border-b border-amber-50 bg-amber-50/30 rounded-t-[14px]">
                 <CardTitle className="text-base flex items-center gap-2 text-amber-700">
                   <CreditCard className="w-4 h-4" /> بدهی‌ها
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 {balanceData.liabTree.length === 0 ? (
-                  <p className="text-sm text-slate-400 text-center py-8">حساب بدهی‌ای ثبت نشده</p>
+                  <p className="py-8 text-center text-sm text-[#98A2B3]">حساب بدهی‌ای ثبت نشده</p>
                 ) : (
                   <Table>
                     <TableBody>
@@ -509,7 +511,7 @@ export default function FinancialReportsPage() {
                     </TableBody>
                   </Table>
                 )}
-                <div className="border-t border-amber-100 bg-amber-50/30 p-3 flex justify-between items-center">
+                <div className="flex items-center justify-between border-t border-[#E7ECF3] bg-amber-50/30 p-3">
                   <span className="text-sm font-semibold text-amber-800">جمع کل</span>
                   <span className="text-base font-bold text-amber-700 tabular-nums" dir="ltr">{formatToman(balanceData.totalLiab)}</span>
                 </div>
@@ -517,15 +519,15 @@ export default function FinancialReportsPage() {
             </Card>
 
             {/* Equity */}
-            <Card className="border-blue-100">
-              <CardHeader className="pb-3 border-b border-blue-50 bg-blue-50/30">
+            <Card className="rounded-[14px] border-[#E7ECF3] shadow-[0_3px_14px_rgba(20,40,80,.05)]">
+              <CardHeader className="pb-3 border-b border-blue-50 bg-blue-50/30 rounded-t-[14px]">
                 <CardTitle className="text-base flex items-center gap-2 text-blue-700">
                   <Coins className="w-4 h-4" /> سرمایه
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 {balanceData.equityTree.length === 0 ? (
-                  <p className="text-sm text-slate-400 text-center py-8">حساب سرمایه‌ای ثبت نشده</p>
+                  <p className="py-8 text-center text-sm text-[#98A2B3]">حساب سرمایه‌ای ثبت نشده</p>
                 ) : (
                   <Table>
                     <TableBody>
@@ -535,7 +537,7 @@ export default function FinancialReportsPage() {
                     </TableBody>
                   </Table>
                 )}
-                <div className="border-t border-blue-100 bg-blue-50/30 p-3 flex justify-between items-center">
+                <div className="flex items-center justify-between border-t border-[#E7ECF3] bg-blue-50/30 p-3">
                   <span className="text-sm font-semibold text-blue-800">جمع کل</span>
                   <span className="text-base font-bold text-blue-700 tabular-nums" dir="ltr">{formatToman(balanceData.totalEquity)}</span>
                 </div>
@@ -572,15 +574,15 @@ export default function FinancialReportsPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             {/* Revenue breakdown */}
-            <Card className="border-emerald-100">
-              <CardHeader className="pb-3 border-b border-emerald-50">
+            <Card className="rounded-[14px] border-[#E7ECF3] shadow-[0_3px_14px_rgba(20,40,80,.05)]">
+              <CardHeader className="pb-3 border-b border-emerald-50 rounded-t-[14px]">
                 <CardTitle className="text-base flex items-center gap-2 text-emerald-700">
                   <ArrowUpCircle className="w-4 h-4" /> تفکیک درآمدها
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 {pnlData.revList.length === 0 ? (
-                  <p className="text-sm text-slate-400 text-center py-8">درآمدی ثبت نشده</p>
+                  <p className="py-8 text-center text-sm text-[#98A2B3]">درآمدی ثبت نشده</p>
                 ) : (
                   <Table>
                     <TableHeader>
@@ -594,8 +596,8 @@ export default function FinancialReportsPage() {
                         <TableRow key={r.code} className="hover:bg-emerald-50/30">
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              <span className="text-xs text-slate-400 font-mono" dir="ltr">{r.code}</span>
-                              <span className="text-sm text-slate-700">{r.name}</span>
+                              <span className="text-xs text-[#98A2B3] font-mono" dir="ltr">{r.code}</span>
+                              <span className="text-sm text-[#344054]">{r.name}</span>
                             </div>
                           </TableCell>
                           <TableCell className="text-left">
@@ -614,15 +616,15 @@ export default function FinancialReportsPage() {
             </Card>
 
             {/* Expense breakdown */}
-            <Card className="border-red-100">
-              <CardHeader className="pb-3 border-b border-red-50">
+            <Card className="rounded-[14px] border-[#E7ECF3] shadow-[0_3px_14px_rgba(20,40,80,.05)]">
+              <CardHeader className="pb-3 border-b border-red-50 rounded-t-[14px]">
                 <CardTitle className="text-base flex items-center gap-2 text-red-700">
                   <ArrowDownCircle className="w-4 h-4" /> تفکیک هزینه‌ها
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 {pnlData.expList.length === 0 ? (
-                  <p className="text-sm text-slate-400 text-center py-8">هزینه‌ای ثبت نشده</p>
+                  <p className="py-8 text-center text-sm text-[#98A2B3]">هزینه‌ای ثبت نشده</p>
                 ) : (
                   <Table>
                     <TableHeader>
@@ -636,8 +638,8 @@ export default function FinancialReportsPage() {
                         <TableRow key={e.code} className="hover:bg-red-50/30">
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              <span className="text-xs text-slate-400 font-mono" dir="ltr">{e.code}</span>
-                              <span className="text-sm text-slate-700">{e.name}</span>
+                              <span className="text-xs text-[#98A2B3] font-mono" dir="ltr">{e.code}</span>
+                              <span className="text-sm text-[#344054]">{e.name}</span>
                             </div>
                           </TableCell>
                           <TableCell className="text-left">
@@ -685,23 +687,23 @@ export default function FinancialReportsPage() {
 
           {/* current balances */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
-            <Card className="border-blue-100">
-              <CardHeader className="pb-3">
+            <Card className="rounded-[14px] border-[#E7ECF3] shadow-[0_3px_14px_rgba(20,40,80,.05)]">
+              <CardHeader className="pb-3 rounded-t-[14px]">
                 <CardTitle className="text-base flex items-center gap-2 text-blue-700">
                   <Banknote className="w-4 h-4" /> موجودی حساب‌های بانکی
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 {bankAccounts.length === 0 ? (
-                  <p className="text-sm text-slate-400 text-center py-6">حساب بانکی ثبت نشده</p>
+                  <p className="py-6 text-center text-sm text-[#98A2B3]">حساب بانکی ثبت نشده</p>
                 ) : (
                   <Table>
                     <TableBody>
                       {bankAccounts.map((b) => (
                         <TableRow key={b.id} className="hover:bg-blue-50/30">
                           <TableCell>
-                            <div className="text-sm font-medium text-slate-800">{b.name}</div>
-                            <div className="text-xs text-slate-400">{b.bankName} — {b.accountNo}</div>
+                            <div className="text-sm font-medium text-[#1D2939]">{b.name}</div>
+                            <div className="text-xs text-[#98A2B3]">{b.bankName} — {b.accountNo}</div>
                           </TableCell>
                           <TableCell className="text-left">
                             <span className="text-sm font-semibold text-blue-600 tabular-nums" dir="ltr">{formatToman(Number(b.balance))}</span>
@@ -718,23 +720,23 @@ export default function FinancialReportsPage() {
               </CardContent>
             </Card>
 
-            <Card className="border-amber-100">
-              <CardHeader className="pb-3">
+            <Card className="rounded-[14px] border-[#E7ECF3] shadow-[0_3px_14px_rgba(20,40,80,.05)]">
+              <CardHeader className="pb-3 rounded-t-[14px]">
                 <CardTitle className="text-base flex items-center gap-2 text-amber-700">
                   <Coins className="w-4 h-4" /> صندوق‌های نقدی
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 {cashFunds.length === 0 ? (
-                  <p className="text-sm text-slate-400 text-center py-6">صندوقی ثبت نشده</p>
+                  <p className="py-6 text-center text-sm text-[#98A2B3]">صندوقی ثبت نشده</p>
                 ) : (
                   <Table>
                     <TableBody>
                       {cashFunds.map((f) => (
                         <TableRow key={f.id} className="hover:bg-amber-50/30">
                           <TableCell>
-                            <div className="text-sm font-medium text-slate-800">{f.name}</div>
-                            {f.location && <div className="text-xs text-slate-400">{f.location}</div>}
+                            <div className="text-sm font-medium text-[#1D2939]">{f.name}</div>
+                            {f.location && <div className="text-xs text-[#98A2B3]">{f.location}</div>}
                           </TableCell>
                           <TableCell className="text-left">
                             <span className="text-sm font-semibold text-amber-600 tabular-nums" dir="ltr">{formatToman(Number(f.balance))}</span>
@@ -786,8 +788,8 @@ export default function FinancialReportsPage() {
 
           {/* status breakdown */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            <Card>
-              <CardHeader className="pb-3">
+            <Card className="rounded-[14px] border-[#E7ECF3] shadow-[0_3px_14px_rgba(20,40,80,.05)]">
+              <CardHeader className="pb-3 rounded-t-[14px]">
                 <CardTitle className="text-base">وضعیت فاکتورها</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
@@ -816,15 +818,15 @@ export default function FinancialReportsPage() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="pb-3">
+            <Card className="rounded-[14px] border-[#E7ECF3] shadow-[0_3px_14px_rgba(20,40,80,.05)]">
+              <CardHeader className="pb-3 rounded-t-[14px]">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Users className="w-4 h-4 text-blue-500" /> ۵ مشتری برتر
+                  <Users className="w-4 h-4 text-[#3155E7]" /> ۵ مشتری برتر
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 {salesData.topCustomers.length === 0 ? (
-                  <p className="text-sm text-slate-400 text-center py-8">داده‌ای موجود نیست</p>
+                  <p className="py-8 text-center text-sm text-[#98A2B3]">داده‌ای موجود نیست</p>
                 ) : (
                   <Table>
                     <TableHeader>
@@ -838,10 +840,10 @@ export default function FinancialReportsPage() {
                         <TableRow key={c.id} className="hover:bg-blue-50/30">
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center">
+                              <span className="w-6 h-6 rounded-full bg-[#3155E7]/10 text-[#3155E7] text-xs font-bold flex items-center justify-center">
                                 {(i + 1).toLocaleString('fa-IR')}
                               </span>
-                              <span className="text-sm text-slate-700">{c.name}</span>
+                              <span className="text-sm text-[#344054]">{c.name}</span>
                             </div>
                           </TableCell>
                           <TableCell className="text-left">
@@ -883,13 +885,13 @@ export default function FinancialReportsPage() {
             />
           </div>
 
-          <Card>
-            <CardHeader className="pb-3">
+          <Card className="rounded-[14px] border-[#E7ECF3] shadow-[0_3px_14px_rgba(20,40,80,.05)]">
+            <CardHeader className="pb-3 rounded-t-[14px]">
               <CardTitle className="text-base">مطالبات از مشتریان (فاکتورهای پرداخت‌نشده)</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               {rpData.receivables.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-8">مطالبات معوقی وجود ندارد ✓</p>
+                <p className="py-8 text-center text-sm text-[#98A2B3]">مطالبات معوقی وجود ندارد ✓</p>
               ) : (
                 <Table>
                   <TableHeader>
@@ -903,20 +905,20 @@ export default function FinancialReportsPage() {
                   </TableHeader>
                   <TableBody>
                     {rpData.receivables.map((r) => (
-                      <TableRow key={r.id} className="hover:bg-slate-50/60">
-                        <TableCell><span className="text-xs font-mono text-slate-500" dir="ltr">{r.number}</span></TableCell>
-                        <TableCell><span className="text-sm text-slate-700">{r.customerName}</span></TableCell>
+                      <TableRow key={r.id} className="hover:bg-[#F8FAFD]">
+                        <TableCell><span className="text-xs font-mono text-[#667085]" dir="ltr">{r.number}</span></TableCell>
+                        <TableCell><span className="text-sm text-[#344054]">{r.customerName}</span></TableCell>
                         <TableCell className="text-left">
                           <span className="text-sm font-semibold text-emerald-600 tabular-nums" dir="ltr">{formatToman(r.amount)}</span>
                         </TableCell>
                         <TableCell>
-                          {r.dueDate ? <span className="text-xs text-slate-500">{formatJalali(r.dueDate)}</span> : <span className="text-xs text-slate-300">—</span>}
+                          {r.dueDate ? <span className="text-xs text-[#667085]">{formatJalali(r.dueDate)}</span> : <span className="text-xs text-[#CBD5E1]">—</span>}
                         </TableCell>
                         <TableCell>
                           {r.daysOverdue > 0 ? (
                             <Badge className="bg-red-100 text-red-700 border-transparent text-xs">{r.daysOverdue.toLocaleString('fa-IR')} روز</Badge>
                           ) : (
-                            <Badge className="bg-slate-100 text-slate-500 border-transparent text-xs">سررسید نرسیده</Badge>
+                            <Badge className="border-transparent bg-[#F1F5F9] text-xs text-[#667085]">سررسید نرسیده</Badge>
                           )}
                         </TableCell>
                       </TableRow>
@@ -927,13 +929,13 @@ export default function FinancialReportsPage() {
             </CardContent>
           </Card>
 
-          <Card className="mt-5">
-            <CardHeader className="pb-3">
+          <Card className="mt-5 rounded-[14px] border-[#E7ECF3] shadow-[0_3px_14px_rgba(20,40,80,.05)]">
+            <CardHeader className="pb-3 rounded-t-[14px]">
               <CardTitle className="text-base">بدهی‌ها (پرداخت‌های انجام‌نشده)</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               {rpData.payables.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-8">بدهی معوقی وجود ندارد ✓</p>
+                <p className="py-8 text-center text-sm text-[#98A2B3]">بدهی معوقی وجود ندارد ✓</p>
               ) : (
                 <Table>
                   <TableHeader>
@@ -945,9 +947,9 @@ export default function FinancialReportsPage() {
                   </TableHeader>
                   <TableBody>
                     {rpData.payables.map((p) => (
-                      <TableRow key={p.id} className="hover:bg-slate-50/60">
-                        <TableCell><span className="text-xs font-mono text-slate-500" dir="ltr">{p.number}</span></TableCell>
-                        <TableCell><span className="text-sm text-slate-700">{p.customerName}</span></TableCell>
+                      <TableRow key={p.id} className="hover:bg-[#F8FAFD]">
+                        <TableCell><span className="text-xs font-mono text-[#667085]" dir="ltr">{p.number}</span></TableCell>
+                        <TableCell><span className="text-sm text-[#344054]">{p.customerName}</span></TableCell>
                         <TableCell className="text-left">
                           <span className="text-sm font-semibold text-red-600 tabular-nums" dir="ltr">{formatToman(p.amount)}</span>
                         </TableCell>
