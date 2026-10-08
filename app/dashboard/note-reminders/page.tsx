@@ -187,7 +187,7 @@ export default function NoteRemindersPage() {
                       {isDue && <span className="nb-reminder-due-badge">سررسیده</span>}
                     </div>
                     <p className="nb-reminder-card-excerpt">
-                      {(note.content || '').replace(/\n/g, ' ').slice(0, 120)}
+                      {(note.content || '').replace(/<[^>]*>/g, '').replace(/\n/g, ' ').slice(0, 120)}
                     </p>
                     <div className="nb-reminder-card-meta">
                       <span className={`nb-reminder-time ${isDue ? 'is-due' : ''}`}>

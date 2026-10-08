@@ -63,12 +63,31 @@ export default function GraphicWorksAccessPage() {
 
   const grantedCount = staff.filter((s) => s.graphicWorkAccess?.granted).length;
 
+  const GRAPHIC_WORKS_PAGE = '/dashboard/graphic-works';
+
+  const syncAssignedPages = async (profileId: string, add: boolean) => {
+    const targetProfile = staff.find((s) => s.id === profileId);
+    if (!targetProfile) return;
+    const currentPages = targetProfile.assignedPages || [];
+    const hasPage = currentPages.includes(GRAPHIC_WORKS_PAGE);
+    if (add && !hasPage) {
+      await updateData('profiles', { id: profileId }, {
+        assignedPages: [...currentPages, GRAPHIC_WORKS_PAGE],
+      });
+    } else if (!add && hasPage) {
+      await updateData('profiles', { id: profileId }, {
+        assignedPages: currentPages.filter((p) => p !== GRAPHIC_WORKS_PAGE),
+      });
+    }
+  };
+
   const handleGrant = async (profileId: string) => {
     setTogglingId(profileId);
     try {
       const existing = staff.find((s) => s.id === profileId)?.graphicWorkAccess;
       if (existing) {
         await updateData('graphic_work_access', { id: existing.id }, { granted: !existing.granted });
+        await syncAssignedPages(profileId, !existing.granted);
         toast.success(existing.granted ? 'دسترسی برداشته شد' : 'دسترسی اعطا شد');
       } else {
         await createData('graphic_work_access', {
@@ -76,6 +95,7 @@ export default function GraphicWorksAccessPage() {
           granted: true,
           grantedBy: profile?.id || '',
         });
+        await syncAssignedPages(profileId, true);
         toast.success('دسترسی اعطا شد');
       }
       load();
@@ -91,6 +111,7 @@ export default function GraphicWorksAccessPage() {
     setTogglingId(profileId);
     try {
       await deleteData('graphic_work_access', { id: existing.id });
+      await syncAssignedPages(profileId, false);
       toast.success('دسترسی حذف شد');
       load();
     } catch (e: any) {
@@ -115,6 +136,7 @@ export default function GraphicWorksAccessPage() {
           granted: true,
           grantedBy: profile?.id || '',
         });
+        await syncAssignedPages(selectedProfileId, true);
         toast.success('دسترسی اعطا شد');
       }
       setAddDialogOpen(false);

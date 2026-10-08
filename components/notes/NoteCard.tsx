@@ -45,7 +45,7 @@ type Props = {
 export default function NoteCard({ note, view, onView, onEdit, onPin, onArchive, onTrash, onColorChange }: Props) {
   const colorMeta = getColorMeta(note.color);
   const [showColors, setShowColors] = useState(false);
-  const excerpt = (note.content || 'بدون محتوا').replace(/\n/g, ' ').slice(0, 160);
+  const excerpt = (note.content || 'بدون محتوا').replace(/<[^>]*>/g, '').replace(/\n/g, ' ').slice(0, 160);
 
   const isReminderDue = note.reminderEnabled && note.reminderAt && !note.reminderDismissed && new Date(note.reminderAt) <= new Date();
   const isReminderUpcoming = note.reminderEnabled && note.reminderAt && !note.reminderDismissed && new Date(note.reminderAt) > new Date();

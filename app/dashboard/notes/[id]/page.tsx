@@ -164,9 +164,7 @@ export default function NoteViewPage() {
 
           <div className="nb-view-content">
             {note.content ? (
-              note.content.split('\n').map((line, i) => (
-                <p key={i}>{line || '\u00A0'}</p>
-              ))
+              <div dangerouslySetInnerHTML={{ __html: note.content }} />
             ) : (
               <p className="text-muted-foreground">بدون محتوا</p>
             )}
