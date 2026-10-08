@@ -4,8 +4,6 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { fetchData, deleteData, updateData, createData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
-import { EmptyState } from '@/components/dashboard/empty-state';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -18,7 +16,7 @@ import {
 import {
   FileText, Plus, Search, Trash2, Calendar, ChevronLeft, ChevronRight,
   CheckCircle, XCircle, Clock, Wallet, TrendingDown, Layers, Send,
-  RotateCcw, FileCheck, Eye, AlertTriangle,
+  RotateCcw, FileCheck, Eye, AlertTriangle, X, Loader2,
 } from 'lucide-react';
 import { formatJalali, formatToman, relativeTime } from '@/lib/format';
 import { fullName } from '@/lib/constants';
@@ -154,12 +152,29 @@ export default function PettyCashMergePage() {
   const currentPage = Math.min(page, totalPages);
   const pageItems = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  const stats = useMemo(() => ({
-    total: statements.length,
-    pending: statements.filter((s) => s.status === 'pending_approval').length,
-    approved: statements.filter((s) => s.status === 'approved').length,
-    totalAmount: statements.filter((s) => s.status !== 'cancelled').reduce((sum, s) => sum + Number(s.totalAmount || 0), 0),
-  }), [statements]);
+  const stats = useMemo(() => [
+    {
+      label: 'کل صورت ادغام', value: statements.length, icon: Layers,
+      gradient: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)',
+      glow: 'rgba(37,99,235,0.25)',
+    },
+    {
+      label: 'در انتظار تأیید', value: statements.filter((s) => s.status === 'pending_approval').length, icon: Clock,
+      gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+      glow: 'rgba(245,158,11,0.25)',
+    },
+    {
+      label: 'تأیید شده', value: statements.filter((s) => s.status === 'approved').length, icon: CheckCircle,
+      gradient: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)',
+      glow: 'rgba(34,197,94,0.25)',
+    },
+    {
+      label: 'مجموع اسناد (تومان)', value: statements.filter((s) => s.status !== 'cancelled').reduce((sum, s) => sum + Number(s.totalAmount || 0), 0), icon: TrendingDown,
+      formatToman: true,
+      gradient: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+      glow: 'rgba(239,68,68,0.25)',
+    },
+  ], [statements]);
 
   const handleDelete = async (id: string) => {
     if (!confirm('حذف این صورت ادغام؟ اسناد زیرمجموعه به وضعیت قابل ادغام برمی‌گردند.')) return;
@@ -314,81 +329,112 @@ export default function PettyCashMergePage() {
     );
   };
 
-  return (
-    <div className="w-full" dir="rtl">
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <span className="h-10 w-[5px] rounded-full bg-[#FF7A00]" />
-            <h1 className="text-[28px] font-bold text-[#101828]">صورت ادغام اسناد</h1>
-          </div>
-          <div className="mt-2 text-xs font-medium text-[#667085]">داشبورد <span className="mx-1.5 text-[#CBD5E1]">←</span> مالی <span className="mx-1.5 text-[#CBD5E1]">←</span> صورت ادغام اسناد</div>
+  if (loading) {
+    return (
+      <div className="nb-page" dir="rtl">
+        <div className="nb-empty">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
+          <p>در حال بارگذاری...</p>
         </div>
-        <Link href="/dashboard/petty-cash-merge/new">
-          <Button className="h-[42px] rounded-[10px] bg-[#3155E7] px-[18px] text-sm font-semibold text-white shadow-sm hover:bg-[#2445C7]">
-            <Plus className="h-4 w-4" /> ایجاد صورت ادغام اسناد
-          </Button>
-        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="nb-page" dir="rtl">
+      <header className="nb-hero">
+        <div className="nb-hero-left">
+          <div>
+            <div className="nb-hero-title-row">
+              <span className="nb-hero-marker" style={{ background: 'linear-gradient(180deg,#FF7A00,#E65100)', boxShadow: '0 0 12px rgba(255,122,0,.25)' }} />
+              <h1>صورت ادغام اسناد</h1>
+            </div>
+            <p>ادغام و تسویه اسناد تنخواه</p>
+          </div>
+        </div>
+        <div className="nb-hero-right">
+          <Link href="/dashboard/petty-cash-merge/new" className="nb-new-btn">
+            <Plus className="h-[18px] w-[18px]" />
+            صورت ادغام جدید
+          </Link>
+        </div>
       </header>
 
-      {/* Stats */}
-      <div className="mb-5 grid grid-cols-2 gap-4 xl:grid-cols-4">
-        <div className="flex min-h-[120px] flex-col justify-between rounded-[14px] border border-[#E7ECF3] bg-white p-5 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-          <span className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#3155E7]/10 text-[#3155E7]"><Layers className="h-5 w-5" strokeWidth={2.5} /></span>
-          <div><div className="text-[26px] font-bold leading-none text-[#101828]">{stats.total.toLocaleString('fa-IR')}</div><div className="mt-1.5 text-[13px] font-bold text-[#344054]">کل صورت ادغام</div></div>
+      <section className="nb-stats-grid-v2">
+        {stats.map((stat) => (
+          <div className="nb-stat-card-v2" key={stat.label}>
+            <div className="nb-stat-v2-icon" style={{ background: stat.gradient }}>
+              <stat.icon className="h-[22px] w-[22px] text-white" />
+            </div>
+            <div className="nb-stat-v2-body">
+              <strong>{stat.formatToman ? formatToman(stat.value) : stat.value.toLocaleString('fa-IR')}</strong>
+              <span>{stat.label}</span>
+            </div>
+            <div className="nb-stat-v2-spark" style={{ background: stat.gradient }} />
+          </div>
+        ))}
+      </section>
+
+      <div className="nb-toolbar">
+        <div className="nb-toolbar-left">
+          <h2>همه صورت‌های ادغام</h2>
+          <span className="nb-count-badge">{filtered.length.toLocaleString('fa-IR')} مورد</span>
         </div>
-        <div className="flex min-h-[120px] flex-col justify-between rounded-[14px] border border-[#E7ECF3] bg-white p-5 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-          <span className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#f59e0b]/10 text-[#f59e0b]"><Clock className="h-5 w-5" strokeWidth={2.5} /></span>
-          <div><div className="text-[26px] font-bold leading-none text-[#101828]">{stats.pending.toLocaleString('fa-IR')}</div><div className="mt-1.5 text-[13px] font-bold text-[#344054]">در انتظار تأیید</div></div>
-        </div>
-        <div className="flex min-h-[120px] flex-col justify-between rounded-[14px] border border-[#E7ECF3] bg-white p-5 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-          <span className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#10b981]/10 text-[#10b981]"><CheckCircle className="h-5 w-5" strokeWidth={2.5} /></span>
-          <div><div className="text-[26px] font-bold leading-none text-[#101828]">{stats.approved.toLocaleString('fa-IR')}</div><div className="mt-1.5 text-[13px] font-bold text-[#344054]">تأیید شده</div></div>
-        </div>
-        <div className="flex min-h-[120px] flex-col justify-between rounded-[14px] border border-[#E7ECF3] bg-white p-5 shadow-[0_3px_14px_rgba(20,40,80,.05)]">
-          <span className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#ef4444]/10 text-[#ef4444]"><TrendingDown className="h-5 w-5" strokeWidth={2.5} /></span>
-          <div><div className="text-[26px] font-bold leading-none text-[#101828]">{formatToman(stats.totalAmount)}</div><div className="mt-1.5 text-[13px] font-bold text-[#344054]">مجموع اسناد (تومان)</div></div>
+        <div className="nb-toolbar-right">
+          <div className="nb-search-box">
+            <Search className="h-4 w-4" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="جستجو بر اساس شماره یا تنخواه‌دار..."
+            />
+            {search && <button onClick={() => setSearch('')}><X className="h-3.5 w-3.5" /></button>}
+          </div>
+          <Select value={filterCustodian} onValueChange={setFilterCustodian}>
+            <SelectTrigger className="nb-select-filter h-10 w-[160px]">
+              <SelectValue placeholder="تنخواه‌دار" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">همه تنخواه‌دارها</SelectItem>
+              {custodians.map((c) => <SelectItem key={c.id} value={c.id}>{custodianName(c)}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="nb-select-filter h-10 w-[150px]">
+              <SelectValue placeholder="وضعیت" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">همه وضعیت‌ها</SelectItem>
+              {Object.entries(MERGE_STATUS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
-      {/* Toolbar */}
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative">
-          <Search className="absolute right-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#98A2B3]" />
-          <Input placeholder="جستجو بر اساس شماره یا تنخواه‌دار..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-[42px] w-full rounded-[10px] border-[#DCE3EE] bg-white pr-9 text-sm sm:w-[300px]" />
+      {statements.length === 0 ? (
+        <div className="nb-empty">
+          <div className="sb-empty-icon"><Layers className="h-12 w-12 text-muted-foreground/30" /></div>
+          <h3>صورت ادغامی یافت نشد</h3>
+          <p>برای شروع، اولین صورت ادغام اسناد را ایجاد کنید</p>
+          <Link href="/dashboard/petty-cash-merge/new" className="nb-empty-new-btn">
+            <Plus className="h-4 w-4" /> افزودن صورت ادغام
+          </Link>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <select value={filterCustodian} onChange={(e) => setFilterCustodian(e.target.value)} className="h-[42px] rounded-[10px] border border-[#DCE3EE] bg-white px-3 text-sm text-[#344054]">
-            <option value="all">همه تنخواه‌دارها</option>
-            {custodians.map((c) => <option key={c.id} value={c.id}>{custodianName(c)}</option>)}
-          </select>
-          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="h-[42px] rounded-[10px] border border-[#DCE3EE] bg-white px-3 text-sm text-[#344054]">
-            <option value="all">همه وضعیت‌ها</option>
-            {Object.entries(MERGE_STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </select>
-        </div>
-      </div>
-
-      {/* List */}
-      {loading ? (
-        <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-[3px] border-[#2563EB] border-t-transparent" /></div>
-      ) : statements.length === 0 ? (
-        <Card><EmptyState icon={<Layers className="h-8 w-8" />} title="صورت ادغامی یافت نشد" description="برای شروع، اولین صورت ادغام اسناد را ایجاد کنید" action={<Link href="/dashboard/petty-cash-merge/new"><Button><Plus className="h-4 w-4" /> افزودن صورت ادغام</Button></Link>} /></Card>
       ) : (
-        <Card><CardContent className="p-0">
-          <div className="divide-y divide-[#F1F5F9]">
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+          <div className="divide-y divide-slate-100 dark:divide-slate-700">
             {pageItems.map((s) => {
               const stColor = MERGE_STATUS_COLOR[s.status] || '#64748b';
               return (
-                <div key={s.id} className="flex cursor-pointer items-center gap-3 p-4 transition-colors hover:bg-[#F8FAFD]" onClick={() => setDetailItem(s)}>
+                <div key={s.id} className="flex cursor-pointer items-center gap-3 p-4 transition-colors hover:bg-slate-50 dark:hover:bg-slate-700/50" onClick={() => setDetailItem(s)}>
                   <div className="h-10 w-2 rounded-full" style={{ backgroundColor: stColor }} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <div className="truncate text-sm font-bold text-[#1D2939]">{s.number}</div>
+                      <div className="truncate text-sm font-bold text-slate-800 dark:text-slate-100">{s.number}</div>
                       <Badge variant="outline" className="shrink-0 text-[10px]" style={{ color: stColor, borderColor: `${stColor}35`, backgroundColor: `${stColor}10` }}>{MERGE_STATUS[s.status] || s.status}</Badge>
                       {s.status === 'cancelled' && <Badge variant="outline" className="shrink-0 border-slate-300 text-[10px] text-slate-500">لغو شده</Badge>}
                     </div>
-                    <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-[#98A2B3]">
+                    <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
                       <span className="flex items-center gap-1"><Wallet className="h-3 w-3" />{custodianName(s.custodian)}</span>
                       <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{formatJalali(s.date)}</span>
                       {fiscalYearName(s.fiscalYearId) && <span>{fiscalYearName(s.fiscalYearId)}</span>}
@@ -397,27 +443,31 @@ export default function PettyCashMergePage() {
                     </div>
                   </div>
                   <div className="text-left">
-                    <div className="text-sm font-bold text-[#3155E7]">{formatToman(Number(s.totalAmount))}</div>
-                    <div className="text-[10px] text-[#98A2B3]">جمع اسناد</div>
+                    <div className="text-sm font-bold text-slate-800 dark:text-slate-100">{formatToman(Number(s.totalAmount))}</div>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400">جمع اسناد</div>
                   </div>
-                  <button onClick={(e) => { e.stopPropagation(); setDetailItem(s); }} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#98A2B3] transition-colors hover:bg-[#EFF4FF] hover:text-[#2563EB]"><Eye className="h-4 w-4" /></button>
-                  {isSuperAdmin && (s.status === 'draft' || s.status === 'rejected' || s.status === 'returned') && <button onClick={(e) => { e.stopPropagation(); handleDelete(s.id); }} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#98A2B3] transition-colors hover:bg-rose-50 hover:text-rose-500"><Trash2 className="h-4 w-4" /></button>}
+                  <button onClick={(e) => { e.stopPropagation(); setDetailItem(s); }} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-500 dark:text-slate-400 transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-blue-600"><Eye className="h-4 w-4" /></button>
+                  {isSuperAdmin && (s.status === 'draft' || s.status === 'rejected' || s.status === 'returned') && <button onClick={(e) => { e.stopPropagation(); handleDelete(s.id); }} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-500 dark:text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-500"><Trash2 className="h-4 w-4" /></button>}
                 </div>
               );
             })}
-            {pageItems.length === 0 && <div className="py-12 text-center text-sm text-[#CBD5E1]">نتیجه‌ای یافت نشد</div>}
+            {pageItems.length === 0 && <div className="py-12 text-center text-sm text-slate-300 dark:text-slate-600">نتیجه‌ای یافت نشد</div>}
           </div>
           {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-[#F1F5F9] px-4 py-3">
-              <span className="text-xs text-[#667085]">صفحه {currentPage.toLocaleString('fa-IR')} از {totalPages.toLocaleString('fa-IR')}</span>
+            <div className="flex items-center justify-between border-t border-slate-200 dark:border-slate-700 px-4 py-3">
+              <span className="text-xs text-slate-600 dark:text-slate-300">صفحه {currentPage.toLocaleString('fa-IR')} از {totalPages.toLocaleString('fa-IR')}</span>
               <div className="flex items-center gap-2">
-                <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE3EE] text-[#667085] transition-colors hover:bg-[#F1F5F9] disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button>
-                <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE3EE] text-[#667085] transition-colors hover:bg-[#F1F5F9] disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button>
+                <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 transition-colors hover:bg-slate-50 dark:hover:bg-slate-700/50 disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button>
+                <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 transition-colors hover:bg-slate-50 dark:hover:bg-slate-700/50 disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button>
               </div>
             </div>
           )}
-        </CardContent></Card>
+        </div>
       )}
+
+      <Link href="/dashboard/petty-cash-merge/new" className="nb-fab" aria-label="صورت ادغام جدید">
+        <Plus className="h-6 w-6" />
+      </Link>
 
       {/* Detail Dialog */}
       <Dialog open={!!detailItem} onOpenChange={(o) => !o && setDetailItem(null)}>

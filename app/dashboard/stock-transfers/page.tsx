@@ -3,18 +3,14 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { fetchData, createData, updateData } from '@/lib/data-client';
-import { PageHeader } from '@/components/dashboard/page-header';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   ArrowRightLeft, Plus, Truck, CheckCircle2, XCircle, Clock, Package,
-  Warehouse, MapPin, Calendar, PackageCheck, AlertCircle,
+  Loader2, Search, X,
 } from 'lucide-react';
 import Link from 'next/link';
 import { formatToman, formatJalali, relativeTime } from '@/lib/format';
@@ -37,27 +33,11 @@ interface Transfer {
   createdAt: string;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
-  pending: {
-    label: 'در انتظار',
-    className: 'bg-amber-100 text-amber-700 border-amber-200',
-    icon: <Clock className="w-3 h-3" />,
-  },
-  in_transit: {
-    label: 'در حال انتقال',
-    className: 'bg-blue-100 text-blue-700 border-blue-200',
-    icon: <Truck className="w-3 h-3" />,
-  },
-  received: {
-    label: 'دریافت شد',
-    className: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-    icon: <CheckCircle2 className="w-3 h-3" />,
-  },
-  cancelled: {
-    label: 'لغو شده',
-    className: 'bg-slate-200 text-slate-600 border-slate-300',
-    icon: <XCircle className="w-3 h-3" />,
-  },
+const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+  pending: { label: 'در انتظار', color: '#f59e0b', icon: <Clock className="w-3 h-3" /> },
+  in_transit: { label: 'در حال انتقال', color: '#2563EB', icon: <Truck className="w-3 h-3" /> },
+  received: { label: 'دریافت شد', color: '#22C55E', icon: <CheckCircle2 className="w-3 h-3" /> },
+  cancelled: { label: 'لغو شده', color: '#94a3b8', icon: <XCircle className="w-3 h-3" /> },
 };
 
 export default function StockTransfersPage() {
@@ -68,6 +48,8 @@ export default function StockTransfersPage() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [search, setSearch] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
   const [form, setForm] = useState({
     productId: '',
     fromWarehouseId: '',
@@ -102,7 +84,6 @@ export default function StockTransfersPage() {
   const whName = (id: string) => warehouses.find((w) => w.id === id)?.name || '—';
   const prodName = (id: string) => products.find((p) => p.id === id)?.name || 'محصول حذف شده';
 
-  // ---- stats ----
   const stats = {
     total: transfers.length,
     pending: transfers.filter((t) => t.status === 'pending').length,
@@ -111,7 +92,13 @@ export default function StockTransfersPage() {
     cancelled: transfers.filter((t) => t.status === 'cancelled').length,
   };
 
-  // ---- create ----
+  const filtered = transfers.filter((t) => {
+    const q = search.trim().toLocaleLowerCase();
+    const matchesQuery = !q || t.number?.toLocaleLowerCase().includes(q) || prodName(t.productId).toLocaleLowerCase().includes(q);
+    const matchesStatus = filterStatus === 'all' || t.status === filterStatus;
+    return matchesQuery && matchesStatus;
+  });
+
   const handleCreate = async () => {
     if (!form.productId) { toast.error('محصول را انتخاب کنید'); return; }
     if (!form.fromWarehouseId) { toast.error('انبار مبدأ را انتخاب کنید'); return; }
@@ -144,7 +131,6 @@ export default function StockTransfersPage() {
     }
   };
 
-  // ---- advance to in_transit ----
   const handleShip = async (t: Transfer) => {
     if (!profile?.id) return;
     try {
@@ -158,7 +144,6 @@ export default function StockTransfersPage() {
     } catch (e: any) { toast.error(e.message); }
   };
 
-  // ---- advance to received ----
   const handleReceive = async (t: Transfer) => {
     if (!profile?.id) return;
     try {
@@ -172,7 +157,6 @@ export default function StockTransfersPage() {
     } catch (e: any) { toast.error(e.message); }
   };
 
-  // ---- cancel ----
   const handleCancel = async (t: Transfer) => {
     if (!confirm('این انتقال لغو شود؟')) return;
     try {
@@ -184,161 +168,175 @@ export default function StockTransfersPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full" />
+      <div className="nb-page" dir="rtl">
+        <div className="nb-empty">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
+          <p>در حال بارگذاری انتقال‌ها...</p>
+        </div>
       </div>
     );
   }
 
+  const statCards = [
+    { label: 'کل انتقال‌ها', value: stats.total, icon: ArrowRightLeft, gradient: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)', glow: 'rgba(37,99,235,0.25)' },
+    { label: 'در انتظار', value: stats.pending, icon: Clock, gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', glow: 'rgba(245,158,11,0.25)' },
+    { label: 'در حال انتقال', value: stats.inTransit, icon: Truck, gradient: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', glow: 'rgba(99,102,241,0.25)' },
+    { label: 'دریافت شده', value: stats.received, icon: CheckCircle2, gradient: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)', glow: 'rgba(34,197,94,0.25)' },
+    { label: 'لغو شده', value: stats.cancelled, icon: XCircle, gradient: 'linear-gradient(135deg, #94a3b8 0%, #64748b 100%)', glow: 'rgba(148,163,184,0.25)' },
+  ];
+
   return (
-    <div>
-      <PageHeader
-        title="انتقال بین انبارها"
-        description="مدیریت انتقال کالا بین انبارهای سازمان"
-        action={
-          <Link href="/dashboard/stock-transfers/new">
-            <Button><Plus className="w-4 h-4" /> انتقال جدید</Button>
+    <div className="nb-page" dir="rtl">
+      <header className="nb-hero">
+        <div className="nb-hero-left">
+          <div>
+            <div className="nb-hero-title-row">
+              <span className="nb-hero-marker" style={{ background: 'linear-gradient(180deg,#2563EB,#3B82F6)', boxShadow: '0 0 12px rgba(37,99,235,.25)' }} />
+              <h1>انتقال بین انبارها</h1>
+            </div>
+            <p>مدیریت انتقال کالا بین انبارهای سازمان</p>
+          </div>
+        </div>
+        <div className="nb-hero-right">
+          <Link href="/dashboard/stock-transfers/new" className="nb-new-btn">
+            <Plus className="h-[18px] w-[18px]" />
+            انتقال جدید
           </Link>
-        }
-      />
+        </div>
+      </header>
 
-      {/* stat cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-        {[
-          { label: 'کل انتقال‌ها', value: stats.total, icon: <ArrowRightLeft className="w-4 h-4" />, color: 'text-slate-600', bg: 'bg-slate-100' },
-          { label: 'در انتظار', value: stats.pending, icon: <Clock className="w-4 h-4" />, color: 'text-amber-600', bg: 'bg-amber-50' },
-          { label: 'در حال انتقال', value: stats.inTransit, icon: <Truck className="w-4 h-4" />, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { label: 'دریافت شده', value: stats.received, icon: <CheckCircle2 className="w-4 h-4" />, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-          { label: 'لغو شده', value: stats.cancelled, icon: <XCircle className="w-4 h-4" />, color: 'text-slate-500', bg: 'bg-slate-100' },
-        ].map((s) => (
-          <Card key={s.label} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-1.5">
-                <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center', s.bg, s.color)}>
-                  {s.icon}
-                </div>
-                <span className="text-xs font-medium text-slate-500">{s.label}</span>
-              </div>
-              <p className={cn('text-2xl font-bold tabular-nums', s.color)}>{s.value.toLocaleString('fa-IR')}</p>
-            </CardContent>
-          </Card>
+      <section className="nb-stats-grid-v2">
+        {statCards.map((stat) => (
+          <div className="nb-stat-card-v2" key={stat.label} style={{ '--stat-glow': stat.glow } as React.CSSProperties}>
+            <div className="nb-stat-v2-icon" style={{ background: stat.gradient }}>
+              <stat.icon className="h-[22px] w-[22px] text-white" strokeWidth={2.5} />
+            </div>
+            <div className="nb-stat-v2-body">
+              <strong>{stat.value.toLocaleString('fa-IR')}</strong>
+              <span>{stat.label}</span>
+            </div>
+            <div className="nb-stat-v2-spark" style={{ background: stat.gradient }} />
+          </div>
         ))}
-      </div>
+      </section>
 
-      {/* transfers table */}
-      <Card>
-        <CardContent className="p-0">
-          {transfers.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-3">
-                <ArrowRightLeft className="w-8 h-8 text-slate-400" />
+      {transfers.length === 0 ? (
+        <div className="nb-empty">
+          <div className="sb-empty-icon"><ArrowRightLeft className="h-12 w-12 text-muted-foreground/30" /></div>
+          <h3>انتقالی ثبت نشده</h3>
+          <p>برای شروع، اولین انتقال بین انباری را ایجاد کنید</p>
+          <Link href="/dashboard/stock-transfers/new" className="nb-empty-new-btn"><Plus className="h-4 w-4" /> انتقال جدید</Link>
+        </div>
+      ) : (
+        <>
+          <div className="nb-toolbar">
+            <div className="nb-toolbar-left">
+              <h2>همه انتقال‌ها</h2>
+              <span className="nb-count-badge">{filtered.length.toLocaleString('fa-IR')} مورد</span>
+            </div>
+            <div className="nb-toolbar-right">
+              <div className="nb-search-box">
+                <Search className="h-4 w-4" />
+                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="جستجوی انتقال..." />
+                {search && <button onClick={() => setSearch('')}><X className="h-3.5 w-3.5" /></button>}
               </div>
-              <p className="text-slate-600 font-medium">انتقالی ثبت نشده</p>
-              <p className="text-sm text-slate-400 mt-1">برای شروع، اولین انتقال بین انباری را ایجاد کنید</p>
-              <Link href="/dashboard/stock-transfers/new"><Button className="mt-4" size="sm">
-                <Plus className="w-4 h-4" /> انتقال جدید
-              </Button></Link>
+              <select className="nb-select-filter" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+                <option value="all">همه وضعیت‌ها</option>
+                {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+              </select>
             </div>
-          ) : (
+          </div>
+
+          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
             <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="text-xs">شماره</TableHead>
-                  <TableHead className="text-xs">محصول</TableHead>
-                  <TableHead className="text-xs">مسیر</TableHead>
-                  <TableHead className="text-xs text-center">تعداد</TableHead>
-                  <TableHead className="text-xs">وضعیت</TableHead>
-                  <TableHead className="text-xs">تاریخ</TableHead>
-                  <TableHead className="text-xs text-left">عملیات</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {transfers.map((t) => {
-                  const cfg = STATUS_CONFIG[t.status] || STATUS_CONFIG.pending;
-                  return (
-                    <TableRow key={t.id} className="group hover:bg-slate-50/60 transition-colors">
-                      <TableCell>
-                        <span className="text-xs font-mono text-slate-500" dir="ltr">{t.number}</span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                            <Package className="w-4 h-4" />
+              <table className="w-full text-sm min-w-[700px]">
+                <thead className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/50">
+                  <tr>
+                    <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">شماره</th>
+                    <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">محصول</th>
+                    <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">مسیر</th>
+                    <th className="p-3 text-center font-medium text-slate-500 dark:text-slate-400">تعداد</th>
+                    <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">وضعیت</th>
+                    <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">تاریخ</th>
+                    <th className="p-3 text-left font-medium text-slate-500 dark:text-slate-400">عملیات</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                  {filtered.map((t) => {
+                    const cfg = STATUS_CONFIG[t.status] || STATUS_CONFIG.pending;
+                    return (
+                      <tr key={t.id} className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                        <td className="p-3">
+                          <span className="text-xs font-mono text-slate-500 dark:text-slate-400" dir="ltr">{t.number}</span>
+                        </td>
+                        <td className="p-3">
+                          <div className="flex items-center gap-2">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400">
+                              <Package className="h-4 w-4" />
+                            </div>
+                            <span className="max-w-[160px] truncate text-sm font-medium text-slate-700 dark:text-slate-200">{prodName(t.productId)}</span>
                           </div>
-                          <span className="text-sm font-medium text-slate-700 truncate max-w-[160px]">{prodName(t.productId)}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1.5 text-xs">
-                          <span className="text-slate-600 font-medium">{whName(t.fromWarehouseId)}</span>
-                          <ArrowRightLeft className="w-3.5 h-3.5 text-slate-300" />
-                          <span className="text-slate-600 font-medium">{whName(t.toWarehouseId)}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <span className="text-sm font-bold text-slate-800 tabular-nums">{t.qty.toLocaleString('fa-IR')}</span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={cn('border text-xs gap-1', cfg.className)}>
-                          {cfg.icon}
-                          {cfg.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-xs text-slate-500">{formatJalali(t.createdAt)}</div>
-                        <div className="text-[11px] text-slate-400">{relativeTime(t.createdAt)}</div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1.5 justify-end">
-                          {t.status === 'pending' && (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-8 text-xs border-blue-200 text-blue-600 hover:bg-blue-50"
-                                onClick={() => handleShip(t)}
-                              >
-                                <Truck className="w-3.5 h-3.5" /> ارسال
+                        </td>
+                        <td className="p-3">
+                          <div className="flex items-center gap-1.5 text-xs">
+                            <span className="font-medium text-slate-600 dark:text-slate-300">{whName(t.fromWarehouseId)}</span>
+                            <ArrowRightLeft className="h-3.5 w-3.5 text-slate-300 dark:text-slate-600" />
+                            <span className="font-medium text-slate-600 dark:text-slate-300">{whName(t.toWarehouseId)}</span>
+                          </div>
+                        </td>
+                        <td className="p-3 text-center">
+                          <span className="text-sm font-bold tabular-nums text-slate-800 dark:text-slate-100">{t.qty.toLocaleString('fa-IR')}</span>
+                        </td>
+                        <td className="p-3">
+                          <Badge className="border text-xs" style={{ backgroundColor: cfg.color + '15', color: cfg.color, borderColor: cfg.color + '35' }}>
+                            {cfg.icon}
+                            {cfg.label}
+                          </Badge>
+                        </td>
+                        <td className="p-3">
+                          <div className="text-xs text-slate-500 dark:text-slate-400">{formatJalali(t.createdAt)}</div>
+                          <div className="text-[11px] text-slate-400 dark:text-slate-500">{relativeTime(t.createdAt)}</div>
+                        </td>
+                        <td className="p-3">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {t.status === 'pending' && (
+                              <>
+                                <Button size="sm" variant="outline" className="h-8 text-xs border-blue-200 text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:hover:bg-blue-900/20" onClick={() => handleShip(t)}>
+                                  <Truck className="w-3.5 h-3.5" /> ارسال
+                                </Button>
+                                <Button size="sm" variant="ghost" className="h-8 text-xs text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700" onClick={() => handleCancel(t)}>
+                                  <XCircle className="w-3.5 h-3.5" /> لغو
+                                </Button>
+                              </>
+                            )}
+                            {t.status === 'in_transit' && (
+                              <Button size="sm" className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700" onClick={() => handleReceive(t)}>
+                                <CheckCircle2 className="w-3.5 h-3.5" /> دریافت
                               </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 text-xs text-slate-500 hover:bg-slate-100"
-                                onClick={() => handleCancel(t)}
-                              >
-                                <XCircle className="w-3.5 h-3.5" /> لغو
-                              </Button>
-                            </>
-                          )}
-                          {t.status === 'in_transit' && (
-                            <Button
-                              size="sm"
-                              className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700"
-                              onClick={() => handleReceive(t)}
-                            >
-                              <CheckCircle2 className="w-3.5 h-3.5" /> دریافت
-                            </Button>
-                          )}
-                          {t.status === 'received' && (
-                            <span className="text-xs text-emerald-600 flex items-center gap-1">
-                              <CheckCircle2 className="w-3.5 h-3.5" /> تکمیل شد
-                            </span>
-                          )}
-                          {t.status === 'cancelled' && (
-                            <span className="text-xs text-slate-400">—</span>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                            )}
+                            {t.status === 'received' && (
+                              <span className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+                                <CheckCircle2 className="h-3.5 w-3.5" /> تکمیل شد
+                              </span>
+                            )}
+                            {t.status === 'cancelled' && (
+                              <span className="text-xs text-slate-400 dark:text-slate-500">—</span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        </>
+      )}
+
+      <Link href="/dashboard/stock-transfers/new" className="nb-fab" aria-label="انتقال جدید">
+        <Plus className="h-6 w-6" />
+      </Link>
     </div>
   );
 }

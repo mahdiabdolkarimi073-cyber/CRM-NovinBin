@@ -257,14 +257,18 @@ export default function AccountingPage() {
   };
 
   return (
-    <div className="w-full" dir="rtl">
-      <div className="mb-6">
-        <div className="flex items-center gap-2.5">
-          <div className="h-[30px] w-[5px] rounded-[4px] bg-[#F97316]" />
-          <h1 className="text-[22px] font-bold leading-tight text-[#0F172A] mobile:text-[24px] tablet:text-[28px] desktop:text-[32px]">حسابداری و امور مالی</h1>
+    <div className="nb-page" dir="rtl">
+      <header className="nb-hero">
+        <div className="nb-hero-left">
+          <div>
+            <div className="nb-hero-title-row">
+              <span className="nb-hero-marker" style={{ background: 'linear-gradient(180deg,#F97316,#E65100)', boxShadow: '0 0 12px rgba(249,115,22,.25)' }} />
+              <h1>حسابداری و امور مالی</h1>
+            </div>
+            <p>سیستم کامل حسابداری سازمانی — دفتر کل، خزانه‌داری، چک‌ها، سال مالی و گزارش‌ها</p>
+          </div>
         </div>
-        <p className="mt-2 text-[14px] text-[#64748B]">سیستم کامل حسابداری سازمانی — دفتر کل، خزانه‌داری، چک‌ها، سال مالی و گزارش‌ها</p>
-      </div>
+      </header>
 
       <Tabs defaultValue="accounts">
         <TabsList className="flex-wrap h-auto gap-1 p-1 mobile:gap-2">
