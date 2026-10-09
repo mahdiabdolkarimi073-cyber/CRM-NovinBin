@@ -12,7 +12,9 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function DemoLoginPage() {
   const params = useParams();
-  const slug = params.slug as string;
+  const rawSlug = params.slug as string;
+  let slug = rawSlug;
+  try { slug = decodeURIComponent(rawSlug); } catch {}
   const router = useRouter();
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -31,9 +33,6 @@ export default function DemoLoginPage() {
           setError(data.error);
         } else {
           setDemoInfo(data);
-          if (data.isExpired || data.isSuspended) {
-            // Show the state but don't block the form — the API will reject
-          }
         }
       })
       .catch(() => setError('خطای ارتباط با سرور'))

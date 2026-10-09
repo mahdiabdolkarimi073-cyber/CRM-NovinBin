@@ -8,13 +8,17 @@ const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { slug, password } = body;
+    let { slug, password } = body;
 
     if (!slug || !password) {
       return NextResponse.json({ error: 'slug و رمز عبور الزامی است' }, { status: 400 });
     }
 
-    const demo = await prisma.demo.findFirst({
+    if (typeof slug === 'string') {
+      try { slug = decodeURIComponent(slug); } catch {}
+    }
+
+    const demo = await prisma.demo.findUnique({
       where: { slug },
       include: { org: true },
     });

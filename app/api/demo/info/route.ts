@@ -4,13 +4,15 @@ import { prisma } from '@/lib/prisma';
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const slug = searchParams.get('slug');
+    let slug = searchParams.get('slug');
 
     if (!slug) {
       return NextResponse.json({ error: 'slug الزامی است' }, { status: 400 });
     }
 
-    const demo = await prisma.demo.findFirst({
+    try { slug = decodeURIComponent(slug); } catch {}
+
+    const demo = await prisma.demo.findUnique({
       where: { slug },
       select: {
         id: true,

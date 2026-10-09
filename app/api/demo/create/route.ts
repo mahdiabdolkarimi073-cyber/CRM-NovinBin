@@ -8,9 +8,10 @@ const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
 function generateSlug(name: string): string {
   const slug = name.trim().toLowerCase()
     .replace(/[\s_]+/g, '-')
-    .replace(/[^\w\u0600-\u06FF-]/g, '')
+    .replace(/[^\w-]/g, '')
     .replace(/-+/g, '-')
-    .slice(0, 30);
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 20);
   const rand = Math.floor(Math.random() * 100000).toString().padStart(5, '0');
   return `${slug || 'demo'}-${rand}`;
 }
