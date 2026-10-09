@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import {
   Plus, Clock, MoreVertical, Play, Pause, RotateCcw, Trash2,
   Copy, ExternalLink, Eye, EyeOff, CheckCircle2, AlertCircle,
