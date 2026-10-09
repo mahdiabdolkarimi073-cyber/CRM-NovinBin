@@ -18,7 +18,7 @@ const PUBLIC_DASHBOARD_PATHS = ['/dashboard'];
 const STORAGE_KEY = 'sb-open';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { profile, loading } = useAuth();
+  const { profile, loading, isDemo } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -59,7 +59,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const isPublicPath = PUBLIC_DASHBOARD_PATHS.includes(pathname);
   const needsGuard = !isPublicPath;
-  const hasAccess = hasPageAccess(profile, pathname);
+  const hasAccess = hasPageAccess(profile, pathname, isDemo);
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300" dir="rtl">

@@ -91,9 +91,8 @@ export async function PATCH(req: NextRequest) {
       case 'reset': {
         // Delete all demo org data and re-seed
         if (demo.orgId) {
-          // Delete all records belonging to this org (cascade from organization)
-          // We just delete the org and recreate it
           const orgId = demo.orgId;
+          // Delete the org (cascades to all related data)
           await prisma.organization.delete({ where: { id: orgId } });
 
           const newOrg = await prisma.organization.create({
@@ -106,6 +105,18 @@ export async function PATCH(req: NextRequest) {
               settings: { isDemo: true, demoSlug: demo.slug },
             },
           });
+
+          // Re-link the demo user's profile to the new org
+          if (demo.demoUserId) {
+            await prisma.profile.update({
+              where: { id: demo.demoUserId },
+              data: {
+                orgId: newOrg.id,
+                assignedPages: demo.modules as any,
+                active: true,
+              },
+            });
+          }
 
           await prisma.demo.update({
             where: { id: demoId },
@@ -174,13 +185,19 @@ export async function DELETE(req: NextRequest) {
     const demo = await prisma.demo.findUnique({ where: { id: demoId } });
     if (!demo) return NextResponse.json({ error: 'دمو یافت نشد' }, { status: 404 });
 
-    // Delete demo user if exists
+    // Delete demo user + profile first
     if (demo.demoUserId) {
+      await prisma.profile.delete({ where: { id: demo.demoUserId } }).catch(() => {});
       await prisma.user.delete({ where: { id: demo.demoUserId } }).catch(() => {});
     }
 
-    // Delete demo (this cascades to delete the org and all its data)
+    // Delete the demo record (this will set orgId to null due to cascade)
     await prisma.demo.delete({ where: { id: demoId } });
+
+    // Now delete the org and all its data (cascade deletes all org-scoped records)
+    if (demo.orgId) {
+      await prisma.organization.delete({ where: { id: demo.orgId } }).catch(() => {});
+    }
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

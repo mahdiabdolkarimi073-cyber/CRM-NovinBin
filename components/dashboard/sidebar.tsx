@@ -29,21 +29,21 @@ interface SidebarProps {
 
 export function DashboardSidebar({ open, onToggle }: SidebarProps) {
   const pathname = usePathname();
-  const { profile } = useAuth();
+  const { profile, isDemo } = useAuth();
 
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
-  const isSuperAdmin = isSuperAdminRole(profile?.role);
+  const isSuperAdmin = isSuperAdminRole(profile?.role) && !isDemo;
 
-  const visibleCore = filterByAccess(profile, coreItems);
-  const visibleClub = filterByAccess(profile, clubItems);
-  const visibleFinance = filterByAccess(profile, financeItems);
-  const visibleInventory = filterByAccess(profile, inventoryItems);
-  const visibleCartable = filterByAccess(profile, cartableItems);
-  const visibleAdmin = filterByAccess(profile, adminItems);
-  const visibleReports = filterByAccess(profile, reportsItems);
-  const visibleSales = filterByAccess(profile, salesItems);
-  const visibleService = filterByAccess(profile, serviceItems);
+  const visibleCore = filterByAccess(profile, coreItems, isDemo);
+  const visibleClub = filterByAccess(profile, clubItems, isDemo);
+  const visibleFinance = filterByAccess(profile, financeItems, isDemo);
+  const visibleInventory = filterByAccess(profile, inventoryItems, isDemo);
+  const visibleCartable = filterByAccess(profile, cartableItems, isDemo);
+  const visibleAdmin = filterByAccess(profile, adminItems, isDemo);
+  const visibleReports = filterByAccess(profile, reportsItems, isDemo);
+  const visibleSales = filterByAccess(profile, salesItems, isDemo);
+  const visibleService = filterByAccess(profile, serviceItems, isDemo);
 
   const groups: NavGroup[] = [
     { label: 'کارتابل', icon: Inbox, items: visibleCartable },

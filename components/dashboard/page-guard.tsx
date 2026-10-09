@@ -13,10 +13,10 @@ interface PageGuardProps {
 }
 
 export function PageGuard({ href, children }: PageGuardProps) {
-  const { profile, loading } = useAuth();
+  const { profile, loading, isDemo } = useAuth();
   const router = useRouter();
 
-  const hasAccess = hasPageAccess(profile, href);
+  const hasAccess = hasPageAccess(profile, href, isDemo);
 
   useEffect(() => {
     if (!loading && profile && !hasAccess) {

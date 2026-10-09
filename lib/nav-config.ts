@@ -201,8 +201,18 @@ const UNIVERSAL_PREFIXES = new Set([
   '/dashboard/leads/archive',
 ]);
 
-export function hasPageAccess(profile: Profile | null, href: string): boolean {
+export function hasPageAccess(profile: Profile | null, href: string, isDemo = false): boolean {
   if (!profile) return false;
+  // Demo users: always restricted to assignedPages, even with owner/super_admin role
+  if (isDemo) {
+    if (UNIVERSAL_PAGES.has(href)) return true;
+    for (const page of UNIVERSAL_PREFIXES) {
+      if (href.startsWith(page + '/')) return true;
+    }
+    const pages = profile.assignedPages || [];
+    if (pages.length === 0) return false;
+    return pages.some((p) => p === href || href.startsWith(p + '/'));
+  }
   if (isSuperAdminRole(profile.role)) return true;
   if (UNIVERSAL_PAGES.has(href)) return true;
   for (const page of UNIVERSAL_PREFIXES) {
@@ -296,10 +306,10 @@ export const availablePages = [
   { path: '/dashboard/secretariat', label: 'دبیرخانه' },
 ];
 
-export function filterByAccess(profile: Profile | null, items: NavItem[]): NavItem[] {
+export function filterByAccess(profile: Profile | null, items: NavItem[], isDemo = false): NavItem[] {
   if (!profile) return [];
-  if (isSuperAdminRole(profile.role)) return items;
-  return items.filter((item) => hasPageAccess(profile, item.href));
+  if (!isDemo && isSuperAdminRole(profile.role)) return items;
+  return items.filter((item) => hasPageAccess(profile, item.href, isDemo));
 }
 
 export const allPageModules: NavItem[] = [

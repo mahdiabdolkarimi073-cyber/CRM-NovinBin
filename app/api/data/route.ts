@@ -206,14 +206,92 @@ function getAuth(req: NextRequest) {
   const token = req.cookies.get('token')?.value;
   if (!token) return null;
   try {
-    return jwt.verify(token, JWT_SECRET) as { userId: string; email: string; role: string; demoSlug?: string; demoOrgId?: string; demoExpiry?: string }; 
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; email: string; role: string; demoSlug?: string; demoOrgId?: string; demoExpiry?: string };
+    // Server-side demo expiry enforcement: even with an active session, deny access after expiry
+    if (decoded.demoSlug && decoded.demoExpiry) {
+      if (new Date(decoded.demoExpiry) < new Date()) {
+        return null;
+      }
+    }
+    return decoded;
   } catch {
     return null;
   }
 }
 
-function cleanWhere(where: any): any {
-  return where;
+// Models that demo users must never access (organizational / system management data)
+const DEMO_RESTRICTED_MODELS = new Set([
+  'demos', 'demo_activities', 'organizations', 'profiles', 'user_manager',
+  'subscription_plans', 'modules', 'tenant_modules', 'subscriptions',
+  'usage_records', 'billing_invoices', 'audit_logs', 'page_permissions',
+  'registration_requests',
+]);
+
+// Models that have an orgId field — used to scope demo user data to their demo organization
+const ORG_SCOPED_MODELS = new Set([
+  'customers', 'leads', 'opportunities', 'tasks', 'task_comments', 'products',
+  'product_categories', 'orders', 'invoices', 'meetings', 'meeting_assignments',
+  'meeting_images', 'meeting_referrals', 'tickets', 'notifications',
+  'loyalty_transactions', 'loyalty_rewards', 'loyalty_redemptions',
+  'branches', 'departments', 'teams', 'team_members',
+  'accounts', 'journal_entries', 'fiscal_years', 'fiscal_periods',
+  'cost_centers', 'bank_accounts', 'cash_funds', 'fund_transfers',
+  'cheques', 'payments', 'expense_claims', 'expense_claim_items',
+  'warehouses', 'stock_movements', 'suppliers', 'purchase_orders',
+  'employees', 'attendance_records', 'leave_requests',
+  'daily_work_reports', 'monthly_work_reports', 'work_report_images',
+  'customer_assignments', 'staff_contracts', 'pre_invoices', 'pre_invoice_items',
+  'sales_returns', 'return_items', 'receipts', 'call_logs',
+  'academy_students', 'academy_enrollments',
+  'customer_interactions', 'customer_segments', 'customer_segment_members',
+  'stock_transfers', 'documents', 'knowledge_articles', 'goals', 'kpi_records',
+  'approval_requests', 'customer_chat_messages',
+  'contact_parties', 'contact_related_persons', 'contact_addresses', 'contact_phones',
+  'payment_announcements', 'withdrawal_announcements', 'my_cheques',
+  'petty_cash_custodians', 'petty_cash_payments', 'petty_cash_expenses',
+  'petty_cash_expense_statements',
+  'petty_cash_merge_statements', 'petty_cash_merge_histories',
+  'document_issuances', 'document_issuance_lines', 'document_issuance_histories',
+  'contact_settlements', 'contact_settlement_items', 'contact_settlement_history',
+  'received_cheques', 'received_cheque_operations',
+  'cheque_refunds', 'cheque_refund_history',
+  'cheque_clearings', 'cheque_clearing_history',
+  'card_readers', 'card_reader_transactions', 'card_reader_settlements',
+  'card_reader_settlement_items', 'card_reader_settlement_history', 'card_reader_history',
+  'stock_takings', 'stock_taking_items', 'stock_taking_history',
+  'service_purchase_invoices', 'service_purchase_invoice_items', 'service_purchase_invoice_history',
+  'warehouse_receipts', 'warehouse_receipt_items', 'warehouse_receipt_history',
+  'financial_announcements', 'financial_announcement_items', 'financial_announcement_history',
+  'commissions', 'commission_items', 'commission_adjustments', 'commission_history', 'commission_rules',
+  'customs_declarations', 'customs_declaration_items', 'customs_declaration_costs',
+  'customs_declaration_payments', 'customs_declaration_history',
+  'process_agents', 'process_agent_roles', 'process_agent_debts', 'process_agent_history',
+  'sales_invoices', 'sales_invoice_items', 'sales_invoice_history',
+  'lead_referrals', 'site_verifications', 'host_domains', 'sms_logs',
+  'irnic_identities', 'employment_applications',
+  'graphic_works', 'graphic_work_files', 'graphic_work_images', 'graphic_work_access',
+  'social_dm_messages', 'social_groups', 'social_group_members',
+  'social_group_messages', 'social_group_message_reads',
+  'social_call_sessions', 'social_call_signals',
+  'customer_social_folders', 'customer_social_folder_members', 'customer_social_folder_customers',
+  'customer_social_messages', 'customer_social_call_sessions', 'customer_social_call_signals',
+  'secretariat_letters', 'secretariat_referrals', 'secretariat_signatures',
+  'secretariat_attachments', 'secretariat_timeline',
+  'customer_devices',
+  'ticket_departments', 'ticket_department_members',
+  'staff_chat_messages', 'personal_notes', 'my_customers', 'ticket_messages',
+]);
+
+// Apply orgId scoping for demo users to prevent cross-org data access
+function applyDemoOrgScope(auth: any, model: string, where: any): any {
+  if (!auth?.demoOrgId) return where;
+  if (!ORG_SCOPED_MODELS.has(model)) return where;
+  return { ...where, orgId: auth.demoOrgId };
+}
+
+function isDemoRestricted(auth: any, model: string): boolean {
+  if (!auth?.demoSlug) return false;
+  return DEMO_RESTRICTED_MODELS.has(model);
 }
 
 const MODEL_PAGE: Record<string, string> = {
@@ -336,11 +414,17 @@ const SHARED_MODELS = new Set([
   'ticket_department_members',
 ]);
 
-async function canAccess(auth: { userId: string }, model: string): Promise<boolean> {
+async function canAccess(auth: { userId: string; demoSlug?: string }, model: string): Promise<boolean> {
   const page = MODEL_PAGE[model];
   if (!page) return true;
   const profile = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { userType: true, role: true, active: true, assignedPages: true, customerId: true } });
   if (!profile?.active) return false;
+  // Demo users: enforce module restrictions even if role is 'owner'
+  if (auth.demoSlug) {
+    const pages = profile.assignedPages;
+    if (pages && Array.isArray(pages) && pages.includes(page)) return true;
+    return false;
+  }
   if (profile.role === 'owner' || profile.role === 'super_admin') return true;
   if (model === 'customer_chat_messages' && profile.userType === 'customer' && profile.customerId) return true;
   if (SHARED_MODELS.has(model)) return true;
@@ -363,7 +447,10 @@ export async function GET(req: NextRequest) {
 
   const whereStr = searchParams.get('where');
   if (!(await canAccess(auth, model))) return NextResponse.json({ error: 'دسترسی به این بخش برای شما فعال نیست' }, { status: 403 });
+  if (isDemoRestricted(auth, model)) return NextResponse.json({ error: 'این بخش برای کاربران دمو در دسترس نیست' }, { status: 403 });
   let where = whereStr ? JSON.parse(whereStr) : {};
+  // Demo users: scope all queries to their demo org
+  where = applyDemoOrgScope(auth, model, where);
   if (model === 'customer_chat_messages') {
     const fullProfile = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { userType: true, customerId: true, role: true } });
     if (fullProfile?.userType === 'customer' && fullProfile.customerId) {
@@ -490,11 +577,16 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { model, data, include } = body;
   if (!(await canAccess(auth, model))) return NextResponse.json({ error: 'دسترسی به این بخش برای شما فعال نیست' }, { status: 403 });
+  if (isDemoRestricted(auth, model)) return NextResponse.json({ error: 'این بخش برای کاربران دمو در دسترس نیست' }, { status: 403 });
   if (!model || !MODEL_MAP[model]) {
     return NextResponse.json({ error: 'Invalid model' }, { status: 400 });
   }
 
   let postData = data;
+  // Demo users: force orgId to their demo org on all creates
+  if (auth.demoOrgId && ORG_SCOPED_MODELS.has(model)) {
+    postData = { ...postData, orgId: auth.demoOrgId };
+  }
   if (model === 'customer_chat_messages') {
     const fullProfile = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { userType: true, customerId: true, role: true } });
     if (fullProfile?.userType === 'customer' && fullProfile.customerId) {
@@ -749,8 +841,19 @@ export async function PATCH(req: NextRequest) {
   const body = await req.json();
   const { model, where, data, include } = body;
   if (!(await canAccess(auth, model))) return NextResponse.json({ error: 'دسترسی به این بخش برای شما فعال نیست' }, { status: 403 });
+  if (isDemoRestricted(auth, model)) return NextResponse.json({ error: 'این بخش برای کاربران دمو در دسترس نیست' }, { status: 403 });
   if (!model || !MODEL_MAP[model]) {
     return NextResponse.json({ error: 'Invalid model' }, { status: 400 });
+  }
+
+  // Demo users: prevent changing orgId and verify the record belongs to their org
+  let scopedWhere = where;
+  if (auth.demoOrgId && ORG_SCOPED_MODELS.has(model)) {
+    scopedWhere = { ...where, orgId: auth.demoOrgId };
+    // Also strip orgId from data to prevent cross-org reassignment
+    if (data) {
+      delete data.orgId;
+    }
   }
 
   try {
@@ -810,7 +913,7 @@ export async function PATCH(req: NextRequest) {
         }
       }
     }
-    const record = await MODEL_MAP[model].update({ where, data: updateData, include });
+    const record = await MODEL_MAP[model].update({ where: scopedWhere, data: updateData, include });
 
     // Notify super-admins when a daily work report is edited
     if (model === 'daily_work_reports') {
@@ -854,8 +957,15 @@ export async function DELETE(req: NextRequest) {
   const body = await req.json();
   const { model, where } = body;
   if (!(await canAccess(auth, model))) return NextResponse.json({ error: 'دسترسی به این بخش برای شما فعال نیست' }, { status: 403 });
+  if (isDemoRestricted(auth, model)) return NextResponse.json({ error: 'این بخش برای کاربران دمو در دسترس نیست' }, { status: 403 });
   if (!model || !MODEL_MAP[model]) {
     return NextResponse.json({ error: 'Invalid model' }, { status: 400 });
+  }
+
+  // Demo users: scope delete to their org only
+  let scopedWhere = where;
+  if (auth.demoOrgId && ORG_SCOPED_MODELS.has(model)) {
+    scopedWhere = { ...where, orgId: auth.demoOrgId };
   }
 
   try {
@@ -884,7 +994,7 @@ export async function DELETE(req: NextRequest) {
         }
       }
     }
-    await MODEL_MAP[model].delete({ where });
+    await MODEL_MAP[model].delete({ where: scopedWhere });
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

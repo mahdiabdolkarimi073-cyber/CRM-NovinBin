@@ -72,6 +72,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (data && data.user) {
           setUser(data.user);
           if (data.demo) setDemoInfo(data.demo);
+        } else if (data && data.demoExpired) {
+          // Demo expired — clear state and redirect to demo login
+          setDemoInfo(null);
+          if (typeof window !== 'undefined') {
+            window.location.href = '/login/staff';
+          }
         }
       } catch {
         // Network error, timeout, JSON parse error — user is effectively logged out

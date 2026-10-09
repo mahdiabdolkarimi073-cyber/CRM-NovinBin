@@ -42,25 +42,25 @@ interface GlobalNavbarProps {
 export function GlobalNavbar({ sidebarOpen, onToggleSidebar, variant = 'dashboard' }: GlobalNavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, isDemo } = useAuth();
   const [searchOpen, setSearchOpen] = useState(false);
 
-  const isSuperAdmin = isSuperAdminRole(profile?.role);
+  const isSuperAdmin = isSuperAdminRole(profile?.role) && !isDemo;
 
   const displayName = profile ? `${profile.firstName || ''} ${profile.lastName || ''}`.trim() : 'کاربر';
   const initials = (profile?.firstName?.[0] || 'ن').toUpperCase();
-  const roleLabel = isSuperAdmin ? 'سوپرادمین' : profile?.role === 'admin' ? 'مدیر' : 'پرسنل سازمان';
+  const roleLabel = isDemo ? 'کاربر دمو' : isSuperAdmin ? 'سوپرادمین' : profile?.role === 'admin' ? 'مدیر' : 'پرسنل سازمان';
 
   const allItems: NavItem[] = [
-    ...filterByAccess(profile, coreItems),
-    ...filterByAccess(profile, cartableItems),
-    ...filterByAccess(profile, financeItems),
-    ...filterByAccess(profile, inventoryItems),
-    ...filterByAccess(profile, clubItems),
-    ...filterByAccess(profile, adminItems),
-    ...filterByAccess(profile, reportsItems),
-    ...filterByAccess(profile, salesItems),
-    ...filterByAccess(profile, serviceItems),
+    ...filterByAccess(profile, coreItems, isDemo),
+    ...filterByAccess(profile, cartableItems, isDemo),
+    ...filterByAccess(profile, financeItems, isDemo),
+    ...filterByAccess(profile, inventoryItems, isDemo),
+    ...filterByAccess(profile, clubItems, isDemo),
+    ...filterByAccess(profile, adminItems, isDemo),
+    ...filterByAccess(profile, reportsItems, isDemo),
+    ...filterByAccess(profile, salesItems, isDemo),
+    ...filterByAccess(profile, serviceItems, isDemo),
   ];
 
   // Deduplicate by href
@@ -90,10 +90,10 @@ export function GlobalNavbar({ sidebarOpen, onToggleSidebar, variant = 'dashboar
     router.push(href);
   };
 
-  const logoHref = variant === 'super-admin' ? '/super-admin' : (isSuperAdmin ? '/super-admin' : '/dashboard');
+  const logoHref = variant === 'super-admin' ? '/super-admin' : (isSuperAdmin && !isDemo ? '/super-admin' : '/dashboard');
 
-  const visibleCartable = filterByAccess(profile, cartableItems);
-  const visibleAdmin = filterByAccess(profile, adminItems);
+  const visibleCartable = filterByAccess(profile, cartableItems, isDemo);
+  const visibleAdmin = filterByAccess(profile, adminItems, isDemo);
 
   const meetingItems: NavItem[] = [
     { href: '/dashboard/meetings', label: 'جلسات', icon: Calendar },
@@ -101,7 +101,7 @@ export function GlobalNavbar({ sidebarOpen, onToggleSidebar, variant = 'dashboar
     { href: '/dashboard/calls', label: 'مکالمات', icon: Phone },
     { href: '/dashboard/graphic-works', label: 'کارهای گرافیک', icon: Palette },
   ];
-  const visibleMeetings = filterByAccess(profile, meetingItems);
+  const visibleMeetings = filterByAccess(profile, meetingItems, isDemo);
 
   const matches = (href: string) =>
     pathname === href || (href !== '/dashboard' && pathname.startsWith(href));

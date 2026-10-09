@@ -15,7 +15,7 @@ interface GuardedLinkProps {
 }
 
 export function GuardedLink({ href, children, className, onClick }: GuardedLinkProps) {
-  const { profile } = useAuth();
+  const { profile, isDemo } = useAuth();
   const router = useRouter();
   const [denied, setDenied] = useState(false);
 
@@ -23,7 +23,7 @@ export function GuardedLink({ href, children, className, onClick }: GuardedLinkP
     (e: React.MouseEvent) => {
       e.preventDefault();
       if (onClick) onClick();
-      if (!hasPageAccess(profile, href)) {
+      if (!hasPageAccess(profile, href, isDemo)) {
         setDenied(true);
         setTimeout(() => {
           router.replace('/dashboard');
