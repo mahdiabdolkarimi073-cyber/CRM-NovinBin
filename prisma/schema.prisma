@@ -1445,20 +1445,31 @@ model CallLog {
 }
 
 model Demo {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  orgId       String?   @db.Uuid
-  name        String
-  email       String?
-  phone       String?
-  companyName String?
-  plan        String   @default("starter")
-  status      String   @default("active")
-  startDate   DateTime @default(now())
-  expiryDate  DateTime @default(now())
-  createdBy   String?  @db.Uuid
-  createdAt   DateTime @default(now())
-  org         Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  activities  DemoActivity[]
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId          String?   @db.Uuid
+  name           String
+  email          String?
+  phone          String?
+  companyName    String?
+  plan           String   @default("starter")
+  status         String   @default("active")
+  startDate      DateTime @default(now())
+  expiryDate     DateTime @default(now())
+  createdBy      String?  @db.Uuid
+  createdAt      DateTime @default(now())
+  slug           String?  @unique
+  durationDays   Int      @default(15)
+  modules        Json     @default("[]")
+  maxUsers       Int      @default(10)
+  lastActivityAt DateTime?
+  resetCount     Int      @default(0)
+  suspendedAt    DateTime?
+  suspendedBy    String?  @db.Uuid
+  demoUserId     String?  @db.Uuid
+  demoPassword   String?
+  demoUsername   String?  @unique
+  org            Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  activities     DemoActivity[]
 
   @@map("demos")
 }

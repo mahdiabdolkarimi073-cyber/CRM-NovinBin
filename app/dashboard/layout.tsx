@@ -9,6 +9,8 @@ import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Logo } from '@/components/dashboard/logo';
 import { PageGuard } from '@/components/dashboard/page-guard';
+import { DemoBanner } from '@/components/dashboard/demo-banner';
+import { DemoTracker } from '@/components/dashboard/demo-tracker';
 import { hasPageAccess } from '@/lib/nav-config';
 import { cn } from '@/lib/utils';
 
@@ -61,6 +63,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300" dir="rtl">
+      <DemoBanner />
+      <DemoTracker />
       <CallProvider modes={['social', 'customer']}>
         <GlobalNavbar sidebarOpen={sidebarOpen} onToggleSidebar={toggleSidebar} />
         <DashboardSidebar open={sidebarOpen} onToggle={toggleSidebar} />

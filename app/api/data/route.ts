@@ -206,7 +206,7 @@ function getAuth(req: NextRequest) {
   const token = req.cookies.get('token')?.value;
   if (!token) return null;
   try {
-    return jwt.verify(token, JWT_SECRET) as { userId: string; email: string; role: string }; 
+    return jwt.verify(token, JWT_SECRET) as { userId: string; email: string; role: string; demoSlug?: string; demoOrgId?: string; demoExpiry?: string }; 
   } catch {
     return null;
   }

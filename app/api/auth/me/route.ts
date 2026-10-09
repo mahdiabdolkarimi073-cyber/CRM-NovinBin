@@ -11,9 +11,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ user: null }, { headers: { 'Cache-Control': 'no-store' } });
     }
 
-    let decoded: { userId: string };
+    let decoded: { userId: string; demoSlug?: string; demoOrgId?: string; demoExpiry?: string };
     try {
-      decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+      decoded = jwt.verify(token, JWT_SECRET) as { userId: string; demoSlug?: string; demoOrgId?: string; demoExpiry?: string };
     } catch {
       // Invalid or expired token — treat as logged out
       return NextResponse.json({ user: null }, { headers: { 'Cache-Control': 'no-store' } });
@@ -36,6 +36,11 @@ export async function GET(req: NextRequest) {
           phone: user.phone,
           profile: user.profile,
         },
+        demo: decoded.demoSlug ? {
+          slug: decoded.demoSlug,
+          orgId: decoded.demoOrgId,
+          expiry: decoded.demoExpiry,
+        } : null,
       },
       { headers: { 'Cache-Control': 'no-store' } }
     );

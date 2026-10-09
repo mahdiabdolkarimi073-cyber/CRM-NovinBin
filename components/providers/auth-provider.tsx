@@ -3,6 +3,12 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from 'react';
 import type { Profile } from '@/lib/types';
 
+interface DemoInfo {
+  slug: string;
+  orgId: string;
+  expiry: string;
+}
+
 interface AuthUser {
   id: string;
   email: string | null;
@@ -16,6 +22,8 @@ interface AuthContextValue {
   loading: boolean;
   isStaff: boolean;
   isCustomer: boolean;
+  isDemo: boolean;
+  demoInfo: DemoInfo | null;
   signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string; profile?: Profile }>;
   signInWithPhone: (phone: string, password: string) => Promise<{ success: boolean; error?: string; profile?: Profile }>;
   signOut: () => Promise<void>;
@@ -28,6 +36,8 @@ const AuthContext = createContext<AuthContextValue>({
   loading: true,
   isStaff: false,
   isCustomer: false,
+  isDemo: false,
+  demoInfo: null,
   signIn: async () => ({ success: false }),
   signInWithPhone: async () => ({ success: false }),
   signOut: async () => {},
@@ -36,6 +46,7 @@ const AuthContext = createContext<AuthContextValue>({
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [demoInfo, setDemoInfo] = useState<DemoInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
 
@@ -60,6 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (data && data.user) {
           setUser(data.user);
+          if (data.demo) setDemoInfo(data.demo);
         }
       } catch {
         // Network error, timeout, JSON parse error — user is effectively logged out
@@ -117,13 +129,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // ignore
     }
     setUser(null);
+    setDemoInfo(null);
   }, []);
 
   const refreshProfile = useCallback(async () => {
     try {
       const res = await fetch('/api/auth/me', { headers: { 'Cache-Control': 'no-store' } });
       const data = await res.json();
-      if (data && data.user) setUser(data.user);
+      if (data && data.user) {
+        setUser(data.user);
+        if (data.demo) setDemoInfo(data.demo); else setDemoInfo(null);
+      }
     } catch {
       // ignore
     }
@@ -132,10 +148,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const profile = user?.profile ?? null;
   const isCustomer = profile?.userType === 'customer';
   const isStaff = !isCustomer && !!profile;
+  const isDemo = !!demoInfo;
 
   return (
     <AuthContext.Provider
-      value={{ user, profile, loading, isStaff, isCustomer, signIn, signInWithPhone, signOut, refreshProfile }}
+      value={{ user, profile, loading, isStaff, isCustomer, isDemo, demoInfo, signIn, signInWithPhone, signOut, refreshProfile }}
     >
       {children}
     </AuthContext.Provider>
