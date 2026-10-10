@@ -37,6 +37,7 @@ type KpiData = {
   icon: React.ElementType;
   tone: Tone;
   spark: number[];
+  href: string;
 };
 
 const toneColors: Record<Tone, { text: string; bg: string; stroke: string; gradient: string }> = {
@@ -169,10 +170,7 @@ function KpiCard({ data, index }: { data: KpiData; index: number }) {
   const tc = toneColors[data.tone];
   const isUp = data.trend >= 0;
   return (
-    <div
-      className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card p-4 mobile:p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl animate-fade-in"
-      style={{ animationDelay: `${index * 80}ms` }}
-    >
+    <Link href={data.href} className="group relative block overflow-hidden rounded-2xl border border-border/60 bg-card p-4 mobile:p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl animate-fade-in" style={{ animationDelay: `${index * 80}ms` }}>
       <div className={cn('absolute inset-x-0 top-0 h-1 bg-gradient-to-l opacity-80', tc.gradient)} />
       <div className="flex items-start justify-between">
         <div className="flex-1">
@@ -196,7 +194,7 @@ function KpiCard({ data, index }: { data: KpiData; index: number }) {
         </div>
         <Sparkline data={data.spark} color={tc.stroke} width={80} height={24} />
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -293,12 +291,12 @@ export default function DashboardPage() {
   ].slice(0, 5);
 
   const kpiCards: KpiData[] = [
-    { title: 'وظایف فعال', value: tasks.length, subtitle: 'وظیفه در حال انجام', trend: -5, trendLabel: 'نسبت به دیروز', icon: CheckSquare, tone: 'green', spark: [8, 6, 9, 7, 10, 8, tasks.length || 6] },
-    { title: 'جلسات امروز', value: todayMeetings, subtitle: 'جلسه برنامه‌ریزی شده', trend: 8, trendLabel: 'نسبت به دیروز', icon: CalendarDays, tone: 'orange', spark: [2, 3, 1, 4, 3, 5, todayMeetings || 3] },
-    { title: 'گزارش‌های روزانه', value: daily.length, subtitle: 'گزارش ثبت شده', trend: 13, trendLabel: 'نسبت به دیروز', icon: FileBarChart, tone: 'blue', spark: [5, 8, 6, 10, 9, 12, daily.length || 10] },
-    { title: 'گزارش‌های ماهانه', value: monthly.length, subtitle: 'گزارش ثبت شده', trend: 18, trendLabel: 'نسبت به ماه قبل', icon: FileText, tone: 'purple', spark: [2, 3, 4, 3, 5, 6, monthly.length || 5] },
-    { title: 'جلسات برگزار شده', value: pastMeetings, subtitle: 'تاکنون', trend: 22, trendLabel: 'نسبت به ماه قبل', icon: CalendarCheck, tone: 'amber', spark: [4, 6, 8, 7, 10, 12, pastMeetings || 8] },
-    { title: 'تسک‌های تکمیل شده', value: completedTasks, subtitle: 'این ماه', trend: 15, trendLabel: 'نسبت به ماه قبل', icon: CheckCircle2, tone: 'rose', spark: [3, 5, 7, 6, 9, 11, completedTasks || 8] },
+    { title: 'وظایف فعال', value: tasks.length, subtitle: 'وظیفه در حال انجام', trend: -5, trendLabel: 'نسبت به دیروز', icon: CheckSquare, tone: 'green', spark: [8, 6, 9, 7, 10, 8, tasks.length || 6], href: '/dashboard/tasks' },
+    { title: 'جلسات امروز', value: todayMeetings, subtitle: 'جلسه برنامه‌ریزی شده', trend: 8, trendLabel: 'نسبت به دیروز', icon: CalendarDays, tone: 'orange', spark: [2, 3, 1, 4, 3, 5, todayMeetings || 3], href: '/dashboard/meetings' },
+    { title: 'گزارش‌های روزانه', value: daily.length, subtitle: 'گزارش ثبت شده', trend: 13, trendLabel: 'نسبت به دیروز', icon: FileBarChart, tone: 'blue', spark: [5, 8, 6, 10, 9, 12, daily.length || 10], href: '/dashboard/work-reports/daily' },
+    { title: 'گزارش‌های ماهانه', value: monthly.length, subtitle: 'گزارش ثبت شده', trend: 18, trendLabel: 'نسبت به ماه قبل', icon: FileText, tone: 'purple', spark: [2, 3, 4, 3, 5, 6, monthly.length || 5], href: '/dashboard/work-reports/monthly' },
+    { title: 'جلسات برگزار شده', value: pastMeetings, subtitle: 'تاکنون', trend: 22, trendLabel: 'نسبت به ماه قبل', icon: CalendarCheck, tone: 'amber', spark: [4, 6, 8, 7, 10, 12, pastMeetings || 8], href: '/dashboard/meetings' },
+    { title: 'تسک‌های تکمیل شده', value: completedTasks, subtitle: 'این ماه', trend: 15, trendLabel: 'نسبت به ماه قبل', icon: CheckCircle2, tone: 'rose', spark: [3, 5, 7, 6, 9, 11, completedTasks || 8], href: '/dashboard/tasks' },
   ];
 
   if (loading) {
