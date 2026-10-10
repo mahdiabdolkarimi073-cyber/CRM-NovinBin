@@ -5058,6 +5058,7 @@ model TaxMoadiInvoiceItem {
   description       String?
   createdAt         DateTime @default(now())
   invoice           TaxMoadiInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  org               Organization?   @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   @@index([invoiceId])
   @@map("tax_moadi_invoice_items")
@@ -5078,6 +5079,7 @@ model TaxMoadiSendLog {
   sentAt            DateTime @default(now())
   durationMs        Int?
   invoice           TaxMoadiInvoice? @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  org               Organization?    @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   @@index([invoiceId])
   @@index([sentAt])
