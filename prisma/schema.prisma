@@ -159,6 +159,12 @@ model Organization {
   smsLogs                         SmsLog[]
   graphicWorks                    GraphicWork[]
   graphicWorkAccess               GraphicWorkAccess[]
+  taxMoadiSettings                TaxMoadiSetting[]
+  taxMoadiFiscalMemories          TaxMoadiFiscalMemory[]
+  taxMoadiInvoices                TaxMoadiInvoice[]
+  taxMoadiInvoiceItems            TaxMoadiInvoiceItem[]
+  taxMoadiSendLogs                TaxMoadiSendLog[]
+  taxMoadiAuditLogs               TaxMoadiAuditLog[]
 
   @@map("organizations")
 }
@@ -4908,4 +4914,190 @@ model CustomerDevice {
   @@index([profileId])
   @@index([isActive])
   @@map("customer_devices")
+}
+
+// ============ TAX MOADI (سامانه مؤدیان) ============
+
+model TaxMoadiSetting {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId             String?  @db.Uuid
+  taxpayerType      String   @default("legal") // legal | individual
+  taxpayerName      String?
+  tradeName         String?
+  nationalId        String?
+  economicCode      String?
+  postalCode        String?
+  legalAddress      String?
+  phone             String?
+  email             String?
+  registrationNo    String?
+  vatStatus         String   @default("included") // included | exempt | none
+  fiscalYearStart   String?
+  fiscalYearEnd     String?
+  taxPeriod         String   @default("monthly") // monthly | quarterly
+  isActive          Boolean  @default(false)
+  lastVerifiedAt    DateTime?
+  verificationStatus String  @default("pending") // pending | verified | failed
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now())
+  org               Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  fiscalMemories    TaxMoadiFiscalMemory[]
+
+  @@map("tax_moadi_settings")
+}
+
+model TaxMoadiFiscalMemory {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId             String?  @db.Uuid
+  settingId         String?  @db.Uuid
+  memoryId          String?
+  label             String?
+  environment       String   @default("production") // production | test
+  publicKey         String?
+  privateKeyEnc     String?
+  clientId          String?
+  clientSecretEnc   String?
+  tokenUrl          String?
+  apiBaseUrl        String?
+  certificateData   String?
+  isActive          Boolean  @default(false)
+  lastTokenAt       DateTime?
+  lastConnectionAt  DateTime?
+  lastConnectionOk  Boolean  @default(false)
+  lastError         String?
+  credentialsChangedAt DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now())
+  org               Organization?    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  setting           TaxMoadiSetting?  @relation(fields: [settingId], references: [id], onDelete: SetNull)
+  invoices          TaxMoadiInvoice[]
+
+  @@map("tax_moadi_fiscal_memories")
+}
+
+model TaxMoadiInvoice {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId                 String?  @db.Uuid
+  fiscalMemoryId        String?  @db.Uuid
+  internalNumber        String
+  taxInvoiceNumber      String?  @unique
+  invoiceType           String   @default("type1") // type1 | type2 | type3 | special
+  invoicePattern        String   @default("general") // general | gold | contractor | utility | ticket | export | ...
+  invoiceDate           DateTime @default(now())
+  customerId            String?  @db.Uuid
+  customerName          String?
+  customerNationalId    String?
+  customerEconomicCode  String?
+  customerPostalCode    String?
+  customerAddress       String?
+  customerType          String?  // individual | company | government
+  saleType              String   @default("cash") // cash | credit | installment | mixed
+  paymentMethod         String?  // cash | bank | pos | credit | ...
+  subject               String?
+  subtotal              Decimal  @default(0) @db.Decimal(18, 2)
+  totalDiscount         Decimal  @default(0) @db.Decimal(18, 2)
+  taxableAmount         Decimal  @default(0) @db.Decimal(18, 2)
+  totalTax              Decimal  @default(0) @db.Decimal(18, 2)
+  totalDuty             Decimal  @default(0) @db.Decimal(18, 2)
+  totalAdditions        Decimal  @default(0) @db.Decimal(18, 2)
+  totalDeductions       Decimal  @default(0) @db.Decimal(18, 2)
+  finalAmount           Decimal  @default(0) @db.Decimal(18, 2)
+  internalStatus        String   @default("draft") // draft | ready | queued | sent | accepted | rejected | needs_correction | voided | returned | amended
+  taxStatus             String?
+  taxReferenceId        String?
+  idempotencyKey        String?  @unique
+  sourceInvoiceId       String?  @db.Uuid
+  sourceDocType         String?  // sales_invoice | pre_invoice | order | manual
+  sourceDocId           String?  @db.Uuid
+  referenceInvoiceId    String?  @db.Uuid
+  referenceType         String?  // correction | cancel | return
+  referenceReason       String?
+  sendQueuedAt          DateTime?
+  lastSentAt            DateTime?
+  lastCheckedAt         DateTime?
+  retryCount            Int      @default(0)
+  maxRetries            Int      @default(5)
+  lastError             String?
+  lastErrorCode         String?
+  taxResponseRaw        Json?
+  createdBy             String   @db.Uuid
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @default(now())
+  org                   Organization?       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  fiscalMemory          TaxMoadiFiscalMemory? @relation(fields: [fiscalMemoryId], references: [id], onDelete: SetNull)
+  items                 TaxMoadiInvoiceItem[]
+  sendLogs              TaxMoadiSendLog[]
+
+  @@index([orgId])
+  @@index([internalStatus])
+  @@index([taxStatus])
+  @@index([invoiceDate])
+  @@index([sourceInvoiceId])
+  @@index([referenceInvoiceId])
+  @@map("tax_moadi_invoices")
+}
+
+model TaxMoadiInvoiceItem {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId             String?  @db.Uuid
+  invoiceId         String   @db.Uuid
+  rowNumber         Int
+  productId         String?  @db.Uuid
+  productCode       String?
+  productName       String?
+  productTaxId      String?
+  unit              String?
+  qty               Decimal  @default(0) @db.Decimal(18, 2)
+  unitPrice         Decimal  @default(0) @db.Decimal(18, 2)
+  rowDiscount       Decimal  @default(0) @db.Decimal(18, 2)
+  rowTotal          Decimal  @default(0) @db.Decimal(18, 2)
+  taxRate           Decimal  @default(0) @db.Decimal(5, 2)
+  taxAmount         Decimal  @default(0) @db.Decimal(18, 2)
+  dutyRate          Decimal  @default(0) @db.Decimal(5, 2)
+  dutyAmount        Decimal  @default(0) @db.Decimal(18, 2)
+  description       String?
+  createdAt         DateTime @default(now())
+  invoice           TaxMoadiInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@map("tax_moadi_invoice_items")
+}
+
+model TaxMoadiSendLog {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId             String?  @db.Uuid
+  invoiceId         String?  @db.Uuid
+  attemptNumber     Int
+  requestPayload    Json?
+  responseStatus    Int?
+  responseOk        Boolean  @default(false)
+  responseRaw       Json?
+  errorCode         String?
+  errorMessage      String?
+  errorType         String?  // validation | connection | server | auth | rate_limit | unknown
+  sentAt            DateTime @default(now())
+  durationMs        Int?
+  invoice           TaxMoadiInvoice? @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@index([sentAt])
+  @@map("tax_moadi_send_logs")
+}
+
+model TaxMoadiAuditLog {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId             String?  @db.Uuid
+  action            String   // create | update | send | retry | accept | reject | void | return | correct | settings_change | credentials_change
+  entity            String   @default("invoice") // invoice | setting | fiscal_memory
+  entityId          String?  @db.Uuid
+  userId            String?  @db.Uuid
+  details           Json?
+  ipAddress         String?
+  createdAt         DateTime @default(now())
+  org               Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([entityId])
+  @@index([createdAt])
+  @@map("tax_moadi_audit_logs")
 }

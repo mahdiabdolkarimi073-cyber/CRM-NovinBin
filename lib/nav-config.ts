@@ -9,6 +9,7 @@ import {
   FileCheck, Banknote, CreditCard, ArrowRightLeft, Sparkles,
   ClipboardCheck, FileSearch, ArrowUpFromLine, Undo2, Percent, Server, Fingerprint, BriefcaseBusiness,
   Palette, Archive, FolderTree, Mailbox, Smartphone, KeyRound,
+  ReceiptText, FileCheck2, ListChecks, History, Settings2, ClipboardCheck,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { Profile } from '@/lib/types';
@@ -89,6 +90,15 @@ export const financeItems: NavItem[] = [
   { href: '/dashboard/payments', label: 'پرداخت‌ها', icon: WalletCards },
   { href: '/dashboard/receipts', label: 'دریافت‌ها', icon: Receipt },
   { href: '/dashboard/returns', label: 'مرجوعی‌ها', icon: RotateCcw },
+  { href: '/dashboard/tax-moadi', label: 'سامانه مؤدیان', icon: ReceiptText },
+  { href: '/dashboard/tax-moadi/sales-invoices', label: 'صورتحساب‌های فروش', icon: FileText },
+  { href: '/dashboard/tax-moadi/new', label: 'صدور صورتحساب جدید', icon: Plus },
+  { href: '/dashboard/tax-moadi/corrections', label: 'اصلاحیه‌ها و ابطال‌ها', icon: RotateCcw },
+  { href: '/dashboard/tax-moadi/queue', label: 'صف ارسال و خطاها', icon: ListChecks },
+  { href: '/dashboard/tax-moadi/responses', label: 'وضعیت پاسخ‌های مالیاتی', icon: FileCheck2 },
+  { href: '/dashboard/tax-moadi/reports', label: 'گزارش‌های مالیاتی', icon: BarChart3 },
+  { href: '/dashboard/tax-moadi/settings', label: 'تنظیمات اتصال و حافظه', icon: Settings2 },
+  { href: '/dashboard/tax-moadi/audit', label: 'سوابق عملیات و حسابرسی', icon: History },
 ];
 
 export const inventoryItems: NavItem[] = [
@@ -304,6 +314,15 @@ export const availablePages = [
   { path: '/dashboard/service-purchase-invoices', label: 'فاکتور خرید خدمات' },
   { path: '/dashboard/employment-applications', label: 'درخواست‌های استخدام' },
   { path: '/dashboard/secretariat', label: 'دبیرخانه' },
+  { path: '/dashboard/tax-moadi', label: 'سامانه مؤدیان' },
+  { path: '/dashboard/tax-moadi/sales-invoices', label: 'صورتحساب‌های فروش مؤدیان' },
+  { path: '/dashboard/tax-moadi/new', label: 'صدور صورتحساب مؤدیان' },
+  { path: '/dashboard/tax-moadi/corrections', label: 'اصلاحیه‌ها و ابطال‌های مؤدیان' },
+  { path: '/dashboard/tax-moadi/queue', label: 'صف ارسال مؤدیان' },
+  { path: '/dashboard/tax-moadi/responses', label: 'وضعیت پاسخ‌های مالیاتی' },
+  { path: '/dashboard/tax-moadi/reports', label: 'گزارش‌های مالیاتی' },
+  { path: '/dashboard/tax-moadi/settings', label: 'تنظیمات اتصال مؤدیان' },
+  { path: '/dashboard/tax-moadi/audit', label: 'سوابق حسابرسی مؤدیان' },
 ];
 
 export function filterByAccess(profile: Profile | null, items: NavItem[], isDemo = false): NavItem[] {
