@@ -2903,3 +2903,159 @@ export interface CustomerSocialCallSignal {
   signalData: string;
   createdAt: string;
 }
+
+// ============ TAX MOADI (سامانه مؤدیان) ============
+
+export interface TaxMoadiSetting {
+  id: string;
+  orgId: string | null;
+  taxpayerType: string;
+  taxpayerName: string | null;
+  tradeName: string | null;
+  nationalId: string | null;
+  economicCode: string | null;
+  postalCode: string | null;
+  legalAddress: string | null;
+  phone: string | null;
+  email: string | null;
+  registrationNo: string | null;
+  vatStatus: string;
+  fiscalYearStart: string | null;
+  fiscalYearEnd: string | null;
+  taxPeriod: string;
+  isActive: boolean;
+  lastVerifiedAt: string | null;
+  verificationStatus: string;
+  createdAt: string;
+  updatedAt: string;
+  fiscalMemories?: TaxMoadiFiscalMemory[];
+}
+
+export interface TaxMoadiFiscalMemory {
+  id: string;
+  orgId: string | null;
+  settingId: string | null;
+  memoryId: string | null;
+  label: string | null;
+  environment: string;
+  publicKey: string | null;
+  privateKeyEnc: string | null;
+  clientId: string | null;
+  clientSecretEnc: string | null;
+  tokenUrl: string | null;
+  apiBaseUrl: string | null;
+  certificateData: string | null;
+  isActive: boolean;
+  lastTokenAt: string | null;
+  lastConnectionAt: string | null;
+  lastConnectionOk: boolean;
+  lastError: string | null;
+  credentialsChangedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  setting?: TaxMoadiSetting | null;
+  invoices?: TaxMoadiInvoice[];
+}
+
+export interface TaxMoadiInvoice {
+  id: string;
+  orgId: string | null;
+  fiscalMemoryId: string | null;
+  internalNumber: string;
+  taxInvoiceNumber: string | null;
+  invoiceType: string;
+  invoicePattern: string;
+  invoiceDate: string;
+  customerId: string | null;
+  customerName: string | null;
+  customerNationalId: string | null;
+  customerEconomicCode: string | null;
+  customerPostalCode: string | null;
+  customerAddress: string | null;
+  customerType: string | null;
+  saleType: string;
+  paymentMethod: string | null;
+  subject: string | null;
+  subtotal: number;
+  totalDiscount: number;
+  taxableAmount: number;
+  totalTax: number;
+  totalDuty: number;
+  totalAdditions: number;
+  totalDeductions: number;
+  finalAmount: number;
+  internalStatus: string;
+  taxStatus: string | null;
+  taxReferenceId: string | null;
+  idempotencyKey: string | null;
+  sourceInvoiceId: string | null;
+  sourceDocType: string | null;
+  sourceDocId: string | null;
+  referenceInvoiceId: string | null;
+  referenceType: string | null;
+  referenceReason: string | null;
+  sendQueuedAt: string | null;
+  lastSentAt: string | null;
+  lastCheckedAt: string | null;
+  retryCount: number;
+  maxRetries: number;
+  lastError: string | null;
+  lastErrorCode: string | null;
+  taxResponseRaw: any;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  fiscalMemory?: TaxMoadiFiscalMemory | null;
+  items?: TaxMoadiInvoiceItem[];
+  sendLogs?: TaxMoadiSendLog[];
+}
+
+export interface TaxMoadiInvoiceItem {
+  id: string;
+  orgId: string | null;
+  invoiceId: string;
+  rowNumber: number;
+  productId: string | null;
+  productCode: string | null;
+  productName: string | null;
+  productTaxId: string | null;
+  unit: string | null;
+  qty: number;
+  unitPrice: number;
+  rowDiscount: number;
+  rowTotal: number;
+  taxRate: number;
+  taxAmount: number;
+  dutyRate: number;
+  dutyAmount: number;
+  description: string | null;
+  createdAt: string;
+}
+
+export interface TaxMoadiSendLog {
+  id: string;
+  orgId: string | null;
+  invoiceId: string | null;
+  attemptNumber: number;
+  requestPayload: any;
+  responseStatus: number | null;
+  responseOk: boolean;
+  responseRaw: any;
+  errorCode: string | null;
+  errorMessage: string | null;
+  errorType: string | null;
+  sentAt: string;
+  durationMs: number | null;
+}
+
+export interface TaxMoadiAuditLog {
+  id: string;
+  orgId: string | null;
+  action: string;
+  entity: string;
+  entityId: string | null;
+  userId: string | null;
+  details: any;
+  ipAddress: string | null;
+  createdAt: string;
+}

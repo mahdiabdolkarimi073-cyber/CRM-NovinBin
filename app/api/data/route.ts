@@ -200,6 +200,12 @@ const MODEL_MAP: Record<string, any> = {
   customer_devices: prisma.customerDevice,
   ticket_departments: prisma.ticketDepartment,
   ticket_department_members: prisma.ticketDepartmentMember,
+  tax_moadi_settings: prisma.taxMoadiSetting,
+  tax_moadi_fiscal_memories: prisma.taxMoadiFiscalMemory,
+  tax_moadi_invoices: prisma.taxMoadiInvoice,
+  tax_moadi_invoice_items: prisma.taxMoadiInvoiceItem,
+  tax_moadi_send_logs: prisma.taxMoadiSendLog,
+  tax_moadi_audit_logs: prisma.taxMoadiAuditLog,
 };
 
 function getAuth(req: NextRequest) {
@@ -280,6 +286,8 @@ const ORG_SCOPED_MODELS = new Set([
   'customer_devices',
   'ticket_departments', 'ticket_department_members',
   'staff_chat_messages', 'personal_notes', 'my_customers', 'ticket_messages',
+  'tax_moadi_settings', 'tax_moadi_fiscal_memories', 'tax_moadi_invoices',
+  'tax_moadi_invoice_items', 'tax_moadi_send_logs', 'tax_moadi_audit_logs',
 ]);
 
 // Apply orgId scoping for demo users to prevent cross-org data access
@@ -393,6 +401,12 @@ const MODEL_PAGE: Record<string, string> = {
   secretariat_timeline: '/dashboard/secretariat',
   ticket_departments: '/super-admin/ticket-departments',
   ticket_department_members: '/super-admin/ticket-departments',
+  tax_moadi_settings: '/dashboard/tax-moadi/settings',
+  tax_moadi_fiscal_memories: '/dashboard/tax-moadi/settings',
+  tax_moadi_invoices: '/dashboard/tax-moadi',
+  tax_moadi_invoice_items: '/dashboard/tax-moadi',
+  tax_moadi_send_logs: '/dashboard/tax-moadi/queue',
+  tax_moadi_audit_logs: '/dashboard/tax-moadi/audit',
 };
 
 const SHARED_MODELS = new Set([

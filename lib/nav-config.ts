@@ -9,7 +9,7 @@ import {
   FileCheck, Banknote, CreditCard, ArrowRightLeft, Sparkles,
   ClipboardCheck, FileSearch, ArrowUpFromLine, Undo2, Percent, Server, Fingerprint, BriefcaseBusiness,
   Palette, Archive, FolderTree, Mailbox, Smartphone, KeyRound,
-  ReceiptText, FileCheck2, ListChecks, History, Settings2, ClipboardCheck,
+  ReceiptText, FileCheck2, ListChecks, History, Settings2, ClipboardCheck, Plus,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { Profile } from '@/lib/types';
