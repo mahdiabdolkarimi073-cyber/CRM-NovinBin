@@ -62,7 +62,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const hasAccess = hasPageAccess(profile, pathname, isDemo);
 
   return (
-    <div className="min-h-screen bg-background text-foreground transition-colors duration-300" dir="rtl">
+    <div className="min-h-screen overflow-x-hidden bg-background text-foreground transition-colors duration-300" dir="rtl">
       <DemoBanner />
       <DemoTracker />
       <CallProvider modes={['social', 'customer']}>
@@ -72,7 +72,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* wrapper: فضای سایدبار رو از راست کم می‌کنه */}
         <div
           className={cn(
-            'w-full transition-all duration-300 ease-in-out',
+            'w-full min-w-0 overflow-x-hidden transition-all duration-300 ease-in-out',
             sidebarOpen
               ? 'laptop:pr-[280px] desktop:pr-[280px]'
               : 'pr-0'
@@ -80,12 +80,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         >
           <main
             className={cn(
-              'box-border mx-auto transition-all duration-300 ease-in-out',
-              // عرض دقیق main (شامل padding داخلی)
+              'box-border mx-auto w-full max-w-full transition-all duration-300 ease-in-out',
               sidebarOpen
-                ? 'laptop:w-[1360px] desktop:w-[1360px]'
-                : 'laptop:w-[1550px] desktop:w-[1550px]',
-              // پدینگ داخلی
+                ? 'desktop:max-w-[1360px] widescreen:max-w-[1360px]'
+                : 'desktop:max-w-[1550px] widescreen:max-w-[1550px]',
               'px-2 pb-8 pt-4 mobile:px-3 tablet:px-5 laptop:px-6 desktop:px-8'
             )}
           >

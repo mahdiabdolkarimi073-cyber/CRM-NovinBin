@@ -52,13 +52,14 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground transition-colors duration-300" dir="rtl">
+    <div className="min-h-screen overflow-x-hidden bg-background text-foreground transition-colors duration-300" dir="rtl">
       <GlobalNavbar sidebarOpen={sidebarOpen} onToggleSidebar={toggleSidebar} variant="super-admin" />
       <SuperAdminSidebar open={sidebarOpen} onToggle={toggleSidebar} />
       <main
         className={cn(
-          'mx-auto max-w-[1470px] px-4 pb-10 pt-6 transition-all duration-300 ease-in-out lg:px-6',
-          sidebarOpen ? 'lg:pr-[280px]' : 'lg:pr-4'
+          'box-border mx-auto w-full max-w-full px-4 pb-10 pt-6 transition-all duration-300 ease-in-out lg:px-6',
+          sidebarOpen ? 'lg:pr-[280px]' : 'lg:pr-4',
+          'desktop:max-w-[1470px] widescreen:max-w-[1470px]'
         )}
       >
         {children}
