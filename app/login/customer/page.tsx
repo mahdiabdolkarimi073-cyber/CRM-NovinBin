@@ -34,7 +34,7 @@ export default function CustomerLoginPage() {
     }
     toast.success('خوش آمدید');
     if (result.profile?.userType === 'customer') {
-      router.push('/portal');
+      window.location.href = '/portal';
     } else {
       toast.error('این حساب مشتری نیست');
     }

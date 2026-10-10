@@ -58,7 +58,7 @@ export default function DemoLoginPage() {
         setLoading(false);
         return;
       }
-      router.push('/dashboard');
+      window.location.href = '/dashboard';
     } catch {
       setError('خطای ارتباط با سرور');
       setLoading(false);

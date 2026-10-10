@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
 
     const token = jwt.sign({ academyUserId: account.id, role: account.role, username: account.username }, JWT_SECRET, { expiresIn: '30d' });
     const response = NextResponse.json({ success: true, user: { id: account.id, username: account.username, role: account.role, firstName: account.firstName, lastName: account.lastName } });
-    response.cookies.set('academy_token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 60 * 60 * 24 * 30, path: '/' });
+    response.cookies.set('academy_token', token, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 60 * 60 * 24 * 30, path: '/' });
     return response;
   } catch {
     return NextResponse.json({ error: 'ثبت‌نام انجام نشد' }, { status: 500 });

@@ -10,7 +10,10 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     let { slug, password } = body;
 
+    console.log('[demo/login] Request received', { hasSlug: !!slug, hasPassword: !!password });
+
     if (!slug || !password) {
+      console.log('[demo/login] Missing slug or password');
       return NextResponse.json({ error: 'slug و رمز عبور الزامی است' }, { status: 400 });
     }
 
@@ -24,27 +27,33 @@ export async function POST(req: NextRequest) {
     });
 
     if (!demo) {
+      console.log('[demo/login] Demo not found', { slug });
       return NextResponse.json({ error: 'دمو یافت نشد' }, { status: 404 });
     }
 
     if (demo.status === 'expired' || new Date() > demo.expiryDate) {
+      console.log('[demo/login] Demo expired', { slug, status: demo.status });
       return NextResponse.json({ error: 'این دمو منقضی شده است', expired: true }, { status: 403 });
     }
 
     if (demo.status === 'suspended') {
+      console.log('[demo/login] Demo suspended', { slug });
       return NextResponse.json({ error: 'این دمو موقتاً غیرفعال شده است', suspended: true }, { status: 403 });
     }
 
     if (!demo.demoPassword) {
+      console.log('[demo/login] No demo password set', { slug });
       return NextResponse.json({ error: 'رمز عبور تنظیم نشده است' }, { status: 500 });
     }
 
     const valid = bcrypt.compareSync(password, demo.demoPassword);
     if (!valid) {
+      console.log('[demo/login] Password mismatch', { slug });
       return NextResponse.json({ error: 'رمز عبور اشتباه است' }, { status: 401 });
     }
 
     if (!demo.demoUserId) {
+      console.log('[demo/login] No demo user ID', { slug });
       return NextResponse.json({ error: 'کاربر دمو یافت نشد' }, { status: 500 });
     }
 
@@ -54,8 +63,11 @@ export async function POST(req: NextRequest) {
     });
 
     if (!demoProfile || !demoProfile.active) {
+      console.log('[demo/login] Demo profile inactive or missing', { slug, hasProfile: !!demoProfile, active: demoProfile?.active });
       return NextResponse.json({ error: 'حساب کاربری غیرفعال است' }, { status: 403 });
     }
+
+    console.log('[demo/login] Credentials validated, signing JWT', { slug, demoUserId: demo.demoUserId });
 
     // Create JWT token with demo info
     const token = jwt.sign(
@@ -108,14 +120,16 @@ export async function POST(req: NextRequest) {
 
     response.cookies.set('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: true,
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24, // 1 day
+      maxAge: 60 * 60 * 24,
       path: '/',
     });
 
+    console.log('[demo/login] Cookie set, login success', { slug, hasCookie: true });
     return response;
   } catch (error: any) {
+    console.error('[demo/login] Server error:', error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

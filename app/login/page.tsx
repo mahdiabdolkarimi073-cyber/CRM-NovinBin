@@ -37,11 +37,11 @@ export default function UnifiedLoginPage() {
     toast.success('خوش آمدید');
     const profile = result.profile;
     if (profile?.userType === 'customer') {
-      router.push('/portal');
+      window.location.href = '/portal';
     } else if (profile?.role === 'super_admin' || profile?.role === 'owner') {
-      router.push('/super-admin');
+      window.location.href = '/super-admin';
     } else {
-      router.push('/dashboard');
+      window.location.href = '/dashboard';
     }
   };
 

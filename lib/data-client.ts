@@ -14,7 +14,7 @@ export async function fetchData<T = any>(
   if (options?.orderBy) params.set('orderBy', JSON.stringify(options.orderBy));
   if (options?.take) params.set('take', String(options.take));
 
-  const res = await fetch(`/api/data?${params}`);
+  const res = await fetch(`/api/data?${params}`, { credentials: 'include' });
   const json = await res.json();
   if (!res.ok) throw new Error(json.error || 'Fetch failed');
   return json.data as T[];
@@ -27,6 +27,7 @@ export async function createData<T = any>(
 ): Promise<T> {
   const res = await fetch('/api/data', {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ model, data, include }),
   });
@@ -43,6 +44,7 @@ export async function updateData<T = any>(
 ): Promise<T> {
   const res = await fetch('/api/data', {
     method: 'PATCH',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ model, where, data, include }),
   });
@@ -54,6 +56,7 @@ export async function updateData<T = any>(
 export async function deleteData(model: string, where: Record<string, any>): Promise<void> {
   const res = await fetch('/api/data', {
     method: 'DELETE',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ model, where }),
   });

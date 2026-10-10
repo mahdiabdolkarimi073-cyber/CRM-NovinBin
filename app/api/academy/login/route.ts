@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
     const response = NextResponse.json({ user: { id: account.id, username: account.username, role: account.role, firstName: account.firstName, lastName: account.lastName } });
     response.cookies.set('academy_token', token, {
       httpOnly: true,
-      secure: false,
+      secure: true,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 30,
       path: '/',

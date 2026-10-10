@@ -13,10 +13,19 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { email, phone, password } = body;
 
+    console.log('[auth/login] Request received', {
+      hasEmail: !!email,
+      hasPhone: !!phone,
+      hasPassword: !!password,
+      identifier: email || phone || 'none',
+    });
+
     if (!password) {
+      console.log('[auth/login] Missing password');
       return NextResponse.json({ error: 'رمز عبور الزامی است' }, { status: 400 });
     }
     if (!email && !phone) {
+      console.log('[auth/login] Missing identifier (email and phone)');
       return NextResponse.json({ error: 'ایمیل یا شماره موبایل الزامی است' }, { status: 400 });
     }
 
@@ -37,17 +46,22 @@ export async function POST(req: NextRequest) {
     }
 
     if (!user || !user.profile) {
+      console.log('[auth/login] User not found', { hasEmail: !!email, hasPhone: !!phone });
       return NextResponse.json({ error: 'کاربر یافت نشد' }, { status: 404 });
     }
 
     if (!user.profile.active) {
+      console.log('[auth/login] Account inactive', { userId: user.id });
       return NextResponse.json({ error: 'حساب شما غیرفعال است' }, { status: 403 });
     }
 
     const valid = bcrypt.compareSync(password, user.passwordHash);
     if (!valid) {
+      console.log('[auth/login] Password mismatch', { userId: user.id });
       return NextResponse.json({ error: 'رمز عبور اشتباه است' }, { status: 401 });
     }
+
+    console.log('[auth/login] Credentials validated, signing JWT', { userId: user.id });
 
     const token = jwt.sign(
       { userId: user.id, email: user.email, role: user.profile.role},
@@ -100,14 +114,16 @@ export async function POST(req: NextRequest) {
 
     response.cookies.set('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: true,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
       path: '/',
     });
 
+    console.log('[auth/login] Cookie set, login success', { userId: user.id, hasCookie: true });
     return response;
   } catch (error: any) {
+    console.error('[auth/login] Server error:', error.message);
     return NextResponse.json({ error: 'خطای سرور: ' + error.message }, { status: 500 });
   }
 }
