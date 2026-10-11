@@ -1,0 +1,192 @@
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/components/providers/auth-provider';
+import {
+  Shield, ChevronDown,
+  Inbox, Landmark, Warehouse, Award, ClipboardList, TrendingUp,
+  FileSearch,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import {
+  coreItems, cartableItems, financeItems, inventoryItems, clubItems, adminItems,
+  reportsItems, salesItems, serviceItems, isSuperAdminRole, filterByAccess,
+  type NavItem, type NavGroup,
+} from '@/lib/nav-config';
+
+const STORAGE_KEY = 'sb-open';
+
+function matches(pathname: string, href: string) {
+  return pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
+}
+
+interface SidebarProps {
+  open: boolean;
+  onToggle: () => void;
+}
+
+export function DashboardSidebar({ open, onToggle }: SidebarProps) {
+  const pathname = usePathname();
+  const { profile, isDemo } = useAuth();
+
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+
+  const isSuperAdmin = isSuperAdminRole(profile?.role) && !isDemo;
+
+  const visibleCore = filterByAccess(profile, coreItems, isDemo);
+  const visibleClub = filterByAccess(profile, clubItems, isDemo);
+  const visibleFinance = filterByAccess(profile, financeItems, isDemo);
+  const visibleInventory = filterByAccess(profile, inventoryItems, isDemo);
+  const visibleCartable = filterByAccess(profile, cartableItems, isDemo);
+  const visibleAdmin = filterByAccess(profile, adminItems, isDemo);
+  const visibleReports = filterByAccess(profile, reportsItems, isDemo);
+  const visibleSales = filterByAccess(profile, salesItems, isDemo);
+  const visibleService = filterByAccess(profile, serviceItems, isDemo);
+
+  const groups: NavGroup[] = [
+    { label: 'کارتابل', icon: Inbox, items: visibleCartable },
+    { label: 'گزارشات', icon: ClipboardList, items: visibleReports },
+    { label: 'مالی', icon: Landmark, items: visibleFinance },
+    { label: 'خدمات', icon: FileSearch, items: visibleService },
+    { label: 'فروش', icon: TrendingUp, items: visibleSales },
+    { label: 'انبارداری', icon: Warehouse, items: visibleInventory },
+    { label: 'باشگاه مشتریان', icon: Award, items: visibleClub },
+  ];
+
+  // Auto-expand group containing active route
+  useEffect(() => {
+    groups.forEach((g) => {
+      if (g.items.some((item) => matches(pathname, item.href))) {
+        setExpandedGroups((prev) => new Set(prev).add(g.label));
+      }
+    });
+    if (visibleAdmin.some((item) => matches(pathname, item.href))) {
+      setExpandedGroups((prev) => new Set(prev).add('مدیریت'));
+    }
+  }, [pathname]);
+
+  const toggleGroup = useCallback((label: string) => {
+    setExpandedGroups((prev) => {
+      const updated = new Set(prev);
+      if (updated.has(label)) updated.delete(label);
+      else updated.add(label);
+      return updated;
+    });
+  }, []);
+
+  const closeSidebar = useCallback(() => onToggle(), [onToggle]);
+
+  const renderNavLink = (item: NavItem) => {
+    const active = matches(pathname, item.href);
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        onClick={closeSidebar}
+        className={cn(
+          'flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors',
+          active
+            ? 'bg-accent/10 text-accent font-semibold'
+            : 'text-sidebar-muted-foreground hover:text-sidebar-foreground sb-hover'
+        )}
+      >
+        <item.icon className="h-[18px] w-[18px] shrink-0" />
+        <span className="truncate">{item.label}</span>
+        {active && <span className="absolute right-0 h-5/6 w-[3px] rounded-l-full bg-accent" />}
+      </Link>
+    );
+  };
+
+  const renderGroup = (group: NavGroup) => {
+    if (!group.items.length) return null;
+    const groupActive = group.items.some((item) => matches(pathname, item.href));
+    const expanded = expandedGroups.has(group.label);
+    return (
+      <div key={group.label}>
+        <button
+          className={cn(
+            'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors',
+            groupActive ? 'text-accent' : 'text-sidebar-muted-foreground hover:text-sidebar-foreground sb-hover'
+          )}
+          onClick={() => toggleGroup(group.label)}
+        >
+          <group.icon className="h-[18px] w-[18px] shrink-0" />
+          <span className="flex-1 truncate text-right">{group.label}</span>
+          <ChevronDown className={cn('h-4 w-4 shrink-0 transition-transform duration-200', expanded && 'rotate-180')} />
+        </button>
+        <div className={cn('overflow-hidden transition-all duration-300', expanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0')}>
+          <div className="flex flex-col gap-0.5 pr-4 pt-1">
+            {group.items.map((item) => renderNavLink(item))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <>
+      {/* Overlay for small screens when sidebar is open */}
+      {open && (
+        <div
+          className="fixed inset-0 z-30 bg-slate-900/30 backdrop-blur-[2px] laptop:hidden"
+          onClick={closeSidebar}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={cn(
+          'fixed z-40 flex flex-col bg-sidebar text-sidebar-foreground border-l border-border transition-transform duration-300 ease-in-out scroll-smooth',
+          'w-[85vw] max-w-[300px] tablet:w-[272px] laptop:w-[272px]',
+          open ? 'translate-x-0' : 'translate-x-full',
+          'laptop:translate-x-0 desktop:translate-x-0',
+          !open && 'laptop:translate-x-full desktop:translate-x-full'
+        )}
+        style={{ right: 0, top: '64px', height: 'calc(100vh - 64px)', overflowY: 'auto', scrollBehavior: 'smooth' }}
+        dir="rtl"
+      >
+        {/* Navigation */}
+        <nav className="sb-nav-scroll flex-1 px-3 py-2">
+          {/* Core links */}
+          <div className="flex flex-col gap-0.5">
+            {visibleCore.map((item) => renderNavLink(item))}
+          </div>
+
+          <div className="my-3 h-px bg-border/40" />
+
+          {/* Collapsible groups */}
+          {groups.filter((g) => g.items.length > 0).map((g) => renderGroup(g))}
+
+          {/* Admin group */}
+          {visibleAdmin.length > 0 && (
+            <>
+              <div className="my-3 h-px bg-border/40" />
+              {renderGroup({ label: 'مدیریت', icon: Shield, items: visibleAdmin })}
+            </>
+          )}
+
+          {/* Super admin link */}
+          {isSuperAdmin && (
+            <Link
+              href="/super-admin"
+              onClick={closeSidebar}
+              className={cn(
+                'mt-2 flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors',
+                matches(pathname, '/super-admin')
+                  ? 'bg-accent/10 text-accent font-semibold'
+                  : 'text-sidebar-muted-foreground hover:text-sidebar-foreground sb-hover'
+              )}
+            >
+              <Shield className="h-[18px] w-[18px] shrink-0" />
+              <span className="truncate">پنل سوپرادمین</span>
+            </Link>
+          )}
+        </nav>
+      </aside>
+    </>
+  );
+}
+
+export { DashboardSidebar as Navbar };

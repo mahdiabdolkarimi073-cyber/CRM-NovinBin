@@ -1,0 +1,1053 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import jwt from 'jsonwebtoken';
+import type { Prisma } from '@prisma/client';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
+
+function serializeData(data: any): any {
+  if (data === null || data === undefined) return data;
+  if (typeof data === 'bigint') return Number(data);
+  if (data instanceof Date) return data.toISOString();
+  if (Array.isArray(data)) return data.map(serializeData);
+  if (typeof data === 'object') {
+    const result: any = {};
+    for (const key of Object.keys(data)) {
+      result[key] = serializeData(data[key]);
+    }
+    return result;
+  }
+  return data;
+}
+
+// Map model names to Prisma delegates
+const MODEL_MAP: Record<string, any> = {
+  customers: prisma.customer,
+  leads: prisma.lead,
+  opportunities: prisma.opportunity,
+  tasks: prisma.task,
+  task_comments: prisma.taskComment,
+  task_assignees: prisma.taskAssignee,
+  products: prisma.product,
+  product_categories: prisma.productCategory,
+  orders: prisma.order,
+  order_items: prisma.orderItem,
+  invoices: prisma.invoice,
+  meetings: prisma.meeting,
+  meeting_participants: prisma.meetingParticipant,
+  meeting_assignments: prisma.meetingAssignment,
+  meeting_images: prisma.meetingImage,
+  meeting_referrals: prisma.meetingReferral,
+  tickets: prisma.ticket,
+  notifications: prisma.notification,
+  loyalty_transactions: prisma.loyaltyTransaction,
+  profiles: prisma.profile,
+  organizations: prisma.organization,
+  branches: prisma.branch,
+  departments: prisma.department,
+  teams: prisma.team,
+  team_members: prisma.teamMember,
+  accounts: prisma.account,
+  journal_entries: prisma.journalEntry,
+  journal_lines: prisma.journalLine,
+  fiscal_years: prisma.fiscalYear,
+  fiscal_periods: prisma.fiscalPeriod,
+  cost_centers: prisma.costCenter,
+  bank_accounts: prisma.bankAccount,
+  cash_funds: prisma.cashFund,
+  fund_transfers: prisma.fundTransfer,
+  cheques: prisma.cheque,
+  payments: prisma.payment,
+  expense_claims: prisma.expenseClaim,
+  expense_claim_items: prisma.expenseClaimItem,
+  warehouses: prisma.warehouse,
+  stock_movements: prisma.stockMovement,
+  suppliers: prisma.supplier,
+  purchase_orders: prisma.purchaseOrder,
+  employees: prisma.employee,
+  attendance_records: prisma.attendanceRecord,
+  leave_requests: prisma.leaveRequest,
+  registration_requests: prisma.registrationRequest,
+  daily_work_reports: prisma.dailyWorkReport,
+  monthly_work_reports: prisma.monthlyWorkReport,
+  work_report_images: prisma.workReportImage,
+  customer_assignments: prisma.customerAssignment,
+  staff_contracts: prisma.staffContract,
+  pre_invoices: prisma.preInvoice,
+  pre_invoice_items: prisma.preInvoiceItem,
+  sales_returns: prisma.salesReturn,
+  return_items: prisma.returnItem,
+  receipts: prisma.receipt,
+  call_logs: prisma.callLog,
+  demos: prisma.demo,
+  academy_students: prisma.academyStudent,
+  academy_enrollments: prisma.academyEnrollment,
+  page_permissions: prisma.pagePermission,
+  user_manager: prisma.userManager,
+  customer_chat_messages: prisma.customerChatMessage,
+  subscription_plans: prisma.subscriptionPlan,
+  modules: prisma.module,
+  tenant_modules: prisma.tenantModule,
+  subscriptions: prisma.subscription,
+  usage_records: prisma.usageRecord,
+  billing_invoices: prisma.billingInvoice,
+  audit_logs: prisma.auditLog,
+  stock_transfers: prisma.stockTransfer,
+  customer_interactions: prisma.customerInteraction,
+  customer_segments: prisma.customerSegment,
+  customer_segment_members: prisma.customerSegmentMember,
+  loyalty_rewards: prisma.loyaltyReward,
+  loyalty_redemptions: prisma.loyaltyRedemption,
+  demo_activities: prisma.demoActivity,
+  approval_requests: prisma.approvalRequest,
+  documents: prisma.document,
+  knowledge_articles: prisma.knowledgeArticle,
+  goals: prisma.goal,
+  kpi_records: prisma.kpiRecord,
+  personal_notes: prisma.personalNote,
+  staff_chat_messages: prisma.staffChatMessage,
+  my_customers: prisma.myCustomer,
+  ticket_messages: prisma.ticketMessage,
+  contact_parties: prisma.contactParty,
+  contact_related_persons: prisma.contactRelatedPerson,
+  contact_addresses: prisma.contactAddress,
+  contact_phones: prisma.contactPhone,
+  payment_announcements: prisma.paymentAnnouncement,
+  withdrawal_announcements: prisma.withdrawalAnnouncement,
+  my_cheques: prisma.myCheque,
+  petty_cash_custodians: prisma.pettyCashCustodian,
+  petty_cash_payments: prisma.pettyCashPayment,
+  petty_cash_expenses: prisma.pettyCashExpense,
+  petty_cash_expense_statements: prisma.pettyCashExpenseStatement,
+  petty_cash_expense_statement_items: prisma.pettyCashExpenseStatementItem,
+  petty_cash_merge_statements: prisma.pettyCashMergeStatement,
+  petty_cash_merge_histories: prisma.pettyCashMergeHistory,
+  document_issuances: prisma.documentIssuance,
+  document_issuance_lines: prisma.documentIssuanceLine,
+  document_issuance_histories: prisma.documentIssuanceHistory,
+  contact_settlements: prisma.contactSettlement,
+  contact_settlement_items: prisma.contactSettlementItem,
+  contact_settlement_history: prisma.contactSettlementHistory,
+  received_cheques: prisma.receivedCheque,
+  received_cheque_operations: prisma.receivedChequeOperation,
+  cheque_refunds: prisma.chequeRefund,
+  cheque_refund_history: prisma.chequeRefundHistory,
+  cheque_clearings: prisma.chequeClearing,
+  cheque_clearing_history: prisma.chequeClearingHistory,
+  card_readers: prisma.cardReader,
+  card_reader_transactions: prisma.cardReaderTransaction,
+  card_reader_settlements: prisma.cardReaderSettlement,
+  card_reader_settlement_items: prisma.cardReaderSettlementItem,
+  card_reader_settlement_history: prisma.cardReaderSettlementHistory,
+  card_reader_history: prisma.cardReaderHistory,
+  stock_takings: prisma.stockTaking,
+  stock_taking_items: prisma.stockTakingItem,
+  stock_taking_history: prisma.stockTakingHistory,
+  service_purchase_invoices: prisma.servicePurchaseInvoice,
+  service_purchase_invoice_items: prisma.servicePurchaseInvoiceItem,
+  service_purchase_invoice_history: prisma.servicePurchaseInvoiceHistory,
+  warehouse_receipts: prisma.warehouseReceipt,
+  warehouse_receipt_items: prisma.warehouseReceiptItem,
+  warehouse_receipt_history: prisma.warehouseReceiptHistory,
+  financial_announcements: prisma.financialAnnouncement,
+  financial_announcement_items: prisma.financialAnnouncementItem,
+  financial_announcement_history: prisma.financialAnnouncementHistory,
+  commissions: prisma.commission,
+  commission_items: prisma.commissionItem,
+  commission_adjustments: prisma.commissionAdjustment,
+  commission_history: prisma.commissionHistory,
+  commission_rules: prisma.commissionRule,
+  customs_declarations: prisma.customsDeclaration,
+  customs_declaration_items: prisma.customsDeclarationItem,
+  customs_declaration_costs: prisma.customsDeclarationCost,
+  customs_declaration_payments: prisma.customsDeclarationPayment,
+  customs_declaration_history: prisma.customsDeclarationHistory,
+  process_agents: prisma.processAgent,
+  process_agent_roles: prisma.processAgentRole,
+  process_agent_debts: prisma.processAgentDebt,
+  process_agent_history: prisma.processAgentHistory,
+  sales_invoices: prisma.salesInvoice,
+  sales_invoice_items: prisma.salesInvoiceItem,
+  sales_invoice_history: prisma.salesInvoiceHistory,
+  lead_referrals: prisma.leadReferral,
+  site_verifications: prisma.siteVerification,
+  host_domains: prisma.hostDomain,
+  sms_logs: prisma.smsLog,
+  irnic_identities: prisma.irnicIdentity,
+  employment_applications: prisma.employmentApplication,
+  graphic_works: prisma.graphicWork,
+  graphic_work_files: prisma.graphicWorkFile,
+  graphic_work_images: prisma.graphicWorkImage,
+  graphic_work_access: prisma.graphicWorkAccess,
+  social_dm_messages: prisma.socialDMMessage,
+  social_groups: prisma.socialGroup,
+  social_group_members: prisma.socialGroupMember,
+  social_group_messages: prisma.socialGroupMessage,
+  social_group_message_reads: prisma.socialGroupMessageRead,
+  social_call_sessions: prisma.socialCallSession,
+  social_call_signals: prisma.socialCallSignal,
+  customer_social_folders: prisma.customerSocialFolder,
+  customer_social_folder_members: prisma.customerSocialFolderMember,
+  customer_social_folder_customers: prisma.customerSocialFolderCustomer,
+  customer_social_messages: prisma.customerSocialMessage,
+  customer_social_call_sessions: prisma.customerSocialCallSession,
+  customer_social_call_signals: prisma.customerSocialCallSignal,
+  secretariat_letters: prisma.secretariatLetter,
+  secretariat_referrals: prisma.secretariatReferral,
+  secretariat_signatures: prisma.secretariatSignature,
+  secretariat_attachments: prisma.secretariatAttachment,
+  secretariat_timeline: prisma.secretariatTimeline,
+  customer_devices: prisma.customerDevice,
+  ticket_departments: prisma.ticketDepartment,
+  ticket_department_members: prisma.ticketDepartmentMember,
+  tax_moadi_settings: prisma.taxMoadiSetting,
+  tax_moadi_fiscal_memories: prisma.taxMoadiFiscalMemory,
+  tax_moadi_invoices: prisma.taxMoadiInvoice,
+  tax_moadi_invoice_items: prisma.taxMoadiInvoiceItem,
+  tax_moadi_send_logs: prisma.taxMoadiSendLog,
+  tax_moadi_audit_logs: prisma.taxMoadiAuditLog,
+  insurance_companies: prisma.insuranceCompany,
+  insurance_types: prisma.insuranceType,
+  insurance_policies: prisma.insurancePolicy,
+  insurance_policy_endorsements: prisma.insurancePolicyEndorsement,
+  insurance_policy_history: prisma.insurancePolicyHistory,
+  insurance_quote_requests: prisma.insuranceQuoteRequest,
+  insurance_quotes: prisma.insuranceQuote,
+  insurance_claims: prisma.insuranceClaim,
+  insurance_claim_history: prisma.insuranceClaimHistory,
+  insurance_commissions: prisma.insuranceCommission,
+  insurance_payments: prisma.insurancePayment,
+  insurance_renewals: prisma.insuranceRenewal,
+  insurance_documents: prisma.insuranceDocument,
+  insurance_activities: prisma.insuranceActivity,
+  insurance_settings: prisma.insuranceSetting,
+};
+
+function getAuth(req: NextRequest) {
+  const token = req.cookies.get('token')?.value;
+  if (!token) return null;
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; email: string; role: string; demoSlug?: string; demoOrgId?: string; demoExpiry?: string };
+    // Server-side demo expiry enforcement: even with an active session, deny access after expiry
+    if (decoded.demoSlug && decoded.demoExpiry) {
+      if (new Date(decoded.demoExpiry) < new Date()) {
+        return null;
+      }
+    }
+    return decoded;
+  } catch {
+    return null;
+  }
+}
+
+// Models that demo users must never access (organizational / system management data)
+const DEMO_RESTRICTED_MODELS = new Set([
+  'demos', 'demo_activities', 'organizations', 'profiles', 'user_manager',
+  'subscription_plans', 'modules', 'tenant_modules', 'subscriptions',
+  'usage_records', 'billing_invoices', 'audit_logs', 'page_permissions',
+  'registration_requests',
+]);
+
+// Models that have an orgId field — used to scope demo user data to their demo organization
+const ORG_SCOPED_MODELS = new Set([
+  'customers', 'leads', 'opportunities', 'tasks', 'task_comments', 'products',
+  'product_categories', 'orders', 'invoices', 'meetings', 'meeting_assignments',
+  'meeting_images', 'meeting_referrals', 'tickets', 'notifications',
+  'loyalty_transactions', 'loyalty_rewards', 'loyalty_redemptions',
+  'branches', 'departments', 'teams', 'team_members',
+  'accounts', 'journal_entries', 'fiscal_years', 'fiscal_periods',
+  'cost_centers', 'bank_accounts', 'cash_funds', 'fund_transfers',
+  'cheques', 'payments', 'expense_claims', 'expense_claim_items',
+  'warehouses', 'stock_movements', 'suppliers', 'purchase_orders',
+  'employees', 'attendance_records', 'leave_requests',
+  'daily_work_reports', 'monthly_work_reports', 'work_report_images',
+  'customer_assignments', 'staff_contracts', 'pre_invoices', 'pre_invoice_items',
+  'sales_returns', 'return_items', 'receipts', 'call_logs',
+  'academy_students', 'academy_enrollments',
+  'customer_interactions', 'customer_segments', 'customer_segment_members',
+  'stock_transfers', 'documents', 'knowledge_articles', 'goals', 'kpi_records',
+  'approval_requests', 'customer_chat_messages',
+  'contact_parties', 'contact_related_persons', 'contact_addresses', 'contact_phones',
+  'payment_announcements', 'withdrawal_announcements', 'my_cheques',
+  'petty_cash_custodians', 'petty_cash_payments', 'petty_cash_expenses',
+  'petty_cash_expense_statements',
+  'petty_cash_merge_statements', 'petty_cash_merge_histories',
+  'document_issuances', 'document_issuance_lines', 'document_issuance_histories',
+  'contact_settlements', 'contact_settlement_items', 'contact_settlement_history',
+  'received_cheques', 'received_cheque_operations',
+  'cheque_refunds', 'cheque_refund_history',
+  'cheque_clearings', 'cheque_clearing_history',
+  'card_readers', 'card_reader_transactions', 'card_reader_settlements',
+  'card_reader_settlement_items', 'card_reader_settlement_history', 'card_reader_history',
+  'stock_takings', 'stock_taking_items', 'stock_taking_history',
+  'service_purchase_invoices', 'service_purchase_invoice_items', 'service_purchase_invoice_history',
+  'warehouse_receipts', 'warehouse_receipt_items', 'warehouse_receipt_history',
+  'financial_announcements', 'financial_announcement_items', 'financial_announcement_history',
+  'commissions', 'commission_items', 'commission_adjustments', 'commission_history', 'commission_rules',
+  'customs_declarations', 'customs_declaration_items', 'customs_declaration_costs',
+  'customs_declaration_payments', 'customs_declaration_history',
+  'process_agents', 'process_agent_roles', 'process_agent_debts', 'process_agent_history',
+  'sales_invoices', 'sales_invoice_items', 'sales_invoice_history',
+  'lead_referrals', 'site_verifications', 'host_domains', 'sms_logs',
+  'irnic_identities', 'employment_applications',
+  'graphic_works', 'graphic_work_files', 'graphic_work_images', 'graphic_work_access',
+  'social_dm_messages', 'social_groups', 'social_group_members',
+  'social_group_messages', 'social_group_message_reads',
+  'social_call_sessions', 'social_call_signals',
+  'customer_social_folders', 'customer_social_folder_members', 'customer_social_folder_customers',
+  'customer_social_messages', 'customer_social_call_sessions', 'customer_social_call_signals',
+  'secretariat_letters', 'secretariat_referrals', 'secretariat_signatures',
+  'secretariat_attachments', 'secretariat_timeline',
+  'customer_devices',
+  'ticket_departments', 'ticket_department_members',
+  'staff_chat_messages', 'personal_notes', 'my_customers', 'ticket_messages',
+  'tax_moadi_settings', 'tax_moadi_fiscal_memories', 'tax_moadi_invoices',
+  'tax_moadi_invoice_items', 'tax_moadi_send_logs', 'tax_moadi_audit_logs',
+  'insurance_companies', 'insurance_types', 'insurance_policies',
+  'insurance_policy_endorsements', 'insurance_policy_history',
+  'insurance_quote_requests', 'insurance_quotes',
+  'insurance_claims', 'insurance_claim_history',
+  'insurance_commissions', 'insurance_payments',
+  'insurance_renewals', 'insurance_documents', 'insurance_activities',
+  'insurance_settings',
+]);
+
+// Apply orgId scoping for demo users to prevent cross-org data access
+function applyDemoOrgScope(auth: any, model: string, where: any): any {
+  if (!auth?.demoOrgId) return where;
+  if (!ORG_SCOPED_MODELS.has(model)) return where;
+  return { ...where, orgId: auth.demoOrgId };
+}
+
+function isDemoRestricted(auth: any, model: string): boolean {
+  if (!auth?.demoSlug) return false;
+  return DEMO_RESTRICTED_MODELS.has(model);
+}
+
+const MODEL_PAGE: Record<string, string> = {
+  customers: '/dashboard/customers', leads: '/dashboard/leads', opportunities: '/dashboard/pipeline',
+  tasks: '/dashboard/tasks',
+  task_assignees: '/dashboard/tasks', products: '/dashboard/products', product_categories: '/dashboard/products',
+  orders: '/dashboard/orders', invoices: '/dashboard/invoices', meetings: '/dashboard/meetings',
+  tickets: '/dashboard/tickets', notifications: '/dashboard/notifications', profiles: '/dashboard/users',
+  organizations: '/dashboard/organization', accounts: '/dashboard/accounting', journal_entries: '/dashboard/accounting',
+  bank_accounts: '/dashboard/bank-accounts', cash_funds: '/dashboard/accounting', cheques: '/dashboard/accounting',
+  payments: '/dashboard/payments', expense_claims: '/dashboard/hr', employees: '/dashboard/hr',
+  attendance_records: '/dashboard/hr', leave_requests: '/dashboard/hr', registration_requests: '/dashboard/registration-approval',
+  daily_work_reports: '/dashboard/work-reports/daily', monthly_work_reports: '/dashboard/work-reports/monthly',
+  customer_assignments: '/dashboard/customer-assignment', staff_contracts: '/dashboard/contracts',
+  pre_invoices: '/dashboard/pre-invoices', sales_returns: '/dashboard/returns', receipts: '/dashboard/receipts',
+  call_logs: '/dashboard/calls', demos: '/dashboard/demos', academy_students: '/dashboard/finance-academy',
+  customer_chat_messages: '/dashboard/customers-chat', page_permissions: '/dashboard/users', user_manager: '/dashboard/users',
+  stock_transfers: '/dashboard/stock-transfers', customer_interactions: '/dashboard/customer-interactions',
+  customer_segments: '/dashboard/customer-segments', loyalty_rewards: '/dashboard/loyalty-rewards',
+  loyalty_transactions: '/dashboard/loyalty', demo_activities: '/dashboard/demo-activities',
+  my_customers: '/dashboard/my-customers',
+  ticket_messages: '/dashboard/tickets',
+  contact_parties: '/dashboard/contact-parties',
+  payment_announcements: '/dashboard/payment-announcements',
+  petty_cash_custodians: '/dashboard/petty-cash',
+  petty_cash_payments: '/dashboard/petty-cash',
+  petty_cash_expenses: '/dashboard/petty-cash',
+  petty_cash_expense_statements: '/dashboard/petty-cash',
+  petty_cash_expense_statement_items: '/dashboard/petty-cash',
+  petty_cash_merge_statements: '/dashboard/petty-cash-merge',
+  petty_cash_merge_histories: '/dashboard/petty-cash-merge',
+  document_issuances: '/dashboard/document-issuance',
+  document_issuance_lines: '/dashboard/document-issuance',
+  document_issuance_histories: '/dashboard/document-issuance',
+  contact_settlements: '/dashboard/contact-settlements',
+  contact_settlement_items: '/dashboard/contact-settlements',
+  contact_settlement_history: '/dashboard/contact-settlements',
+  received_cheques: '/dashboard/received-cheques',
+  received_cheque_operations: '/dashboard/received-cheques',
+  cheque_refunds: '/dashboard/cheque-refunds',
+  cheque_refund_history: '/dashboard/cheque-refunds',
+  cheque_clearings: '/dashboard/cheque-clearings',
+  cheque_clearing_history: '/dashboard/cheque-clearings',
+  card_readers: '/dashboard/card-readers',
+  card_reader_transactions: '/dashboard/card-readers',
+  card_reader_settlements: '/dashboard/card-reader-settlements',
+  card_reader_settlement_items: '/dashboard/card-reader-settlements',
+  card_reader_settlement_history: '/dashboard/card-reader-settlements',
+  card_reader_history: '/dashboard/card-readers',
+  stock_takings: '/dashboard/stock-taking',
+  stock_taking_items: '/dashboard/stock-taking',
+  stock_taking_history: '/dashboard/stock-taking',
+  service_purchase_invoices: '/dashboard/service-purchase-invoices',
+  service_purchase_invoice_items: '/dashboard/service-purchase-invoices',
+  service_purchase_invoice_history: '/dashboard/service-purchase-invoices',
+  warehouse_receipts: '/dashboard/warehouse-receipts',
+  warehouse_receipt_items: '/dashboard/warehouse-receipts',
+  warehouse_receipt_history: '/dashboard/warehouse-receipts',
+  financial_announcements: '/dashboard/financial-announcements',
+  financial_announcement_items: '/dashboard/financial-announcements',
+  financial_announcement_history: '/dashboard/financial-announcements',
+  commissions: '/dashboard/commissions',
+  commission_items: '/dashboard/commissions',
+  commission_adjustments: '/dashboard/commissions',
+  commission_history: '/dashboard/commissions',
+  commission_rules: '/dashboard/commissions',
+  customs_declarations: '/dashboard/customs-declarations',
+  customs_declaration_items: '/dashboard/customs-declarations',
+  customs_declaration_costs: '/dashboard/customs-declarations',
+  customs_declaration_payments: '/dashboard/customs-declarations',
+  customs_declaration_history: '/dashboard/customs-declarations',
+  process_agents: '/dashboard/process-agents',
+  process_agent_roles: '/dashboard/process-agents',
+  process_agent_debts: '/dashboard/process-agents',
+  process_agent_history: '/dashboard/process-agents',
+  sales_invoices: '/dashboard/sales-invoices',
+  sales_invoice_items: '/dashboard/sales-invoices',
+  sales_invoice_history: '/dashboard/sales-invoices',
+  lead_referrals: '/dashboard/leads',
+  site_verifications: '/dashboard/site-verifications',
+  host_domains: '/dashboard/host-domains',
+  sms_logs: '/dashboard/sms-logs',
+  irnic_identities: '/dashboard/irnic',
+  employment_applications: '/dashboard/employment-applications',
+  graphic_works: '/dashboard/graphic-works',
+  graphic_work_access: '/super-admin/graphic-works-access',
+  meeting_images: '/dashboard/meetings',
+  meeting_referrals: '/dashboard/meetings',
+  customer_social_folders: '/super-admin/customer-folders',
+  customer_social_folder_members: '/super-admin/customer-folders',
+  customer_social_folder_customers: '/super-admin/customer-folders',
+  customer_social_messages: '/dashboard/customer-social',
+  customer_social_call_sessions: '/dashboard/customer-social',
+  customer_social_call_signals: '/dashboard/customer-social',
+  secretariat_letters: '/dashboard/secretariat',
+  secretariat_referrals: '/dashboard/secretariat',
+  secretariat_signatures: '/dashboard/secretariat',
+  secretariat_attachments: '/dashboard/secretariat',
+  secretariat_timeline: '/dashboard/secretariat',
+  ticket_departments: '/super-admin/ticket-departments',
+  ticket_department_members: '/super-admin/ticket-departments',
+  tax_moadi_settings: '/dashboard/tax-moadi/settings',
+  tax_moadi_fiscal_memories: '/dashboard/tax-moadi/settings',
+  tax_moadi_invoices: '/dashboard/tax-moadi',
+  tax_moadi_invoice_items: '/dashboard/tax-moadi',
+  tax_moadi_send_logs: '/dashboard/tax-moadi/queue',
+  tax_moadi_audit_logs: '/dashboard/tax-moadi/audit',
+  insurance_companies: '/dashboard/insurance/companies',
+  insurance_types: '/dashboard/insurance/settings',
+  insurance_policies: '/dashboard/insurance/policies',
+  insurance_policy_endorsements: '/dashboard/insurance/policies',
+  insurance_policy_history: '/dashboard/insurance/policies',
+  insurance_quote_requests: '/dashboard/insurance/quotes',
+  insurance_quotes: '/dashboard/insurance/quotes',
+  insurance_claims: '/dashboard/insurance/claims',
+  insurance_claim_history: '/dashboard/insurance/claims',
+  insurance_commissions: '/dashboard/insurance/commissions',
+  insurance_payments: '/dashboard/insurance/payments',
+  insurance_renewals: '/dashboard/insurance/renewals',
+  insurance_documents: '/dashboard/insurance/policies',
+  insurance_activities: '/dashboard/insurance',
+  insurance_settings: '/dashboard/insurance/settings',
+};
+
+const SHARED_MODELS = new Set([
+  'profiles', 'user_manager', 'customers', 'notifications',
+  'personal_notes', 'staff_chat_messages', 'my_customers', 'ticket_messages',
+  'task_assignees', 'lead_referrals', 'site_verifications', 'irnic_identities',
+  'employment_applications', 'graphic_work_access', 'meeting_images',
+  'meeting_referrals',
+  'social_dm_messages', 'social_groups', 'social_group_members',
+  'social_group_messages', 'social_group_message_reads',
+  'social_call_sessions', 'social_call_signals',
+  'customer_social_folders', 'customer_social_folder_members',
+  'customer_social_folder_customers', 'customer_social_messages',
+  'customer_social_call_sessions', 'customer_social_call_signals',
+  'secretariat_letters', 'secretariat_referrals', 'secretariat_signatures',
+  'secretariat_attachments', 'secretariat_timeline',
+  'customer_devices',
+  'ticket_departments',
+  'ticket_department_members',
+]);
+
+async function canAccess(auth: { userId: string; demoSlug?: string }, model: string): Promise<boolean> {
+  const page = MODEL_PAGE[model];
+  if (!page) return true;
+  const profile = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { userType: true, role: true, active: true, assignedPages: true, customerId: true } });
+  if (!profile?.active) return false;
+  // Demo users: enforce module restrictions even if role is 'owner'
+  if (auth.demoSlug) {
+    const pages = profile.assignedPages;
+    if (pages && Array.isArray(pages) && pages.includes(page)) return true;
+    return false;
+  }
+  if (profile.role === 'owner' || profile.role === 'super_admin') return true;
+  if (model === 'customer_chat_messages' && profile.userType === 'customer' && profile.customerId) return true;
+  if (SHARED_MODELS.has(model)) return true;
+  const pages = profile.assignedPages;
+  if (pages && Array.isArray(pages) && pages.includes(page)) return true;
+  const perm = await prisma.pagePermission.findFirst({ where: { profileId: auth.userId, pagePath: page } });
+  return !!perm;
+}
+
+// GET /api/data?model=customers&filter=...
+export async function GET(req: NextRequest) {
+  const auth = getAuth(req);
+  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const { searchParams } = new URL(req.url);
+  const model = searchParams.get('model');
+  if (!model || !MODEL_MAP[model]) {
+    return NextResponse.json({ error: 'Invalid model' }, { status: 400 });
+  }
+
+  const whereStr = searchParams.get('where');
+  if (!(await canAccess(auth, model))) return NextResponse.json({ error: 'دسترسی به این بخش برای شما فعال نیست' }, { status: 403 });
+  if (isDemoRestricted(auth, model)) return NextResponse.json({ error: 'این بخش برای کاربران دمو در دسترس نیست' }, { status: 403 });
+  let where = whereStr ? JSON.parse(whereStr) : {};
+  // Demo users: scope all queries to their demo org
+  where = applyDemoOrgScope(auth, model, where);
+  if (model === 'customer_chat_messages') {
+    const fullProfile = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { userType: true, customerId: true, role: true } });
+    if (fullProfile?.userType === 'customer' && fullProfile.customerId) {
+      where = { ...where, customerId: fullProfile.customerId };
+    }
+  }
+  if (model === 'personal_notes') {
+    where = { ...where, profileId: auth.userId };
+  }
+  if (model === 'staff_chat_messages') {
+    where = { ...where, OR: [{ senderId: auth.userId }, { receiverId: auth.userId }] };
+  }
+  if (model === 'social_dm_messages') {
+    where = { ...where, OR: [{ senderId: auth.userId }, { receiverId: auth.userId }] };
+  }
+  if (model === 'social_groups') {
+    where = { ...where, OR: [{ ownerId: auth.userId }, { members: { some: { profileId: auth.userId } } }] };
+  }
+  if (model === 'social_group_members') {
+    where = { ...where, OR: [{ profileId: auth.userId }, { group: { ownerId: auth.userId } }] };
+  }
+  if (model === 'social_group_messages') {
+    where = { ...where, group: { members: { some: { profileId: auth.userId } } } };
+  }
+  if (model === 'social_group_message_reads') {
+    where = { ...where, profileId: auth.userId };
+  }
+  if (model === 'customer_social_messages') {
+    where = { ...where, OR: [{ senderId: auth.userId }, { receiverId: auth.userId }] };
+  }
+  if (model === 'customer_social_call_sessions' || model === 'customer_social_call_signals') {
+    where = { ...where, OR: [{ callerId: auth.userId }, { receiverId: auth.userId }, { senderId: auth.userId }, { receiverId: auth.userId }] };
+  }
+  if (model === 'my_customers') {
+    const fullProfile = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });
+    if (fullProfile?.role !== 'super_admin' && fullProfile?.role !== 'owner') {
+      where = { ...where, profileId: auth.userId };
+    }
+  }
+  if (model === 'site_verifications') {
+    const fullProfile = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });
+    if (fullProfile?.role !== 'super_admin' && fullProfile?.role !== 'owner') {
+      where = { ...where, submittedBy: auth.userId };
+    }
+  }
+  if (model === 'irnic_identities') {
+    const fullProfile = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });
+    if (fullProfile?.role !== 'super_admin' && fullProfile?.role !== 'owner' && fullProfile?.role !== 'admin') {
+      where = { ...where, assignedTo: auth.userId };
+    }
+  }
+  if (model === 'tickets') {
+    const fullProfile = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true, userType: true, customerId: true } });
+    const canSeeAll = fullProfile?.role === 'admin' || fullProfile?.role === 'super_admin' || fullProfile?.role === 'owner';
+    if (!canSeeAll) {
+      if (fullProfile?.userType === 'customer' && fullProfile.customerId) {
+        where = { ...where, customerId: fullProfile.customerId };
+      } else {
+        const deptMemberships = await prisma.ticketDepartmentMember.findMany({
+          where: { profileId: auth.userId },
+          select: { departmentId: true },
+        });
+        const deptIds = deptMemberships.map((d) => d.departmentId);
+        where = {
+          ...where,
+          OR: [
+            { departmentId: { in: deptIds } },
+            { departmentId: null, createdBy: auth.userId },
+          ],
+        };
+      }
+    }
+  }
+  if (model === 'meetings' || model === 'meeting_assignments' || model === 'notifications') {
+    const fullProfile = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });
+    const canSeeAll = fullProfile?.role === 'admin' || fullProfile?.role === 'super_admin' || fullProfile?.role === 'owner';
+    if (!canSeeAll && model === 'meetings') {
+      where = { ...where, assignments: { some: { assignedTo: auth.userId } } };
+    }
+    if (!canSeeAll && model === 'meeting_assignments') {
+      where = { ...where, assignedTo: auth.userId };
+    }
+    if (!canSeeAll && model === 'notifications') {
+      where = { ...where, profileId: auth.userId };
+    }
+  }
+  if (model === 'secretariat_letters') {
+    const fullProfile = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });
+    const canSeeAll = fullProfile?.role === 'super_admin' || fullProfile?.role === 'owner' || fullProfile?.role === 'admin';
+    if (!canSeeAll) {
+      where = { ...where, OR: [{ createdById: auth.userId }, { currentHolderId: auth.userId }] };
+    }
+  }
+  if (model === 'secretariat_referrals') {
+    const fullProfile = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });
+    const canSeeAll = fullProfile?.role === 'super_admin' || fullProfile?.role === 'owner' || fullProfile?.role === 'admin';
+    if (!canSeeAll) {
+      where = { ...where, OR: [{ fromUserId: auth.userId }, { toUserId: auth.userId }] };
+    }
+  }
+  if (model === 'secretariat_timeline' || model === 'secretariat_signatures' || model === 'secretariat_attachments') {
+    // Access is controlled via the parent letter's access check — these are sub-resources
+  }
+  const includeStr = searchParams.get('include');
+  const include = includeStr ? JSON.parse(includeStr) : undefined;
+  const orderByStr = searchParams.get('orderBy');
+  const orderBy = orderByStr ? JSON.parse(orderByStr) : undefined;
+  const takeStr = searchParams.get('take');
+  const take = takeStr ? parseInt(takeStr) : undefined;
+
+  try {
+    const records = await MODEL_MAP[model].findMany({ where, include, orderBy, take });
+    return NextResponse.json({ data: serializeData(records) });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// POST /api/data  { model, data, include? }
+export async function POST(req: NextRequest) {
+  const auth = getAuth(req);
+  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const body = await req.json();
+  const { model, data, include } = body;
+  if (!(await canAccess(auth, model))) return NextResponse.json({ error: 'دسترسی به این بخش برای شما فعال نیست' }, { status: 403 });
+  if (isDemoRestricted(auth, model)) return NextResponse.json({ error: 'این بخش برای کاربران دمو در دسترس نیست' }, { status: 403 });
+  if (!model || !MODEL_MAP[model]) {
+    return NextResponse.json({ error: 'Invalid model' }, { status: 400 });
+  }
+
+  let postData = data;
+  // Demo users: force orgId to their demo org on all creates
+  if (auth.demoOrgId && ORG_SCOPED_MODELS.has(model)) {
+    postData = { ...postData, orgId: auth.demoOrgId };
+  }
+  if (model === 'customer_chat_messages') {
+    const fullProfile = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { userType: true, customerId: true, role: true } });
+    if (fullProfile?.userType === 'customer' && fullProfile.customerId) {
+      postData = { ...data, customerId: fullProfile.customerId, senderType: 'customer', senderId: auth.userId };
+    }
+  }
+  if (model === 'personal_notes') {
+    postData = { ...data, profileId: auth.userId };
+  }
+  if (model === 'staff_chat_messages') {
+    postData = { ...data, senderId: auth.userId };
+  }
+  if (model === 'social_dm_messages') {
+    postData = { ...data, senderId: auth.userId };
+  }
+  if (model === 'social_groups') {
+    postData = { ...data, ownerId: auth.userId };
+  }
+  if (model === 'social_group_messages') {
+    postData = { ...data, senderId: auth.userId };
+  }
+  if (model === 'customer_social_messages') {
+    postData = { ...data, senderId: auth.userId };
+  }
+  if (model === 'ticket_messages') {
+    postData = { ...data, senderId: auth.userId, senderType: 'staff' };
+  }
+  if (model === 'my_customers') {
+    const fullProfile = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });
+    if (fullProfile?.role !== 'super_admin' && fullProfile?.role !== 'owner') {
+      postData = { ...data, profileId: auth.userId };
+    } else {
+      postData = { ...data, profileId: data.profileId || auth.userId };
+    }
+  }
+  if (model === 'site_verifications') {
+    postData = { ...data, submittedBy: auth.userId };
+  }
+  if (model === 'host_domains') {
+    postData = { ...data, createdBy: auth.userId };
+  }
+  if (model === 'secretariat_letters') {
+    postData = { ...data, createdById: auth.userId };
+  }
+  if (model === 'secretariat_timeline') {
+    postData = { ...data, actionBy: auth.userId };
+  }
+  if (model === 'secretariat_attachments') {
+    postData = { ...data, uploadedBy: auth.userId };
+  }
+
+  try {
+    const record = await MODEL_MAP[model].create({ data: postData, include });
+
+    if (model === 'staff_chat_messages' && postData.receiverId) {
+      try {
+        const sender = await prisma.profile.findUnique({
+          where: { id: auth.userId },
+          select: { firstName: true, lastName: true },
+        });
+        const senderName = [sender?.firstName, sender?.lastName].filter(Boolean).join(' ') || 'کاربر';
+        await prisma.notification.create({
+          data: {
+            profileId: postData.receiverId,
+            title: `پیام جدید از ${senderName}`,
+            body: postData.content ? String(postData.content).slice(0, 120) : 'فایل پیوست',
+            type: 'chat',
+            priority: 'normal',
+            link: '/dashboard/staff-chat',
+          },
+        });
+      } catch {}
+    }
+    if (model === 'social_dm_messages' && postData.receiverId) {
+      try {
+        const sender = await prisma.profile.findUnique({
+          where: { id: auth.userId }, select: { firstName: true, lastName: true } });
+        const senderName = [sender?.firstName, sender?.lastName].filter(Boolean).join(' ') || 'کاربر';
+        await prisma.notification.create({
+          data: { profileId: postData.receiverId, title: `پیام جدید از ${senderName}`, body: postData.content ? String(postData.content).slice(0, 120) : 'فایل پیوست', type: 'social', priority: 'normal', link: '/dashboard/social' } });
+      } catch {}
+    }
+    if (model === 'social_group_messages' && postData.groupId) {
+      try {
+        const sender = await prisma.profile.findUnique({
+          where: { id: auth.userId }, select: { firstName: true, lastName: true } });
+        const senderName = [sender?.firstName, sender?.lastName].filter(Boolean).join(' ') || 'کاربر';
+        const group = await prisma.socialGroup.findUnique({ where: { id: postData.groupId }, select: { name: true } });
+        const members = await prisma.socialGroupMember.findMany({ where: { groupId: postData.groupId, profileId: { not: auth.userId } }, select: { profileId: true } });
+        if (members.length > 0) {
+          await prisma.notification.createMany({ data: members.map((m) => ({ profileId: m.profileId, title: `پیام جدید در گروه ${group?.name || ''}`, body: `${senderName}: ${postData.content ? String(postData.content).slice(0, 100) : 'فایل پیوست'}`, type: 'social', priority: 'normal', link: '/dashboard/social' })) });
+        }
+      } catch {}
+    }
+    if (model === 'customer_social_messages' && postData.receiverId) {
+      try {
+        const sender = await prisma.profile.findUnique({
+          where: { id: auth.userId }, select: { firstName: true, lastName: true, userType: true } });
+        const senderName = [sender?.firstName, sender?.lastName].filter(Boolean).join(' ') || 'کاربر';
+        const link = sender?.userType === 'customer' ? '/dashboard/customer-social' : '/portal/social';
+        await prisma.notification.create({
+          data: { profileId: postData.receiverId, title: `پیام جدید از ${senderName}`, body: postData.content ? String(postData.content).slice(0, 120) : 'فایل پیوست', type: 'social', priority: 'normal', link }
+        });
+      } catch {}
+    }
+    if (model === 'social_groups' && record) {
+      try {
+        await prisma.socialGroupMember.create({ data: { groupId: (record as any).id, profileId: auth.userId, role: 'admin' } });
+      } catch {}
+    }
+
+    // Notify super-admins when a daily work report is created
+    if (model === 'daily_work_reports' && postData.profileId) {
+      try {
+        const author = await prisma.profile.findUnique({
+          where: { id: postData.profileId },
+          select: { firstName: true, lastName: true },
+        });
+        const authorName = [author?.firstName, author?.lastName].filter(Boolean).join(' ') || 'کاربر';
+        const superAdmins = await prisma.profile.findMany({
+          where: { role: { in: ['super_admin', 'owner'] }, active: true, id: { not: postData.profileId } },
+          select: { id: true },
+        });
+        if (superAdmins.length > 0) {
+          await prisma.notification.createMany({
+            data: superAdmins.map((sa) => ({
+              profileId: sa.id,
+              title: `گزارش روزانه جدید از ${authorName}`,
+              body: postData.title ? String(postData.title).slice(0, 120) : null,
+              type: 'report',
+              priority: 'normal',
+              link: `/dashboard/work-reports/daily/view/${record.id}`,
+            })),
+          });
+        }
+      } catch {}
+    }
+
+    // Notify super-admins when a monthly work report is created
+    if (model === 'monthly_work_reports' && postData.profileId) {
+      try {
+        const author = await prisma.profile.findUnique({
+          where: { id: postData.profileId },
+          select: { firstName: true, lastName: true },
+        });
+        const authorName = [author?.firstName, author?.lastName].filter(Boolean).join(' ') || 'کاربر';
+        const superAdmins = await prisma.profile.findMany({
+          where: { role: { in: ['super_admin', 'owner'] }, active: true, id: { not: postData.profileId } },
+          select: { id: true },
+        });
+        if (superAdmins.length > 0) {
+          await prisma.notification.createMany({
+            data: superAdmins.map((sa) => ({
+              profileId: sa.id,
+              title: `گزارش ماهانه جدید از ${authorName}`,
+              body: postData.fullName ? `صورت وضعیت پروژه - ${String(postData.fullName).slice(0, 120)}` : null,
+              type: 'report',
+              priority: 'normal',
+              link: `/dashboard/work-reports/view/${record.id}`,
+            })),
+          });
+        }
+      } catch {}
+    }
+
+    // Notify super-admins when a site verification is submitted
+    if (model === 'site_verifications') {
+      try {
+        const author = await prisma.profile.findUnique({
+          where: { id: auth.userId },
+          select: { firstName: true, lastName: true },
+        });
+        const authorName = [author?.firstName, author?.lastName].filter(Boolean).join(' ') || 'کاربر';
+        const superAdmins = await prisma.profile.findMany({
+          where: { role: { in: ['super_admin', 'owner'] }, active: true, id: { not: auth.userId } },
+          select: { id: true },
+        });
+        if (superAdmins.length > 0) {
+          await prisma.notification.createMany({
+            data: superAdmins.map((sa) => ({
+              profileId: sa.id,
+              title: `تاییدیه جدید از ${authorName}`,
+              body: postData.title ? String(postData.title).slice(0, 120) : null,
+              type: 'verification',
+              priority: 'normal',
+              link: '/super-admin/site-verifications',
+            })),
+          });
+        }
+      } catch {}
+    }
+
+    // Notify department members when a ticket is created with a department
+    if (model === 'tickets' && postData.departmentId) {
+      try {
+        const dept = await prisma.ticketDepartment.findUnique({
+          where: { id: postData.departmentId },
+          select: { name: true },
+        });
+        const members = await prisma.ticketDepartmentMember.findMany({
+          where: { departmentId: postData.departmentId, profileId: { not: auth.userId } },
+          select: { profileId: true },
+        });
+        if (members.length > 0) {
+          await prisma.notification.createMany({
+            data: members.map((m) => ({
+              profileId: m.profileId,
+              title: `تیکت جدید در دپارتمان ${dept?.name || ''}`,
+              body: postData.subject ? String(postData.subject).slice(0, 120) : null,
+              type: 'ticket',
+              priority: postData.priority || 'normal',
+              link: '/dashboard/tickets',
+            })),
+          });
+        }
+      } catch {}
+    }
+
+    // Auto-copy notifications to all super-admins
+    if (model === 'notifications' && postData.profileId) {
+      try {
+        const superAdmins = await prisma.profile.findMany({
+          where: { role: { in: ['super_admin', 'owner'] }, active: true, id: { not: postData.profileId } },
+          select: { id: true },
+        });
+        if (superAdmins.length > 0) {
+          await prisma.notification.createMany({
+            data: superAdmins.map((sa) => ({
+              profileId: sa.id,
+              title: `[سوپرادمین] ${postData.title || ''}`,
+              body: postData.body || null,
+              type: postData.type || 'info',
+              priority: postData.priority || 'normal',
+              link: postData.link || null,
+            })),
+          });
+        }
+      } catch {}
+    }
+
+    return NextResponse.json({ data: serializeData(record) });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// PATCH /api/data  { model, where, data, include? }
+export async function PATCH(req: NextRequest) {
+  const auth = getAuth(req);
+  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const body = await req.json();
+  const { model, where, data, include } = body;
+  if (!(await canAccess(auth, model))) return NextResponse.json({ error: 'دسترسی به این بخش برای شما فعال نیست' }, { status: 403 });
+  if (isDemoRestricted(auth, model)) return NextResponse.json({ error: 'این بخش برای کاربران دمو در دسترس نیست' }, { status: 403 });
+  if (!model || !MODEL_MAP[model]) {
+    return NextResponse.json({ error: 'Invalid model' }, { status: 400 });
+  }
+
+  // Demo users: prevent changing orgId and verify the record belongs to their org
+  let scopedWhere = where;
+  if (auth.demoOrgId && ORG_SCOPED_MODELS.has(model)) {
+    scopedWhere = { ...where, orgId: auth.demoOrgId };
+    // Also strip orgId from data to prevent cross-org reassignment
+    if (data) {
+      delete data.orgId;
+    }
+  }
+
+  try {
+    // Task edit permissions
+    if (model === 'tasks') {
+      const actor = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });
+      const isSuperAdminRole = actor?.role === 'super_admin' || actor?.role === 'owner';
+      if (!actor) {
+        return NextResponse.json({ error: 'کاربر یافت نشد' }, { status: 403 });
+      }
+      if (!isSuperAdminRole) {
+        // Non-super-admin: only allowed to change status (drag-and-drop)
+        const isStatusOnlyUpdate = Object.keys(data).every((k) => k === 'status' || k === 'completedAt');
+        if (!isStatusOnlyUpdate) {
+          return NextResponse.json({ error: 'فقط سوپرادمین می‌تواند وظیفه را ویرایش کند' }, { status: 403 });
+        }
+        // Check the current task state
+        const currentTask = await prisma.task.findUnique({ where: { id: where.id }, select: { status: true, createdBy: true, assignedTo: true } });
+        if (!currentTask) {
+          return NextResponse.json({ error: 'وظیفه یافت نشد' }, { status: 404 });
+        }
+        // Once completed, only super admin can move it
+        if (currentTask.status === 'completed' && data.status !== 'completed') {
+          return NextResponse.json({ error: 'تنها سوپرادمین می‌تواند وظیفه تکمیل‌شده را جابجا کند' }, { status: 403 });
+        }
+        // Only the creator or assignee can change status
+        if (currentTask.createdBy !== auth.userId && currentTask.assignedTo !== auth.userId) {
+          return NextResponse.json({ error: 'فقط ایجادکننده یا مسئول وظیفه می‌تواند وضعیت را تغییر دهد' }, { status: 403 });
+        }
+      }
+    }
+    // Personal notes: enforce ownership
+    if (model === 'personal_notes') {
+      const existing = await prisma.personalNote.findFirst({ where: { id: where.id, profileId: auth.userId } });
+      if (!existing) {
+        return NextResponse.json({ error: 'این یادداشت متعلق به شما نیست' }, { status: 403 });
+      }
+    }
+    // Site verifications: only super_admin/owner can review (change status/reviewedBy/reviewNote)
+    let updateData = data;
+    if (model === 'site_verifications') {
+      const actor = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });
+      const isSuperAdminRole = actor?.role === 'super_admin' || actor?.role === 'owner';
+      if (!isSuperAdminRole) {
+        const existing = await (prisma as any).siteVerification.findFirst({ where: { id: where.id, submittedBy: auth.userId } });
+        if (!existing) {
+          return NextResponse.json({ error: 'این تاییدیه متعلق به شما نیست' }, { status: 403 });
+        }
+        const allowedFields = new Set(['title', 'description', 'category', 'fileUrl', 'fileName', 'fileType', 'fileSize']);
+        const tryingReviewFields = Object.keys(data).some((k) => !allowedFields.has(k));
+        if (tryingReviewFields) {
+          return NextResponse.json({ error: 'فقط سوپرادمین می‌تواند وضعیت تاییدیه را تغییر دهد' }, { status: 403 });
+        }
+      } else {
+        if (data.status && (data.status === 'approved' || data.status === 'rejected' || data.status === 'reviewed')) {
+          updateData = { ...data, reviewedBy: auth.userId, reviewedAt: new Date() };
+        }
+      }
+    }
+    const record = await MODEL_MAP[model].update({ where: scopedWhere, data: updateData, include });
+
+    // Notify super-admins when a daily work report is edited
+    if (model === 'daily_work_reports') {
+      try {
+        const report = record as any;
+        const author = await prisma.profile.findUnique({
+          where: { id: report.profileId },
+          select: { firstName: true, lastName: true },
+        });
+        const authorName = [author?.firstName, author?.lastName].filter(Boolean).join(' ') || 'کاربر';
+        const superAdmins = await prisma.profile.findMany({
+          where: { role: { in: ['super_admin', 'owner'] }, active: true, id: { not: report.profileId } },
+          select: { id: true },
+        });
+        if (superAdmins.length > 0) {
+          await prisma.notification.createMany({
+            data: superAdmins.map((sa) => ({
+              profileId: sa.id,
+              title: `ویرایش گزارش روزانه توسط ${authorName}`,
+              body: report.title ? String(report.title).slice(0, 120) : null,
+              type: 'report',
+              priority: 'normal',
+              link: `/dashboard/work-reports/daily/view/${report.id}`,
+            })),
+          });
+        }
+      } catch {}
+    }
+
+    return NextResponse.json({ data: serializeData(record) });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// DELETE /api/data  { model, where }
+export async function DELETE(req: NextRequest) {
+  const auth = getAuth(req);
+  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const body = await req.json();
+  const { model, where } = body;
+  if (!(await canAccess(auth, model))) return NextResponse.json({ error: 'دسترسی به این بخش برای شما فعال نیست' }, { status: 403 });
+  if (isDemoRestricted(auth, model)) return NextResponse.json({ error: 'این بخش برای کاربران دمو در دسترس نیست' }, { status: 403 });
+  if (!model || !MODEL_MAP[model]) {
+    return NextResponse.json({ error: 'Invalid model' }, { status: 400 });
+  }
+
+  // Demo users: scope delete to their org only
+  let scopedWhere = where;
+  if (auth.demoOrgId && ORG_SCOPED_MODELS.has(model)) {
+    scopedWhere = { ...where, orgId: auth.demoOrgId };
+  }
+
+  try {
+    // Only super_admin / owner can delete tasks
+    if (model === 'tasks') {
+      const actor = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });
+      if (!actor || (actor.role !== 'super_admin' && actor.role !== 'owner')) {
+        return NextResponse.json({ error: 'فقط سوپرادمین می‌تواند وظیفه را حذف کند' }, { status: 403 });
+      }
+    }
+    // Personal notes: enforce ownership
+    if (model === 'personal_notes') {
+      const existing = await prisma.personalNote.findFirst({ where: { id: where.id, profileId: auth.userId } });
+      if (!existing) {
+        return NextResponse.json({ error: 'این یادداشت متعلق به شما نیست' }, { status: 403 });
+      }
+    }
+    // Site verifications: super_admin/owner can delete any; submitter can delete own
+    if (model === 'site_verifications') {
+      const actor = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });
+      const isSuperAdminRole = actor?.role === 'super_admin' || actor?.role === 'owner';
+      if (!isSuperAdminRole) {
+        const existing = await (prisma as any).siteVerification.findFirst({ where: { id: where.id, submittedBy: auth.userId } });
+        if (!existing) {
+          return NextResponse.json({ error: 'این تاییدیه متعلق به شما نیست' }, { status: 403 });
+        }
+      }
+    }
+    await MODEL_MAP[model].delete({ where: scopedWhere });
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

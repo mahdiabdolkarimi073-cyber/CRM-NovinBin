@@ -1,0 +1,375 @@
+import {
+  LayoutDashboard, Users, TrendingUp, CheckSquare, Package, ShoppingCart,
+  Calendar, MessageSquare, Bell, UserCog, Phone, Clock, FileSignature,
+  UserPlus, HandHeart, Settings, Shield, Award, Send, MessagesSquare,
+  Inbox, Receipt, FileOutput, WalletCards, BarChart3, Warehouse, Boxes,
+  ShoppingBag, Landmark, FileText, ArrowDownToLine, RotateCcw,
+  GraduationCap, BadgePercent, Ticket, StickyNote, BellRing,
+  UserCheck, ClipboardList, Network, Contact, Megaphone, Wallet,
+  FileCheck, CreditCard, ArrowRightLeft, Sparkles,
+  ClipboardCheck, FileSearch, ArrowUpFromLine, Undo2, Percent, Server, Fingerprint, BriefcaseBusiness,
+  Palette, Archive, FolderTree, Mailbox, Smartphone, KeyRound,
+  ReceiptText, FileCheck2, ListChecks, History, Settings2, Plus,
+  ShieldCheck, FilePlus2, FileQuestion, RefreshCw, AlertTriangle,
+  Building2, Coins, Banknote, CalendarDays, FileBarChart,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import type { Profile } from '@/lib/types';
+
+export interface NavItem {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+}
+
+export interface NavGroup {
+  label: string;
+  icon: LucideIcon;
+  items: NavItem[];
+}
+
+export const coreItems: NavItem[] = [
+  { href: '/dashboard', label: 'داشبورد', icon: LayoutDashboard },
+  { href: '/dashboard/leads', label: 'سرنخ‌های فروش', icon: TrendingUp },
+  { href: '/dashboard/leads/archive', label: 'آرشیو سرنخ‌ها', icon: Archive },
+  { href: '/dashboard/demos', label: 'دموها', icon: Clock },
+  { href: '/dashboard/contracts', label: 'قراردادها', icon: FileSignature },
+  { href: '/dashboard/hr', label: 'منابع انسانی', icon: UserCog },
+  { href: '/dashboard/notes', label: 'یادداشت‌ها', icon: StickyNote },
+  { href: '/dashboard/note-reminders', label: 'یادآور یادداشت‌ها', icon: BellRing },
+  { href: '/dashboard/social', label: 'شبکه اجتماعی', icon: MessagesSquare },
+  { href: '/dashboard/notifications', label: 'اعلان‌ها', icon: Bell },
+  { href: '/dashboard/ai-assistant', label: 'دستیار', icon: Sparkles },
+  { href: '/dashboard/settings', label: 'تنظیمات', icon: Settings },
+];
+
+export const cartableItems: NavItem[] = [
+  { href: '/dashboard/tasks', label: 'تسک‌ها', icon: CheckSquare },
+  { href: '/dashboard/meetings', label: 'جلسات', icon: Calendar },
+  { href: '/dashboard/social', label: 'شبکه اجتماعی', icon: MessagesSquare },
+  { href: '/dashboard/leads', label: 'سرنخ‌های فروش', icon: TrendingUp },
+  { href: '/dashboard/hr', label: 'منابع انسانی', icon: UserCog },
+  { href: '/dashboard/meetings/archive', label: 'آرشیو جلسات', icon: Archive },
+  { href: '/dashboard/meeting-sms', label: 'پنل پیامک جلسات', icon: Send },
+  { href: '/dashboard/calls', label: 'مکالمات', icon: Phone },
+  { href: '/dashboard/tickets', label: 'تیکت‌ها', icon: MessageSquare },
+  { href: '/dashboard/invoices', label: 'فاکتورها', icon: FileText },
+  { href: '/dashboard/pre-invoices', label: 'پیش‌فاکتور', icon: FileOutput },
+  { href: '/dashboard/pre-invoices-sales', label: 'پیش فاکتور فروش', icon: FileOutput },
+  { href: '/dashboard/returns', label: 'مرجوعی', icon: RotateCcw },
+  { href: '/dashboard/payments', label: 'پرداخت‌ها', icon: WalletCards },
+  { href: '/dashboard/receipts', label: 'دریافت‌ها', icon: ArrowDownToLine },
+  { href: '/dashboard/site-verifications', label: 'تاییدیه‌های سایت', icon: FileCheck },
+  { href: '/dashboard/host-domains', label: 'ثبت هاست و دامنه', icon: Server },
+  { href: '/dashboard/irnic', label: 'مدیریت شناسه ایرنیک', icon: Fingerprint },
+  { href: '/dashboard/sms-logs', label: 'پیامک‌ها', icon: Send },
+  { href: '/dashboard/doc-issuance-workboard', label: 'کارتابل صدور سند', icon: FileCheck },
+  { href: '/dashboard/graphic-works', label: 'کارهای گرافیک', icon: Palette },
+  { href: '/dashboard/secretariat', label: 'دبیرخانه', icon: Mailbox },
+];
+
+export const financeItems: NavItem[] = [
+  { href: '/dashboard/accounting', label: 'حسابداری', icon: Landmark },
+  { href: '/dashboard/chart-of-accounts', label: 'حسابواره', icon: Network },
+  { href: '/dashboard/contact-parties', label: 'طرف حساب', icon: Contact },
+  { href: '/dashboard/payment-announcements', label: 'اعلامیه‌های پرداخت', icon: Megaphone },
+  { href: '/dashboard/petty-cash', label: 'تنخواه‌دار', icon: Wallet },
+  { href: '/dashboard/petty-cash-expenses', label: 'صورت هزینه تنخواه', icon: FileText },
+  { href: '/dashboard/petty-cash-merge', label: 'صورت ادغام اسناد', icon: FileText },
+  { href: '/dashboard/document-issuance', label: 'صدور اسناد', icon: FileText },
+  { href: '/dashboard/financial-announcements', label: 'اعلامیه‌های مالی', icon: FileCheck },
+  { href: '/dashboard/contact-settlements', label: 'تسویه حساب طرف مقابل', icon: FileCheck },
+  { href: '/dashboard/received-cheques', label: 'چک‌های دریافتی', icon: WalletCards },
+  { href: '/dashboard/cheque-refunds', label: 'استرداد چک', icon: RotateCcw },
+  { href: '/dashboard/cheque-clearings', label: 'وصول چک پرداختی', icon: Banknote },
+  { href: '/dashboard/card-readers', label: 'کارتخوان', icon: CreditCard },
+  { href: '/dashboard/card-reader-settlements', label: 'تسویه کارتخوان', icon: ArrowRightLeft },
+  { href: '/dashboard/bank-accounts', label: 'حساب‌های بانکی', icon: Landmark },
+  { href: '/dashboard/financial-reports', label: 'گزارش‌های مالی', icon: BarChart3 },
+  { href: '/dashboard/finance-academy', label: 'مالی آموزشگاه', icon: GraduationCap },
+  { href: '/dashboard/invoices', label: 'فاکتورها', icon: FileText },
+  { href: '/dashboard/pre-invoices', label: 'پیش‌فاکتور', icon: FileOutput },
+  { href: '/dashboard/payments', label: 'پرداخت‌ها', icon: WalletCards },
+  { href: '/dashboard/receipts', label: 'دریافت‌ها', icon: Receipt },
+  { href: '/dashboard/returns', label: 'مرجوعی‌ها', icon: RotateCcw },
+  { href: '/dashboard/tax-moadi', label: 'سامانه مؤدیان', icon: ReceiptText },
+  { href: '/dashboard/tax-moadi/sales-invoices', label: 'صورتحساب‌های فروش', icon: FileText },
+  { href: '/dashboard/tax-moadi/new', label: 'صدور صورتحساب جدید', icon: Plus },
+  { href: '/dashboard/tax-moadi/corrections', label: 'اصلاحیه‌ها و ابطال‌ها', icon: RotateCcw },
+  { href: '/dashboard/tax-moadi/queue', label: 'صف ارسال و خطاها', icon: ListChecks },
+  { href: '/dashboard/tax-moadi/responses', label: 'وضعیت پاسخ‌های مالیاتی', icon: FileCheck2 },
+  { href: '/dashboard/tax-moadi/reports', label: 'گزارش‌های مالیاتی', icon: BarChart3 },
+  { href: '/dashboard/tax-moadi/settings', label: 'تنظیمات اتصال و حافظه', icon: Settings2 },
+  { href: '/dashboard/tax-moadi/audit', label: 'سوابق عملیات و حسابرسی', icon: History },
+];
+
+export const inventoryItems: NavItem[] = [
+  { href: '/dashboard/inventory', label: 'نمای کلی انبار', icon: Warehouse },
+  { href: '/dashboard/products', label: 'محصولات و خدمات', icon: Boxes },
+  { href: '/dashboard/purchase', label: 'خرید و تأمین', icon: ShoppingBag },
+  { href: '/dashboard/stock-transfers', label: 'انتقال بین انبارها', icon: Package },
+  { href: '/dashboard/stock-taking', label: 'انبارگردانی', icon: ClipboardCheck },
+  { href: '/dashboard/warehouse-receipts', label: 'رسید انبار', icon: ArrowDownToLine },
+  { href: '/dashboard/warehouse-receipt-returns', label: 'برگشت رسید انبار', icon: Undo2 },
+  { href: '/dashboard/warehouse-exits', label: 'خروج از انبار', icon: ArrowUpFromLine },
+  { href: '/dashboard/warehouse-exit-returns', label: 'برگشت خروج از انبار', icon: RotateCcw },
+];
+
+export const serviceItems: NavItem[] = [
+  { href: '/dashboard/service-purchase-invoices', label: 'فاکتور خرید خدمات', icon: FileSearch },
+];
+
+export const salesItems: NavItem[] = [
+  { href: '/dashboard/customs-declarations', label: 'اظهارات گمرکی', icon: FileSearch },
+  { href: '/dashboard/process-agents', label: 'عامل فرایند', icon: Network },
+  { href: '/dashboard/sales-invoices', label: 'فاکتور فروش', icon: FileText },
+  { href: '/dashboard/sales-return-invoices', label: 'فاکتور برگشت از فروش', icon: RotateCcw },
+  { href: '/dashboard/product-bundles', label: 'بسته محصول فروش', icon: Boxes },
+  { href: '/dashboard/commissions', label: 'پورسانت', icon: Percent },
+  { href: '/dashboard/orders', label: 'سفارشات', icon: ShoppingCart },
+  { href: '/dashboard/lead-referrals', label: 'ارجاعیات سرنخ‌های فروش', icon: Send },
+];
+
+export const clubItems: NavItem[] = [
+  { href: '/dashboard/my-customers', label: 'مشتریان من', icon: UserCheck },
+  { href: '/dashboard/customers', label: 'مشتریان', icon: Users },
+  { href: '/dashboard/customer-segments', label: 'بخش‌بندی مشتریان', icon: BadgePercent },
+  { href: '/dashboard/loyalty', label: 'امتیاز و وفاداری', icon: Award },
+  { href: '/dashboard/loyalty-rewards', label: 'جوایز باشگاه', icon: Award },
+  { href: '/dashboard/customer-devices', label: 'دستگاه‌های فعال', icon: Smartphone },
+  { href: '/dashboard/customer-interactions', label: 'تعاملات مشتری', icon: MessagesSquare },
+];
+
+export const adminItems: NavItem[] = [
+  { href: '/dashboard/users', label: 'کاربران', icon: UserCog },
+  { href: '/dashboard/credentials-archive', label: 'آرشیو نام‌های کاربری و رمز عبور شبکه اجتماعی', icon: KeyRound },
+  { href: '/dashboard/registration-approval', label: 'تأیید ثبت‌نام', icon: UserPlus },
+  { href: '/dashboard/customer-assignment', label: 'تخصیص مشتری', icon: HandHeart },
+  { href: '/dashboard/employment-applications', label: 'درخواست‌های استخدام', icon: BriefcaseBusiness },
+];
+
+export const reportsItems: NavItem[] = [
+  { href: '/dashboard/work-reports/daily', label: 'گزارش روزانه', icon: CheckSquare },
+  { href: '/dashboard/work-reports/monthly', label: 'گزارش ماهانه', icon: CheckSquare },
+];
+
+export const insuranceItems: NavItem[] = [
+  { href: '/dashboard/insurance', label: 'داشبورد بیمه', icon: ShieldCheck },
+  { href: '/dashboard/insurance/policies', label: 'بیمه‌نامه‌ها', icon: FileText },
+  { href: '/dashboard/insurance/policies/new', label: 'ثبت بیمه‌نامه جدید', icon: FilePlus2 },
+  { href: '/dashboard/insurance/quotes', label: 'استعلام‌ها و پیشنهادها', icon: FileQuestion },
+  { href: '/dashboard/insurance/renewals', label: 'تمدیدهای بیمه', icon: RefreshCw },
+  { href: '/dashboard/insurance/claims', label: 'پرونده‌های خسارت', icon: AlertTriangle },
+  { href: '/dashboard/insurance/companies', label: 'شرکت‌های بیمه', icon: Building2 },
+  { href: '/dashboard/insurance/commissions', label: 'کارمزدها و کمیسیون‌ها', icon: Coins },
+  { href: '/dashboard/insurance/payments', label: 'پرداخت‌ها و مطالبات', icon: Banknote },
+  { href: '/dashboard/insurance/calendar', label: 'تقویم سررسیدها', icon: CalendarDays },
+  { href: '/dashboard/insurance/reports', label: 'گزارش‌های بیمه', icon: FileBarChart },
+  { href: '/dashboard/insurance/settings', label: 'تنظیمات ماژول بیمه', icon: Settings2 },
+];
+
+export const allNavGroups: NavGroup[] = [
+  { label: 'کارتابل', icon: Inbox, items: cartableItems },
+  { label: 'گزارشات', icon: ClipboardList, items: reportsItems },
+  { label: 'مالی', icon: Landmark, items: financeItems },
+  { label: 'خدمات', icon: FileSearch, items: serviceItems },
+  { label: 'فروش', icon: TrendingUp, items: salesItems },
+  { label: 'انبارداری', icon: Warehouse, items: inventoryItems },
+  { label: 'باشگاه مشتریان', icon: Award, items: clubItems },
+  { label: 'بیمه', icon: ShieldCheck, items: insuranceItems },
+];
+
+export const quickActionItems: NavItem[] = [
+  { href: '/dashboard/tickets', label: 'تیکت جدید', icon: Ticket },
+  { href: '/dashboard/leads', label: 'فرصت جدید', icon: Users },
+  { href: '/dashboard/customers', label: 'مشتری جدید', icon: Users },
+  { href: '/dashboard/invoices', label: 'پیش فاکتور', icon: Receipt },
+  { href: '/dashboard/orders', label: 'سفارش جدید', icon: ShoppingCart },
+  { href: '/dashboard/contracts', label: 'قرارداد جدید', icon: FileSignature },
+  { href: '/dashboard/products', label: 'محصول جدید', icon: Package },
+  { href: '/dashboard/calls', label: 'کمپین جدید', icon: Phone },
+  { href: '/dashboard/tasks', label: 'تسک جدید', icon: CheckSquare },
+  { href: '/dashboard/settings', label: 'تنظیمات سریع', icon: Settings },
+  { href: '/dashboard/meetings', label: 'جلسه جدید', icon: Calendar },
+  { href: '/dashboard/financial-reports', label: 'گزارش‌ها', icon: BarChart3 },
+];
+
+export function isSuperAdminRole(role?: string | null): boolean {
+  return role === 'owner' || role === 'super_admin';
+}
+
+export const UNIVERSAL_PAGES = new Set([
+  '/dashboard',
+  '/dashboard/notes',
+  '/dashboard/note-reminders',
+  '/dashboard/staff-chat',
+  '/dashboard/social',
+  '/dashboard/customer-social',
+  '/dashboard/my-customers',
+  '/dashboard/settings',
+  '/dashboard/notifications',
+  '/dashboard/ai-assistant',
+  '/dashboard/lead-referrals',
+  '/dashboard/leads/archive',
+]);
+
+// Only these universal pages grant access to their sub-paths.
+// /dashboard is excluded so it doesn't open up every /dashboard/* page.
+const UNIVERSAL_PREFIXES = new Set([
+  '/dashboard/notes',
+  '/dashboard/note-reminders',
+  '/dashboard/staff-chat',
+  '/dashboard/social',
+  '/dashboard/customer-social',
+  '/dashboard/my-customers',
+  '/dashboard/settings',
+  '/dashboard/notifications',
+  '/dashboard/ai-assistant',
+  '/dashboard/lead-referrals',
+  '/dashboard/leads/archive',
+]);
+
+export function hasPageAccess(profile: Profile | null, href: string, isDemo = false): boolean {
+  if (!profile) return false;
+  // Demo users: always restricted to assignedPages, even with owner/super_admin role
+  if (isDemo) {
+    if (UNIVERSAL_PAGES.has(href)) return true;
+    for (const page of UNIVERSAL_PREFIXES) {
+      if (href.startsWith(page + '/')) return true;
+    }
+    const pages = profile.assignedPages || [];
+    if (pages.length === 0) return false;
+    return pages.some((p) => p === href || href.startsWith(p + '/'));
+  }
+  if (isSuperAdminRole(profile.role)) return true;
+  if (UNIVERSAL_PAGES.has(href)) return true;
+  for (const page of UNIVERSAL_PREFIXES) {
+    if (href.startsWith(page + '/')) return true;
+  }
+  const pages = profile.assignedPages || [];
+  if (pages.length === 0) return false;
+  return pages.some((p) => p === href || href.startsWith(p + '/'));
+}
+
+export const availablePages = [
+  { path: '/dashboard/customers', label: 'مشتریان' },
+  { path: '/dashboard/leads', label: 'سرنخ‌های فروش' },
+  { path: '/dashboard/leads/archive', label: 'آرشیو سرنخ‌ها' },
+  { path: '/dashboard/pipeline', label: 'قیف فروش' },
+  { path: '/dashboard/products', label: 'محصولات و خدمات' },
+  { path: '/dashboard/orders', label: 'سفارشات' },
+  { path: '/dashboard/invoices', label: 'فاکتورها' },
+  { path: '/dashboard/pre-invoices', label: 'پیش‌فاکتورها' },
+  { path: '/dashboard/pre-invoices-sales', label: 'پیش فاکتور فروش' },
+  { path: '/dashboard/returns', label: 'مرجوعی‌ها' },
+  { path: '/dashboard/tasks', label: 'وظایف' },
+  { path: '/dashboard/meetings', label: 'جلسات' },
+  { path: '/dashboard/meetings/archive', label: 'آرشیو جلسات' },
+  { path: '/dashboard/meeting-sms', label: 'پنل پیامک جلسات' },
+  { path: '/dashboard/tickets', label: 'تیکت‌ها' },
+  { path: '/dashboard/accounting', label: 'حسابداری' },
+  { path: '/dashboard/chart-of-accounts', label: 'حسابواره' },
+  { path: '/dashboard/bank-accounts', label: 'حساب‌های بانکی' },
+  { path: '/dashboard/contact-parties', label: 'طرف حساب' },
+  { path: '/dashboard/payment-announcements', label: 'اعلامیه‌های پرداخت' },
+  { path: '/dashboard/petty-cash', label: 'تنخواه‌دار' },
+  { path: '/dashboard/petty-cash-expenses', label: 'صورت هزینه تنخواه' },
+  { path: '/dashboard/petty-cash-merge', label: 'صورت ادغام اسناد' },
+  { path: '/dashboard/document-issuance', label: 'صدور اسناد' },
+  { path: '/dashboard/financial-announcements', label: 'اعلامیه‌های مالی' },
+  { path: '/dashboard/financial-reports', label: 'گزارش‌های مالی' },
+  { path: '/dashboard/contact-settlements', label: 'تسویه حساب طرف مقابل' },
+  { path: '/dashboard/received-cheques', label: 'چک‌های دریافتی' },
+  { path: '/dashboard/cheque-refunds', label: 'استرداد چک' },
+  { path: '/dashboard/cheque-clearings', label: 'وصول چک پرداختی' },
+  { path: '/dashboard/card-readers', label: 'کارتخوان' },
+  { path: '/dashboard/card-reader-settlements', label: 'تسویه کارتخوان' },
+  { path: '/dashboard/inventory', label: 'نمای کلی انبار' },
+  { path: '/dashboard/stock-transfers', label: 'انتقال بین انبارها' },
+  { path: '/dashboard/stock-taking', label: 'انبارگردانی' },
+  { path: '/dashboard/warehouse-receipts', label: 'رسید انبار' },
+  { path: '/dashboard/warehouse-receipt-returns', label: 'برگشت رسید انبار' },
+  { path: '/dashboard/warehouse-exits', label: 'خروج از انبار' },
+  { path: '/dashboard/warehouse-exit-returns', label: 'برگشت خروج از انبار' },
+  { path: '/dashboard/hr', label: 'منابع انسانی' },
+  { path: '/dashboard/payments', label: 'پرداخت‌ها' },
+  { path: '/dashboard/receipts', label: 'دریافت‌ها' },
+  { path: '/dashboard/contracts', label: 'قراردادها' },
+  { path: '/dashboard/calls', label: 'مکالمات' },
+  { path: '/dashboard/demos', label: 'دموها' },
+  { path: '/dashboard/demo-activities', label: 'فعالیت دمو' },
+  { path: '/dashboard/work-reports/daily', label: 'گزارش روزانه' },
+  { path: '/dashboard/work-reports/monthly', label: 'گزارش ماهانه' },
+  { path: '/dashboard/finance-academy', label: 'مالی آموزشگاه' },
+  { path: '/dashboard/customer-segments', label: 'بخش‌بندی مشتریان' },
+  { path: '/dashboard/loyalty', label: 'امتیاز و وفاداری' },
+  { path: '/dashboard/loyalty-rewards', label: 'جوایز باشگاه' },
+  { path: '/dashboard/customer-devices', label: 'دستگاه‌های فعال' },
+  { path: '/dashboard/my-customers', label: 'مشتریان من' },
+  { path: '/dashboard/purchase', label: 'خرید و تأمین' },
+  { path: '/dashboard/approvals', label: 'تأییدها' },
+  { path: '/dashboard/documents', label: 'اسناد' },
+  { path: '/dashboard/knowledge', label: 'پایگاه دانش' },
+  { path: '/dashboard/performance', label: 'عملکرد' },
+
+  { path: '/dashboard/registration-approval', label: 'تأیید ثبت‌نام' },
+  { path: '/dashboard/customer-assignment', label: 'تخصیص مشتری' },
+  { path: '/dashboard/users', label: 'مدیریت کاربران' },
+  { path: '/dashboard/credentials-archive', label: 'آرشیو نام‌های کاربری و رمز عبور شبکه اجتماعی' },
+  { path: '/dashboard/site-verifications', label: 'تاییدیه‌های سایت' },
+  { path: '/dashboard/host-domains', label: 'ثبت هاست و دامنه' },
+  { path: '/dashboard/irnic', label: 'مدیریت شناسه ایرنیک' },
+  { path: '/dashboard/sms-logs', label: 'پیامک‌ها' },
+  { path: '/dashboard/doc-issuance-workboard', label: 'کارتابل صدور سند' },
+  { path: '/dashboard/graphic-works', label: 'کارهای گرافیک' },
+  { path: '/dashboard/customs-declarations', label: 'اظهارات گمرکی' },
+  { path: '/dashboard/process-agents', label: 'عامل فرایند' },
+  { path: '/dashboard/sales-invoices', label: 'فاکتور فروش' },
+  { path: '/dashboard/sales-return-invoices', label: 'فاکتور برگشت از فروش' },
+  { path: '/dashboard/product-bundles', label: 'بسته محصول فروش' },
+  { path: '/dashboard/commissions', label: 'پورسانت' },
+  { path: '/dashboard/lead-referrals', label: 'ارجاعیات سرنخ‌های فروش' },
+  { path: '/dashboard/service-purchase-invoices', label: 'فاکتور خرید خدمات' },
+  { path: '/dashboard/employment-applications', label: 'درخواست‌های استخدام' },
+  { path: '/dashboard/secretariat', label: 'دبیرخانه' },
+  { path: '/dashboard/tax-moadi', label: 'سامانه مؤدیان' },
+  { path: '/dashboard/tax-moadi/sales-invoices', label: 'صورتحساب‌های فروش مؤدیان' },
+  { path: '/dashboard/tax-moadi/new', label: 'صدور صورتحساب مؤدیان' },
+  { path: '/dashboard/tax-moadi/corrections', label: 'اصلاحیه‌ها و ابطال‌های مؤدیان' },
+  { path: '/dashboard/tax-moadi/queue', label: 'صف ارسال مؤدیان' },
+  { path: '/dashboard/tax-moadi/responses', label: 'وضعیت پاسخ‌های مالیاتی' },
+  { path: '/dashboard/tax-moadi/reports', label: 'گزارش‌های مالیاتی' },
+  { path: '/dashboard/tax-moadi/settings', label: 'تنظیمات اتصال مؤدیان' },
+  { path: '/dashboard/tax-moadi/audit', label: 'سوابق حسابرسی مؤدیان' },
+  { path: '/dashboard/insurance', label: 'داشبورد بیمه' },
+  { path: '/dashboard/insurance/policies', label: 'بیمه‌نامه‌ها' },
+  { path: '/dashboard/insurance/policies/new', label: 'ثبت بیمه‌نامه جدید' },
+  { path: '/dashboard/insurance/quotes', label: 'استعلام‌ها و پیشنهادهای بیمه' },
+  { path: '/dashboard/insurance/renewals', label: 'تمدیدهای بیمه' },
+  { path: '/dashboard/insurance/claims', label: 'پرونده‌های خسارت' },
+  { path: '/dashboard/insurance/companies', label: 'شرکت‌های بیمه' },
+  { path: '/dashboard/insurance/commissions', label: 'کارمزدها و کمیسیون‌ها' },
+  { path: '/dashboard/insurance/payments', label: 'پرداخت‌ها و مطالبات بیمه' },
+  { path: '/dashboard/insurance/calendar', label: 'تقویم سررسیدهای بیمه' },
+  { path: '/dashboard/insurance/reports', label: 'گزارش‌های بیمه' },
+  { path: '/dashboard/insurance/settings', label: 'تنظیمات ماژول بیمه' },
+];
+
+export function filterByAccess(profile: Profile | null, items: NavItem[], isDemo = false): NavItem[] {
+  if (!profile) return [];
+  if (!isDemo && isSuperAdminRole(profile.role)) return items;
+  return items.filter((item) => hasPageAccess(profile, item.href, isDemo));
+}
+
+export const allPageModules: NavItem[] = [
+  ...coreItems,
+  ...cartableItems,
+  ...financeItems,
+  ...inventoryItems,
+  ...clubItems,
+  ...adminItems,
+  ...reportsItems,
+  ...salesItems,
+  ...serviceItems,
+  ...insuranceItems,
+].filter((item, index, self) => index === self.findIndex((t) => t.href === item.href));
