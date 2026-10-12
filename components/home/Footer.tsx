@@ -6,7 +6,7 @@ export default function Footer() {
   return (
     <footer className="relative overflow-hidden px-4 py-12 text-white lg:px-6">
       <Image
-        src="/images/ChatGPT_Image_Sep_13,_2026,_12_18_29_PM.png"
+        src="/images/ChatGPT_Image_Sep_13,_2026,_12_18_29_PM.webp"
         alt=""
         fill
         aria-hidden="true"

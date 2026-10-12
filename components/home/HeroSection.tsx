@@ -6,7 +6,7 @@ export default function HeroSection() {
   return (
     <section id="top" className="relative overflow-hidden bg-[#f7faff]">
       <div className="relative min-h-[560px] lg:min-h-[680px]">
-        <Image src="/images/ChatGPT_Image_Sep_13,_2026,_12_18_29_PM.png" alt="تخت جمشید" fill priority className="object-cover object-center" sizes="100vw" />
+        <Image src="/images/ChatGPT_Image_Sep_13,_2026,_12_18_29_PM.webp" alt="تخت جمشید" fill priority className="object-cover object-center" sizes="100vw" />
         <div className="absolute inset-0 bg-gradient-to-l from-white via-white/80 to-white/10" />
         <div className="absolute inset-0 bg-gradient-to-t from-white/40 via-transparent to-white/10" />
         <div className="relative mx-auto flex min-h-[560px] max-w-[1220px] items-center px-5 py-20 lg:min-h-[680px] lg:px-8">

@@ -48,7 +48,7 @@ export default function UnifiedLoginPage() {
   return (
     <main className="relative flex min-h-[100svh] items-center justify-center overflow-hidden px-4 py-8 sm:px-6" dir="rtl">
       <Image
-        src="/images/ChatGPT_Image_Sep_13,_2026,_12_18_29_PM.png"
+        src="/images/ChatGPT_Image_Sep_13,_2026,_12_18_29_PM.webp"
         alt="تخت جمشید"
         fill
         priority
