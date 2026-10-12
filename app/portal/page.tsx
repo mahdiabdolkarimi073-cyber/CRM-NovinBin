@@ -58,7 +58,7 @@ export default function PortalDashboardPage() {
           <div className="h-[42px] w-[5px] rounded-full bg-emerald-500" />
           <div>
             <h1 className="text-[28px] font-extrabold leading-tight text-[#101828]">
-              سلام {profile?.firstName || 'مشتری'} 👋
+               سلام خوش امدید👋
             </h1>
             <p className="mt-2 text-sm font-medium text-[#8490A5]">امروز: {formatJalali(new Date())}</p>
           </div>
