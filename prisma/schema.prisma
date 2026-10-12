@@ -256,7 +256,22 @@ model Profile {
   graphicWorks        GraphicWork[]
   graphicWorkAccess   GraphicWorkAccess?
 
+  profileImage ProfileImage?
+
   @@map("profiles")
+}
+
+model ProfileImage {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileId    String   @unique @db.Uuid
+  data         Bytes
+  mimeType     String   @default("image/jpeg")
+  fileSize     Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now())
+  profile      Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("profile_images")
 }
 
 // ============ CRM ============

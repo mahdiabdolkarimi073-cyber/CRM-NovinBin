@@ -773,11 +773,9 @@ function SocialNetworkDesktop({ chat }: { chat: ReturnType<typeof useSocialChat>
   const roleLabels: Record<string, string> = { owner: 'مالک', super_admin: 'سوپرادمین', admin: 'مدیر', personnel: 'پرسنل' };
 
   const filteredUsers = users.filter((u) => getUserLabel(u).toLowerCase().includes(search.toLowerCase()));
-  const conversationUserIds = new Set(dmConversations.map((c) => c.profile.id));
-  const recentDMUsers = dmConversations.map((c) => c.profile);
-  const otherUsers = filteredUsers.filter((u) => !conversationUserIds.has(u.id));
-  const personnelUsers = otherUsers.filter((u) => u.userType === 'staff');
-  const customerUsers = otherUsers.filter((u) => u.userType === 'customer');
+  const conversationMap = new Map(dmConversations.map((c) => [c.profile.id, c]));
+  const personnelUsers = filteredUsers.filter((u) => u.userType === 'staff');
+  const customerUsers = filteredUsers.filter((u) => u.userType === 'customer');
 
   const filteredDMMessages = useMemo(() => {
     if (!messageSearch.trim()) return dmMessages;
@@ -804,6 +802,9 @@ function SocialNetworkDesktop({ chat }: { chat: ReturnType<typeof useSocialChat>
         <span className="staff-chat-user-copy">
           <span className="staff-chat-user-topline">
             <strong>{getUserLabel(user)}</strong>
+            {user.userType === 'staff' && (user.role === 'owner' || user.role === 'super_admin' || user.role === 'admin') && (
+              <span className="staff-chat-role-badge">{roleLabels[user.role]}</span>
+            )}
             {conversation?.lastMessage && <time>{relativeTime(conversation.lastMessage.createdAt)}</time>}
           </span>
           <span className="staff-chat-user-bottomline">
@@ -1036,10 +1037,6 @@ function SocialNetworkDesktop({ chat }: { chat: ReturnType<typeof useSocialChat>
           <div className="staff-chat-users-list">
             {tab === 'dms' ? (
               <>
-                {recentDMUsers.filter((u) => getUserLabel(u).toLowerCase().includes(search.toLowerCase())).map((u) => {
-                  const convo = dmConversations.find((c) => c.profile.id === u.id);
-                  return renderDMUser(u, convo);
-                })}
                 {personnelUsers.length > 0 && (
                   <div className="social-folder">
                     <button className="social-folder-header" onClick={() => setFolderOpen((prev) => ({ ...prev, personnel: !prev.personnel }))}>
@@ -1048,7 +1045,7 @@ function SocialNetworkDesktop({ chat }: { chat: ReturnType<typeof useSocialChat>
                       <span>پرسنل</span>
                       <b className="social-folder-count">{personnelUsers.length.toLocaleString('fa-IR')}</b>
                     </button>
-                    {folderOpen.personnel && personnelUsers.map((u) => renderDMUser(u))}
+                    {folderOpen.personnel && personnelUsers.map((u) => renderDMUser(u, conversationMap.get(u.id)))}
                   </div>
                 )}
                 {customerUsers.length > 0 && (
@@ -1059,10 +1056,10 @@ function SocialNetworkDesktop({ chat }: { chat: ReturnType<typeof useSocialChat>
                       <span>مشتریان</span>
                       <b className="social-folder-count">{customerUsers.length.toLocaleString('fa-IR')}</b>
                     </button>
-                    {folderOpen.customers && customerUsers.map((u) => renderDMUser(u))}
+                    {folderOpen.customers && customerUsers.map((u) => renderDMUser(u, conversationMap.get(u.id)))}
                   </div>
                 )}
-                {personnelUsers.length === 0 && customerUsers.length === 0 && recentDMUsers.length === 0 && (
+                {personnelUsers.length === 0 && customerUsers.length === 0 && (
                   <div className="staff-chat-no-users">کاربری وجود ندارد</div>
                 )}
               </>

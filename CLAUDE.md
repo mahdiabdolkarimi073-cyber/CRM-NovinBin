@@ -133,6 +133,26 @@ The structure, layout, and architecture of this website MUST be preserved at all
 
 10. **This rule applies even when the user says "ادامه بده و تکمیلش کن" (continue and complete it).** The scope NEVER expands. Even if you think a related improvement would be helpful, do NOT make it unless the user asked for it.
 
+## CRITICAL: Database — Always Use Prisma, Never Use Supabase
+
+This rule is NON-NEGOTIABLE and applies to EVERY task and conversation.
+
+This project uses **Prisma ORM** with **PostgreSQL** as its database. You MUST:
+
+1. **Always use Prisma** (`@/lib/prisma`) for all database operations — queries, mutations, migrations, and schema changes. NEVER use Supabase client (`@supabase/supabase-js`), Supabase Storage, Supabase Auth, or any Supabase SDK/API for data access or file storage.
+
+2. **Never import or use `@supabase/supabase-js`** in any source file. This package may exist in `package.json` but MUST NOT be used in application code. Use Prisma instead.
+
+3. **File storage**: Store uploaded files (images, documents, attachments) as binary data (`Bytes` / `BYTEA`) in PostgreSQL via Prisma models, and serve them through dedicated Next.js API routes (e.g., `/api/avatar/[id]`). NEVER use Supabase Storage buckets.
+
+4. **Schema changes**: Always define models in `prisma/schema.prisma` and create corresponding migration files under `prisma/migrations/`. NEVER use Supabase migrations or Supabase MCP tools for schema changes.
+
+5. **Authentication**: This project uses its own JWT-based auth system (custom API routes under `app/api/auth/`). NEVER use Supabase Auth.
+
+6. **Realtime**: If realtime functionality is needed, use Server-Sent Events (SSE) via Next.js API routes (e.g., `/api/social/stream`). NEVER use Supabase Realtime channels.
+
+7. **This rule applies even when the user says "ادامه بده و تکمیلش کن" (continue and complete it).** Never introduce Supabase usage anywhere in the codebase, regardless of context.
+
 ## CRITICAL: Responsive Design — Always Test Every Screen Size
 
 This rule is NON-NEGOTIABLE and applies to EVERY visual/UI change.
