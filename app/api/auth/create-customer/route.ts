@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
       mobile, phone, password,
       customerType, fullName, companyName, email,
       city, address, activityType, serviceTypes,
-      additionalPhones, level, notes,
+      additionalPhones, level, notes, projectManagerId,
     } = body;
 
     if (!mobile || !password) {
@@ -86,6 +86,18 @@ export async function POST(req: NextRequest) {
 
     const org = await prisma.organization.findFirst({ where: { active: true } });
 
+    // Validate projectManagerId — must be an active internal staff profile
+    let validManagerId: string | null = null;
+    if (projectManagerId) {
+      const manager = await prisma.profile.findUnique({
+        where: { id: projectManagerId },
+        select: { id: true, userType: true, role: true, active: true },
+      });
+      if (manager && manager.userType === 'staff' && manager.active && ['owner', 'super_admin', 'admin', 'personnel'].includes(manager.role)) {
+        validManagerId = manager.id;
+      }
+    }
+
     const customer = await prisma.customer.create({
       data: {
         orgId: org?.id || null,
@@ -107,6 +119,7 @@ export async function POST(req: NextRequest) {
         loyaltyPoints: 0,
         notes: notes || null,
         createdBy: auth.userId,
+        projectManagerId: validManagerId,
       },
     });
 

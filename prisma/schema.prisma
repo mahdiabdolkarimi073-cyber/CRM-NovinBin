@@ -304,6 +304,7 @@ model Customer {
   additionalPhones Json   @default("[]")
   notes         String?
   createdBy     String   @db.Uuid
+  projectManagerId String? @db.Uuid
   createdAt     DateTime @default(now())
   updatedAt     DateTime @default(now())
   org           Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)

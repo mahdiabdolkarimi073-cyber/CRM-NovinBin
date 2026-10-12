@@ -14,12 +14,12 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
 } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users, Plus, Search, Building2, User, Phone, Mail, MapPin, Briefcase, Award, Check, X, KeyRound, Loader2 } from 'lucide-react';
+import { Users, Plus, Search, Building2, User, Phone, Mail, MapPin, Briefcase, Award, Check, X, KeyRound, Loader2, UserCog } from 'lucide-react';
 import { relativeTime } from '@/lib/format';
 import { fullName, CUSTOMER_LEVELS, SERVICE_TYPES, ACTIVITY_TYPES } from '@/lib/constants';
 import { toast } from 'sonner';
 import { PasswordInput } from '@/components/ui/password-input';
-import type { Customer } from '@/lib/types';
+import type { Customer, Profile } from '@/lib/types';
 
 export default function CustomersPage() {
   const { profile } = useAuth();
@@ -50,8 +50,17 @@ export default function CustomersPage() {
   const [additionalPhones, setAdditionalPhones] = useState<string[]>([]);
   const [createAccount, setCreateAccount] = useState(false);
   const [password, setPassword] = useState('');
+  const [projectManagerId, setProjectManagerId] = useState<string>('none');
+  const [staffList, setStaffList] = useState<Profile[]>([]);
 
   const isSuperAdmin = profile?.role === 'super_admin' || profile?.role === 'owner';
+
+  useEffect(() => {
+    fetchData<Profile>('profiles', {
+      where: { userType: 'staff', role: { in: ['personnel', 'admin', 'super_admin', 'owner'] }, active: true },
+      orderBy: { firstName: 'asc' },
+    }).then((data) => setStaffList(data || [])).catch(() => {});
+  }, []);
 
   const loadCustomers = useCallback(async () => {
     if (!profile) return;
@@ -108,6 +117,7 @@ export default function CustomersPage() {
     setAdditionalPhones(c.additionalPhones || []);
     setCreateAccount(false);
     setPassword('');
+    setProjectManagerId((c as any).projectManagerId || 'none');
     setEditDialogOpen(true);
   };
 
@@ -163,6 +173,7 @@ export default function CustomersPage() {
           additionalPhones: phones,
           level: form.level,
           notes: form.notes || null,
+          projectManagerId: projectManagerId !== 'none' ? projectManagerId : null,
         }),
       });
       const data = await res.json();
@@ -516,6 +527,20 @@ export default function CustomersPage() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>مسئول پروژه</Label>
+              <Select value={projectManagerId} onValueChange={setProjectManagerId}>
+                <SelectTrigger><SelectValue placeholder="انتخاب مسئول پروژه…" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">بدون انتخاب</SelectItem>
+                  {staffList.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.fullName || `${s.firstName || ''} ${s.lastName || ''}`.trim() || 'کاربر'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>خدمات دریافتی</Label>

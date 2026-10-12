@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { createData } from '@/lib/data-client';
+import { createData, fetchData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,12 +13,13 @@ import {
 } from '@/components/ui/select';
 import {
   ArrowRight, UserPlus, User, Building2, Mail, Phone, MapPin,
-  Tag, Award, Briefcase, Lightbulb, Info, Loader2, Check, Plus, X,
+  Tag, Award, Briefcase, Lightbulb, Info, Loader2, Check, Plus, X, UserCog,
 } from 'lucide-react';
 import { CUSTOMER_LEVELS, SERVICE_TYPES, ACTIVITY_TYPES } from '@/lib/constants';
 import { toast } from 'sonner';
 import { PasswordInput } from '@/components/ui/password-input';
 import { isValidMobile } from '@/lib/phone';
+import type { Profile } from '@/lib/types';
 
 const guideItems = [
   { icon: User, title: 'نام کامل مشتری', desc: 'نام و نام خانوادگی مشتری را در یک فیلد وارد کنید.' },
@@ -49,6 +50,15 @@ export default function NewCustomerPage() {
   const [additionalPhones, setAdditionalPhones] = useState<string[]>([]);
   const [createAccount, setCreateAccount] = useState(true);
   const [password, setPassword] = useState('');
+  const [projectManagerId, setProjectManagerId] = useState<string>('none');
+  const [staffList, setStaffList] = useState<Profile[]>([]);
+
+  useEffect(() => {
+    fetchData<Profile>('profiles', {
+      where: { userType: 'staff', role: { in: ['personnel', 'admin', 'super_admin', 'owner'] }, active: true },
+      orderBy: { firstName: 'asc' },
+    }).then((data) => setStaffList(data || [])).catch(() => {});
+  }, []);
 
   const toggleService = (service: string) => {
     setSelectedServices((prev) =>
@@ -116,6 +126,7 @@ export default function NewCustomerPage() {
             additionalPhones: phones,
             level: form.level,
             notes: form.notes || undefined,
+            projectManagerId: projectManagerId !== 'none' ? projectManagerId : undefined,
           }),
         });
         const data = await res.json();
@@ -138,6 +149,7 @@ export default function NewCustomerPage() {
           level: form.level,
           notes: form.notes || null,
           createdBy: profile.id,
+          projectManagerId: projectManagerId !== 'none' ? projectManagerId : null,
         });
         toast.success('مشتری با موفقیت ایجاد شد');
       }
@@ -268,6 +280,25 @@ export default function NewCustomerPage() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              {/* Project Manager */}
+              <div className="field-group">
+                <Label className="field-label">مسئول پروژه</Label>
+                <Select value={projectManagerId} onValueChange={setProjectManagerId}>
+                  <SelectTrigger className="task-select">
+                    <span className="select-icon-right"><UserCog className="h-4 w-4" /></span>
+                    <SelectValue placeholder="انتخاب مسئول پروژه…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">بدون انتخاب</SelectItem>
+                    {staffList.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.fullName || `${s.firstName || ''} ${s.lastName || ''}`.trim() || 'کاربر'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Service types - multi-select checkboxes */}

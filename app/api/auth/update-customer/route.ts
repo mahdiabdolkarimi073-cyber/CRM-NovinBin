@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
       additionalPhones,
       level,
       notes,
+      projectManagerId,
     } = body;
 
     if (!customerId) {
@@ -101,6 +102,24 @@ export async function POST(req: NextRequest) {
       ? (email ? String(email).toLowerCase() : null)
       : customer.email;
 
+    // Validate projectManagerId — must be an active internal staff profile
+    let validManagerId: string | null | undefined = undefined;
+    if (projectManagerId !== undefined) {
+      if (projectManagerId === null || projectManagerId === '') {
+        validManagerId = null;
+      } else {
+        const manager = await prisma.profile.findUnique({
+          where: { id: projectManagerId },
+          select: { id: true, userType: true, role: true, active: true },
+        });
+        if (manager && manager.userType === 'staff' && manager.active && ['owner', 'super_admin', 'admin', 'personnel'].includes(manager.role)) {
+          validManagerId = manager.id;
+        } else {
+          return NextResponse.json({ error: 'کاربر انتخاب‌شده به‌عنوان مسئول پروژه مجاز نیست' }, { status: 400 });
+        }
+      }
+    }
+
     // Update the customer record
     const updatedCustomer = await prisma.customer.update({
       where: { id: customerId },
@@ -119,6 +138,7 @@ export async function POST(req: NextRequest) {
         ...(additionalPhones !== undefined && { additionalPhones: Array.isArray(additionalPhones) ? additionalPhones.filter((p: string) => p.trim()) : [] }),
         ...(level !== undefined && { level }),
         ...(notes !== undefined && { notes: notes || null }),
+        ...(validManagerId !== undefined && { projectManagerId: validManagerId }),
         updatedAt: new Date(),
       },
     });

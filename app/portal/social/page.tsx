@@ -6,7 +6,7 @@ import { fetchData, createData, updateData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useCall } from '@/components/providers/call-provider';
 import { EmptyState } from '@/components/dashboard/empty-state';
-import { MessageCircle, Send, Search, Paperclip, Video, FileText, X, Info, MoreVertical, Smile, Mic, CheckCheck, Users, XCircle, Phone, PhoneCall, ArrowLeft, ArrowRight, FolderTree, Reply, Menu, User, ChevronRight, Trash2 } from 'lucide-react';
+import { MessageCircle, Send, Search, Paperclip, Video, FileText, X, Info, MoreVertical, Smile, Mic, CheckCheck, Users, XCircle, Phone, PhoneCall, ArrowLeft, ArrowRight, FolderTree, Reply, Menu, User, ChevronRight, Trash2, Star } from 'lucide-react';
 import { relativeTime, formatJalali } from '@/lib/format';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -66,6 +66,7 @@ export default function PortalSocialPage() {
   const [isRecording, setIsRecording] = useState(false);
   const [recordTime, setRecordTime] = useState(0);
   const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [projectManager, setProjectManager] = useState<Profile | null>(null);
 
   const roleLabels: Record<string, string> = { owner: 'مالک', super_admin: 'سوپرادمین', admin: 'مدیر', personnel: 'پرسنل' };
   const getUserLabel = useCallback((u: Profile) => {
@@ -167,6 +168,19 @@ export default function PortalSocialPage() {
   useEffect(() => { if (availableStaff.length >= 0) loadDMConversations(); }, [loadDMConversations]);
   useEffect(() => { if (selectedUser) loadDmMessages(selectedUser.id); }, [selectedUser, loadDmMessages]);
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [dmMessages]);
+
+  // Fetch project manager for this customer
+  useEffect(() => {
+    if (!profile || profile.userType !== 'customer') return;
+    fetch('/api/portal/project-manager')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.manager) {
+          setProjectManager(data.manager as Profile);
+        }
+      })
+      .catch(() => {});
+  }, [profile]);
 
   // Auto-track device info on page load
   useEffect(() => {
@@ -331,18 +345,26 @@ export default function PortalSocialPage() {
 
   const selectUser = (user: Profile) => { setSelectedUser(user); setIsUsersOpen(false); };
 
-  const renderUser = (user: Profile, conversation?: DMConversation) => {
+  const getAvatarSrc = useCallback((u: Profile) => {
+    if (u.avatarUrl) return u.avatarUrl;
+    return `/api/avatar/${u.id}`;
+  }, []);
+
+  const renderUser = (user: Profile, conversation?: DMConversation, isManager = false) => {
     const isActive = selectedUser?.id === user.id;
     const online = isOnline(user.lastSeenAt);
+    const avatarSrc = getAvatarSrc(user);
     return (
       <button key={user.id} onClick={() => selectUser(user)} className={cn('staff-chat-user', isActive && 'is-active')}>
         <span className="staff-chat-avatar-wrap">
-          <span className="staff-chat-avatar">{getInitials(user)}</span>
+          <img src={avatarSrc} alt="" className="staff-chat-avatar staff-chat-avatar-img" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }} />
+          <span className="staff-chat-avatar hidden">{getInitials(user)}</span>
           <span className={cn('staff-chat-presence-dot', online ? 'is-online' : 'is-offline')} />
         </span>
         <span className="staff-chat-user-copy">
           <span className="staff-chat-user-topline">
             <strong>{getUserLabel(user)}</strong>
+            {isManager && <span className="project-manager-badge"><Star className="w-3 h-3" />مسئول پروژه شما</span>}
             {conversation?.lastMessage && <time>{relativeTime(conversation.lastMessage.createdAt)}</time>}
           </span>
           <span className="staff-chat-user-bottomline">
@@ -368,9 +390,11 @@ export default function PortalSocialPage() {
               <span>بازگشت</span>
             </button>
             <div className="tg-header-center">
-              <div className="tg-header-avatar">{getInitials(selectedUser)}</div>
+              <img src={getAvatarSrc(selectedUser)} alt="" className="tg-header-avatar tg-header-avatar-img" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }} />
+              <div className="tg-header-avatar hidden">{getInitials(selectedUser)}</div>
               <div className="tg-header-info">
                 <strong>{getUserLabel(selectedUser)}</strong>
+                {projectManager?.id === selectedUser.id && <span className="project-manager-badge"><Star className="w-3 h-3" />مسئول پروژه شما</span>}
                 <span className="tg-header-status">
                   {isOnline(selectedUser.lastSeenAt) && <i className="tg-online-dot" />}
                   {isOnline(selectedUser.lastSeenAt) ? 'آنلاین' : selectedUser.lastSeenAt ? `آخرین بازدید ${relativeTime(selectedUser.lastSeenAt)}` : roleLabels[selectedUser.role] || selectedUser.role}
@@ -477,7 +501,8 @@ export default function PortalSocialPage() {
                   <p className="text-xs text-slate-400 text-center py-4">پرسنلی در این پوشه نیست</p>
                 ) : folderStaff.map((m) => (
                   <div key={m.id} className="flex items-center gap-2.5 p-2.5 rounded-lg border bg-slate-50">
-                    <span className="staff-chat-avatar staff-chat-message-avatar">{getInitials(m)}</span>
+                    <img src={getAvatarSrc(m)} alt="" className="staff-chat-avatar staff-chat-message-avatar staff-chat-avatar-img" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }} />
+                    <span className="staff-chat-avatar staff-chat-message-avatar hidden">{getInitials(m)}</span>
                     <div>
                       <div className="text-sm font-medium text-slate-900">{getUserLabel(m)}</div>
                       <div className="text-xs text-slate-400">{roleLabels[m.role] || m.role}</div>
@@ -519,15 +544,34 @@ export default function PortalSocialPage() {
           </div>
           <section className="messages-list">
             {tab === 'dm' ? (
-              mobileUsers.length === 0 ? (
+              mobileUsers.length === 0 && !projectManager ? (
                 <div className="messages-empty"><MessageCircle /><p>گفتگویی وجود ندارد</p></div>
-              ) : mobileUsers.filter((u) => getUserLabel(u).toLowerCase().includes(search.toLowerCase())).map((user) => {
+              ) : (
+                <>
+                {projectManager && (
+                  <button className="message-row project-manager-row" key="pm" onClick={() => selectUser(projectManager)}>
+                    <span className="message-avatar-wrap">
+                      <img src={getAvatarSrc(projectManager)} alt="" className="message-avatar message-avatar-img" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }} />
+                      <span className="message-avatar hidden" style={{ background: 'linear-gradient(135deg, #2563EB, #3B82F6)' }}>{getInitials(projectManager)}</span>
+                      {isOnline(projectManager.lastSeenAt) && <i className="message-online-dot" />}
+                    </span>
+                    <span className="message-copy">
+                      <strong>{getUserLabel(projectManager)}</strong>
+                      <span className="message-preview"><Star className="inline w-3 h-3 ml-1" />مسئول پروژه شما</span>
+                    </span>
+                    <span className="message-meta">
+                      <time></time>
+                    </span>
+                  </button>
+                )}
+                {mobileUsers.filter((u) => getUserLabel(u).toLowerCase().includes(search.toLowerCase()) && (!projectManager || u.id !== projectManager.id)).map((user) => {
                 const conversation = dmConversations.find((c) => c.profile.id === user.id);
                 const online = isOnline(user.lastSeenAt);
                 return (
                   <button className="message-row" key={user.id} onClick={() => selectUser(user)}>
                     <span className="message-avatar-wrap">
-                      <span className="message-avatar" style={{ background: 'linear-gradient(135deg, #6366F1, #818CF8)' }}>{getInitials(user)}</span>
+                      <img src={getAvatarSrc(user)} alt="" className="message-avatar message-avatar-img" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }} />
+                      <span className="message-avatar hidden" style={{ background: 'linear-gradient(135deg, #6366F1, #818CF8)' }}>{getInitials(user)}</span>
                       {online && <i className="message-online-dot" />}
                     </span>
                     <span className="message-copy">
@@ -540,7 +584,9 @@ export default function PortalSocialPage() {
                     </span>
                   </button>
                 );
-              })
+                })}
+                </>
+              )
             ) : (
               folders.length === 0 ? (
                 <div className="messages-empty"><FolderTree /><p>پوشه‌ای وجود ندارد</p></div>
@@ -633,11 +679,13 @@ export default function PortalSocialPage() {
               <header className="staff-chat-header">
                 <div className="staff-chat-person">
                   <span className="staff-chat-avatar-wrap">
-                    <span className="staff-chat-avatar staff-chat-avatar-large">{getInitials(selectedUser)}</span>
+                    <img src={getAvatarSrc(selectedUser)} alt="" className="staff-chat-avatar staff-chat-avatar-large staff-chat-avatar-img" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }} />
+                    <span className="staff-chat-avatar staff-chat-avatar-large hidden">{getInitials(selectedUser)}</span>
                     <span className={cn('staff-chat-presence-dot', isOnline(selectedUser.lastSeenAt) ? 'is-online' : 'is-offline')} />
                   </span>
                   <div>
                     <strong>{getUserLabel(selectedUser)}</strong>
+                    {projectManager?.id === selectedUser.id && <span className="project-manager-badge"><Star className="w-3 h-3" />مسئول پروژه شما</span>}
                     <span className="staff-chat-status">
                       <i className={cn(isOnline(selectedUser.lastSeenAt) ? 'is-online' : 'is-offline')} />
                       {isOnline(selectedUser.lastSeenAt) ? 'آنلاین' : selectedUser.lastSeenAt ? `آخرین بازدید ${relativeTime(selectedUser.lastSeenAt)}` : roleLabels[selectedUser.role] || selectedUser.role}
@@ -671,7 +719,8 @@ export default function PortalSocialPage() {
                   const repliedMsg = msg.replyToId ? dmMessages.find((m) => m.id === msg.replyToId) : null;
                   return <div key={msg.id} className={cn('staff-chat-message-row', isMine ? 'is-mine' : 'is-other')}>
                     <button className="staff-chat-reply-btn" onClick={() => setReplyTo(msg)} aria-label="پاسخ"><Reply style={{ width: 14, height: 14 }} /></button>
-                    {!isMine && <span className="staff-chat-avatar staff-chat-message-avatar">{getInitials(selectedUser)}</span>}
+                    {!isMine && <img src={getAvatarSrc(selectedUser)} alt="" className="staff-chat-avatar staff-chat-message-avatar staff-chat-avatar-img" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }} />}
+                    {!isMine && <span className="staff-chat-avatar staff-chat-message-avatar hidden">{getInitials(selectedUser)}</span>}
                     <div className={cn('staff-chat-bubble', isMine ? 'is-mine' : 'is-other')}>
                       {repliedMsg && (
                         <div className="staff-chat-bubble-reply">
@@ -733,7 +782,8 @@ export default function PortalSocialPage() {
                     ) : (folderStaffMap[selectedFolderId] || []).map((m) => {
                       return (
                         <div key={m.id} className="flex items-center gap-2.5 p-2.5 rounded-lg border bg-slate-50">
-                          <span className="staff-chat-avatar staff-chat-message-avatar">{getInitials(m)}</span>
+                          <img src={getAvatarSrc(m)} alt="" className="staff-chat-avatar staff-chat-message-avatar staff-chat-avatar-img" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }} />
+                          <span className="staff-chat-avatar staff-chat-message-avatar hidden">{getInitials(m)}</span>
                           <div>
                             <div className="text-sm font-medium text-slate-900">{getUserLabel(m)}</div>
                             <div className="text-xs text-slate-400">{roleLabels[m.role] || m.role}</div>
@@ -817,10 +867,16 @@ export default function PortalSocialPage() {
                   </div>
                 ) : (
                   <>
+                    {projectManager && (
+                      <>
+                        <h3 className="project-manager-section-title">مسئول پروژه شما</h3>
+                        {renderUser(projectManager, dmConversations.find((c) => c.profile.id === projectManager.id), true)}
+                      </>
+                    )}
                     {recentConvoUsers.length > 0 && <h3>گفتگوهای اخیر</h3>}
-                    {recentConvoUsers.filter((u) => getUserLabel(u).toLowerCase().includes(search.toLowerCase())).map((u) => renderUser(u, dmConversations.find((c) => c.profile.id === u.id)))}
+                    {recentConvoUsers.filter((u) => getUserLabel(u).toLowerCase().includes(search.toLowerCase()) && (!projectManager || u.id !== projectManager.id)).map((u) => renderUser(u, dmConversations.find((c) => c.profile.id === u.id)))}
                     {otherStaff.length > 0 && recentConvoUsers.length > 0 && <h3>سایر پرسنل</h3>}
-                    {otherStaff.map((u) => renderUser(u))}
+                    {otherStaff.filter((u) => !projectManager || u.id !== projectManager.id).map((u) => renderUser(u))}
                   </>
                 )}
               </>
