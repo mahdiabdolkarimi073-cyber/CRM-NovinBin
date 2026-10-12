@@ -322,7 +322,7 @@ export default function DashboardPage() {
             <div className="h-10 w-1.5 mobile:h-12 mobile:w-1.5 rounded-full bg-accent shadow-lg" />
             <div>
               <h1 className="text-xl mobile:text-2xl tablet:text-3xl font-bold text-primary-foreground">
-                خوش آمدید، {profile?.firstName || 'مهدی'}
+                خوش آمدید
               </h1>
               <p className="mt-1 text-xs mobile:mt-1.5 mobile:text-sm text-primary-foreground/70">
                 امروز: {formatJalali(new Date())} — خلاصه عملکرد شما آماده است

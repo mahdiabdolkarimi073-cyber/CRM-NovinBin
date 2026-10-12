@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { fetchData, updateData, deleteData } from '@/lib/data-client';
+import { normalizePhone, isValidMobile } from '@/lib/phone';
 import { useAuth } from '@/components/providers/auth-provider';
 import { SuperAdminActions } from '@/components/dashboard/super-admin-actions';
 import { Button } from '@/components/ui/button';
@@ -136,22 +137,36 @@ export default function CustomersPage() {
       const lastName = nameParts.slice(1).join(' ') || null;
       const phones = additionalPhones.filter((p) => p.trim() !== '');
 
-      await updateData('customers', { id: editingCustomer.id }, {
-        type: form.type,
-        firstName,
-        lastName,
-        companyName: form.companyName || null,
-        email: form.email || null,
-        mobile: form.mobile || null,
-        phone: form.phone || null,
-        address: form.address || null,
-        city: form.city || null,
-        activityType: form.activityType || null,
-        serviceTypes: selectedServices,
-        additionalPhones: phones,
-        level: form.level,
-        notes: form.notes || null,
+      // Validate mobile if provided
+      if (form.mobile && form.mobile.trim() && !isValidMobile(form.mobile)) {
+        toast.error('شماره موبایل نامعتبر است. فرمت صحیح: 09XXXXXXXXX یا +989XXXXXXXXX');
+        setSaving(false);
+        return;
+      }
+
+      const res = await fetch('/api/auth/update-customer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerId: editingCustomer.id,
+          type: form.type,
+          firstName,
+          lastName,
+          companyName: form.companyName || null,
+          email: form.email || null,
+          mobile: form.mobile || null,
+          phone: form.phone || null,
+          address: form.address || null,
+          city: form.city || null,
+          activityType: form.activityType || null,
+          serviceTypes: selectedServices,
+          additionalPhones: phones,
+          level: form.level,
+          notes: form.notes || null,
+        }),
       });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'خطا در ویرایش مشتری');
 
       if (createAccount && password) {
         if (password.length < 6) {
@@ -168,7 +183,8 @@ export default function CustomersPage() {
         if (!pwRes.ok) throw new Error(pwData.error || 'خطا در تنظیم رمز عبور');
       }
 
-      toast.success('مشتری ویرایش شد');
+      const portalMsg = data.portalMessage ? ` | ${data.portalMessage}` : '';
+      toast.success(`مشتری ویرایش شد${portalMsg}`);
       setEditDialogOpen(false);
       setEditingCustomer(null);
       setCreateAccount(false);
@@ -523,7 +539,7 @@ export default function CustomersPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>موبایل</Label>
-                <input dir="ltr" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })} />
+                <input dir="ltr" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })} placeholder="0912xxxxxxx یا +98912xxxxxxx" />
               </div>
               <div className="space-y-2">
                 <Label>تلفن ثابت</Label>

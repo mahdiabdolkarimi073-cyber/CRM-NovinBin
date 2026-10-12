@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { normalizePhone } from '@/lib/phone';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
 
@@ -49,9 +50,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'نام و نام خانوادگی الزامی است' }, { status: 400 });
     }
 
-    const normalizedMobile = String(mobile).trim();
+    const normalizedMobile = normalizePhone(mobile);
+    if (!normalizedMobile) {
+      return NextResponse.json({ error: 'شماره موبایل نامعتبر است. فرمت صحیح: 09XXXXXXXXX یا +989XXXXXXXXX' }, { status: 400 });
+    }
     const normalizedEmail = email ? String(email).toLowerCase() : null;
 
+    // Check for existing user with the normalized phone (covers both 09... and +98... formats)
     const existing = await prisma.user.findFirst({ where: { phone: normalizedMobile } });
     if (existing) {
       return NextResponse.json({ error: 'کاربری با این شماره موبایل قبلاً ثبت شده است' }, { status: 409 });

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { normalizePhone } from '@/lib/phone';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
 
@@ -46,9 +47,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'مشتری یافت نشد' }, { status: 404 });
     }
 
-    const resolvedPhone = phone ? String(phone).trim() : (customer.phone || customer.mobile);
+    const resolvedPhone = normalizePhone(phone || customer.phone || customer.mobile);
     if (!resolvedPhone) {
-      return NextResponse.json({ error: 'شماره موبایل مشتری ثبت نشده است' }, { status: 400 });
+      return NextResponse.json({ error: 'شماره موبایل مشتری معتبر نیست. فرمت صحیح: 09XXXXXXXXX یا +989XXXXXXXXX' }, { status: 400 });
     }
 
     const passwordHash = bcrypt.hashSync(String(password), 10);
@@ -56,6 +57,14 @@ export async function POST(req: NextRequest) {
     let user = await prisma.user.findFirst({ where: { phone: resolvedPhone } });
 
     if (user) {
+      // Check this user belongs to a different customer
+      const userProfile = await prisma.profile.findUnique({
+        where: { id: user.id },
+        select: { customerId: true },
+      });
+      if (userProfile?.customerId && userProfile.customerId !== customerId) {
+        return NextResponse.json({ error: 'این شماره موبایل متعلق به مشتری دیگری است' }, { status: 409 });
+      }
       await prisma.user.update({
         where: { id: user.id },
         data: { passwordHash },
@@ -101,7 +110,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      if (!customer.mobile) {
+      if (!customer.mobile || customer.mobile !== resolvedPhone) {
         await prisma.customer.update({
           where: { id: customerId },
           data: { mobile: resolvedPhone },

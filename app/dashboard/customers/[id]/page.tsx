@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { useAuth } from '@/components/providers/auth-provider';
+import { normalizePhone, isValidMobile } from '@/lib/phone';
 import { formatToman, formatJalali, relativeTime } from '@/lib/format';
 import { fullName, CUSTOMER_LEVELS, ORDER_STATUSES, INVOICE_STATUSES, TASK_STATUSES, TASK_PRIORITIES, TICKET_STATUSES, INSURANCE_TYPES, INSURANCE_ISSUE_STATUSES, INSURANCE_CLAIM_STATUSES } from '@/lib/constants';
 import type { Customer, Order, Invoice, Task, Meeting, Ticket, InsurancePolicy, InsuranceClaim } from '@/lib/types';
@@ -623,6 +624,10 @@ export default function CustomerDetailPage() {
                   toast.error('شماره موبایل الزامی است');
                   return;
                 }
+                if (!isValidMobile(acctPhone)) {
+                  toast.error('شماره موبایل نامعتبر است. فرمت صحیح: 09XXXXXXXXX یا +989XXXXXXXXX');
+                  return;
+                }
                 if (acctPassword.length < 6) {
                   toast.error('رمز عبور باید حداقل ۶ کاراکتر باشد');
                   return;
@@ -632,7 +637,7 @@ export default function CustomerDetailPage() {
                   const res = await fetch('/api/auth/set-customer-password', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ customerId, password: acctPassword, phone: acctPhone.trim() }),
+                    body: JSON.stringify({ customerId, password: acctPassword, phone: normalizePhone(acctPhone) }),
                   });
                   const data = await res.json();
                   if (!res.ok) throw new Error(data.error || 'خطا');

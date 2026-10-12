@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { normalizePhone } from '@/lib/phone';
 
 // POST /api/auth/register-customer
 // Public route — no auth required.
@@ -26,10 +27,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'نام و نام خانوادگی الزامی است' }, { status: 400 });
     }
 
-    const normalizedPhone = String(phone).trim();
+    const normalizedPhone = normalizePhone(phone);
+    if (!normalizedPhone) {
+      return NextResponse.json({ error: 'شماره موبایل نامعتبر است. فرمت صحیح: 09XXXXXXXXX یا +989XXXXXXXXX' }, { status: 400 });
+    }
     const normalizedEmail = email ? String(email).toLowerCase() : null;
 
-    // Check for existing user by phone
+    // Check for existing user by normalized phone
     const existing = await prisma.user.findFirst({ where: { phone: normalizedPhone } });
     if (existing) {
       return NextResponse.json({ error: 'کاربری با این شماره موبایل قبلاً ثبت شده است' }, { status: 409 });

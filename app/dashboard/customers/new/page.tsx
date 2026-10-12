@@ -18,6 +18,7 @@ import {
 import { CUSTOMER_LEVELS, SERVICE_TYPES, ACTIVITY_TYPES } from '@/lib/constants';
 import { toast } from 'sonner';
 import { PasswordInput } from '@/components/ui/password-input';
+import { isValidMobile } from '@/lib/phone';
 
 const guideItems = [
   { icon: User, title: 'نام کامل مشتری', desc: 'نام و نام خانوادگی مشتری را در یک فیلد وارد کنید.' },
@@ -75,6 +76,12 @@ export default function NewCustomerPage() {
     }
     setSubmitting(true);
     try {
+      // Validate mobile if provided
+      if (form.mobile && form.mobile.trim() && !isValidMobile(form.mobile)) {
+        toast.error('شماره موبایل نامعتبر است. فرمت صحیح: 09XXXXXXXXX یا +989XXXXXXXXX');
+        setSubmitting(false);
+        return;
+      }
       const nameParts = form.fullName.trim().split(/\s+/);
       const firstName = nameParts[0] || null;
       const lastName = nameParts.slice(1).join(' ') || null;
@@ -292,7 +299,7 @@ export default function NewCustomerPage() {
                     dir="ltr"
                     value={form.mobile}
                     onChange={(e) => setForm({ ...form, mobile: e.target.value })}
-                    placeholder="0912xxxxxxx"
+                    placeholder="0912xxxxxxx یا +98912xxxxxxx"
                     className="task-input"
                   />
                 </div>

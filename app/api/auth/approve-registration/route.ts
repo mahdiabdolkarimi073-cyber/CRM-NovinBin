@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { normalizePhone } from '@/lib/phone';
 
 // POST /api/auth/approve-registration
 // Body: { requestId, reviewerId }
@@ -24,10 +25,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'رمز عبور درخواست یافت نشد' }, { status: 400 });
     }
 
-    // Check for existing user
+    // Normalize phone from the registration request
+    const normalizedPhone = normalizePhone(reqRecord.phone) || reqRecord.phone;
+
+    // Check for existing user by email or phone
     const existing = await prisma.user.findUnique({ where: { email: reqRecord.email } });
     if (existing) {
       return NextResponse.json({ error: 'کاربری با این ایمیل قبلا ثبت شده است' }, { status: 409 });
+    }
+    const existingByPhone = await prisma.user.findFirst({ where: { phone: normalizedPhone } });
+    if (existingByPhone) {
+      return NextResponse.json({ error: 'کاربری با این شماره موبایل قبلا ثبت شده است' }, { status: 409 });
     }
 
     // 1. Create customer record
@@ -38,6 +46,7 @@ export async function POST(req: NextRequest) {
         lastName: reqRecord.lastName,
         companyName: reqRecord.companyName,
         email: reqRecord.email,
+        mobile: normalizedPhone,
         phone: reqRecord.phone,
         birthDate: reqRecord.birthDate || null,
         address: reqRecord.address || null,
@@ -61,7 +70,7 @@ export async function POST(req: NextRequest) {
             role: 'personnel',
             firstName: reqRecord.firstName,
             lastName: reqRecord.lastName,
-            phone: reqRecord.phone,
+            phone: normalizedPhone,
             customerId: customer.id,
             active: true,
           },

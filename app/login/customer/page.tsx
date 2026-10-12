@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Loader2, LogIn, User, ArrowLeft, Phone } from 'lucide-react';
 import { PasswordInput } from '@/components/ui/password-input';
 import { toast } from 'sonner';
+import { normalizePhone } from '@/lib/phone';
 
 export default function CustomerLoginPage() {
   const router = useRouter();
@@ -25,8 +26,13 @@ export default function CustomerLoginPage() {
       toast.error('شماره موبایل و رمز عبور را وارد کنید');
       return;
     }
+    const normalized = normalizePhone(phone);
+    if (!normalized) {
+      toast.error('شماره موبایل نامعتبر است. فرمت صحیح: 09XXXXXXXXX یا +989XXXXXXXXX');
+      return;
+    }
     setLoading(true);
-    const result = await signInWithPhone(phone, password);
+    const result = await signInWithPhone(normalized, password);
     setLoading(false);
     if (!result.success) {
       toast.error(result.error || 'ورود ناموفق');

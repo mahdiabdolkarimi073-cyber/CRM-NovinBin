@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { randomUUID } from 'crypto';
+import { normalizePhone } from '@/lib/phone';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
 
@@ -72,10 +73,11 @@ export async function POST(req: NextRequest) {
     }
 
     if (!user && phone) {
-      diagLog(traceId, 'login_db_lookup_phone', { phonePrefix: phone.trim().substring(0, 3) + '***' });
+      const normalizedPhone = normalizePhone(phone) || phone.trim();
+      diagLog(traceId, 'login_db_lookup_phone', { phonePrefix: normalizedPhone.substring(0, 3) + '***' });
       try {
         user = await prisma.user.findFirst({
-          where: { phone: phone.trim() },
+          where: { phone: normalizedPhone },
           include: { profile: true },
         });
         diagLog(traceId, 'login_db_lookup_phone_result', { userFound: !!user, hasProfile: !!user?.profile });
