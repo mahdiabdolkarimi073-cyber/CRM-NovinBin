@@ -5,8 +5,8 @@ import { createClient } from '@supabase/supabase-js';
 import { prisma } from '@/lib/prisma';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
 const BUCKET = 'avatars';
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp'];
@@ -31,6 +31,9 @@ function detectMimeType(buffer: Buffer): string | null {
 }
 
 function getSupabaseAdmin() {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+    throw new Error('SUPABASE_URL or SUPABASE_KEY not configured');
+  }
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
@@ -45,6 +48,10 @@ function extractStoragePath(avatarUrl: string): string | null {
   } catch {
     return null;
   }
+}
+
+function isSupabaseUrl(url: string): boolean {
+  return url.includes('/storage/v1/object/public/') || url.startsWith('http');
 }
 
 export async function POST(req: NextRequest) {
@@ -76,7 +83,13 @@ export async function POST(req: NextRequest) {
     const safeName = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}${ext}`;
     const storagePath = `${auth.userId}/${safeName}`;
 
-    const supabase = getSupabaseAdmin();
+    let supabase;
+    try {
+      supabase = getSupabaseAdmin();
+    } catch {
+      return NextResponse.json({ error: 'تنظیمات فضای ذخیره‌سازی پیکربندی نشده است' }, { status: 500 });
+    }
+
     const { error: uploadError } = await supabase.storage
       .from(BUCKET)
       .upload(storagePath, buffer, { contentType: detectedMime, upsert: false });
@@ -92,7 +105,7 @@ export async function POST(req: NextRequest) {
     const url = `${publicUrlData.publicUrl}?v=${Date.now()}`;
 
     const profile = await prisma.profile.findUnique({ where: { id: auth.userId } });
-    if (profile?.avatarUrl) {
+    if (profile?.avatarUrl && isSupabaseUrl(profile.avatarUrl)) {
       const oldPath = extractStoragePath(profile.avatarUrl);
       if (oldPath) {
         try { await supabase.storage.from(BUCKET).remove([oldPath]); } catch {}
@@ -119,10 +132,15 @@ export async function DELETE(req: NextRequest) {
     if (!profile) return NextResponse.json({ error: 'پروفایل یافت نشد' }, { status: 404 });
 
     if (profile.avatarUrl) {
-      const oldPath = extractStoragePath(profile.avatarUrl);
-      if (oldPath) {
-        const supabase = getSupabaseAdmin();
-        try { await supabase.storage.from(BUCKET).remove([oldPath]); } catch {}
+      if (isSupabaseUrl(profile.avatarUrl)) {
+        const oldPath = extractStoragePath(profile.avatarUrl);
+        if (oldPath) {
+          let supabase;
+          try { supabase = getSupabaseAdmin(); } catch {}
+          if (supabase) {
+            try { await supabase.storage.from(BUCKET).remove([oldPath]); } catch {}
+          }
+        }
       }
       await prisma.profile.update({
         where: { id: auth.userId },

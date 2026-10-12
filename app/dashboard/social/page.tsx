@@ -50,8 +50,9 @@ function getInitials(u: Profile) {
   return ((u.firstName?.[0] || '') + (u.lastName?.[0] || '')).toUpperCase() || '؟';
 }
 function Avatar({ src, initials, className }: { src: string | null; initials: string; className?: string }) {
-  if (src) {
-    return <img src={src} alt="" className={cn('object-cover w-full h-full', className)} />;
+  const [imgError, setImgError] = useState(false);
+  if (src && !imgError) {
+    return <img src={src} alt="" className={cn('object-cover w-full h-full', className)} onError={() => setImgError(true)} />;
   }
   return <span className={className}>{initials}</span>;
 }

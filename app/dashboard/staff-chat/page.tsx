@@ -190,7 +190,8 @@ export default function StaffChatPage() {
     return ((u.firstName?.[0] || '') + (u.lastName?.[0] || '')).toUpperCase() || '؟';
   };
   function Avatar({ src, initials }: { src: string | null; initials: string }) {
-    if (src) return <img src={src} alt="" className="object-cover w-full h-full" />;
+    const [imgError, setImgError] = useState(false);
+    if (src && !imgError) return <img src={src} alt="" className="object-cover w-full h-full" onError={() => setImgError(true)} />;
     return <span>{initials}</span>;
   }
   const roleLabels: Record<string, string> = { owner: 'مالک', super_admin: 'سوپرادمین', admin: 'مدیر', personnel: 'پرسنل' };
