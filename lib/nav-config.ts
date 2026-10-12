@@ -39,7 +39,7 @@ export const coreItems: NavItem[] = [
   { href: '/dashboard/note-reminders', label: 'یادآور یادداشت‌ها', icon: BellRing },
   { href: '/dashboard/social', label: 'شبکه اجتماعی', icon: MessagesSquare },
   { href: '/dashboard/notifications', label: 'اعلان‌ها', icon: Bell },
-  { href: '/dashboard/ai-assistant', label: 'دستیار', icon: Sparkles },
+  { href: '/dashboard/ai-assistant', label: 'دستیار هوش منصوعی', icon: Sparkles },
   { href: '/dashboard/settings', label: 'تنظیمات', icon: Settings },
 ];
 
