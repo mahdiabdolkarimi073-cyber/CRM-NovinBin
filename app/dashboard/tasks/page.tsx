@@ -59,25 +59,23 @@ export default function TasksPage() {
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
   const [lastSeenComments, setLastSeenComments] = useState<Record<string, number>>({});
 
-  const isSuperAdmin = profile?.role === 'super_admin' || profile?.role === 'owner' || profile?.role === 'admin';
+  const isSuperAdmin = profile?.role === 'super_admin' || profile?.role === 'owner';
 
   const loadData = useCallback(async () => {
     if (!profile) return;
     setLoading(true);
     try {
-      const where: any = isSuperAdmin
-        ? {}
-        : {
-            OR: [
-              { assignedTo: profile.id },
-              { createdBy: profile.id },
-              { assignees: { some: { profileId: profile.id } } },
-            ],
-          };
+      const where: any = isSuperAdmin ? {} : {
+        OR: [
+          { assignedTo: profile.id },
+          { createdBy: profile.id },
+          { assignees: { some: { profileId: profile.id } } },
+        ],
+      };
       const [taskData, staffData, allStaffData, mgrData] = await Promise.all([
         fetchData('tasks', { where, orderBy: { createdAt: 'desc' } }),
         fetchData('profiles', { where: { role: 'personnel' } }),
-        fetchData('profiles', { where: { role: { in: ['admin', 'personnel', 'super_admin', 'owner'] } } }),
+        fetchData('profiles', { where: { role: { in: ['admin', 'personnel', 'super_admin'] } } }),
         fetchData<UserManagerRow>('user_manager', {}),
       ]);
       const mMap: Record<string, string> = {};
@@ -89,14 +87,6 @@ export default function TasksPage() {
     } catch (error: any) { toast.error('بارگذاری وظایف ناموفق: ' + error.message); }
     setLoading(false);
   }, [profile, isSuperAdmin]);
-
-  // De-duplicate tasks that may appear via multiple assignee relations
-  useEffect(() => {
-    setTasks((prev) => {
-      const seen = new Set<string>();
-      return prev.filter((t) => { if (seen.has(t.id)) return false; seen.add(t.id); return true; });
-    });
-  }, [tasks]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -172,15 +162,13 @@ export default function TasksPage() {
     if (!referTargetId || referTo === 'none' || !profile) return;
     try {
       await updateData('tasks', { id: referTargetId }, { assignedTo: referTo, referredDate: new Date().toISOString() });
-      // Also add the referred person to task_assignees so they can see the task
-      await createData('task_assignees', { taskId: referTargetId, profileId: referTo }).catch(() => {});
       const targetTask = tasks.find((t) => t.id === referTargetId);
       const myName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
       const notifPromises: Promise<any>[] = [];
       notifPromises.push(
         createData('notifications', { profileId: referTo, title: 'وظیفه‌ای به شما ارجاع داده شد', body: `${myName} یک وظیفه${targetTask ? ` «${targetTask.title}»` : ''} را به شما ارجاع داد`, type: 'task', priority: 'normal', link: '/dashboard/tasks' }).catch(() => {})
       );
-      allStaff.filter((s) => (s.role === 'super_admin' || s.role === 'owner') && s.id !== profile.id && s.id !== referTo).forEach((admin) => {
+      allStaff.filter((s) => s.role === 'super_admin' && s.id !== profile.id && s.id !== referTo).forEach((admin) => {
         notifPromises.push(
           createData('notifications', { profileId: admin.id, title: 'وظیفه‌ای ارجاع داده شد', body: `${myName} یک وظیفه${targetTask ? ` «${targetTask.title}»` : ''} را به ${fullName(allStaff.find((s) => s.id === referTo)?.firstName, allStaff.find((s) => s.id === referTo)?.lastName) || 'فردی'} ارجاع داد`, type: 'task', priority: 'normal', link: '/dashboard/tasks' }).catch(() => {})
         );
@@ -200,14 +188,9 @@ export default function TasksPage() {
   };
 
   const getStaffName = (id: string | null) => { if (!id) return null; const s = allStaff.find((p) => p.id === id); return s ? fullName(s.firstName, s.lastName) : null; };
-  const canEdit = (task?: Task) => isSuperAdmin && (!task || task.status !== 'completed');
-  const canEditTask = (task: Task) => {
-    if (isSuperAdmin) return true;
-    if (task.status === 'completed') return false;
-    return task.createdBy === profile?.id || task.assignedTo === profile?.id;
-  };
+  const canEdit = (task?: Task) => (isSuperAdmin || profile?.role === 'admin' || profile?.role === 'owner') && (!task || task.status !== 'completed');
   const canDrag = (task: Task) => {
-    if (task.status === 'completed' && !isSuperAdmin) return false;
+    if (task.status === 'completed' && !isSuperAdmin && profile?.role !== 'admin' && profile?.role !== 'owner') return false;
     return true;
   };
   const canRefer = referOptions.length > 0;

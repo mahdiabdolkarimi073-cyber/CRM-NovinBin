@@ -26,8 +26,6 @@ function detectMimeType(buffer: Buffer): string | null {
   return null;
 }
 
-export const maxDuration = 30;
-
 export async function POST(req: NextRequest) {
   const auth = getAuth(req);
   if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

@@ -129,7 +129,16 @@ export default function WorkboardPage() {
     if (!profile) return;
     setLoading(true);
     try {
-      const where: any = isSuperAdmin ? {} : {};
+      const where: any = {};
+      if (isSuperAdmin) {
+        // super_admin/owner sees all
+      } else if (board.key === 'tasks') {
+        where.OR = [
+          { assignedTo: profile.id },
+          { createdBy: profile.id },
+          { assignees: { some: { profileId: profile.id } } },
+        ];
+      }
       if (board.extraWhere) Object.assign(where, board.extraWhere);
       if (search) where[board.titleField] = { contains: search, mode: 'insensitive' };
       if (board.key === 'tasks' && priorityFilter !== 'all') where.priority = priorityFilter;

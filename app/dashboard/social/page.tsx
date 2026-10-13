@@ -76,9 +76,6 @@ function useSocialChat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const usersRef = useRef<Profile[]>([]);
-  useEffect(() => { usersRef.current = users; }, [users]);
-
   const loadUsers = useCallback(async () => {
     if (!profile) return;
     try {
@@ -97,12 +94,11 @@ function useSocialChat() {
         fetchData<SocialDMMessage>('social_dm_messages', { orderBy: { createdAt: 'desc' } }),
         fetchData<CustomerSocialMessage>('customer_social_messages', { orderBy: { createdAt: 'desc' } }),
       ]);
-      const currentUserList = usersRef.current;
       const userMap = new Map<string, DMConversation>();
       const allMsgs = [...(staffMsgs || []), ...(customerMsgs || [])];
       for (const msg of allMsgs) {
         const otherId = msg.senderId === profile.id ? msg.receiverId : msg.senderId;
-        const otherProfile = currentUserList.find((u) => u.id === otherId);
+        const otherProfile = users.find((u) => u.id === otherId);
         if (!otherProfile) continue;
         const existing = userMap.get(otherId);
         const isUnread = msg.receiverId === profile.id && !msg.readAt;
@@ -119,34 +115,26 @@ function useSocialChat() {
         return bTime - aTime;
       }));
     } catch {}
-  }, [profile]);
+  }, [profile, users]);
 
   const loadDMMessages = useCallback(async (otherUserId: string) => {
     if (!profile) return;
-    const otherUser = usersRef.current.find((u) => u.id === otherUserId);
-    const isCustomer = otherUser?.userType === 'customer';
-    const table = isCustomer ? 'customer_social_messages' : 'social_dm_messages';
-    const reqId = `dm_${otherUserId}_${Date.now()}`;
-    dmReqRef.current = reqId;
     try {
-      const data = await fetchData<any>(table, {
-        where: {
-          OR: [
-            { senderId: profile.id, receiverId: otherUserId },
-            { senderId: otherUserId, receiverId: profile.id },
-          ],
-        },
-        orderBy: { createdAt: 'asc' },
-      });
-      if (dmReqRef.current !== reqId) return;
-      setDmMessages(data || []);
-      const unread = (data || []).filter((m: any) => m.receiverId === profile.id && !m.readAt);
-      for (const m of unread) await updateData(table, { id: m.id }, { readAt: new Date() }).catch(() => {});
+      const otherUser = users.find((u) => u.id === otherUserId);
+      const isCustomer = otherUser?.userType === 'customer';
+      const table = isCustomer ? 'customer_social_messages' : 'social_dm_messages';
+      const data = await fetchData<any>(table, { orderBy: { createdAt: 'asc' } });
+      const filtered = (data || []).filter((m: any) =>
+        (m.senderId === profile.id && m.receiverId === otherUserId) ||
+        (m.senderId === otherUserId && m.receiverId === profile.id)
+      );
+      setDmMessages(filtered);
+      const unread = filtered.filter((m: any) => m.receiverId === profile.id && !m.readAt);
+      for (const m of unread) await updateData(table, { id: m.id }, { readAt: new Date() });
     } catch (e: any) {
-      if (dmReqRef.current !== reqId) return;
-      toast.error('بارگذاری پیام‌ها ناموفق بود');
+      toast.error(e.message);
     }
-  }, [profile]);
+  }, [profile, users]);
 
   const loadGroups = useCallback(async () => {
     if (!profile) return;
@@ -154,18 +142,21 @@ function useSocialChat() {
       const memberships = await fetchData<any>('social_group_members', { where: { profileId: profile.id } });
       const groupIds = memberships.map((m: any) => m.groupId);
       if (groupIds.length === 0) { setGroups([]); setGroupConversations([]); return; }
-
-      const allGroups = await fetchData<SocialGroup>('social_groups', { where: { id: { in: groupIds } } });
-      setGroups(allGroups || []);
+      const allGroups: SocialGroup[] = [];
+      for (const gid of groupIds) {
+        const g = await fetchData<SocialGroup>('social_groups', { where: { id: gid } });
+        if (g && g[0]) allGroups.push(g[0]);
+      }
+      setGroups(allGroups);
 
       const groupMap = new Map<string, GroupConversation>();
-      for (const g of allGroups || []) {
-        const msgs = await fetchData<SocialGroupMessage>('social_group_messages', { where: { groupId: g.id, senderId: { not: profile.id } }, orderBy: { createdAt: 'asc' } });
-        const reads = await fetchData<any>('social_group_message_reads', { where: { profileId: profile.id, messageId: { in: (msgs || []).map((m) => m.id) } } });
+      for (const g of allGroups) {
+        const msgs = await fetchData<SocialGroupMessage>('social_group_messages', { where: { groupId: g.id }, orderBy: { createdAt: 'desc' }, take: 1 });
+        const reads = await fetchData<any>('social_group_message_reads', { where: { profileId: profile.id } });
         const readMsgIds = new Set(reads.map((r: any) => r.messageId));
-        const unread = (msgs || []).filter((m) => !readMsgIds.has(m.id));
-        const lastMsgs = await fetchData<SocialGroupMessage>('social_group_messages', { where: { groupId: g.id }, orderBy: { createdAt: 'desc' }, take: 1 });
-        groupMap.set(g.id, { group: g, lastMessage: lastMsgs?.[0], unreadCount: unread.length });
+        const allMsgs = await fetchData<SocialGroupMessage>('social_group_messages', { where: { groupId: g.id }, orderBy: { createdAt: 'asc' } });
+        const unread = (allMsgs || []).filter((m) => m.senderId !== profile.id && !readMsgIds.has(m.id));
+        groupMap.set(g.id, { group: g, lastMessage: msgs?.[0], unreadCount: unread.length });
       }
       setGroupConversations(Array.from(groupMap.values()).sort((a, b) => {
         const aTime = a.lastMessage ? new Date(a.lastMessage.createdAt).getTime() : 0;
@@ -177,30 +168,24 @@ function useSocialChat() {
 
   const loadGroupMessages = useCallback(async (groupId: string) => {
     if (!profile) return;
-    const reqId = `grp_${groupId}_${Date.now()}`;
-    grpReqRef.current = reqId;
     try {
       const data = await fetchData<SocialGroupMessage>('social_group_messages', { where: { groupId }, orderBy: { createdAt: 'asc' } });
-      if (grpReqRef.current !== reqId) return;
       setGroupMessages(data || []);
       const unread = (data || []).filter((m) => m.senderId !== profile.id);
       for (const m of unread) {
         try { await createData('social_group_message_reads', { messageId: m.id, profileId: profile.id }); } catch {}
       }
     } catch (e: any) {
-      if (grpReqRef.current !== reqId) return;
-      toast.error('بارگذاری پیام‌های گروه ناموفق بود');
+      toast.error(e.message);
     }
   }, [profile]);
 
   useEffect(() => { loadUsers(); }, [loadUsers]);
-  useEffect(() => { if (users.length > 0) loadDMConversations(); }, [users.length, loadDMConversations]);
+  useEffect(() => { if (users.length > 0) loadDMConversations(); }, [loadDMConversations]);
   useEffect(() => { loadGroups(); }, [loadGroups]);
   useEffect(() => {
     if (selectedUser) loadDMMessages(selectedUser.id);
-    else setDmMessages([]);
     if (selectedGroup) loadGroupMessages(selectedGroup.id);
-    else setGroupMessages([]);
   }, [selectedUser, selectedGroup, loadDMMessages, loadGroupMessages]);
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [dmMessages, groupMessages]);
 
@@ -219,8 +204,6 @@ function useSocialChat() {
 
   const selectedUserRef = useRef<Profile | null>(null);
   const selectedGroupRef = useRef<SocialGroup | null>(null);
-  const dmReqRef = useRef<string | null>(null);
-  const grpReqRef = useRef<string | null>(null);
   useEffect(() => { selectedUserRef.current = selectedUser; }, [selectedUser]);
   useEffect(() => { selectedGroupRef.current = selectedGroup; }, [selectedGroup]);
 
