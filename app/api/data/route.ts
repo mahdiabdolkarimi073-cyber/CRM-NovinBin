@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
 import type { Prisma } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
 
@@ -638,9 +639,10 @@ export async function GET(req: NextRequest) {
   const take = takeStr ? parseInt(takeStr) : undefined;
 
   try {
-    const records = await MODEL_MAP[model].findMany({ where, include, orderBy, take });
+    const records = await logger.dbOp('data-api', model, 'findMany', () => MODEL_MAP[model].findMany({ where, include, orderBy, take }));
     return NextResponse.json({ data: serializeData(records) });
   } catch (error: any) {
+    logger.error('data-api', `GET ${model} failed`, { errorCode: error?.code, errorMessage: error?.message?.slice(0, 200) });
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -757,7 +759,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const record = await MODEL_MAP[model].create({ data: postData, include });
+    const record = await logger.dbOp('data-api', model, 'create', () => MODEL_MAP[model].create({ data: postData, include }));
 
     if (model === 'staff_chat_messages' && postData.receiverId) {
       try {
@@ -947,6 +949,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ data: serializeData(record) });
   } catch (error: any) {
+    logger.error('data-api', `POST ${model} failed`, { errorCode: error?.code, errorMessage: error?.message?.slice(0, 200) });
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -1005,15 +1008,16 @@ export async function PATCH(req: NextRequest) {
     // Task edit permissions
     if (model === 'tasks') {
       const actor = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });
-      const isSuperAdminRole = actor?.role === 'super_admin' || actor?.role === 'owner';
+      const isSuperAdminRole = actor?.role === 'super_admin' || actor?.role === 'owner' || actor?.role === 'admin';
       if (!actor) {
         return NextResponse.json({ error: 'کاربر یافت نشد' }, { status: 403 });
       }
       if (!isSuperAdminRole) {
-        // Non-super-admin: only allowed to change status (drag-and-drop)
-        const isStatusOnlyUpdate = Object.keys(data).every((k) => k === 'status' || k === 'completedAt');
-        if (!isStatusOnlyUpdate) {
-          return NextResponse.json({ error: 'فقط سوپرادمین می‌تواند وظیفه را ویرایش کند' }, { status: 403 });
+        // Non-admin: only allowed to change status (drag-and-drop) or refer (assignedTo + referredDate)
+        const allowedKeys = new Set(['status', 'completedAt', 'assignedTo', 'referredDate']);
+        const isAllowedUpdate = Object.keys(data).every((k) => allowedKeys.has(k));
+        if (!isAllowedUpdate) {
+          return NextResponse.json({ error: 'فقط مدیر می‌تواند وظیفه را ویرایش کند' }, { status: 403 });
         }
         // Check the current task state
         const currentTask = await prisma.task.findUnique({ where: { id: where.id }, select: { status: true, createdBy: true, assignedTo: true } });
@@ -1022,11 +1026,15 @@ export async function PATCH(req: NextRequest) {
         }
         // Once completed, only super admin can move it
         if (currentTask.status === 'completed' && data.status !== 'completed') {
-          return NextResponse.json({ error: 'تنها سوپرادمین می‌تواند وظیفه تکمیل‌شده را جابجا کند' }, { status: 403 });
+          return NextResponse.json({ error: 'تنها مدیر می‌تواند وظیفه تکمیل‌شده را جابجا کند' }, { status: 403 });
         }
         // Only the creator or assignee can change status
         if (currentTask.createdBy !== auth.userId && currentTask.assignedTo !== auth.userId) {
-          return NextResponse.json({ error: 'فقط ایجادکننده یا مسئول وظیفه می‌تواند وضعیت را تغییر دهد' }, { status: 403 });
+          // Allow referral: creator can refer to someone else
+          const isReferralOnly = Object.keys(data).every((k) => k === 'assignedTo' || k === 'referredDate');
+          if (!isReferralOnly || currentTask.createdBy !== auth.userId) {
+            return NextResponse.json({ error: 'فقط ایجادکننده یا مسئول وظیفه می‌تواند وضعیت را تغییر دهد' }, { status: 403 });
+          }
         }
       }
     }
@@ -1058,7 +1066,7 @@ export async function PATCH(req: NextRequest) {
         }
       }
     }
-    const record = await MODEL_MAP[model].update({ where: scopedWhere, data: updateData, include });
+    const record = await logger.dbOp('data-api', model, 'update', () => MODEL_MAP[model].update({ where: scopedWhere, data: updateData, include }));
 
     // Notify super-admins when a daily work report is edited
     if (model === 'daily_work_reports') {
@@ -1090,6 +1098,7 @@ export async function PATCH(req: NextRequest) {
 
     return NextResponse.json({ data: serializeData(record) });
   } catch (error: any) {
+    logger.error('data-api', `PATCH ${model} failed`, { errorCode: error?.code, errorMessage: error?.message?.slice(0, 200) });
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -1141,11 +1150,11 @@ export async function DELETE(req: NextRequest) {
         }
       }
     }
-    // Only super_admin / owner can delete tasks
+    // Only super_admin / owner / admin can delete tasks
     if (model === 'tasks') {
       const actor = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });
-      if (!actor || (actor.role !== 'super_admin' && actor.role !== 'owner')) {
-        return NextResponse.json({ error: 'فقط سوپرادمین می‌تواند وظیفه را حذف کند' }, { status: 403 });
+      if (!actor || (actor.role !== 'super_admin' && actor.role !== 'owner' && actor.role !== 'admin')) {
+        return NextResponse.json({ error: 'فقط مدیر می‌تواند وظیفه را حذف کند' }, { status: 403 });
       }
     }
     // Personal notes: enforce ownership
@@ -1166,9 +1175,10 @@ export async function DELETE(req: NextRequest) {
         }
       }
     }
-    await MODEL_MAP[model].delete({ where: scopedWhere });
+    await logger.dbOp('data-api', model, 'delete', () => MODEL_MAP[model].delete({ where: scopedWhere }));
     return NextResponse.json({ success: true });
   } catch (error: any) {
+    logger.error('data-api', `DELETE ${model} failed`, { errorCode: error?.code, errorMessage: error?.message?.slice(0, 200) });
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

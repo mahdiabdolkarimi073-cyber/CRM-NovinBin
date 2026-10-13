@@ -1,6 +1,8 @@
 // Client-side data helper — replaces direct database calls
 // All pages use this to fetch/mutate data via the /api/data route
 
+import { clientLog } from './logger';
+
 // Polyfill: allow JSON.stringify to handle BigInt values
 (BigInt.prototype as any).toJSON = function () { return Number(this); };
 
@@ -16,7 +18,10 @@ export async function fetchData<T = any>(
 
   const res = await fetch(`/api/data?${params}`, { credentials: 'include' });
   const json = await res.json();
-  if (!res.ok) throw new Error(json.error || 'Fetch failed');
+  if (!res.ok) {
+    clientLog.error('data-client', `fetchData ${model}`, { httpStatus: res.status, error: json.error });
+    throw new Error(json.error || 'Fetch failed');
+  }
   return json.data as T[];
 }
 
@@ -32,7 +37,10 @@ export async function createData<T = any>(
     body: JSON.stringify({ model, data, include }),
   });
   const json = await res.json();
-  if (!res.ok) throw new Error(json.error || 'Create failed');
+  if (!res.ok) {
+    clientLog.error('data-client', `createData ${model}`, { httpStatus: res.status, error: json.error });
+    throw new Error(json.error || 'Create failed');
+  }
   return json.data as T;
 }
 
@@ -49,7 +57,10 @@ export async function updateData<T = any>(
     body: JSON.stringify({ model, where, data, include }),
   });
   const json = await res.json();
-  if (!res.ok) throw new Error(json.error || 'Update failed');
+  if (!res.ok) {
+    clientLog.error('data-client', `updateData ${model}`, { httpStatus: res.status, error: json.error });
+    throw new Error(json.error || 'Update failed');
+  }
   return json.data as T;
 }
 
@@ -61,5 +72,8 @@ export async function deleteData(model: string, where: Record<string, any>): Pro
     body: JSON.stringify({ model, where }),
   });
   const json = await res.json();
-  if (!res.ok) throw new Error(json.error || 'Delete failed');
+  if (!res.ok) {
+    clientLog.error('data-client', `deleteData ${model}`, { httpStatus: res.status, error: json.error });
+    throw new Error(json.error || 'Delete failed');
+  }
 }
