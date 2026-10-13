@@ -478,6 +478,7 @@ async function canAccess(auth: { userId: string; demoSlug?: string }, model: str
   }
   if (profile.role === 'owner' || profile.role === 'super_admin') return true;
   if (model === 'customer_chat_messages' && profile.userType === 'customer' && profile.customerId) return true;
+  if (model === 'tickets' && profile.userType === 'customer' && profile.customerId) return true;
   if (SHARED_MODELS.has(model)) return true;
   const pages = profile.assignedPages;
   if (pages && Array.isArray(pages) && pages.includes(page)) return true;
@@ -575,6 +576,30 @@ export async function GET(req: NextRequest) {
       }
     }
   }
+  if (model === 'ticket_messages') {
+    const fullProfile = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true, userType: true, customerId: true } });
+    const canSeeAll = fullProfile?.role === 'admin' || fullProfile?.role === 'super_admin' || fullProfile?.role === 'owner';
+    if (!canSeeAll) {
+      if (fullProfile?.userType === 'customer' && fullProfile.customerId) {
+        where = { ...where, ticket: { customerId: fullProfile.customerId } };
+      } else {
+        const deptMemberships = await prisma.ticketDepartmentMember.findMany({
+          where: { profileId: auth.userId },
+          select: { departmentId: true },
+        });
+        const deptIds = deptMemberships.map((d) => d.departmentId);
+        where = {
+          ...where,
+          ticket: {
+            OR: [
+              { departmentId: { in: deptIds } },
+              { departmentId: null, createdBy: auth.userId },
+            ],
+          },
+        };
+      }
+    }
+  }
   if (model === 'meetings' || model === 'meeting_assignments' || model === 'notifications') {
     const fullProfile = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });
     const canSeeAll = fullProfile?.role === 'admin' || fullProfile?.role === 'super_admin' || fullProfile?.role === 'owner';
@@ -663,7 +688,32 @@ export async function POST(req: NextRequest) {
     postData = { ...data, senderId: auth.userId };
   }
   if (model === 'ticket_messages') {
-    postData = { ...data, senderId: auth.userId, senderType: 'staff' };
+    const fullProfile = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true, userType: true, customerId: true } });
+    const isAdmin = fullProfile?.role === 'admin' || fullProfile?.role === 'super_admin' || fullProfile?.role === 'owner';
+    const isCustomer = fullProfile?.userType === 'customer' && fullProfile?.customerId;
+    const ticket = await prisma.ticket.findUnique({ where: { id: data.ticketId }, select: { departmentId: true, customerId: true, createdBy: true } });
+    if (!ticket) {
+      return NextResponse.json({ error: 'تیکت یافت نشد' }, { status: 404 });
+    }
+    if (isCustomer) {
+      if (ticket.customerId !== fullProfile?.customerId) {
+        return NextResponse.json({ error: 'شما به این تیکت دسترسی ندارید' }, { status: 403 });
+      }
+      postData = { ...data, senderId: auth.userId, senderType: 'customer' };
+    } else if (!isAdmin) {
+      const deptMemberships = await prisma.ticketDepartmentMember.findMany({
+        where: { profileId: auth.userId },
+        select: { departmentId: true },
+      });
+      const deptIds = deptMemberships.map((d) => d.departmentId);
+      const hasAccess = (ticket.departmentId && deptIds.includes(ticket.departmentId)) || (!ticket.departmentId && ticket.createdBy === auth.userId);
+      if (!hasAccess) {
+        return NextResponse.json({ error: 'شما به این تیکت دسترسی ندارید' }, { status: 403 });
+      }
+      postData = { ...data, senderId: auth.userId, senderType: 'staff' };
+    } else {
+      postData = { ...data, senderId: auth.userId, senderType: 'staff' };
+    }
   }
   if (model === 'my_customers') {
     const fullProfile = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });
@@ -687,6 +737,23 @@ export async function POST(req: NextRequest) {
   }
   if (model === 'secretariat_attachments') {
     postData = { ...data, uploadedBy: auth.userId };
+  }
+
+  if (model === 'tickets' && postData.departmentId) {
+    try {
+      const dept = await prisma.ticketDepartment.findUnique({
+        where: { id: postData.departmentId },
+        select: { active: true },
+      });
+      if (!dept) {
+        return NextResponse.json({ error: 'دپارتمان انتخاب‌شده وجود ندارد' }, { status: 400 });
+      }
+      if (!dept.active) {
+        return NextResponse.json({ error: 'این دپارتمان در حال حاضر غیرفعال است و قابل انتخاب نیست' }, { status: 400 });
+      }
+    } catch {
+      return NextResponse.json({ error: 'خطا در بررسی دپارتمان' }, { status: 500 });
+    }
   }
 
   try {
@@ -908,6 +975,33 @@ export async function PATCH(req: NextRequest) {
   }
 
   try {
+    // Ticket edit permissions: enforce department-based access
+    if (model === 'tickets') {
+      const actor = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true, userType: true, customerId: true } });
+      const isAdmin = actor?.role === 'admin' || actor?.role === 'super_admin' || actor?.role === 'owner';
+      if (!isAdmin) {
+        if (actor?.userType === 'customer' && actor.customerId) {
+          const existing = await prisma.ticket.findFirst({ where: { id: where.id, customerId: actor.customerId } });
+          if (!existing) {
+            return NextResponse.json({ error: 'شما به این تیکت دسترسی ندارید' }, { status: 403 });
+          }
+        } else {
+          const existing = await prisma.ticket.findUnique({ where: { id: where.id }, select: { departmentId: true, createdBy: true } });
+          if (!existing) {
+            return NextResponse.json({ error: 'تیکت یافت نشد' }, { status: 404 });
+          }
+          const deptMemberships = await prisma.ticketDepartmentMember.findMany({
+            where: { profileId: auth.userId },
+            select: { departmentId: true },
+          });
+          const deptIds = deptMemberships.map((d) => d.departmentId);
+          const hasAccess = (existing.departmentId && deptIds.includes(existing.departmentId)) || (!existing.departmentId && existing.createdBy === auth.userId);
+          if (!hasAccess) {
+            return NextResponse.json({ error: 'شما به این تیکت دسترسی ندارید' }, { status: 403 });
+          }
+        }
+      }
+    }
     // Task edit permissions
     if (model === 'tasks') {
       const actor = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });
@@ -1020,6 +1114,33 @@ export async function DELETE(req: NextRequest) {
   }
 
   try {
+    // Ticket delete permissions: enforce department-based access
+    if (model === 'tickets') {
+      const actor = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true, userType: true, customerId: true } });
+      const isAdmin = actor?.role === 'admin' || actor?.role === 'super_admin' || actor?.role === 'owner';
+      if (!isAdmin) {
+        if (actor?.userType === 'customer' && actor.customerId) {
+          const existing = await prisma.ticket.findFirst({ where: { id: where.id, customerId: actor.customerId } });
+          if (!existing) {
+            return NextResponse.json({ error: 'شما به این تیکت دسترسی ندارید' }, { status: 403 });
+          }
+        } else {
+          const existing = await prisma.ticket.findUnique({ where: { id: where.id }, select: { departmentId: true, createdBy: true } });
+          if (!existing) {
+            return NextResponse.json({ error: 'تیکت یافت نشد' }, { status: 404 });
+          }
+          const deptMemberships = await prisma.ticketDepartmentMember.findMany({
+            where: { profileId: auth.userId },
+            select: { departmentId: true },
+          });
+          const deptIds = deptMemberships.map((d) => d.departmentId);
+          const hasAccess = (existing.departmentId && deptIds.includes(existing.departmentId)) || (!existing.departmentId && existing.createdBy === auth.userId);
+          if (!hasAccess) {
+            return NextResponse.json({ error: 'شما به این تیکت دسترسی ندارید' }, { status: 403 });
+          }
+        }
+      }
+    }
     // Only super_admin / owner can delete tasks
     if (model === 'tasks') {
       const actor = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });

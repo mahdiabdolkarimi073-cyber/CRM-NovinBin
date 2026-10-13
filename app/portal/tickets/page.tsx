@@ -48,20 +48,22 @@ export default function PortalTicketsPage() {
     if (!profile?.customerId) { setLoading(false); return; }
     setLoading(true);
     try {
-      const [data, depts] = await Promise.all([
-        fetchData<Ticket>('tickets', {
-          where: { customerId: profile.customerId },
-          orderBy: { createdAt: 'desc' },
-        }),
-        fetchData<TicketDepartment>('ticket_departments', {
-          where: { active: true },
-          orderBy: { name: 'asc' },
-        }),
-      ]);
+      const data = await fetchData<Ticket>('tickets', {
+        where: { customerId: profile.customerId },
+        orderBy: { createdAt: 'desc' },
+      });
       setTickets(data || []);
-      setDepartments(depts || []);
     } catch {
       setTickets([]);
+    }
+    try {
+      const depts = await fetchData<TicketDepartment>('ticket_departments', {
+        where: { active: true },
+        orderBy: { name: 'asc' },
+      });
+      setDepartments(depts || []);
+    } catch {
+      setDepartments([]);
     }
     setLoading(false);
   }, [profile?.customerId]);
@@ -335,6 +337,7 @@ export default function PortalTicketsPage() {
         <TicketChat
           ticket={selectedTicket}
           profileId={profile?.id || ''}
+          departments={departments}
           onClose={() => setSelectedTicket(null)}
         />
       )}
@@ -343,10 +346,11 @@ export default function PortalTicketsPage() {
 }
 
 function TicketChat({
-  ticket, profileId, onClose,
+  ticket, profileId, departments, onClose,
 }: {
   ticket: Ticket;
   profileId: string;
+  departments: TicketDepartment[];
   onClose: () => void;
 }) {
   const [messages, setMessages] = useState<TicketMessage[]>([]);
@@ -356,6 +360,8 @@ function TicketChat({
   const [loadingMsgs, setLoadingMsgs] = useState(true);
   const fileRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
+
+  const deptMap = new Map(departments.map((d) => [d.id, d]));
 
   const loadMessages = useCallback(async () => {
     try {
@@ -478,7 +484,7 @@ function TicketChat({
             <div className="flex h-full items-center justify-center">
               <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
             </div>
-          ) : messages.length === 0 ? (
+          ) : messages.length === 0 && !ticket.description ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50">
                 <MessageCircle className="h-8 w-8 text-emerald-600" />
@@ -488,6 +494,17 @@ function TicketChat({
             </div>
           ) : (
             <div className="space-y-4">
+              {ticket.description && (
+                <div className="flex justify-left">
+                  <div className="max-w-[75%] rounded-2xl rounded-bl-md bg-emerald-600 px-4 py-3 shadow-sm text-white">
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{ticket.description}</p>
+                    <span className="mt-1.5 block text-[10px] text-white/70">
+                      {relativeTime(ticket.createdAt)}
+                      <Check className="mr-1 inline h-3 w-3" />
+                    </span>
+                  </div>
+                </div>
+              )}
               {messages.map((msg) => {
                 const mine = msg.senderType === 'customer' && msg.senderId === profileId;
                 return (

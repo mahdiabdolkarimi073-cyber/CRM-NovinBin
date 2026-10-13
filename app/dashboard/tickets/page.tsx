@@ -514,18 +514,27 @@ function TicketChat({
         </header>
 
         <div className="flex-1 overflow-y-auto space-y-3 p-5">
-          {messages.length === 0 ? (
+          {messages.length === 0 && !ticket.description ? (
             <div className="flex h-full flex-col items-center justify-center text-slate-300">
               <MessageCircle className="h-12 w-12" />
               <p className="mt-2 text-sm">هنوز پیامی ثبت نشده است. گفت‌وگو را شروع کنید.</p>
             </div>
           ) : (
-            messages.map((msg) => {
+            <>
+            {ticket.description && (
+              <div className="flex justify-start">
+                <div className="max-w-[75%] rounded-2xl rounded-br-md bg-slate-100 px-4 py-2.5 text-sm text-slate-700 dark:bg-slate-700 dark:text-slate-200">
+                  <p className="whitespace-pre-wrap">{ticket.description}</p>
+                  <small className="mt-1 block text-[10px] text-slate-400">{relativeTime(ticket.createdAt)}</small>
+                </div>
+              </div>
+            )}
+            {messages.map((msg) => {
               const mine = msg.senderId === profile?.id;
               return (
                 <div className={`flex ${mine ? 'justify-end' : 'justify-start'}`} key={msg.id}>
                   <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${mine ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200'}`}>
-                    {msg.content && <p>{msg.content}</p>}
+                    {msg.content && <p className="whitespace-pre-wrap">{msg.content}</p>}
                     {msg.attachmentUrl && (
                       msg.attachmentType?.startsWith('image/') ? (
                         <img src={msg.attachmentUrl} alt={msg.attachmentName || 'پیوست'} className="mt-2 max-w-full rounded-lg" />
@@ -540,7 +549,8 @@ function TicketChat({
                   </div>
                 </div>
               );
-            })
+            })}
+            </>
           )}
           <div ref={endRef} />
         </div>
