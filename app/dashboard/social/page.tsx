@@ -79,8 +79,36 @@ function useSocialChat() {
   const loadUsers = useCallback(async () => {
     if (!profile) return;
     try {
-      const data = await fetchData<Profile>('profiles', { where: { id: { not: profile.id }, userType: { in: ['staff', 'customer'] } } });
-      setUsers(data || []);
+      const [data, customers] = await Promise.all([
+        fetchData<Profile>('profiles', { where: { id: { not: profile.id }, userType: { in: ['staff', 'customer'] } } }),
+        // Customers without a user account have no Profile record, so they must
+        // be pulled from the real customers list to appear in the customers folder
+        fetchData<any>('customers', { orderBy: { createdAt: 'desc' } }).catch(() => [] as any[]),
+      ]);
+      const linkedCustomerIds = new Set((data || []).map((u) => u.customerId).filter(Boolean));
+      const accountlessCustomers = (customers || [])
+        .filter((c: any) => !linkedCustomerIds.has(c.id))
+        .map((c: any): Profile => ({
+          id: c.id,
+          userType: 'customer',
+          role: 'personnel',
+          customerType: c.type === 'company' ? 'company' : 'individual',
+          firstName: c.firstName ?? null,
+          lastName: c.lastName ?? null,
+          fullName: [c.firstName, c.lastName].filter(Boolean).join(' ') || null,
+          companyName: c.companyName ?? null,
+          phone: c.mobile || c.phone || null,
+          avatarUrl: null,
+          position: null,
+          departmentId: null,
+          customerId: c.id,
+          assignedPages: null,
+          birthDate: null,
+          lastSeenAt: null,
+          active: true,
+          createdAt: c.createdAt,
+        }));
+      setUsers([...(data || []), ...accountlessCustomers]);
     } catch (e: any) {
       toast.error(e.message);
     }
