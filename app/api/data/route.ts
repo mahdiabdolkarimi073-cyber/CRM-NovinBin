@@ -546,7 +546,12 @@ export async function GET(req: NextRequest) {
     });
     const demoOrgIds = demoOrgs.map((o) => o.id);
     if (demoOrgIds.length > 0) {
-      where = { ...where, orgId: { notIn: demoOrgIds } };
+      // notIn alone would also drop profiles whose orgId is null — real users
+      // without an org must stay visible, so allow null orgId explicitly
+      where = {
+        ...where,
+        AND: [{ OR: [{ orgId: { notIn: demoOrgIds } }, { orgId: null }] }],
+      };
     }
   }
   if (model === 'my_customers') {
