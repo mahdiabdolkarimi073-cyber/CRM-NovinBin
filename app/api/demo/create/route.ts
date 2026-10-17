@@ -122,6 +122,7 @@ export async function POST(req: NextRequest) {
         maxUsers: maxUsers || 10,
         demoUserId: demoUser.id,
         demoPassword: hashedPassword,
+        demoPlainPassword: password,
         demoUsername: username,
         orgId: org.id,
       },

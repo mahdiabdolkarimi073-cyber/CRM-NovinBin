@@ -1512,6 +1512,7 @@ model Demo {
   suspendedBy    String?  @db.Uuid
   demoUserId     String?  @db.Uuid
   demoPassword   String?
+  demoPlainPassword String?
   demoUsername   String?  @unique
   org            Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
   activities     DemoActivity[]

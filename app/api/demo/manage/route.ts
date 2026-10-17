@@ -137,7 +137,7 @@ export async function PATCH(req: NextRequest) {
         const hashed = bcrypt.hashSync(newPassword, 10);
         await prisma.demo.update({
           where: { id: demoId },
-          data: { demoPassword: hashed },
+          data: { demoPassword: hashed, demoPlainPassword: newPassword },
         });
         return NextResponse.json({ success: true });
       }
@@ -314,6 +314,7 @@ export async function GET(req: NextRequest) {
         resetCount: true,
         suspendedAt: true,
         demoUsername: true,
+        demoPlainPassword: true,
         orgId: true,
         createdAt: true,
       },
@@ -321,6 +322,7 @@ export async function GET(req: NextRequest) {
 
     const serialized = demos.map((d) => ({
       ...d,
+      password: d.demoPlainPassword || null,
       startDate: d.startDate.toISOString(),
       expiryDate: d.expiryDate.toISOString(),
       lastActivityAt: d.lastActivityAt?.toISOString() || null,

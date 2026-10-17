@@ -14,7 +14,7 @@ import {
   Plus, Clock, MoreVertical, Play, Pause, RotateCcw, Trash2,
   Copy, ExternalLink, Eye, EyeOff, CheckCircle2, AlertCircle,
   Calendar, Activity, Users, RefreshCw, KeyRound, Pencil,
-  CheckSquare, Square,
+  CheckSquare, Square, Search,
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -43,6 +43,7 @@ interface DemoRecord {
   resetCount: number;
   suspendedAt: string | null;
   demoUsername: string | null;
+  password: string | null;
   orgId: string | null;
   createdAt: string;
 }
@@ -71,6 +72,9 @@ export default function SuperAdminDemosPage() {
   const [creating, setCreating] = useState(false);
   const [createdResult, setCreatedResult] = useState<any>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
+  const [moduleSearch, setModuleSearch] = useState('');
+  const [editModuleSearch, setEditModuleSearch] = useState('');
 
   // Edit form
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -385,8 +389,17 @@ export default function SuperAdminDemosPage() {
                         )}
                       </Button>
                     </div>
+                    <div className="relative mb-2">
+                      <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                      <Input
+                        value={moduleSearch}
+                        onChange={(e) => setModuleSearch(e.target.value)}
+                        placeholder="جستجو در ماژول‌ها..."
+                        className="pr-8 h-9 text-sm"
+                      />
+                    </div>
                     <div className="border rounded-lg p-3 max-h-48 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {availablePages.map((page) => (
+                      {availablePages.filter((p) => p.label.includes(moduleSearch) || p.path.includes(moduleSearch)).map((page) => (
                         <label key={page.path} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 rounded px-2 py-1">
                           <Checkbox
                             checked={form.modules.includes(page.path)}
@@ -539,6 +552,27 @@ export default function SuperAdminDemosPage() {
                         <span>{demo.modules.length.toLocaleString('fa-IR')} ماژول فعال</span>
                       </div>
                     )}
+                    {demo.password && (
+                      <div className="flex items-center gap-1.5">
+                        <KeyRound className="h-3.5 w-3.5 flex-shrink-0" />
+                        <span>رمز: </span>
+                        <code className="font-mono text-xs">
+                          {visiblePasswords[demo.id] ? demo.password : '••••••••'}
+                        </code>
+                        <button
+                          className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                          onClick={() => setVisiblePasswords((p) => ({ ...p, [demo.id]: !p[demo.id] }))}
+                        >
+                          {visiblePasswords[demo.id] ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                        </button>
+                        <button
+                          className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                          onClick={() => copyToClipboard(demo.password!)}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -595,8 +629,17 @@ export default function SuperAdminDemosPage() {
               )}
             </Button>
           </div>
+          <div className="relative mb-2">
+            <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+              value={moduleSearch}
+              onChange={(e) => setModuleSearch(e.target.value)}
+              placeholder="جستجو در ماژول‌ها..."
+              className="pr-8 h-9 text-sm"
+            />
+          </div>
           <div className="border rounded-lg p-3 max-h-60 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {availablePages.map((page) => (
+            {availablePages.filter((p) => p.label.includes(moduleSearch) || p.path.includes(moduleSearch)).map((page) => (
               <label key={page.path} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 rounded px-2 py-1">
                 <Checkbox
                   checked={selectedModules.includes(page.path)}
@@ -679,8 +722,17 @@ export default function SuperAdminDemosPage() {
                   )}
                 </Button>
               </div>
+              <div className="relative mb-2">
+                <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  value={editModuleSearch}
+                  onChange={(e) => setEditModuleSearch(e.target.value)}
+                  placeholder="جستجو در ماژول‌ها..."
+                  className="pr-8 h-9 text-sm"
+                />
+              </div>
               <div className="border rounded-lg p-3 max-h-48 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {availablePages.map((page) => (
+                {availablePages.filter((p) => p.label.includes(editModuleSearch) || p.path.includes(editModuleSearch)).map((page) => (
                   <label key={page.path} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 rounded px-2 py-1">
                     <Checkbox
                       checked={editForm.modules.includes(page.path)}

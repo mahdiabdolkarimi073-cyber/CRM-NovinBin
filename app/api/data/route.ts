@@ -538,6 +538,17 @@ export async function GET(req: NextRequest) {
   if (model === 'customer_social_call_sessions' || model === 'customer_social_call_signals') {
     where = { ...where, OR: [{ callerId: auth.userId }, { receiverId: auth.userId }, { senderId: auth.userId }, { receiverId: auth.userId }] };
   }
+  // Filter out demo users from profiles listing for non-demo users
+  if (model === 'profiles' && !auth.demoSlug) {
+    const demoOrgs = await prisma.organization.findMany({
+      where: { settings: { path: ['isDemo'], equals: true } },
+      select: { id: true },
+    });
+    const demoOrgIds = demoOrgs.map((o) => o.id);
+    if (demoOrgIds.length > 0) {
+      where = { ...where, orgId: { notIn: demoOrgIds } };
+    }
+  }
   if (model === 'my_customers') {
     const fullProfile = await prisma.profile.findUnique({ where: { id: auth.userId }, select: { role: true } });
     if (fullProfile?.role !== 'super_admin' && fullProfile?.role !== 'owner') {
