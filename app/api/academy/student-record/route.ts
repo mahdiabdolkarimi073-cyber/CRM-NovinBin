@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
 
   const student = await (prisma as any).academyUser.findUnique({
     where: { id: studentId },
-    select: { id: true, firstName: true, lastName: true, username: true, phone: true, email: true, nationalId: true, active: true, createdAt: true },
+    select: { id: true, firstName: true, lastName: true, username: true, phone: true, email: true, nationalId: true, active: true, role: true, createdAt: true },
   });
   if (!student || student.role !== 'student') return NextResponse.json({ error: 'هنرجو یافت نشد' }, { status: 404 });
 

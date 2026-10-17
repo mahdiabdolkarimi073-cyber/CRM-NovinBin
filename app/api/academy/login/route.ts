@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { ACADEMY_TERMS_VERSION } from '@/lib/academy-terms';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
 
@@ -9,7 +10,7 @@ const CRM_ADMIN_ROLES = ['super_admin', 'admin', 'academy_admin'];
 
 export async function POST(req: NextRequest) {
   try {
-    const { identifier, password } = await req.json();
+    const { identifier, password, acceptTerms } = await req.json();
     if (!identifier || !password) return NextResponse.json({ error: 'نام کاربری و رمز عبور الزامی است' }, { status: 400 });
 
     const normalized = String(identifier).trim().toLowerCase();
@@ -67,6 +68,18 @@ export async function POST(req: NextRequest) {
     if (!account || !account.active || !bcrypt.compareSync(String(password), account.passwordHash)) {
       console.log('[academy-login] AUTH FAIL', { found: !!account, active: account?.active, identifier: normalized });
       return NextResponse.json({ error: 'نام کاربری یا رمز عبور اشتباه است' }, { status: 401 });
+    }
+
+    // Existing accounts without a recorded acceptance must accept the rules at next login.
+    // AdminAcademy accounts provisioned automatically from the CRM are exempt.
+    if (!account.termsAcceptedAt && account.role !== 'AdminAcademy') {
+      if (acceptTerms !== true) {
+        return NextResponse.json({ error: 'برای ورود باید قوانین و مقررات آموزشگاه را بپذیرید', requiresTerms: true }, { status: 403 });
+      }
+      account = await (prisma as any).academyUser.update({
+        where: { id: account.id },
+        data: { termsAcceptedAt: new Date(), termsVersion: ACADEMY_TERMS_VERSION },
+      });
     }
 
     const token = jwt.sign({ academyUserId: account.id, role: account.role, username: account.username }, JWT_SECRET, { expiresIn: '30d' });

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { StudentShell } from '@/components/academy/student-shell';
 
+type CourseProduct = { id: string; name: string; price: number; qty: number };
 type ClassItem = {
   id: string;
   courseId: string;
@@ -25,6 +26,8 @@ type ClassItem = {
   teacher: string | null;
   room: string | null;
   onlineUrl: string | null;
+  fee: number;
+  products: CourseProduct[];
   heldSessions: number;
   totalSessions: number;
   progress: number;
@@ -161,6 +164,23 @@ export default function MyClassesPage() {
                   <div style={{display:'flex',justifyContent:'space-between',fontSize:12,color:'#94A3B8'}}>
                     <span>شروع: {jalaliDate(cls.startDate)}</span>
                     <span>پایان: {jalaliDate(cls.endDate)}</span>
+                  </div>
+                  <div style={{background:'#F8FAFC',border:'1px solid #E2E8F0',borderRadius:10,padding:10,marginTop:4}}>
+                    <strong style={{display:'block',fontSize:13,fontWeight:600,color:'#1E293B',marginBottom:6}}>هزینه دوره</strong>
+                    <div style={{display:'flex',justifyContent:'space-between',fontSize:12,color:'#64748B',marginBottom:4}}><span>شهریه پایه</span><span>{cls.fee.toLocaleString('fa-IR')} تومان</span></div>
+                    {cls.products.length > 0 && (
+                      <>
+                        <div style={{display:'flex',justifyContent:'space-between',fontSize:12,color:'#64748B',marginBottom:2}}><strong>محصولات موردنیاز</strong></div>
+                        {cls.products.map((p) => (
+                          <div key={p.id} style={{display:'flex',justifyContent:'space-between',fontSize:12,color:'#64748B',marginBottom:2}}>
+                            <span>{p.name} × {p.qty.toLocaleString('fa-IR')}</span>
+                            <span>{(p.price * p.qty).toLocaleString('fa-IR')} تومان</span>
+                          </div>
+                        ))}
+                        <div style={{display:'flex',justifyContent:'space-between',fontSize:12,color:'#64748B',margin:'4px 0'}}><span>جمع محصولات</span><span>{cls.products.reduce((s, p) => s + p.price * p.qty, 0).toLocaleString('fa-IR')} تومان</span></div>
+                      </>
+                    )}
+                    <div style={{display:'flex',justifyContent:'space-between',fontSize:13,fontWeight:700,color:'#1E293B',borderTop:'1px solid #E2E8F0',paddingTop:6,marginTop:4}}><span>مبلغ نهایی دوره</span><span>{(cls.fee + cls.products.reduce((s, p) => s + p.price * p.qty, 0)).toLocaleString('fa-IR')} تومان</span></div>
                   </div>
                   <div>
                     <div style={{height:6,borderRadius:3,background:'#F1F5F9',overflow:'hidden'}}><div style={{width:`${cls.progress}%`,height:'100%',borderRadius:3,background:'linear-gradient(90deg,#2563EB,#1D4ED8)'}} /></div>

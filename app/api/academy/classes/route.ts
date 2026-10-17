@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
 
     const courseIds = Array.from(new Set(enrollments.map((item: any) => item.courseId).filter(Boolean)));
     const courses = courseIds.length
-      ? await (prisma as any).academyCourse.findMany({ where: { id: { in: courseIds } } })
+      ? await (prisma as any).academyCourse.findMany({ where: { id: { in: courseIds } }, include: { products: { orderBy: { createdAt: 'asc' } } } })
       : [];
     const courseById = new Map<string, any>(courses.map((course: any) => [course.id, course]));
     const today = dayName(new Date());
@@ -45,6 +45,8 @@ export async function GET(req: NextRequest) {
         teacher: firstSession?.teacherName || course?.teacherName || null,
         room: enrollment.room || firstSession?.room || null,
         onlineUrl: enrollment.onlineUrl || firstSession?.onlineUrl || null,
+        fee: Number(enrollment.fee) || 0,
+        products: ((course as any)?.products || []).map((p: any) => ({ id: p.id, name: p.name, price: Number(p.price) || 0, qty: p.qty || 1 })),
         heldSessions: enrollment.heldSessions || 0,
         totalSessions: enrollment.totalSessions || 0,
         progress: enrollment.progress || 0,

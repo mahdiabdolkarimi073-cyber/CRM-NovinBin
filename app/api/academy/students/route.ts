@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
     where.OR = [
       { firstName: { contains: q, mode: 'insensitive' } },
       { lastName: { contains: q, mode: 'insensitive' } },
-      { username: { contains: q, mode: 'insensitive' } },
+      { username: { contains: q } },
       { phone: { contains: q } },
       { nationalId: { contains: q } },
     ];
@@ -75,20 +75,20 @@ export async function POST(req: NextRequest) {
   if (!firstName || !lastName || !username || !password) {
     return NextResponse.json({ error: 'نام، نام خانوادگی، نام کاربری و رمز عبور الزامی است' }, { status: 400 });
   }
-  if (password.length < 6) {
-    return NextResponse.json({ error: 'رمز عبور باید حداقل ۶ کاراکتر باشد' }, { status: 400 });
+  if (!/^\d{11}$/.test(String(username).trim())) {
+    return NextResponse.json({ error: 'نام کاربری باید دقیقاً ۱۱ رقم و فقط شامل ارقام انگلیسی (0-9) باشد' }, { status: 400 });
   }
-  if (!/^[a-z0-9._-]{3,30}$/.test(String(username).toLowerCase())) {
-    return NextResponse.json({ error: 'نام کاربری باید انگلیسی، حداقل ۳ کاراکتر و فقط شامل حروف، اعداد، نقطه، خط تیره و زیرخط باشد' }, { status: 400 });
+  if (!/^\d{11}$/.test(String(password))) {
+    return NextResponse.json({ error: 'رمز عبور باید دقیقاً ۱۱ رقم و فقط شامل ارقام انگلیسی (0-9) باشد' }, { status: 400 });
   }
 
-  const normalizedUsername = String(username).toLowerCase().trim();
+  const normalizedUsername = String(username).trim();
   const existing = await (prisma as any).academyUser.findUnique({ where: { username: normalizedUsername } });
-  if (existing) return NextResponse.json({ error: 'این نام کاربری قبلاً ثبت شده است' }, { status: 409 });
+  if (existing) return NextResponse.json({ error: 'این نام کاربری قبلاً ثبت شده است؛ نام کاربری دیگری انتخاب کنید' }, { status: 409 });
 
-  const passwordHash = await bcrypt.hash(password, 10);
+  const passwordHash = await bcrypt.hash(String(password), 10);
   const student = await (prisma as any).academyUser.create({
-    data: { firstName, lastName, username: normalizedUsername, phone: phone || null, nationalId: nationalId || null, passwordHash, role: 'student', active: true },
+    data: { firstName: String(firstName).trim(), lastName: String(lastName).trim(), username: normalizedUsername, phone: phone || null, nationalId: nationalId || null, passwordHash, role: 'student', active: true },
   });
 
   return NextResponse.json({ student: { id: student.id, firstName: student.firstName, lastName: student.lastName } });
@@ -99,20 +99,73 @@ export async function PUT(req: NextRequest) {
   if (!admin) return NextResponse.json({ error: 'دسترسی مجاز نیست' }, { status: 403 });
 
   const body = await req.json();
-  const { id, firstName, lastName, phone, nationalId, active, password } = body;
+  const { id, firstName, lastName, username, phone, nationalId, active, password } = body;
 
   if (!id) return NextResponse.json({ error: 'شناسه هنرجو الزامی است' }, { status: 400 });
 
-  const data: any = { firstName, lastName, phone, nationalId };
+  const target = await (prisma as any).academyUser.findUnique({ where: { id } });
+  if (!target || target.role !== 'student') return NextResponse.json({ error: 'هنرجو یافت نشد' }, { status: 404 });
+
+  const data: any = {};
+  if (firstName !== undefined) data.firstName = String(firstName).trim();
+  if (lastName !== undefined) data.lastName = String(lastName).trim();
+  if (phone !== undefined) data.phone = phone || null;
+  if (nationalId !== undefined) data.nationalId = nationalId || null;
   if (typeof active === 'boolean') data.active = active;
-  if (password && password.length > 0) {
-    if (password.length < 6) return NextResponse.json({ error: 'رمز عبور باید حداقل ۶ کاراکتر باشد' }, { status: 400 });
-    data.passwordHash = await bcrypt.hash(password, 10);
+
+  if (username !== undefined && String(username).trim() !== target.username) {
+    const newUsername = String(username).trim();
+    if (!/^\d{11}$/.test(newUsername)) {
+      return NextResponse.json({ error: 'نام کاربری باید دقیقاً ۱۱ رقم و فقط شامل ارقام انگلیسی (0-9) باشد' }, { status: 400 });
+    }
+    const dupe = await (prisma as any).academyUser.findUnique({ where: { username: newUsername } });
+    if (dupe && dupe.id !== id) {
+      return NextResponse.json({ error: 'این نام کاربری قبلاً ثبت شده است؛ نام کاربری دیگری انتخاب کنید' }, { status: 409 });
+    }
+    data.username = newUsername;
   }
 
-  // Remove undefined fields
-  Object.keys(data).forEach((k) => data[k] === undefined && delete data[k]);
+  if (password && String(password).length > 0) {
+    if (!/^\d{11}$/.test(String(password))) {
+      return NextResponse.json({ error: 'رمز عبور باید دقیقاً ۱۱ رقم و فقط شامل ارقام انگلیسی (0-9) باشد' }, { status: 400 });
+    }
+    data.passwordHash = await bcrypt.hash(String(password), 10);
+  }
 
   await (prisma as any).academyUser.update({ where: { id }, data });
+  return NextResponse.json({ ok: true });
+}
+
+export async function DELETE(req: NextRequest) {
+  const admin = await getAdmin(req);
+  if (!admin) return NextResponse.json({ error: 'دسترسی مجاز نیست' }, { status: 403 });
+
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get('id');
+  if (!id) return NextResponse.json({ error: 'شناسه هنرجو الزامی است' }, { status: 400 });
+
+  const student = await (prisma as any).academyUser.findUnique({ where: { id } });
+  if (!student || student.role !== 'student') return NextResponse.json({ error: 'هنرجو یافت نشد' }, { status: 404 });
+
+  try {
+    await (prisma as any).$transaction([
+      (prisma as any).academyCourseEnrollment.deleteMany({ where: { studentId: id } }),
+      (prisma as any).academyStudentGrade.deleteMany({ where: { studentId: id } }),
+      (prisma as any).academyClassSession.deleteMany({ where: { studentId: id } }),
+      (prisma as any).academyInstallment.deleteMany({ where: { studentId: id } }),
+      (prisma as any).academyInvoice.deleteMany({ where: { studentId: id } }),
+      (prisma as any).academyReceipt.deleteMany({ where: { studentId: id } }),
+      (prisma as any).academyContract.deleteMany({ where: { studentId: id } }),
+      (prisma as any).academyStudentNote.deleteMany({ where: { studentId: id } }),
+      (prisma as any).academyEducationRecord.deleteMany({ where: { studentId: id } }),
+      (prisma as any).academyTeacherEvaluation.deleteMany({ where: { studentId: id } }),
+      (prisma as any).academyDiscount.deleteMany({ where: { studentId: id } }),
+      (prisma as any).academyPayment.deleteMany({ where: { studentId: id } }),
+      (prisma as any).academyUser.delete({ where: { id } }),
+    ]);
+  } catch {
+    return NextResponse.json({ error: 'حذف هنرجو ممکن نشد؛ سوابق مرتبط او را ابتدا بررسی کنید' }, { status: 409 });
+  }
+
   return NextResponse.json({ ok: true });
 }

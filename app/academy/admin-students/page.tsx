@@ -5,7 +5,7 @@ import { useEffect, useState, useCallback } from 'react';
 import {
   Users, Search, Plus, Edit2, UserX, UserCheck, Loader2, LogOut, Bell, Menu,
   LifeBuoy, Settings, ClipboardList, Wallet, CalendarDays, BookOpen, Eye, X,
-  Key,
+  Key, Trash2,
 } from 'lucide-react';
 
 type Student = {
@@ -30,6 +30,10 @@ function formatJalali(date: string | null) {
   if (!date) return '—';
   try { return new Intl.DateTimeFormat('fa-IR', { dateStyle: 'medium' }).format(new Date(date)); }
   catch { return new Date(date).toLocaleDateString('fa-IR'); }
+}
+
+function isElevenDigits(value: string) {
+  return /^\d{11}$/.test(value);
 }
 
 export default function AdminStudentsPage() {
@@ -76,13 +80,25 @@ export default function AdminStudentsPage() {
   }
 
   async function save() {
-    setSaving(true);
     setError('');
+    if (!form.firstName.trim() || !form.lastName.trim()) { setError('نام و نام خانوادگی الزامی است'); return; }
+    if (!isElevenDigits(form.username)) { setError('نام کاربری باید دقیقاً ۱۱ رقم و فقط شامل ارقام انگلیسی (0-9) باشد'); return; }
+    if (!editStudent && !isElevenDigits(form.password)) { setError('رمز عبور باید دقیقاً ۱۱ رقم و فقط شامل ارقام انگلیسی (0-9) باشد'); return; }
+    if (editStudent && form.password && !isElevenDigits(form.password)) { setError('رمز عبور باید دقیقاً ۱۱ رقم و فقط شامل ارقام انگلیسی (0-9) باشد'); return; }
+    setSaving(true);
     try {
-      const payload: any = { ...form };
+      const payload: any = {
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        username: form.username.trim(),
+        phone: form.phone,
+        nationalId: form.nationalId,
+      };
       if (editStudent) {
         payload.id = editStudent.id;
-        if (!payload.password) delete payload.password;
+        if (form.password) payload.password = form.password;
+      } else {
+        payload.password = form.password;
       }
       const res = await fetch('/api/academy/students', {
         method: editStudent ? 'PUT' : 'POST',
@@ -103,6 +119,17 @@ export default function AdminStudentsPage() {
       body: JSON.stringify({ id: s.id, active: !s.active }),
     });
     fetchStudents(search);
+  }
+
+  async function removeStudent(s: Student) {
+    if (!window.confirm(`آیا از حذف هنرجوی «${s.firstName} ${s.lastName}» مطمئن هستید؟ این عمل قابل بازگشت نیست.`)) return;
+    const res = await fetch(`/api/academy/students?id=${encodeURIComponent(s.id)}`, { method: 'DELETE' });
+    if (res.ok) {
+      fetchStudents(search);
+    } else {
+      const data = await res.json().catch(() => null);
+      window.alert(data?.error || 'حذف هنرجو ممکن نشد');
+    }
   }
 
   return (
@@ -198,6 +225,7 @@ export default function AdminStudentsPage() {
                           <button type="button" title={s.active ? 'غیرفعال کردن' : 'فعال کردن'} onClick={() => toggleActive(s)}>
                             {s.active ? <UserX /> : <UserCheck />}
                           </button>
+                          <button type="button" title="حذف هنرجو" onClick={() => removeStudent(s)}><Trash2 /></button>
                         </div>
                       </td>
                     </tr>
@@ -228,12 +256,30 @@ export default function AdminStudentsPage() {
                   <input type="text" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} />
                 </div>
                 <div className="academy-admin-field">
-                  <label>نام کاربری <span style={{color:'#ef4444'}}>*</span></label>
-                  <input type="text" dir="ltr" style={{textAlign:'right'}} value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} disabled={!!editStudent} placeholder="english_only" />
+                  <label>نام کاربری (۱۱ رقم) <span style={{color:'#ef4444'}}>*</span></label>
+                  <input
+                    type="text"
+                    dir="ltr"
+                    inputMode="numeric"
+                    maxLength={11}
+                    style={{textAlign:'right'}}
+                    value={form.username}
+                    onChange={(e) => setForm({ ...form, username: e.target.value.replace(/[^0-9]/g, '').slice(0, 11) })}
+                    placeholder="مثال: 09121234567"
+                  />
                 </div>
                 <div className="academy-admin-field">
-                  <label>رمز عبور {editStudent ? '(اختیاری)' : <span style={{color:'#ef4444'}}>*</span>}</label>
-                  <input type="password" dir="ltr" style={{textAlign:'right'}} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder={editStudent ? 'بدون تغییر خالی بگذارید' : 'حداقل ۶ کاراکتر'} />
+                  <label>رمز عبور {editStudent ? '(برای تغییر، ۱۱ رقم وارد کنید)' : '(۱۱ رقم)'}</label>
+                  <input
+                    type="password"
+                    dir="ltr"
+                    inputMode="numeric"
+                    maxLength={11}
+                    style={{textAlign:'right'}}
+                    value={form.password}
+                    onChange={(e) => setForm({ ...form, password: e.target.value.replace(/[^0-9]/g, '').slice(0, 11) })}
+                    placeholder={editStudent ? 'بدون تغییر خالی بگذارید' : 'دقیقاً ۱۱ رقم'}
+                  />
                 </div>
                 <div className="academy-admin-field">
                   <label>تلفن</label>

@@ -491,6 +491,7 @@ model Product {
   orderItems  OrderItem[]
   preInvoiceItems PreInvoiceItem[]
   returnItems  ReturnItem[]
+  academyCourseProducts AcademyCourseProduct[]
 
   @@map("products")
 }
@@ -1903,6 +1904,8 @@ model AcademyUser {
   nationalId   String?
   avatarUrl    String?
   active       Boolean  @default(true)
+  termsAcceptedAt DateTime?
+  termsVersion    String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -1949,7 +1952,11 @@ model AcademyCourse {
   endDate     DateTime?
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
+  categoryId  String?  @db.Uuid
 
+  category         AcademyCourseCategory?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  products         AcademyCourseProduct[]
+  terms            AcademyTerm[]
   enrollments       AcademyCourseEnrollment[]
   installments      AcademyInstallment[]
   invoices         AcademyInvoice[]
@@ -2287,13 +2294,48 @@ model AcademyTeacherSettlement {
 
 // ============ ACADEMY EDUCATION MANAGEMENT ============
 
+model AcademyCourseCategory {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title     String
+  parentId  String?  @db.Uuid
+  order     Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  parent   AcademyCourseCategory?  @relation("AcademyCategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children AcademyCourseCategory[] @relation("AcademyCategoryTree")
+  courses  AcademyCourse[]
+
+  @@map("academy_course_categories")
+}
+
+model AcademyCourseProduct {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  courseId  String   @db.Uuid
+  productId String?  @db.Uuid
+  name      String
+  price     BigInt   @default(0)
+  qty       Int      @default(1)
+  createdAt DateTime @default(now())
+
+  course  AcademyCourse @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  product Product?      @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([courseId])
+  @@map("academy_course_products")
+}
+
 model AcademyTerm {
   id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   title       String
+  courseId    String?  @db.Uuid
   startDate   DateTime @default(now())
   endDate     DateTime?
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
+
+  course AcademyCourse? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  levels AcademyLevel[]
 
   @@map("academy_terms")
 }
@@ -2303,7 +2345,14 @@ model AcademyLevel {
   title       String
   code        String?
   order       Int      @default(0)
+  courseId    String?  @db.Uuid
+  termId      String?  @db.Uuid
   createdAt   DateTime @default(now())
+
+  course    AcademyCourse? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  term      AcademyTerm?   @relation(fields: [termId], references: [id], onDelete: SetNull)
+  syllabi   AcademySyllabus[]
+  weeklySchedules AcademyWeeklySchedule[]
 
   @@map("academy_levels")
 }
@@ -2311,12 +2360,16 @@ model AcademyLevel {
 model AcademySyllabus {
   id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   courseId    String?  @db.Uuid
+  termId      String?  @db.Uuid
+  levelId     String?  @db.Uuid
   title       String
   description String?
   order       Int      @default(0)
   createdAt   DateTime @default(now())
 
   course       AcademyCourse? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  term         AcademyTerm?   @relation(fields: [termId], references: [id], onDelete: SetNull)
+  level        AcademyLevel?  @relation(fields: [levelId], references: [id], onDelete: SetNull)
 
   @@index([courseId])
   @@map("academy_syllabi")
@@ -2337,6 +2390,9 @@ model AcademyRoom {
 model AcademyWeeklySchedule {
   id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   courseId    String?  @db.Uuid
+  termId      String?  @db.Uuid
+  levelId     String?  @db.Uuid
+  classNumber String?
   teacherId   String?  @db.Uuid
   roomId      String?  @db.Uuid
   weekday     String
@@ -2347,6 +2403,8 @@ model AcademyWeeklySchedule {
   createdAt   DateTime @default(now())
 
   course       AcademyCourse? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  term         AcademyTerm?   @relation(fields: [termId], references: [id], onDelete: SetNull)
+  level        AcademyLevel?  @relation("LevelSchedules", fields: [levelId], references: [id], onDelete: SetNull)
   teacher      AcademyUser?   @relation("ScheduleTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
   room         AcademyRoom?   @relation(fields: [roomId], references: [id], onDelete: SetNull)
 
