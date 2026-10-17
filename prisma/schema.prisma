@@ -1956,6 +1956,7 @@ model AcademyCourse {
 
   category         AcademyCourseCategory?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   products         AcademyCourseProduct[]
+  levels           AcademyLevel[]
   terms            AcademyTerm[]
   enrollments       AcademyCourseEnrollment[]
   installments      AcademyInstallment[]
@@ -2354,7 +2355,7 @@ model AcademyLevel {
   course    AcademyCourse? @relation(fields: [courseId], references: [id], onDelete: SetNull)
   term      AcademyTerm?   @relation(fields: [termId], references: [id], onDelete: SetNull)
   syllabi   AcademySyllabus[]
-  weeklySchedules AcademyWeeklySchedule[]
+  weeklySchedules AcademyWeeklySchedule[] @relation("LevelSchedules")
 
   @@map("academy_levels")
 }
