@@ -1955,8 +1955,8 @@ model AcademyCourse {
   categoryId  String?  @db.Uuid
 
   category         AcademyCourseCategory?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  products         AcademyCourseProduct[]
   levels           AcademyLevel[]
+  products         AcademyCourseProduct[]
   terms            AcademyTerm[]
   enrollments       AcademyCourseEnrollment[]
   installments      AcademyInstallment[]
@@ -2337,8 +2337,8 @@ model AcademyTerm {
 
   course AcademyCourse? @relation(fields: [courseId], references: [id], onDelete: SetNull)
   levels AcademyLevel[]
+  syllabi AcademySyllabus[]
   weeklySchedules AcademyWeeklySchedule[]
-  syllabi         AcademySyllabus[]
 
   @@map("academy_terms")
 }
