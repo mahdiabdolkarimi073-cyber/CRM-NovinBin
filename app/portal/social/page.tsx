@@ -364,7 +364,7 @@ export default function PortalSocialPage() {
         <span className="staff-chat-user-copy">
           <span className="staff-chat-user-topline">
             <strong>{getUserLabel(user)}</strong>
-            {isManager && <span className="project-manager-badge"><Star className="w-3 h-3" />مسئول پروژه شما</span>}
+            {isManager && <span className="project-manager-badge"><Star />مسئول پروژه</span>}
             {conversation?.lastMessage && <time>{relativeTime(conversation.lastMessage.createdAt)}</time>}
           </span>
           <span className="staff-chat-user-bottomline">
@@ -394,7 +394,6 @@ export default function PortalSocialPage() {
               <div className="tg-header-avatar hidden">{getInitials(selectedUser)}</div>
               <div className="tg-header-info">
                 <strong>{getUserLabel(selectedUser)}</strong>
-                {projectManager?.id === selectedUser.id && <span className="project-manager-badge"><Star className="w-3 h-3" />مسئول پروژه شما</span>}
                 <span className="tg-header-status">
                   {isOnline(selectedUser.lastSeenAt) && <i className="tg-online-dot" />}
                   {isOnline(selectedUser.lastSeenAt) ? 'آنلاین' : selectedUser.lastSeenAt ? `آخرین بازدید ${relativeTime(selectedUser.lastSeenAt)}` : roleLabels[selectedUser.role] || selectedUser.role}
@@ -557,7 +556,7 @@ export default function PortalSocialPage() {
                     </span>
                     <span className="message-copy">
                       <strong>{getUserLabel(projectManager)}</strong>
-                      <span className="message-preview"><Star className="inline w-3 h-3 ml-1" />مسئول پروژه شما</span>
+                      <span className="message-preview"><Star className="inline w-3 h-3 ml-1" />مسئول پروژه</span>
                     </span>
                     <span className="message-meta">
                       <time></time>
@@ -685,7 +684,6 @@ export default function PortalSocialPage() {
                   </span>
                   <div>
                     <strong>{getUserLabel(selectedUser)}</strong>
-                    {projectManager?.id === selectedUser.id && <span className="project-manager-badge"><Star className="w-3 h-3" />مسئول پروژه شما</span>}
                     <span className="staff-chat-status">
                       <i className={cn(isOnline(selectedUser.lastSeenAt) ? 'is-online' : 'is-offline')} />
                       {isOnline(selectedUser.lastSeenAt) ? 'آنلاین' : selectedUser.lastSeenAt ? `آخرین بازدید ${relativeTime(selectedUser.lastSeenAt)}` : roleLabels[selectedUser.role] || selectedUser.role}

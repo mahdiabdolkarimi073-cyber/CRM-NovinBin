@@ -180,7 +180,7 @@ export async function PUT(req: NextRequest) {
     const body = await req.json();
     const {
       demoId, name, email, phone, companyName, plan,
-      durationDays, maxUsers, modules,
+      durationDays, maxUsers, modules, newPassword,
     } = body;
 
     if (!demoId) {
@@ -188,6 +188,9 @@ export async function PUT(req: NextRequest) {
     }
     if (!name?.trim()) {
       return NextResponse.json({ error: 'نام الزامی است' }, { status: 400 });
+    }
+    if (newPassword && newPassword.length < 6) {
+      return NextResponse.json({ error: 'رمز عبور باید حداقل ۶ کاراکتر باشد' }, { status: 400 });
     }
 
     const demo = await prisma.demo.findUnique({
@@ -215,6 +218,13 @@ export async function PUT(req: NextRequest) {
         maxUsers: maxUsers || demo.maxUsers,
         modules: modules || demo.modules,
         expiryDate: newExpiry,
+        // Password stays untouched unless the admin typed a new one
+        ...(newPassword
+          ? {
+              demoPassword: bcrypt.hashSync(newPassword, 10),
+              demoPlainPassword: newPassword,
+            }
+          : {}),
       },
     });
 

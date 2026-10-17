@@ -90,6 +90,9 @@ export default function SuperAdminDemosPage() {
     modules: [] as string[],
   });
   const [editing, setEditing] = useState(false);
+  const [editNewPassword, setEditNewPassword] = useState('');
+  const [showEditNewPassword, setShowEditNewPassword] = useState(false);
+  const [showEditCurrentPassword, setShowEditCurrentPassword] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -196,12 +199,19 @@ export default function SuperAdminDemosPage() {
       maxUsers: demo.maxUsers,
       modules: demo.modules || [],
     });
+    setEditNewPassword('');
+    setShowEditNewPassword(false);
+    setShowEditCurrentPassword(false);
     setShowEditDialog(true);
   };
 
   const handleEditSave = async () => {
     if (!editForm.name.trim()) {
       toast.error('نام الزامی است');
+      return;
+    }
+    if (editNewPassword && editNewPassword.length < 6) {
+      toast.error('رمز عبور باید حداقل ۶ کاراکتر باشد');
       return;
     }
     setEditing(true);
@@ -219,6 +229,7 @@ export default function SuperAdminDemosPage() {
           durationDays: editForm.durationDays,
           maxUsers: editForm.maxUsers,
           modules: editForm.modules,
+          ...(editNewPassword ? { newPassword: editNewPassword } : {}),
         }),
       });
       const data = await res.json();
@@ -227,6 +238,7 @@ export default function SuperAdminDemosPage() {
       } else {
         toast.success('تغییرات دمو با موفقیت ذخیره شد');
         setShowEditDialog(false);
+        setEditNewPassword('');
         load();
       }
     } catch {
@@ -662,6 +674,74 @@ export default function SuperAdminDemosPage() {
             <DialogTitle>ویرایش دمو</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Current password status — shown above the change-password field */}
+            <div className="space-y-2">
+              <Label>وضعیت رمز عبور فعلی</Label>
+              <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900 border rounded-lg px-3 py-2.5">
+                <div className="flex items-center gap-2 min-w-0">
+                  <KeyRound className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                  <span className="text-sm text-slate-500">رمز فعلی:</span>
+                  {editForm.demoId && demos.find((d) => d.id === editForm.demoId)?.password ? (
+                    <code className="font-mono text-sm truncate">
+                      {showEditCurrentPassword
+                        ? demos.find((d) => d.id === editForm.demoId)!.password
+                        : '••••••••'}
+                    </code>
+                  ) : (
+                    <span className="text-sm text-amber-600 dark:text-amber-400">تنظیم نشده است</span>
+                  )}
+                </div>
+                {editForm.demoId && demos.find((d) => d.id === editForm.demoId)?.password && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+                      title={showEditCurrentPassword ? 'مخفی کردن رمز فعلی' : 'نمایش رمز فعلی'}
+                      onClick={() => setShowEditCurrentPassword((v) => !v)}
+                    >
+                      {showEditCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                    <button
+                      type="button"
+                      className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+                      title="کپی رمز فعلی"
+                      onClick={() => copyToClipboard(demos.find((d) => d.id === editForm.demoId)!.password!)}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-slate-400">
+                رمز فعلی از روی هش بازسازی نمی‌شود؛ مقدار ذخیره‌شده در سیستم نمایش داده می‌شود.
+              </p>
+            </div>
+
+            {/* New password */}
+            <div className="space-y-2">
+              <Label>رمز عبور جدید (اختیاری)</Label>
+              <div className="relative">
+                <Input
+                  type={showEditNewPassword ? 'text' : 'password'}
+                  value={editNewPassword}
+                  onChange={(e) => setEditNewPassword(e.target.value)}
+                  placeholder="برای حفظ رمز فعلی، خالی بگذارید"
+                  className="pl-10"
+                />
+                <button
+                  type="button"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+                  title={showEditNewPassword ? 'مخفی کردن رمز جدید' : 'نمایش رمز جدید'}
+                  onClick={() => setShowEditNewPassword((v) => !v)}
+                >
+                  {showEditNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              <p className="text-xs text-slate-400">
+                اگر رمز جدیدی وارد نکنید، رمز فعلی حساب بدون تغییر می‌ماند. حداقل ۶ کاراکتر.
+              </p>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>نام *</Label>
