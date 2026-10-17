@@ -98,6 +98,15 @@ export interface Lead {
   createdAt: string;
   updatedAt: string;
   referrals?: LeadReferral[];
+  followUps?: LeadFollowUp[];
+}
+
+export interface LeadFollowUp {
+  id: string;
+  leadId: string;
+  result: string | null;
+  createdBy: string | null;
+  createdAt: string;
 }
 
 export interface LeadReferral {

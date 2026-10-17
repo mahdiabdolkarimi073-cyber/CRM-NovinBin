@@ -350,6 +350,7 @@ model Lead {
   org             Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
   customer        Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
   referrals       LeadReferral[]
+  followUps      LeadFollowUp[]
 
   @@map("leads")
 }
@@ -365,6 +366,18 @@ model LeadReferral {
   lead                Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
 
   @@map("lead_referrals")
+}
+
+model LeadFollowUp {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  leadId      String   @db.Uuid
+  result      String?
+  createdBy   String?  @db.Uuid
+  createdAt   DateTime @default(now())
+  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId, createdAt])
+  @@map("lead_follow_ups")
 }
 
 model Opportunity {

@@ -19,7 +19,7 @@ import {
 import { formatJalaliDateTime, relativeTime } from '@/lib/format';
 import { LEAD_STATUSES, LEAD_SOURCES, fullName } from '@/lib/constants';
 import { toast } from 'sonner';
-import type { Lead, Profile, LeadReferral } from '@/lib/types';
+import type { Lead, Profile, LeadReferral, LeadFollowUp } from '@/lib/types';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
@@ -34,6 +34,7 @@ export default function LeadDetailPage() {
   const [loading, setLoading] = useState(true);
   const [followUpResult, setFollowUpResult] = useState('');
   const [followUpSaving, setFollowUpSaving] = useState(false);
+  const [followUps, setFollowUps] = useState<LeadFollowUp[]>([]);
   const [referrals, setReferrals] = useState<LeadReferral[]>([]);
   const [referralProfiles, setReferralProfiles] = useState<Record<string, Profile>>({});
   const [referralDialogOpen, setReferralDialogOpen] = useState(false);
@@ -59,6 +60,8 @@ export default function LeadDetailPage() {
         const l = leads[0];
         setLead(l);
         setFollowUpResult(l.followUpResult || '');
+        const fus = await fetchData<LeadFollowUp>('lead_follow_ups', { where: { leadId: id }, orderBy: { createdAt: 'desc' } });
+        setFollowUps(fus || []);
         const refs = await fetchData<LeadReferral>('lead_referrals', { where: { leadId: id }, orderBy: { createdAt: 'desc' } });
         setReferrals(refs || []);
         const profileIds = (refs || []).map((r) => r.referredToProfileId).filter(Boolean) as string[];
@@ -96,7 +99,15 @@ export default function LeadDetailPage() {
         followUpResult: followUpResult || null,
         nextFollowUp: new Date().toISOString(),
       });
+      if (followUpResult.trim()) {
+        await createData('lead_follow_ups', {
+          leadId: lead.id,
+          result: followUpResult.trim(),
+          createdBy: profile?.id || null,
+        });
+      }
       toast.success('نتیجه پیگیری ثبت شد');
+      setFollowUpResult('');
       load();
     } catch (e: any) {
       toast.error('ثبت ناموفق: ' + e.message);
@@ -441,6 +452,23 @@ export default function LeadDetailPage() {
               ثبت نتیجه پیگیری
             </Button>
           </div>
+
+          {/* Follow-up history */}
+          {followUps.length > 0 && (
+            <div className="mb-6">
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
+                تاریخچه پیگیری‌ها ({followUps.length.toLocaleString('fa-IR')})
+              </p>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {followUps.map((fu) => (
+                  <div key={fu.id} className="rounded-lg border border-slate-200 p-3 dark:border-slate-700">
+                    <p className="text-sm text-slate-700 dark:text-slate-300 leading-6 whitespace-pre-wrap">{fu.result}</p>
+                    <p className="text-xs text-slate-400 mt-1">{formatJalaliDateTime(fu.createdAt)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Referrals */}
           {referrals.length > 0 && (

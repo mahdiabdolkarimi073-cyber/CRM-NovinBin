@@ -25,7 +25,7 @@ import {
 import { relativeTime, formatJalaliDateTime, toLocalDateString } from '@/lib/format';
 import { LEAD_STATUSES, LEAD_SOURCES, fullName } from '@/lib/constants';
 import { toast } from 'sonner';
-import type { Lead, Profile, LeadReferral } from '@/lib/types';
+import type { Lead, Profile, LeadReferral, LeadFollowUp } from '@/lib/types';
 
 const statusInfo = (key: string) => LEAD_STATUSES.find((s) => s.key === key) || LEAD_STATUSES[0];
 
@@ -77,6 +77,8 @@ export default function LeadsPage() {
   const [viewReferralProfiles, setViewReferralProfiles] = useState<Record<string, Profile>>({});
   const [followUpResult, setFollowUpResult] = useState('');
   const [followUpSaving, setFollowUpSaving] = useState(false);
+  const [followUpCounts, setFollowUpCounts] = useState<Record<string, number>>({});
+  const [followUpLastDates, setFollowUpLastDates] = useState<Record<string, string>>({});
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
 
   const isSuperAdmin = profile?.role === 'super_admin' || profile?.role === 'owner';
@@ -98,6 +100,28 @@ export default function LeadsPage() {
       }
       const data = await fetchData<Lead>('leads', { where, orderBy: { createdAt: 'desc' } });
       setLeads(data || []);
+      // Fetch follow-up counts and last dates for all leads
+      if (data && data.length > 0) {
+        try {
+          const allFollowUps = await fetchData<LeadFollowUp>('lead_follow_ups', {
+            where: { leadId: { in: data.map((l) => l.id) } },
+            orderBy: { createdAt: 'desc' },
+          });
+          const counts: Record<string, number> = {};
+          const lastDates: Record<string, string> = {};
+          (allFollowUps || []).forEach((fu) => {
+            counts[fu.leadId] = (counts[fu.leadId] || 0) + 1;
+            if (!lastDates[fu.leadId] || new Date(fu.createdAt) > new Date(lastDates[fu.leadId])) {
+              lastDates[fu.leadId] = fu.createdAt;
+            }
+          });
+          setFollowUpCounts(counts);
+          setFollowUpLastDates(lastDates);
+        } catch {
+          setFollowUpCounts({});
+          setFollowUpLastDates({});
+        }
+      }
     } catch (error: any) {
       toast.error('بارگذاری سرنخ‌ها ناموفق: ' + error.message);
     }
@@ -124,8 +148,13 @@ export default function LeadsPage() {
         if (new Date(l.createdAt).getTime() < limit) return false;
       }
       return true;
+    }).sort((a, b) => {
+      const aDate = followUpLastDates[a.id] ? new Date(followUpLastDates[a.id]).getTime() : 0;
+      const bDate = followUpLastDates[b.id] ? new Date(followUpLastDates[b.id]).getTime() : 0;
+      if (bDate !== aDate) return bDate - aDate;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
-  }, [leads, filterCity, filterTime]);
+  }, [leads, filterCity, filterTime, followUpLastDates]);
 
   const totalPages = Math.ceil(filteredLeads.length / PAGE_SIZE);
   const currentPage = Math.min(page, Math.max(1, totalPages));
@@ -461,11 +490,19 @@ export default function LeadsPage() {
         followUpResult: followUpResult || null,
         nextFollowUp: nextDate.toISOString(),
       });
+      if (followUpResult.trim()) {
+        await createData('lead_follow_ups', {
+          leadId: viewLead.id,
+          result: followUpResult.trim(),
+          createdBy: profile?.id || null,
+        });
+      }
       const updated = new Set(dismissedAlarms);
       updated.delete(viewLead.id);
       setDismissedAlarms(updated);
       toast.success(`نتیجه پیگیری ثبت شد. پیگیری بعدی: ${nextDate.toLocaleDateString('fa-IR')}`);
       setViewLead({ ...viewLead, followUpResult, nextFollowUp: nextDate.toISOString() });
+      setFollowUpResult('');
       loadLeads();
     } catch (e: any) {
       toast.error('ثبت ناموفق: ' + e.message);
@@ -481,6 +518,11 @@ export default function LeadsPage() {
         nextFollowUp: nextDate.toISOString(),
         status: lead.status === 'new' ? 'contacted' : lead.status,
       });
+      await createData('lead_follow_ups', {
+        leadId: lead.id,
+        result: 'پیگیری انجام شد',
+        createdBy: profile?.id || null,
+      }).catch(() => {});
       const updated = new Set(dismissedAlarms);
       updated.delete(lead.id);
       setDismissedAlarms(updated);
@@ -721,6 +763,11 @@ export default function LeadsPage() {
                         <AlertTriangle className="h-2.5 w-2.5" /> نیازمند پیگیری
                       </span>
                     )}
+                    {followUpCounts[lead.id] > 0 && (
+                      <span className="nb-card-tag" style={{ background: 'rgba(34,197,94,.10)', color: '#16A34A' }}>
+                        {followUpCounts[lead.id].toLocaleString('fa-IR')} پیگیری
+                      </span>
+                    )}
                   </div>
                   <div className="nb-card-actions">
                     <button className="nb-card-more" onClick={(e) => { e.stopPropagation(); openView(lead); }}>
@@ -831,7 +878,7 @@ export default function LeadsPage() {
       ) : (
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[700px]">
+            <table className="w-full text-sm min-w-[800px]">
               <thead className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/50">
                 <tr>
                   <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">نام</th>
@@ -840,6 +887,7 @@ export default function LeadsPage() {
                   <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">شهر</th>
                   <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">منبع</th>
                   <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">وضعیت</th>
+                  <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">پیگیری‌ها</th>
                   <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">عملیات</th>
                 </tr>
               </thead>
@@ -857,6 +905,11 @@ export default function LeadsPage() {
                         <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium" style={{ background: `${st.color}15`, color: st.color }}>
                           {st.label}
                         </span>
+                      </td>
+                      <td className="p-3 text-slate-600 dark:text-slate-300">
+                        {followUpCounts[lead.id] > 0
+                          ? `${followUpCounts[lead.id].toLocaleString('fa-IR')} پیگیری`
+                          : '—'}
                       </td>
                       <td className="p-3" onClick={(e) => e.stopPropagation()}>
                         <div className="flex gap-1">
