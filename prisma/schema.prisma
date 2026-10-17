@@ -2336,6 +2336,8 @@ model AcademyTerm {
 
   course AcademyCourse? @relation(fields: [courseId], references: [id], onDelete: SetNull)
   levels AcademyLevel[]
+  weeklySchedules AcademyWeeklySchedule[]
+  syllabi         AcademySyllabus[]
 
   @@map("academy_terms")
 }
