@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { fetchData, createData, updateData, deleteData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
+import { useBarcodeScanner } from '@/hooks/use-barcode-scanner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,7 +13,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter
 } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Package, Plus, Search, AlertTriangle, Eye, Loader2, X } from 'lucide-react';
+import { Package, Plus, Search, AlertTriangle, Eye, Loader2, X, ScanLine, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { SuperAdminActions } from '@/components/dashboard/super-admin-actions';
 import { formatToman } from '@/lib/format';
@@ -29,12 +30,49 @@ export default function ProductsPage() {
   const [viewProduct, setViewProduct] = useState<Product | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [barcodeScanActive, setBarcodeScanActive] = useState(false);
+  const [scannedProduct, setScannedProduct] = useState<Product | null>(null);
+  const [scanFeedback, setScanFeedback] = useState<string>('');
+  const scanFeedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [form, setForm] = useState({
     name: '', type: 'product', sku: '', barcode: '', brand: '',
     price: '', stock: '', min_stock: '10', unit: 'عدد', description: '',
   });
 
   const isSuperAdmin = profile?.role === 'super_admin' || profile?.role === 'owner';
+
+  const showScanFeedback = useCallback((message: string) => {
+    setScanFeedback(message);
+    if (scanFeedbackTimer.current) clearTimeout(scanFeedbackTimer.current);
+    scanFeedbackTimer.current = setTimeout(() => setScanFeedback(''), 3000);
+  }, []);
+
+  const handleBarcodeScan = useCallback((barcode: string) => {
+    setSearch(barcode);
+    const found = products.find(
+      (p) => p.barcode === barcode || p.sku === barcode
+    );
+    if (found) {
+      setScannedProduct(found);
+      setViewProduct(found);
+      setViewDialogOpen(true);
+      showScanFeedback(`محصول یافت شد: ${found.name}`);
+    } else {
+      showScanFeedback(`بارکد ${barcode} — محصولی یافت نشد`);
+    }
+  }, [products, showScanFeedback]);
+
+  useBarcodeScanner({
+    onScan: handleBarcodeScan,
+    enabled: barcodeScanActive,
+    minLength: 3,
+  });
+
+  useEffect(() => {
+    return () => {
+      if (scanFeedbackTimer.current) clearTimeout(scanFeedbackTimer.current);
+    };
+  }, []);
 
   const loadProducts = useCallback(async () => {
     if (!profile) return;
@@ -46,6 +84,7 @@ export default function ProductsPage() {
           { name: { contains: search, mode: 'insensitive' } },
           { sku: { contains: search, mode: 'insensitive' } },
           { brand: { contains: search, mode: 'insensitive' } },
+          { barcode: { contains: search, mode: 'insensitive' } },
         ];
       }
       const data = await fetchData('products', { where, orderBy: { createdAt: 'desc' } });
@@ -186,11 +225,48 @@ export default function ProductsPage() {
             <div className="nb-toolbar-right">
               <div className="nb-search-box">
                 <Search className="h-4 w-4" />
-                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="جستجوی محصول..." />
+                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="جستجوی محصول یا بارکد..." />
                 {search && <button onClick={() => setSearch('')}><X className="h-3.5 w-3.5" /></button>}
               </div>
+              <button
+                onClick={() => setBarcodeScanActive((v) => !v)}
+                className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-all ${
+                  barcodeScanActive
+                    ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400'
+                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700/50'
+                }`}
+                title="اسکن بارکد با بارکدخوان"
+              >
+                <ScanLine className="h-4 w-4" />
+                {barcodeScanActive ? 'اسکن فعال' : 'اسکن بارکد'}
+              </button>
             </div>
           </div>
+
+          {barcodeScanActive && (
+            <div className="mb-3 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50/50 p-3 text-sm dark:border-emerald-800 dark:bg-emerald-900/10">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+                <ScanLine className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-emerald-700 dark:text-emerald-400">
+                  حالت اسکن بارکد فعال است — بارکدخوان را آماده کنید و بارکد محصول را اسکن کنید
+                </p>
+                {scanFeedback && (
+                  <p className="mt-1 flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-500">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    {scanFeedback}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={() => { setBarcodeScanActive(false); setScanFeedback(''); }}
+                className="rounded-lg px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 dark:text-emerald-400 dark:hover:bg-emerald-900/30"
+              >
+                توقف اسکن
+              </button>
+            </div>
+          )}
 
           <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
             <div className="overflow-x-auto">
@@ -200,6 +276,7 @@ export default function ProductsPage() {
                     <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">نام محصول</th>
                     <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">نوع</th>
                     <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">کد</th>
+                    <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">بارکد</th>
                     <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">قیمت</th>
                     <th className="p-3 text-right font-medium text-slate-500 dark:text-slate-400">موجودی</th>
                     <th className="p-3 text-center font-medium text-slate-500 dark:text-slate-400">عملیات</th>
@@ -223,6 +300,7 @@ export default function ProductsPage() {
                         </td>
                         <td className="p-3"><Badge variant="secondary" className="text-xs">{p.type === 'product' ? 'کالا' : 'خدمت'}</Badge></td>
                         <td className="p-3 text-slate-500 dark:text-slate-400" dir="ltr">{p.sku || '—'}</td>
+                        <td className="p-3 text-slate-500 dark:text-slate-400" dir="ltr">{p.barcode || '—'}</td>
                         <td className="p-3 font-medium text-slate-700 dark:text-slate-200">{formatToman(Number(p.price))} ت</td>
                         <td className="p-3">
                           <span className={`font-medium ${lowStock ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-200'}`}>

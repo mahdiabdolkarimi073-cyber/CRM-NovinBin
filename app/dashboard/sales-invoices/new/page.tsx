@@ -1,19 +1,25 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createData, fetchData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
+import { useBarcodeScanner } from '@/hooks/use-barcode-scanner';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import {
   ArrowRight, FileText, Loader2, Plus, Trash2,
-  Lightbulb, Info, Hash, User, Calendar, Package,
+  Lightbulb, Info, Hash, User, Calendar, Package, ScanLine, Printer, CheckCircle,
 } from 'lucide-react';
+import { usePrinter, printInvoice } from '@/hooks/use-printer';
+import { generateInvoicePrintHTML } from '@/lib/invoice-print';
 import { toast } from 'sonner';
 import { formatToman, toEnglishDigits, parseNumber } from '@/lib/format';
 import { fullName } from '@/lib/constants';
@@ -70,6 +76,77 @@ export default function NewSalesInvoicePage() {
   const [items, setItems] = useState<ItemRow[]>([
     { productId: '', productName: '', qty: '1', unit: '', unitPrice: '0', discountPct: '0', discountAmount: '0', taxPct: '0', taxAmount: '0', finalPrice: '0' },
   ]);
+  const [scannerEnabled, setScannerEnabled] = useState(false);
+  const [lastCreatedInvoice, setLastCreatedInvoice] = useState<any>(null);
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
+  const [printing, setPrinting] = useState(false);
+  const { status: printerStatus } = usePrinter();
+  const lastScanRef = useRef<string>('');
+  const lastScanTimeRef = useRef<number>(0);
+
+  const handleBarcodeScan = useCallback((barcode: string) => {
+    const now = Date.now();
+    if (barcode === lastScanRef.current && now - lastScanTimeRef.current < 2000) return;
+    lastScanRef.current = barcode;
+    lastScanTimeRef.current = now;
+
+    const product = productsRef.current.find(
+      (p) => p.barcode === barcode || p.sku === barcode
+    );
+    if (!product) {
+      toast.error(`محصولی با بارکد "${barcode}" یافت نشد`);
+      return;
+    }
+
+    setItems((prev) => {
+      const existing = prev.find((it) => it.productId === product.id);
+      if (existing) {
+        return prev.map((it) =>
+          it.productId === product.id
+            ? (() => {
+                const newQty = String(parseNumber(it.qty) + 1);
+                const qty = parseNumber(newQty);
+                const unitPrice = parseNumber(it.unitPrice);
+                const gross = qty * unitPrice;
+                const discPct = parseNumber(it.discountPct);
+                const discountAmount = (gross * discPct) / 100;
+                const taxable = gross - discountAmount;
+                const taxPct = parseNumber(it.taxPct);
+                const taxAmount = (taxable * taxPct) / 100;
+                return {
+                  ...it,
+                  qty: newQty,
+                  discountAmount: String(discountAmount),
+                  taxAmount: String(taxAmount),
+                  finalPrice: String(taxable + taxAmount),
+                };
+              })()
+            : it
+        );
+      }
+      const newRow: ItemRow = {
+        productId: product.id,
+        productName: product.name,
+        qty: '1',
+        unit: product.unit || '',
+        unitPrice: String(product.price || 0),
+        discountPct: '0',
+        discountAmount: '0',
+        taxPct: String(product.taxRate || 0),
+        taxAmount: '0',
+        finalPrice: String(product.price || 0),
+      };
+      const hasEmpty = prev.length === 1 && !prev[0].productId && !prev[0].productName;
+      return hasEmpty ? [newRow] : [...prev, newRow];
+    });
+
+    toast.success(`«${product.name}» به اقلام اضافه شد`);
+  }, []);
+
+  const productsRef = useRef<Product[]>([]);
+  useEffect(() => { productsRef.current = products; }, [products]);
+
+  useBarcodeScanner({ onScan: handleBarcodeScan, enabled: scannerEnabled });
 
   const loadData = useCallback(async () => {
     try {
@@ -232,8 +309,9 @@ export default function NewSalesInvoicePage() {
         });
       } catch {}
 
+      setLastCreatedInvoice({ ...invoice, items: items.filter((it) => it.productId || it.productName) });
+      setShowPrintDialog(true);
       toast.success('فاکتور فروش ثبت شد');
-      router.push('/dashboard/sales-invoices');
     } catch (error: any) {
       toast.error('ایجاد ناموفق: ' + error.message);
     } finally {
@@ -335,10 +413,32 @@ export default function NewSalesInvoicePage() {
 
             <Card>
               <CardContent className="p-5">
-                <div className="mb-4 flex items-center justify-between">
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <h2 className="text-base font-bold text-[#1D2939]">اقلام کالا/خدمات</h2>
-                  <Button type="button" size="sm" variant="outline" onClick={addItem}><Plus className="h-4 w-4" /> افزودن قلم</Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={scannerEnabled ? 'default' : 'outline'}
+                      onClick={() => {
+                        setScannerEnabled((v) => !v);
+                        if (!scannerEnabled) toast.success('اسکنر بارکد فعال شد — بارکد محصول را اسکن کنید');
+                        else toast.info('اسکنر بارکد غیرفعال شد');
+                      }}
+                      className={scannerEnabled ? 'bg-[#FF7A00] text-white hover:bg-[#E66E00]' : ''}
+                    >
+                      <ScanLine className="h-4 w-4" /> {scannerEnabled ? 'اسکنر فعال' : 'فعال‌سازی اسکنر'}
+                    </Button>
+                    <Button type="button" size="sm" variant="outline" onClick={addItem}><Plus className="h-4 w-4" /> افزودن قلم</Button>
+                  </div>
                 </div>
+
+                {scannerEnabled && (
+                  <div className="mb-4 flex items-center gap-2 rounded-lg border border-[#FF7A00]/30 bg-[#FF7A00]/5 p-3">
+                    <ScanLine className="h-5 w-5 shrink-0 text-[#FF7A00]" />
+                    <p className="text-xs text-[#B25C00]">اسکنر بارکد فعال است. بارکد محصول را با دستگاه اسکنر بخوانید تا به‌صورت خودکار به اقلام اضافه شود. اگر محصول قبلاً وجود داشته باشد، تعداد آن یک عدد افزایش می‌یابد.</p>
+                  </div>
+                )}
 
                 <div className="space-y-3">
                   {items.map((item, i) => (
@@ -425,6 +525,50 @@ export default function NewSalesInvoicePage() {
           </div>
         </div>
       </form>
+
+      <Dialog open={showPrintDialog} onOpenChange={setShowPrintDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <CheckCircle className="h-5 w-5 text-green-500" />
+              فاکتور ثبت شد
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-[#344054]">فاکتور فروش با شماره <strong>{lastCreatedInvoice?.internalNumber}</strong> با موفقیت ثبت شد. آیا می‌خواهید اکنون آن را پرینت بگیرید؟</p>
+            <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <Printer className="h-5 w-5 shrink-0 text-slate-500" />
+              {printerStatus.checking ? (
+                <span className="text-xs text-slate-400">در حال بررسی وضعیت پرینتر...</span>
+              ) : printerStatus.available ? (
+                <span className="text-xs font-semibold text-green-600">پرینتر متصل است{printerStatus.name ? ` (${printerStatus.name})` : ''}</span>
+              ) : (
+                <span className="text-xs font-semibold text-rose-500">پرینتری متصل نیست</span>
+              )}
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => { setShowPrintDialog(false); router.push('/dashboard/sales-invoices'); }}>بازگشت به لیست</Button>
+            <Button
+              disabled={!printerStatus.available || printing}
+              onClick={() => {
+                if (!lastCreatedInvoice) return;
+                setPrinting(true);
+                const cName = customers.find((c) => c.id === customerId);
+                const name = cName ? [cName.firstName, cName.lastName, cName.companyName].filter(Boolean).join(' ') : '';
+                const wh = warehouses.find((w) => w.id === warehouseId);
+                const html = generateInvoicePrintHTML(lastCreatedInvoice, lastCreatedInvoice.items || [], name, wh?.name);
+                const ok = printInvoice(html);
+                if (!ok) toast.error('باز کردن پنجره پرینت ناموفق بود. لطفاً pop-upها را مجاز کنید.');
+                setTimeout(() => setPrinting(false), 1500);
+              }}
+              className="bg-[#3155E7] text-white hover:bg-[#2445C7]"
+            >
+              <Printer className="h-4 w-4" /> {printing ? 'در حال پرینت...' : 'پرینت فاکتور'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,20 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createData } from '@/lib/data-client';
 import { useAuth } from '@/components/providers/auth-provider';
+import { useBarcodeScanner } from '@/hooks/use-barcode-scanner';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowRight, Package, Tag, Boxes, DollarSign, Warehouse, Lightbulb, Info, Loader2, Type } from 'lucide-react';
+import { ArrowRight, Package, Tag, Boxes, DollarSign, Warehouse, Lightbulb, Info, Loader2, Type, ScanLine, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const guideItems = [
   { icon: Type, title: 'نام محصول', desc: 'نامی واضح و مشخص برای محصول یا خدمت بنویسید.' },
   { icon: Tag, title: 'کد و برند', desc: 'کد یکتا (SKU) و برند محصول را وارد کنید.' },
+  { icon: ScanLine, title: 'بارکد', desc: 'با کلیک روی دکمه اسکن، بارکد را با بارکدخوان وارد کنید.' },
   { icon: DollarSign, title: 'قیمت و موجودی', desc: 'قیمت به تومان و موجودی انبار را ثبت کنید.' },
   { icon: Warehouse, title: 'حداقل موجودی', desc: 'حداقل موجودی برای هشدار کمبود را مشخص کنید.' },
 ];
@@ -24,9 +26,24 @@ export default function NewProductPage() {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [barcodeScanActive, setBarcodeScanActive] = useState(false);
+  const [scanFeedback, setScanFeedback] = useState('');
   const [form, setForm] = useState({
     name: '', type: 'product', sku: '', barcode: '', brand: '',
     price: '', stock: '', min_stock: '10', unit: 'عدد', description: '',
+  });
+
+  const handleBarcodeScan = useCallback((barcode: string) => {
+    setForm((prev) => ({ ...prev, barcode }));
+    setScanFeedback(`بارکد اسکن شد: ${barcode}`);
+    setBarcodeScanActive(false);
+    setTimeout(() => setScanFeedback(''), 4000);
+  }, []);
+
+  useBarcodeScanner({
+    onScan: handleBarcodeScan,
+    enabled: barcodeScanActive,
+    minLength: 3,
   });
 
   const validate = () => {
@@ -159,13 +176,40 @@ export default function NewProductPage() {
 
                 <div className="field-group">
                   <Label className="field-label">بارکد</Label>
-                  <Input
-                    dir="ltr"
-                    value={form.barcode}
-                    onChange={(e) => setForm({ ...form, barcode: e.target.value })}
-                    placeholder="اختیاری"
-                    className="task-input"
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      dir="ltr"
+                      value={form.barcode}
+                      onChange={(e) => setForm({ ...form, barcode: e.target.value })}
+                      placeholder="اختیاری"
+                      className="task-input"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setBarcodeScanActive((v) => !v)}
+                      className={`flex shrink-0 items-center gap-1.5 rounded-lg border px-3 text-sm font-medium transition-all whitespace-nowrap ${
+                        barcodeScanActive
+                          ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400'
+                          : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700/50'
+                      }`}
+                      title="اسکن بارکد با بارکدخوان"
+                    >
+                      <ScanLine className="h-4 w-4" />
+                      {barcodeScanActive ? 'در حال اسکن...' : 'اسکن'}
+                    </button>
+                  </div>
+                  {barcodeScanActive && (
+                    <div className="mt-2 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50/50 p-2 text-xs text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/10 dark:text-emerald-400">
+                      <ScanLine className="h-3.5 w-3.5 animate-pulse" />
+                      <span>بارکدخوان را آماده کنید و بارکد را اسکن کنید</span>
+                    </div>
+                  )}
+                  {scanFeedback && (
+                    <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-500">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      {scanFeedback}
+                    </div>
+                  )}
                 </div>
               </div>
 

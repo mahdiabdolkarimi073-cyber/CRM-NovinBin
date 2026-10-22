@@ -16,8 +16,10 @@ import {
 } from '@/components/ui/dialog';
 import {
   FileText, Plus, Search, Trash2, Calendar, ChevronLeft, ChevronRight,
-  CheckCircle, Clock, Eye, Ban, Send, User, TrendingUp, Package,
+  CheckCircle, Clock, Eye, Ban, Send, User, TrendingUp, Package, Printer,
 } from 'lucide-react';
+import { usePrinter, printInvoice } from '@/hooks/use-printer';
+import { generateInvoicePrintHTML } from '@/lib/invoice-print';
 import { formatJalali, formatToman, relativeTime } from '@/lib/format';
 import { fullName } from '@/lib/constants';
 import { toast } from 'sonner';
@@ -94,6 +96,8 @@ export default function SalesInvoicesPage() {
   const [historyDialog, setHistoryDialog] = useState<SalesInvoice | null>(null);
   const [voidDialog, setVoidDialog] = useState<{ id: string; reason: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [printing, setPrinting] = useState(false);
+  const { status: printerStatus } = usePrinter();
   const pageSize = 10;
 
   const isSuperAdmin = profile?.role === 'super_admin' || profile?.role === 'owner';
@@ -235,6 +239,19 @@ export default function SalesInvoicesPage() {
     setDetail(si);
     setDetailItems(si.items || []);
     setDetailHistory(si.history || []);
+  };
+
+  const handlePrint = () => {
+    if (!detail) return;
+    setPrinting(true);
+    const cName = customerName(detail.customerId, detail.customerName);
+    const whName = warehouseName(detail.warehouseId);
+    const html = generateInvoicePrintHTML(detail, detailItems, cName, whName);
+    const success = printInvoice(html);
+    if (!success) {
+      toast.error('باز کردن پنجره پرینت ناموفق بود. لطفاً pop-upها را مجاز کنید.');
+    }
+    setTimeout(() => setPrinting(false), 1500);
   };
 
   return (
@@ -381,6 +398,25 @@ export default function SalesInvoicesPage() {
                         ))}
                       </div>
                     )}
+                  </div>
+
+                  <div className="mb-4 flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                    <Printer className="h-5 w-5 shrink-0 text-slate-500" />
+                    {printerStatus.checking ? (
+                      <span className="text-xs text-slate-400">در حال بررسی وضعیت پرینتر...</span>
+                    ) : printerStatus.available ? (
+                      <span className="text-xs font-semibold text-green-600">پرینتر متصل است{printerStatus.name ? ` (${printerStatus.name})` : ''}</span>
+                    ) : (
+                      <span className="text-xs font-semibold text-rose-500">پرینتری متصل نیست</span>
+                    )}
+                    <button
+                      onClick={handlePrint}
+                      disabled={printing || !printerStatus.available}
+                      className="mr-auto flex h-8 items-center gap-1.5 rounded-lg bg-[#3155E7] px-3 text-xs font-semibold text-white transition-colors hover:bg-[#2445C7] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <Printer className="h-3.5 w-3.5" />
+                      {printing ? 'در حال پرینت...' : 'پرینت فاکتور'}
+                    </button>
                   </div>
 
                   <div className="flex flex-wrap gap-2 border-t border-slate-200 pt-4">
