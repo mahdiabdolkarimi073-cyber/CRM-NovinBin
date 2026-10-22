@@ -11,10 +11,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
-  ArrowRight, Clipboard, Calendar, Flag, Activity, Lightbulb,
+  ArrowRight, Clipboard, Calendar, Flag, Lightbulb,
   Info, Type, AlignRight, Gauge, Clock, UserCheck, Loader2, Check,
 } from 'lucide-react';
-import { TASK_STATUSES, TASK_PRIORITIES, fullName } from '@/lib/constants';
+import { TASK_PRIORITIES, fullName } from '@/lib/constants';
 import { toLocalDateString } from '@/lib/format';
 import { toast } from 'sonner';
 import type { Profile, TaskAssignee } from '@/lib/types';
@@ -47,7 +47,7 @@ export default function NewTaskPage() {
     description: '',
     assignedTo: '',
     priority: 'medium',
-    status: 'new',
+    status: 'in_progress',
     dueDate: '',
   });
   const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
@@ -76,6 +76,7 @@ export default function NewTaskPage() {
   const validate = () => {
     const e: Record<string, string> = {};
     if (!form.title.trim()) e.title = 'عنوان وظیفه الزامی است';
+    if (!form.dueDate) e.dueDate = 'انتخاب تاریخ موعد الزامی است';
     if (form.description.length > MAX_DESC) e.description = `حداکثر ${MAX_DESC} کاراکتر`;
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -257,46 +258,30 @@ export default function NewTaskPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="nb-editor-field-group">
-                  <Label className="nb-editor-label">اولویت <span className="text-red-500">*</span></Label>
-                  <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v })}>
-                    <SelectTrigger className="h-11">
-                      <Flag className="ml-1 h-4 w-4 text-slate-400" />
-                      <SelectValue placeholder="انتخاب اولویت..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TASK_PRIORITIES.map((p) => (
-                        <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="nb-editor-field-group">
-                  <Label className="nb-editor-label">وضعیت اولیه <span className="text-red-500">*</span></Label>
-                  <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-                    <SelectTrigger className="h-11">
-                      <Activity className="ml-1 h-4 w-4 text-slate-400" />
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TASK_STATUSES.map((s) => (
-                        <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="nb-editor-field-group">
+                <Label className="nb-editor-label">اولویت <span className="text-red-500">*</span></Label>
+                <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v })}>
+                  <SelectTrigger className="h-11">
+                    <Flag className="ml-1 h-4 w-4 text-slate-400" />
+                    <SelectValue placeholder="انتخاب اولویت..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TASK_PRIORITIES.map((p) => (
+                      <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="nb-editor-field-group">
-                <Label className="nb-editor-label">موعد انجام</Label>
+                <Label className="nb-editor-label">موعد انجام <span className="text-red-500">*</span></Label>
                 <JalaliDatePicker
                   value={form.dueDate ? new Date(form.dueDate) : null}
                   onChange={(d) => setForm({ ...form, dueDate: d ? toLocalDateString(d) : '' })}
                   placeholder="انتخاب تاریخ"
                   className="h-11"
                 />
+                {errors.dueDate && <span className="nb-editor-error">{errors.dueDate}</span>}
               </div>
             </div>
           </form>

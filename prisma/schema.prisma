@@ -412,7 +412,7 @@ model Task {
   teamId      String?  @db.Uuid
   customerId  String?  @db.Uuid
   priority    String   @default("medium")
-  status      String   @default("new")
+  status      String   @default("in_progress")
   progress    Int      @default(0)
   startDate   DateTime?
   dueDate     DateTime?

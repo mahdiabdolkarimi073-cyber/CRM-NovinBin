@@ -215,6 +215,12 @@ export default function TasksPage() {
       glow: 'rgba(34,197,94,0.25)',
     },
     {
+      label: 'به تعویق افتاده', value: tasks.filter((t) => t.status === 'postponed').length, icon: Clock,
+      filter: 'postponed',
+      gradient: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+      glow: 'rgba(139,92,246,0.25)',
+    },
+    {
       label: 'لغو شده', value: tasks.filter((t) => t.status === 'cancelled').length, icon: XCircle,
       filter: 'cancelled',
       gradient: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',

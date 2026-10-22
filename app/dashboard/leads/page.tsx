@@ -501,8 +501,9 @@ export default function LeadsPage() {
       updated.delete(viewLead.id);
       setDismissedAlarms(updated);
       toast.success(`نتیجه پیگیری ثبت شد. پیگیری بعدی: ${nextDate.toLocaleDateString('fa-IR')}`);
-      setViewLead({ ...viewLead, followUpResult, nextFollowUp: nextDate.toISOString() });
       setFollowUpResult('');
+      setViewDialogOpen(false);
+      setViewLead(null);
       loadLeads();
     } catch (e: any) {
       toast.error('ثبت ناموفق: ' + e.message);
@@ -527,6 +528,8 @@ export default function LeadsPage() {
       updated.delete(lead.id);
       setDismissedAlarms(updated);
       toast.success(`پیگیری ثبت شد. پیگیری بعدی: ${nextDate.toLocaleDateString('fa-IR')}`);
+      setViewDialogOpen(false);
+      setViewLead(null);
       loadLeads();
     } catch (e: any) {
       toast.error('ثبت پیگیری ناموفق: ' + e.message);

@@ -59,7 +59,7 @@ export default function EditTaskPage() {
     description: '',
     assignedTo: '',
     priority: 'medium',
-    status: 'new',
+    status: 'in_progress',
     dueDate: '',
   });
 
@@ -78,7 +78,7 @@ export default function EditTaskPage() {
           description: t.description || '',
           assignedTo: t.assignedTo || '',
           priority: t.priority || 'medium',
-          status: t.status || 'new',
+          status: t.status || 'in_progress',
           dueDate: t.dueDate ? t.dueDate.split('T')[0] : '',
         });
         const aIds = (assignees || []).map((a) => a.profileId);
@@ -175,6 +175,7 @@ export default function EditTaskPage() {
   const validate = () => {
     const e: Record<string, string> = {};
     if (!form.title.trim()) e.title = 'عنوان وظیفه الزامی است';
+    if (!form.dueDate) e.dueDate = 'انتخاب تاریخ موعد الزامی است';
     if (form.description.length > MAX_DESC) e.description = `حداکثر ${MAX_DESC} کاراکتر`;
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -391,13 +392,14 @@ export default function EditTaskPage() {
               </div>
 
               <div className="nb-editor-field-group">
-                <Label className="nb-editor-label">موعد انجام</Label>
+                <Label className="nb-editor-label">موعد انجام <span className="text-red-500">*</span></Label>
                 <JalaliDatePicker
                   value={form.dueDate ? new Date(form.dueDate) : null}
                   onChange={(d) => setForm({ ...form, dueDate: d ? toLocalDateString(d) : '' })}
                   placeholder="انتخاب تاریخ"
                   className="h-11"
                 />
+                {errors.dueDate && <span className="nb-editor-error">{errors.dueDate}</span>}
               </div>
             </div>
           </form>
