@@ -32,6 +32,10 @@ function formatJalali(date: string | null) {
   catch { return new Date(date).toLocaleDateString('fa-IR'); }
 }
 
+function isValidStudentPassword(value: string) {
+  return /^[0-9]{8,}$/.test(value);
+}
+
 export default function StudentsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -76,8 +80,16 @@ export default function StudentsPage() {
   }
 
   async function save() {
-    setSaving(true);
     setError('');
+    if (!editStudent && !isValidStudentPassword(form.password)) {
+      setError('رمز عبور باید حداقل ۸ رقم و فقط شامل اعداد انگلیسی باشد');
+      return;
+    }
+    if (editStudent && form.password && !isValidStudentPassword(form.password)) {
+      setError('رمز عبور باید حداقل ۸ رقم و فقط شامل اعداد انگلیسی باشد');
+      return;
+    }
+    setSaving(true);
     try {
       const payload: any = { ...form };
       if (editStudent) {
@@ -231,8 +243,19 @@ export default function StudentsPage() {
                   <input type="text" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} disabled={!!editStudent} />
                 </div>
                 <div className="academy-admin-field">
-                  <label>رمز عبور {editStudent && '(اختیاری)'}</label>
-                  <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder={editStudent ? 'بدون تغییر خالی بگذارید' : ''} />
+                  <label>رمز عبور {editStudent ? '(برای تغییر، حداقل ۸ رقم وارد کنید)' : '(حداقل ۸ رقم)'}</label>
+                  <input
+                    type="password"
+                    dir="ltr"
+                    inputMode="numeric"
+                    style={{ textAlign: 'right' }}
+                    value={form.password}
+                    onChange={(e) => setForm({ ...form, password: e.target.value.replace(/[^0-9]/g, '') })}
+                    placeholder={editStudent ? 'بدون تغییر خالی بگذارید' : 'حداقل ۸ رقم'}
+                  />
+                  <small style={{ display: 'block', marginTop: '4px', fontSize: '11px', color: '#64748b' }}>
+                    رمز عبور باید حداقل ۸ رقم و فقط شامل اعداد انگلیسی باشد.
+                  </small>
                 </div>
                 <div className="academy-admin-field">
                   <label>تلفن</label>

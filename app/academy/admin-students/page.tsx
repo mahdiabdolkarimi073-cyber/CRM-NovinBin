@@ -36,6 +36,10 @@ function isElevenDigits(value: string) {
   return /^\d{11}$/.test(value);
 }
 
+function isValidStudentPassword(value: string) {
+  return /^[0-9]{8,}$/.test(value);
+}
+
 export default function AdminStudentsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -83,8 +87,8 @@ export default function AdminStudentsPage() {
     setError('');
     if (!form.firstName.trim() || !form.lastName.trim()) { setError('نام و نام خانوادگی الزامی است'); return; }
     if (!isElevenDigits(form.username)) { setError('نام کاربری باید دقیقاً ۱۱ رقم و فقط شامل ارقام انگلیسی (0-9) باشد'); return; }
-    if (!editStudent && !isElevenDigits(form.password)) { setError('رمز عبور باید دقیقاً ۱۱ رقم و فقط شامل ارقام انگلیسی (0-9) باشد'); return; }
-    if (editStudent && form.password && !isElevenDigits(form.password)) { setError('رمز عبور باید دقیقاً ۱۱ رقم و فقط شامل ارقام انگلیسی (0-9) باشد'); return; }
+    if (!editStudent && !isValidStudentPassword(form.password)) { setError('رمز عبور باید حداقل ۸ رقم و فقط شامل اعداد انگلیسی باشد'); return; }
+    if (editStudent && form.password && !isValidStudentPassword(form.password)) { setError('رمز عبور باید حداقل ۸ رقم و فقط شامل اعداد انگلیسی باشد'); return; }
     setSaving(true);
     try {
       const payload: any = {
@@ -269,17 +273,19 @@ export default function AdminStudentsPage() {
                   />
                 </div>
                 <div className="academy-admin-field">
-                  <label>رمز عبور {editStudent ? '(برای تغییر، ۱۱ رقم وارد کنید)' : '(۱۱ رقم)'}</label>
+                  <label>رمز عبور {editStudent ? '(برای تغییر، حداقل ۸ رقم وارد کنید)' : '(حداقل ۸ رقم)'}</label>
                   <input
                     type="password"
                     dir="ltr"
                     inputMode="numeric"
-                    maxLength={11}
                     style={{textAlign:'right'}}
                     value={form.password}
-                    onChange={(e) => setForm({ ...form, password: e.target.value.replace(/[^0-9]/g, '').slice(0, 11) })}
-                    placeholder={editStudent ? 'بدون تغییر خالی بگذارید' : 'دقیقاً ۱۱ رقم'}
+                    onChange={(e) => setForm({ ...form, password: e.target.value.replace(/[^0-9]/g, '') })}
+                    placeholder={editStudent ? 'بدون تغییر خالی بگذارید' : 'حداقل ۸ رقم'}
                   />
+                  <small style={{ display: 'block', marginTop: '4px', fontSize: '11px', color: '#64748b' }}>
+                    رمز عبور باید حداقل ۸ رقم و فقط شامل اعداد انگلیسی باشد.
+                  </small>
                 </div>
                 <div className="academy-admin-field">
                   <label>تلفن</label>

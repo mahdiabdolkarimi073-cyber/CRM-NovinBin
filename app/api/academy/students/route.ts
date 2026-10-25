@@ -5,6 +5,11 @@ import bcrypt from 'bcryptjs';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
 
+function isValidStudentPassword(password: unknown): boolean {
+  if (typeof password !== 'string') return false;
+  return /^[0-9]{8,}$/.test(password);
+}
+
 async function getAdmin(req: NextRequest) {
   const token = req.cookies.get('academy_token')?.value;
   if (!token) return null;
@@ -78,15 +83,15 @@ export async function POST(req: NextRequest) {
   if (!/^\d{11}$/.test(String(username).trim())) {
     return NextResponse.json({ error: 'نام کاربری باید دقیقاً ۱۱ رقم و فقط شامل ارقام انگلیسی (0-9) باشد' }, { status: 400 });
   }
-  if (!/^\d{11}$/.test(String(password))) {
-    return NextResponse.json({ error: 'رمز عبور باید دقیقاً ۱۱ رقم و فقط شامل ارقام انگلیسی (0-9) باشد' }, { status: 400 });
+  if (!isValidStudentPassword(password)) {
+    return NextResponse.json({ error: 'رمز عبور باید حداقل ۸ رقم و فقط شامل اعداد انگلیسی باشد' }, { status: 400 });
   }
 
   const normalizedUsername = String(username).trim();
   const existing = await (prisma as any).academyUser.findUnique({ where: { username: normalizedUsername } });
   if (existing) return NextResponse.json({ error: 'این نام کاربری قبلاً ثبت شده است؛ نام کاربری دیگری انتخاب کنید' }, { status: 409 });
 
-  const passwordHash = await bcrypt.hash(String(password), 10);
+  const passwordHash = await bcrypt.hash(password, 10);
   const student = await (prisma as any).academyUser.create({
     data: { firstName: String(firstName).trim(), lastName: String(lastName).trim(), username: normalizedUsername, phone: phone || null, nationalId: nationalId || null, passwordHash, role: 'student', active: true },
   });
@@ -126,10 +131,10 @@ export async function PUT(req: NextRequest) {
   }
 
   if (password && String(password).length > 0) {
-    if (!/^\d{11}$/.test(String(password))) {
-      return NextResponse.json({ error: 'رمز عبور باید دقیقاً ۱۱ رقم و فقط شامل ارقام انگلیسی (0-9) باشد' }, { status: 400 });
+    if (!isValidStudentPassword(password)) {
+      return NextResponse.json({ error: 'رمز عبور باید حداقل ۸ رقم و فقط شامل اعداد انگلیسی باشد' }, { status: 400 });
     }
-    data.passwordHash = await bcrypt.hash(String(password), 10);
+    data.passwordHash = await bcrypt.hash(password, 10);
   }
 
   await (prisma as any).academyUser.update({ where: { id }, data });
